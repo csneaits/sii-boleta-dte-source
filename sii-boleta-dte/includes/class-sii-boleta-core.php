@@ -353,6 +353,9 @@ class SII_Boleta_Core {
         $track_id = false;
         if ( $enviar_sii ) {
             $track_id = $this->api->send_dte_to_sii( $file_path, $settings['environment'] );
+            if ( is_wp_error( $track_id ) ) {
+                wp_send_json_error( [ 'message' => $track_id->get_error_message() ] );
+            }
         }
 
         // Generar PDF de representación de la boleta con TED y PDF417

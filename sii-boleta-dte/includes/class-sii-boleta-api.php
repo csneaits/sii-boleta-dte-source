@@ -37,7 +37,14 @@ class SII_Boleta_API {
         ];
         $response = wp_remote_post( $endpoint, $args );
         if ( is_wp_error( $response ) ) {
-            return false;
+            sii_boleta_write_log( 'Error HTTP al enviar DTE: ' . $response->get_error_message() );
+            return $response;
+        }
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            $body = wp_remote_retrieve_body( $response );
+            sii_boleta_write_log( 'Error al enviar DTE. Código HTTP: ' . $code . '. Respuesta: ' . $body );
+            return new WP_Error( 'sii_api_error', sprintf( __( 'Error al enviar DTE al SII. Código HTTP: %s', 'sii-boleta-dte' ), $code ) );
         }
         $body = wp_remote_retrieve_body( $response );
         // El SII puede devolver JSON o XML; intentamos decodificar JSON primero.
@@ -70,7 +77,14 @@ class SII_Boleta_API {
         $endpoint = $base_url . '/boleta/trackid/' . urlencode( $track_id );
         $response = wp_remote_get( $endpoint, [ 'timeout' => 30 ] );
         if ( is_wp_error( $response ) ) {
-            return false;
+            sii_boleta_write_log( 'Error HTTP al consultar estado DTE: ' . $response->get_error_message() );
+            return $response;
+        }
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            $body = wp_remote_retrieve_body( $response );
+            sii_boleta_write_log( 'Error al consultar estado DTE. Código HTTP: ' . $code . '. Respuesta: ' . $body );
+            return new WP_Error( 'sii_api_error', sprintf( __( 'Error al consultar estado del DTE. Código HTTP: %s', 'sii-boleta-dte' ), $code ) );
         }
         $body = wp_remote_retrieve_body( $response );
         $data = json_decode( $body, true );

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Obtener versión desde el encabezado del plugin
-VERSION=$(grep -oP 'Version:\s*\K[0-9.]+(?=\s)' "sii-boleta-dte/sii-boleta-dte.php" | head -n 1)
+VERSION=$(grep -oP 'Version:\s*\K[0-9.]+' "sii-boleta-dte/sii-boleta-dte.php" | head -n 1)
 if [[ -z "$VERSION" ]]; then
   echo "No se pudo obtener la versión del plugin. Asegúrate de que el archivo sii-boleta-dte.php tenga la cabecera Version." >&2
   exit 1

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Definición de constantes del plugin para su ruta y URL.
 define( 'SII_BOLETA_DTE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SII_BOLETA_DTE_URL', plugin_dir_url( __FILE__ ) );
-define( 'SII_BOLETA_DTE_VERSION', '0.2.0' );
+define( 'SII_BOLETA_DTE_VERSION', '1.0.0' );
 
 /**
  * Clase principal del plugin. Encargada de inicializar componentes y cargar dependencias.

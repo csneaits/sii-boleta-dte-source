@@ -1,0 +1,373 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) exit;
+
+/**
+ * Clase núcleo encargada de inicializar los diferentes componentes del plugin.
+ *
+ * Esta clase encapsula la lógica común de arranque y se encarga de crear
+ * instancias de las clases de configuración, folios, generador de XML, firma,
+ * API del SII, generación de PDF y RVD, así como la integración con WooCommerce.
+ */
+class SII_Boleta_Core {
+
+    /**
+     * Instancias de clases utilizadas por el plugin. Se guardan como
+     * propiedades para permitir que otros componentes accedan a ellas si es
+     * necesario mediante métodos getter.
+     *
+     * @var SII_Boleta_Settings
+     * @var SII_Boleta_Folio_Manager
+     * @var SII_Boleta_XML_Generator
+     * @var SII_Boleta_Signer
+     * @var SII_Boleta_API
+     * @var SII_Boleta_PDF
+     * @var SII_Boleta_RVD_Manager
+     * @var SII_Boleta_Woo
+     */
+    private $settings;
+    private $folio_manager;
+    private $xml_generator;
+    private $signer;
+    private $api;
+    private $pdf;
+    private $rvd_manager;
+    private $woo;
+
+    /**
+     * Constructor. Inicializa todas las dependencias y registra las acciones
+     * principales necesarias para el plugin.
+     */
+    public function __construct() {
+        // Instanciar componentes
+        $this->settings      = new SII_Boleta_Settings();
+        $this->folio_manager = new SII_Boleta_Folio_Manager();
+        $this->xml_generator = new SII_Boleta_XML_Generator();
+        $this->signer        = new SII_Boleta_Signer();
+        $this->api           = new SII_Boleta_API();
+        $this->pdf           = new SII_Boleta_PDF();
+        $this->rvd_manager   = new SII_Boleta_RVD_Manager();
+        $this->woo           = new SII_Boleta_Woo( $this );
+
+        // Registrar acciones para páginas del panel de administración
+        add_action( 'admin_menu', [ $this, 'add_admin_pages' ] );
+
+        // Acciones AJAX para operaciones como generación de boletas desde el panel
+        add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
+    }
+
+    /**
+     * Devuelve la instancia de configuraciones. Útil para otras clases.
+     *
+     * @return SII_Boleta_Settings
+     */
+    public function get_settings() {
+        return $this->settings;
+    }
+
+    /**
+     * Devuelve la instancia del manejador de folios.
+     *
+     * @return SII_Boleta_Folio_Manager
+     */
+    public function get_folio_manager() {
+        return $this->folio_manager;
+    }
+
+    /**
+     * Devuelve la instancia del generador de XML.
+     *
+     * @return SII_Boleta_XML_Generator
+     */
+    public function get_xml_generator() {
+        return $this->xml_generator;
+    }
+
+    /**
+     * Devuelve la instancia del firmador de XML.
+     *
+     * @return SII_Boleta_Signer
+     */
+    public function get_signer() {
+        return $this->signer;
+    }
+
+    /**
+     * Devuelve la instancia de la API del SII.
+     *
+     * @return SII_Boleta_API
+     */
+    public function get_api() {
+        return $this->api;
+    }
+
+    /**
+     * Devuelve la instancia del generador de PDF.
+     *
+     * @return SII_Boleta_PDF
+     */
+    public function get_pdf() {
+        return $this->pdf;
+    }
+
+    /**
+     * Devuelve la instancia del manejador de RVD.
+     *
+     * @return SII_Boleta_RVD_Manager
+     */
+    public function get_rvd_manager() {
+        return $this->rvd_manager;
+    }
+
+    /**
+     * Agrega las páginas al menú de administración. Aquí se declaran las
+     * distintas pantallas: configuración y emisión manual de boletas.
+     */
+    public function add_admin_pages() {
+        add_menu_page(
+            __( 'SII Boletas', 'sii-boleta-dte' ),
+            __( 'SII Boletas', 'sii-boleta-dte' ),
+            'manage_options',
+            'sii-boleta-dte',
+            [ $this->settings, 'render_settings_page' ],
+            'dashicons-media-document'
+        );
+
+        add_submenu_page(
+            'sii-boleta-dte',
+            __( 'Generar DTE', 'sii-boleta-dte' ),
+            __( 'Generar DTE', 'sii-boleta-dte' ),
+            'manage_options',
+            'sii-boleta-dte-generate',
+            [ $this, 'render_generate_dte_page' ]
+        );
+    }
+
+    /**
+     * Renderiza la página de generación manual de DTE (boletas, notas de crédito y débito).
+     */
+    public function render_generate_dte_page() {
+        // Cargar folio disponible por AJAX y manejar generación desde el cliente
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Generar DTE (Boleta/Nota)', 'sii-boleta-dte' ); ?></h1>
+            <form id="sii-boleta-generate-form" method="post">
+                <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="dte_type"><?php esc_html_e( 'Tipo de DTE', 'sii-boleta-dte' ); ?></label></th>
+                        <td>
+                    <select name="dte_type" id="dte_type">
+                                <option value="39">Boleta Electrónica (39)</option>
+                                <option value="33">Factura Electrónica (33)</option>
+                                <option value="34">Factura Exenta (34)</option>
+                                <option value="61">Nota de Crédito Electrónica (61)</option>
+                                <option value="56">Nota de Débito Electrónica (56)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="receptor_rut"><?php esc_html_e( 'RUT Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="receptor_rut" id="receptor_rut" class="regular-text" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="receptor_nombre"><?php esc_html_e( 'Nombre Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="receptor_nombre" id="receptor_nombre" class="regular-text" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="direccion_recep"><?php esc_html_e( 'Dirección Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="direccion_recep" id="direccion_recep" class="regular-text"></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="comuna_recep"><?php esc_html_e( 'Comuna Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="comuna_recep" id="comuna_recep" class="regular-text"></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="descripcion"><?php esc_html_e( 'Descripción Ítem', 'sii-boleta-dte' ); ?></label></th>
+                        <td><textarea name="descripcion" id="descripcion" class="large-text" rows="3" required></textarea></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="cantidad"><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="number" name="cantidad" id="cantidad" class="small-text" step="1" min="1" value="1" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="precio_unitario"><?php esc_html_e( 'Precio Unitario', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="number" name="precio_unitario" id="precio_unitario" class="small-text" step="0.01" min="0" value="0" required></td>
+                    </tr>
+                    <tr id="referencia_fields" style="display:none;">
+                        <th scope="row"><label for="folio_ref"><?php esc_html_e( 'Folio Documento Referencia', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="folio_ref" id="folio_ref" class="regular-text"><br/>
+                            <label for="tipo_doc_ref"><?php esc_html_e( 'Tipo Doc Referencia', 'sii-boleta-dte' ); ?></label>
+                            <select name="tipo_doc_ref" id="tipo_doc_ref">
+                                <option value="39">Boleta (39)</option>
+                                <option value="33">Factura (33)</option>
+                                <option value="34">Factura Exenta (34)</option>
+                            </select><br/>
+                            <label for="razon_ref"><?php esc_html_e( 'Razón Referencia', 'sii-boleta-dte' ); ?></label>
+                            <input type="text" name="razon_ref" id="razon_ref" class="regular-text" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="enviar_sii"><?php esc_html_e( '¿Enviar al SII?', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="checkbox" name="enviar_sii" id="enviar_sii" value="1"></td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <button type="submit" class="button button-primary" id="sii-generate-dte">
+                        <?php esc_html_e( 'Generar DTE', 'sii-boleta-dte' ); ?>
+                    </button>
+                </p>
+                <div id="sii-boleta-result"></div>
+            </form>
+        </div>
+        <script>
+        jQuery(document).ready(function($){
+            function toggleReferenceFields() {
+                var type = $('#dte_type').val();
+                if (type === '56' || type === '61') {
+                    $('#referencia_fields').show();
+                } else {
+                    $('#referencia_fields').hide();
+                }
+            }
+            function toggleAddressFields() {
+                var type = $('#dte_type').val();
+                if (type === '33' || type === '34') {
+                    $('#direccion_recep').prop('required', true);
+                    $('#comuna_recep').prop('required', true);
+                } else {
+                    $('#direccion_recep').prop('required', false);
+                    $('#comuna_recep').prop('required', false);
+                }
+            }
+            toggleReferenceFields();
+            toggleAddressFields();
+            $('#dte_type').on('change', function(){
+                toggleReferenceFields();
+                toggleAddressFields();
+            });
+            $('#sii-boleta-generate-form').on('submit', function(e){
+                e.preventDefault();
+                var data = $(this).serialize();
+                $('#sii-generate-dte').prop('disabled', true);
+                $('#sii-boleta-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
+                $.post(ajaxurl, data + '&action=sii_boleta_dte_generate_dte', function(response){
+                    $('#sii-generate-dte').prop('disabled', false);
+                    if (response.success) {
+                        $('#sii-boleta-result').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                    } else {
+                        $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Manejador AJAX para generar un DTE desde la interfaz de administración.
+     */
+    public function ajax_generate_dte() {
+        check_admin_referer( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+
+        $type            = isset( $_POST['dte_type'] ) ? intval( $_POST['dte_type'] ) : 39;
+        $rut_receptor    = sanitize_text_field( $_POST['receptor_rut'] );
+        $nombre_receptor = sanitize_text_field( $_POST['receptor_nombre'] );
+        $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
+        $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
+        $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
+        $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
+        $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
+        $enviar_sii      = isset( $_POST['enviar_sii'] );
+        // Datos de referencia para notas
+        $folio_ref       = isset( $_POST['folio_ref'] ) ? sanitize_text_field( $_POST['folio_ref'] ) : '';
+        $tipo_doc_ref    = isset( $_POST['tipo_doc_ref'] ) ? sanitize_text_field( $_POST['tipo_doc_ref'] ) : '';
+        $razon_ref       = isset( $_POST['razon_ref'] ) ? sanitize_text_field( $_POST['razon_ref'] ) : '';
+
+        // Obtener un nuevo folio
+        $folio = $this->folio_manager->get_next_folio();
+        if ( ! $folio ) {
+            wp_send_json_error( [ 'message' => __( 'No hay folios disponibles. Cargue un CAF válido.', 'sii-boleta-dte' ) ] );
+        }
+
+        // Preparar datos comunes para el DTE
+        $settings = $this->settings->get_settings();
+        $monto_total = round( $cantidad * $precio_unitario );
+        $dte_data = [
+            'TipoDTE'    => $type,
+            'Folio'      => $folio,
+            'FchEmis'    => date( 'Y-m-d' ),
+            'RutEmisor'  => $settings['rut_emisor'],
+            'RznSoc'     => $settings['razon_social'],
+            'GiroEmisor' => $settings['giro'],
+            'DirOrigen'  => $settings['direccion'],
+            'CmnaOrigen' => $settings['comuna'],
+            'Receptor'   => [
+                'RUTRecep'    => $rut_receptor,
+                'RznSocRecep' => $nombre_receptor,
+                'DirRecep'    => $dir_recep,
+                'CmnaRecep'   => $cmna_recep,
+            ],
+            'Detalles' => [
+                [
+                    'NroLinDet' => 1,
+                    'NmbItem'   => $descripcion,
+                    'QtyItem'   => $cantidad,
+                    'PrcItem'   => $precio_unitario,
+                    'MontoItem' => $monto_total,
+                ],
+            ],
+        ];
+        // Añadir referencia si corresponde (notas de crédito o débito)
+        if ( in_array( $type, [56,61], true ) && $folio_ref && $tipo_doc_ref ) {
+            $dte_data['Referencias'][] = [
+                'TpoDocRef' => $tipo_doc_ref,
+                'FolioRef'  => $folio_ref,
+                'FchRef'    => date( 'Y-m-d' ),
+                'RazonRef'  => $razon_ref ?: 'Corrección',
+            ];
+        }
+
+        // Generar XML base para el DTE
+        $xml = $this->xml_generator->generate_dte_xml( $dte_data );
+        if ( ! $xml ) {
+            wp_send_json_error( [ 'message' => __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) ] );
+        }
+
+        // Firmar el XML
+        $signed_xml = $this->signer->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );
+        if ( ! $signed_xml ) {
+            wp_send_json_error( [ 'message' => __( 'Error al firmar el XML. Verifique su certificado.', 'sii-boleta-dte' ) ] );
+        }
+
+        // Guardar el archivo XML en la carpeta uploads
+        $upload_dir = wp_upload_dir();
+        $file_name  = 'DTE_' . $type . '_' . $folio . '_' . time() . '.xml';
+        $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
+        file_put_contents( $file_path, $signed_xml );
+
+        // Lógica para enviar al SII si el usuario lo solicita
+        $track_id = false;
+        if ( $enviar_sii ) {
+            $track_id = $this->api->send_dte_to_sii( $file_path, $settings['environment'] );
+        }
+
+        // Generar PDF de representación de la boleta con TED y PDF417
+        $pdf_path = $this->pdf->generate_pdf_representation( $signed_xml, $settings );
+
+        // Agregar el resultado del envío al mensaje de éxito
+        $message = sprintf( __( 'DTE generado correctamente. Archivo XML: %s', 'sii-boleta-dte' ), esc_html( $file_name ) );
+        if ( $track_id ) {
+            $message .= ' | ' . sprintf( __( 'Enviado al SII. Track ID: %s', 'sii-boleta-dte' ), esc_html( $track_id ) );
+        }
+
+        if ( $pdf_path ) {
+            $message .= ' | ' . sprintf( __( 'PDF generado: %s', 'sii-boleta-dte' ), esc_html( basename( $pdf_path ) ) );
+        }
+
+        wp_send_json_success( [ 'message' => $message ] );
+    }
+}

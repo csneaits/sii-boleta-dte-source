@@ -34,11 +34,13 @@ Se creará el archivo ZIP en la carpeta `dist\` con el nombre correspondiente.
 
 ## Dependencias opcionales
 
-El plugin está diseñado para generar la representación PDF del DTE utilizando las clases `FPDF` y `PDF417` si están disponibles. Debido a las limitaciones de este entorno, **no se incluyen estas bibliotecas en el código fuente**. Para que la generación de PDF funcione:
+El plugin puede generar la representación PDF del DTE utilizando las clases `FPDF` y `PDF417`. Se incluyen implementaciones básicas de ambas en `sii-boleta-dte/includes/libs/` que permiten crear un PDF sencillo con un timbre electrónico mínimo. Estas versiones son útiles para entornos de prueba o demostración, pero no reemplazan a las bibliotecas completas.
 
-1. Instala FPDF (por ejemplo, mediante Composer: `composer require setasign/fpdf`).
-2. Instala una librería de PDF417 que tenga un método `encode` similar al utilizado (p.ej., `lemonidea/pdf417-php`).
-3. Asegúrate de que ambas clases (`FPDF` y `PDF417`) estén cargadas antes de usar el plugin. Si alguna no está disponible, el plugin usará como fallback una representación HTML con un código PDF417 generado por un servicio en línea.
+Para producción se recomienda instalar dependencias más robustas mediante Composer:
+
+1. Instalar FPDF: `composer require setasign/fpdf`.
+2. Instalar una librería de PDF417 con un método `encode` compatible (por ejemplo, `lemonidea/pdf417-php`).
+3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin. Si alguna falta, se recurrirá a la representación HTML de respaldo con un código PDF417 obtenido en línea.
 
 ## Notas sobre la licencia y originalidad
 

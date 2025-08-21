@@ -46,7 +46,10 @@ class SII_Boleta_Core {
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
-        $this->woo           = new SII_Boleta_Woo( $this );
+
+        if ( class_exists( 'WooCommerce' ) ) {
+            $this->woo = new SII_Boleta_Woo( $this );
+        }
 
         // Registrar acciones para páginas del panel de administración
         add_action( 'admin_menu', [ $this, 'add_admin_pages' ] );

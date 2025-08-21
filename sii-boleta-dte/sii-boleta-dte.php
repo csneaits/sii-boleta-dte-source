@@ -74,6 +74,14 @@ final class SII_Boleta_DTE {
 
         // Incluir librería xmlseclibs para firmar digitalmente los XML
         require_once $includes_path . 'libs/xmlseclibs.php';
+
+        // Dependencias opcionales para generar PDFs y códigos PDF417.
+        if ( ! class_exists( 'FPDF', false ) ) {
+            require_once $includes_path . 'libs/fpdf.php';
+        }
+        if ( ! class_exists( 'PDF417', false ) ) {
+            require_once $includes_path . 'libs/pdf417.php';
+        }
     }
 }
 

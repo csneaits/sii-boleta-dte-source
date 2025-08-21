@@ -88,6 +88,9 @@ final class SII_Boleta_DTE {
 // Ejecutar el plugin si estamos en el área de administración o en frontend.
 new SII_Boleta_DTE();
 
+// Asegurar que la clase del cron esté disponible al registrar los hooks de activación.
+require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-boleta-cron.php';
+
 // Registrar hooks de activación y desactivación fuera de la clase para programar
 // los eventos cron cuando se active o desactive el plugin. Estos hooks no
 // pueden declararse dentro de un método porque necesitan ejecutarse en el

@@ -10,6 +10,22 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_XML_Generator {
 
     /**
+     * Instancia de configuraciones del plugin.
+     *
+     * @var SII_Boleta_Settings
+     */
+    private $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SII_Boleta_Settings $settings Instancia de configuraciones.
+     */
+    public function __construct( SII_Boleta_Settings $settings ) {
+        $this->settings = $settings;
+    }
+
+    /**
      * Genera el XML de un DTE en formato SimpleXMLElement. Devuelve el
      * contenido como string. Si ocurre un error, devuelve false.
      *
@@ -17,7 +33,7 @@ class SII_Boleta_XML_Generator {
      * @return string|false
      */
     public function generate_dte_xml( array $data ) {
-        $settings = ( new SII_Boleta_Settings() )->get_settings();
+        $settings = $this->settings->get_settings();
         $caf_path = $settings['caf_path'];
         if ( ! $caf_path || ! file_exists( $caf_path ) ) {
             return false;
@@ -125,7 +141,7 @@ class SII_Boleta_XML_Generator {
      */
     private function generate_ted( array $data, $caf_path ) {
         // Cargar configuración y certificado
-        $settings = ( new SII_Boleta_Settings() )->get_settings();
+        $settings = $this->settings->get_settings();
         $cert_path = $settings['cert_path'];
         $cert_pass = $settings['cert_pass'];
         if ( ! $cert_path || ! file_exists( $cert_path ) ) {

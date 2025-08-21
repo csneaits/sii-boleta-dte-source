@@ -47,9 +47,9 @@ final class SII_Boleta_DTE {
         $this->load_dependencies();
 
         // Instanciar la clase núcleo que configura todas las funcionalidades
-        new SII_Boleta_Core();
+        $core = new SII_Boleta_Core();
         // Instanciar el manejador de cron para registrar el callback del evento
-        new SII_Boleta_Cron();
+        new SII_Boleta_Cron( $core->get_settings() );
 
     }
 

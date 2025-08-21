@@ -40,12 +40,12 @@ class SII_Boleta_Core {
     public function __construct() {
         // Instanciar componentes
         $this->settings      = new SII_Boleta_Settings();
-        $this->folio_manager = new SII_Boleta_Folio_Manager();
-        $this->xml_generator = new SII_Boleta_XML_Generator();
+        $this->folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+        $this->xml_generator = new SII_Boleta_XML_Generator( $this->settings );
         $this->signer        = new SII_Boleta_Signer();
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
-        $this->rvd_manager   = new SII_Boleta_RVD_Manager();
+        $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
         $this->woo           = new SII_Boleta_Woo( $this );
 
         // Registrar acciones para páginas del panel de administración

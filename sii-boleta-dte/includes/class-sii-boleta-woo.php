@@ -123,7 +123,11 @@ class SII_Boleta_Woo {
         $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
         file_put_contents( $file_path, $signed );
         // Enviar al SII
-        $track_id = $this->core->get_api()->send_dte_to_sii( $file_path, $settings['environment'] );
+        $track_id = $this->core->get_api()->send_dte_to_sii( $file_path, $settings['environment'], $settings['api_token'] );
+        if ( is_wp_error( $track_id ) ) {
+            $order->add_order_note( $track_id->get_error_message() );
+            $track_id = false;
+        }
         // Guardar metadatos
         $order->update_meta_data( '_sii_dte_type', $tipo_dte );
         $order->update_meta_data( '_sii_boleta_folio', $folio );

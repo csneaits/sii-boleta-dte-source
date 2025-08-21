@@ -102,6 +102,13 @@ class SII_Boleta_Settings {
             'sii_boleta_dte_settings_section'
         );
         add_settings_field(
+            'api_token',
+            __( 'Token de la API', 'sii-boleta-dte' ),
+            [ $this, 'render_field_api_token' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_settings_section'
+        );
+        add_settings_field(
             'environment',
             __( 'Ambiente', 'sii-boleta-dte' ),
             [ $this, 'render_field_environment' ],
@@ -133,6 +140,7 @@ class SII_Boleta_Settings {
         $output['cert_path']     = sanitize_text_field( $input['cert_path'] ?? '' );
         $output['cert_pass']     = sanitize_text_field( $input['cert_pass'] ?? '' );
         $output['caf_path']      = sanitize_text_field( $input['caf_path'] ?? '' );
+        $output['api_token']     = sanitize_text_field( $input['api_token'] ?? '' );
         $output['environment']   = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']       = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         return $output;
@@ -153,6 +161,7 @@ class SII_Boleta_Settings {
             'cert_path'     => '',
             'cert_pass'     => '',
             'caf_path'      => '',
+            'api_token'    => '',
             'environment'   => 'test',
             'logo_id'       => 0,
         ];
@@ -255,6 +264,18 @@ class SII_Boleta_Settings {
             esc_attr( $options['caf_path'] )
         );
         echo '<p class="description">' . esc_html__( 'Ruta del archivo CAF emitido por el SII para folios de boletas. Este archivo se utiliza para timbrar el DTE.', 'sii-boleta-dte' ) . '</p>';
+    }
+
+    /**
+     * Renderiza el campo para el token de la API.
+     */
+    public function render_field_api_token() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[api_token]" value="%s" class="regular-text" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['api_token'] )
+        );
     }
 
     /**

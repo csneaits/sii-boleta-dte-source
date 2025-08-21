@@ -14,22 +14,26 @@ class SII_Boleta_API {
      *
      * @param string $file_path   Ruta del archivo XML a enviar.
      * @param string $environment 'test' o 'production'.
-     * @return string|false Track ID devuelto por el SII o false en caso de error.
+     * @param string $token       Token de autenticación de la API.
+     * @return string|\WP_Error|false Track ID devuelto por el SII, WP_Error si falta el token o false en caso de error.
      */
-    public function send_dte_to_sii( $file_path, $environment = 'test' ) {
+    public function send_dte_to_sii( $file_path, $environment = 'test', $token = '' ) {
         if ( ! file_exists( $file_path ) ) {
             return false;
+        }
+        if ( empty( $token ) ) {
+            return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
         }
         $base_url = ( 'production' === $environment )
             ? 'https://api.sii.cl/bolcoreinternetui/api'
             : 'https://maullin.sii.cl/bolcoreinternetui/api';
         $endpoint = $base_url . '/envioBoleta';
         $xml_content = file_get_contents( $file_path );
-        // Construir headers. En implementaciones reales se debe incluir el token de la API.
         $args = [
             'body'        => $xml_content,
             'headers'     => [
-                'Content-Type' => 'application/xml',
+                'Content-Type'  => 'application/xml',
+                'Authorization' => 'Bearer ' . $token,
             ],
             'method'      => 'POST',
             'data_format' => 'body',
@@ -61,14 +65,21 @@ class SII_Boleta_API {
      *
      * @param string $track_id
      * @param string $environment 'test' o 'production'.
-     * @return array|false Array con datos de estado o false si falla.
+     * @param string $token       Token de autenticación de la API.
+     * @return array|\WP_Error|false Array con datos de estado, WP_Error si falta el token o false si falla.
      */
-    public function get_dte_status( $track_id, $environment = 'test' ) {
+    public function get_dte_status( $track_id, $environment = 'test', $token = '' ) {
+        if ( empty( $token ) ) {
+            return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
+        }
         $base_url = ( 'production' === $environment )
             ? 'https://api.sii.cl/bolcoreinternetui/api'
             : 'https://maullin.sii.cl/bolcoreinternetui/api';
         $endpoint = $base_url . '/boleta/trackid/' . urlencode( $track_id );
-        $response = wp_remote_get( $endpoint, [ 'timeout' => 30 ] );
+        $response = wp_remote_get( $endpoint, [
+            'timeout' => 30,
+            'headers' => [ 'Authorization' => 'Bearer ' . $token ],
+        ] );
         if ( is_wp_error( $response ) ) {
             return false;
         }

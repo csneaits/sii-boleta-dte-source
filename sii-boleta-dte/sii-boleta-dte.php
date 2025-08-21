@@ -3,6 +3,7 @@
 Plugin Name:       SII Boleta DTE
 Description:       Plugin modular para la emisión de boletas, facturas, notas de crédito y débito electrónicas con integración al Servicio de Impuestos Internos (SII) de Chile. Permite configurar certificados, gestionar folios, generar el timbre electrónico (TED) y firmar digitalmente los documentos. Incluye integración con WooCommerce, generación del Resumen de Ventas Diarias (RVD) y soporte para distintos tipos de DTE. Para la creación del código PDF417 se utiliza un marcador de posición; se recomienda instalar una librería especializada para la versión de producción.
 Version:           1.0.0
+Requires PHP:      7.0
 Author:            Tu Nombre
 Text Domain:       sii-boleta-dte
 Domain Path:       /languages
@@ -16,6 +17,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'SII_BOLETA_DTE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SII_BOLETA_DTE_URL', plugin_dir_url( __FILE__ ) );
 define( 'SII_BOLETA_DTE_VERSION', '1.0.0' );
+
+// Verificar versión mínima de PHP.
+if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
+    function sii_boleta_dte_php_version_error() {
+        wp_die( esc_html__( 'SII Boleta DTE requiere PHP 7.0 o superior.', 'sii-boleta-dte' ) );
+    }
+    register_activation_hook( __FILE__, 'sii_boleta_dte_php_version_error' );
+    return;
+}
+
+// Registrar autoload para las clases del plugin.
+require_once SII_BOLETA_DTE_PATH . 'includes/autoload.php';
+
+// Incluir librerías externas necesarias.
+require_once SII_BOLETA_DTE_PATH . 'includes/libs/xmlseclibs.php';
+if ( ! class_exists( 'FPDF', false ) ) {
+    require_once SII_BOLETA_DTE_PATH . 'includes/libs/fpdf.php';
+}
+if ( ! class_exists( 'PDF417', false ) ) {
+    require_once SII_BOLETA_DTE_PATH . 'includes/libs/pdf417.php';
+}
 
 /**
  * Clase principal del plugin. Encargada de inicializar componentes y cargar dependencias.
@@ -43,9 +65,6 @@ final class SII_Boleta_DTE {
         // Cargar traducciones
         load_plugin_textdomain( 'sii-boleta-dte', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
-        // Cargar archivos de clase
-        $this->load_dependencies();
-
         // Instanciar la clase núcleo que configura todas las funcionalidades
         $core = new SII_Boleta_Core();
         // Instanciar el manejador de cron para registrar el callback del evento
@@ -53,43 +72,10 @@ final class SII_Boleta_DTE {
 
     }
 
-    /**
-     * Carga las dependencias del plugin. Todos los `require_once` se
-     * agrupan en este método para mantener el constructor ligero y mejorar
-     * la legibilidad del código.
-     */
-    private function load_dependencies() {
-        $includes_path = SII_BOLETA_DTE_PATH . 'includes/';
-
-        require_once $includes_path . 'class-sii-boleta-core.php';
-        require_once $includes_path . 'class-sii-boleta-settings.php';
-        require_once $includes_path . 'class-sii-boleta-folio-manager.php';
-        require_once $includes_path . 'class-sii-boleta-xml-generator.php';
-        require_once $includes_path . 'class-sii-boleta-signer.php';
-        require_once $includes_path . 'class-sii-boleta-api.php';
-        require_once $includes_path . 'class-sii-boleta-pdf.php';
-        require_once $includes_path . 'class-sii-boleta-rvd-manager.php';
-        require_once $includes_path . 'class-sii-boleta-cron.php';
-        require_once $includes_path . 'class-sii-boleta-woo.php';
-
-        // Incluir librería xmlseclibs para firmar digitalmente los XML
-        require_once $includes_path . 'libs/xmlseclibs.php';
-
-        // Dependencias opcionales para generar PDFs y códigos PDF417.
-        if ( ! class_exists( 'FPDF', false ) ) {
-            require_once $includes_path . 'libs/fpdf.php';
-        }
-        if ( ! class_exists( 'PDF417', false ) ) {
-            require_once $includes_path . 'libs/pdf417.php';
-        }
-    }
 }
 
 // Ejecutar el plugin si estamos en el área de administración o en frontend.
 new SII_Boleta_DTE();
-
-// Asegurar que la clase del cron esté disponible al registrar los hooks de activación.
-require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-boleta-cron.php';
 
 // Registrar hooks de activación y desactivación fuera de la clase para programar
 // los eventos cron cuando se active o desactive el plugin. Estos hooks no

@@ -51,6 +51,9 @@ class SII_Boleta_Core {
         // Registrar acciones para páginas del panel de administración
         add_action( 'admin_menu', [ $this, 'add_admin_pages' ] );
 
+        // Indicador visual del ambiente en la barra de administración
+        add_action( 'admin_bar_menu', [ $this, 'add_environment_indicator' ], 100 );
+
         // Acciones AJAX para operaciones como generación de boletas desde el panel
         add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
     }
@@ -116,6 +119,40 @@ class SII_Boleta_Core {
      */
     public function get_rvd_manager() {
         return $this->rvd_manager;
+    }
+
+    /**
+     * Agrega un indicador en la barra de administración para mostrar si el
+     * plugin está operando en ambiente de pruebas o producción.
+     *
+     * @param WP_Admin_Bar $wp_admin_bar Barra de administración de WordPress.
+     */
+    public function add_environment_indicator( $wp_admin_bar ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $settings = $this->settings->get_settings();
+        $env      = isset( $settings['environment'] ) ? $settings['environment'] : 'test';
+
+        $label = ( 'production' === $env )
+            ? __( 'Producción', 'sii-boleta-dte' )
+            : __( 'Pruebas', 'sii-boleta-dte' );
+
+        $color = ( 'production' === $env ) ? '#46b450' : '#ffb900';
+
+        $title = sprintf(
+            '<span class="ab-label" style="background:%s;color:#fff;padding:0 5px;border-radius:3px;">%s: %s</span>',
+            esc_attr( $color ),
+            esc_html__( 'SII DTE', 'sii-boleta-dte' ),
+            esc_html( $label )
+        );
+
+        $wp_admin_bar->add_node([
+            'id'    => 'sii-boleta-dte-env',
+            'title' => $title,
+            'href'  => admin_url( 'admin.php?page=sii-boleta-dte' ),
+        ]);
     }
 
     /**

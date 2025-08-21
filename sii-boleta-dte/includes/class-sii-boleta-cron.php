@@ -22,6 +22,12 @@ class SII_Boleta_Cron {
     const CRON_HOOK = 'sii_boleta_dte_daily_rvd';
 
     /**
+     * Gancho legado usado en versiones anteriores del plugin.
+     * Se mantiene para eliminar eventos huérfanos.
+     */
+    const LEGACY_CRON_HOOK = 'cron_sii_cl_boleta_dte';
+
+    /**
      * Constructor. Engancha las funciones al evento programado.
      */
     public function __construct( SII_Boleta_Settings $settings ) {
@@ -34,6 +40,9 @@ class SII_Boleta_Cron {
      * existe un evento programado, no vuelve a programarlo.
      */
     public static function activate() {
+        // Limpiar eventos antiguos que podían causar errores.
+        wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
+
         if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
             // Programar para la medianoche de la zona horaria configurada
             $timestamp = strtotime( 'tomorrow midnight' );
@@ -45,10 +54,8 @@ class SII_Boleta_Cron {
      * Elimina el evento programado al desactivar el plugin.
      */
     public static function deactivate() {
-        $timestamp = wp_next_scheduled( self::CRON_HOOK );
-        if ( $timestamp ) {
-            wp_unschedule_event( $timestamp, self::CRON_HOOK );
-        }
+        wp_clear_scheduled_hook( self::CRON_HOOK );
+        wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
     }
 
     /**

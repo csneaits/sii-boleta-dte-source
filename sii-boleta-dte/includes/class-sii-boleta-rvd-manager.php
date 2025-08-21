@@ -11,6 +11,22 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_RVD_Manager {
 
     /**
+     * Instancia de configuraciones del plugin.
+     *
+     * @var SII_Boleta_Settings
+     */
+    private $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SII_Boleta_Settings $settings Instancia de configuraciones.
+     */
+    public function __construct( SII_Boleta_Settings $settings ) {
+        $this->settings = $settings;
+    }
+
+    /**
      * Genera el XML del Resumen de Ventas Diarias para una fecha dada. Este
      * método recopila las boletas emitidas en la fecha indicada y crea un
      * documento con la estructura exigida por el SII. Por simplicidad,
@@ -23,7 +39,7 @@ class SII_Boleta_RVD_Manager {
         if ( ! $date ) {
             $date = date( 'Y-m-d' );
         }
-        $settings = ( new SII_Boleta_Settings() )->get_settings();
+        $settings = $this->settings->get_settings();
         try {
             $xml = new SimpleXMLElement( '<RVD version="1.0" xmlns="http://www.sii.cl/SiiDte"></RVD>' );
             $xml->addChild( 'FchRVD', $date );

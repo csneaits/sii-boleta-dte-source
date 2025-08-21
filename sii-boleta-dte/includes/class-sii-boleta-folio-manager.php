@@ -12,6 +12,22 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_Folio_Manager {
 
     /**
+     * Instancia de configuraciones del plugin.
+     *
+     * @var SII_Boleta_Settings
+     */
+    private $settings;
+
+    /**
+     * Constructor.
+     *
+     * @param SII_Boleta_Settings $settings Instancia de configuraciones.
+     */
+    public function __construct( SII_Boleta_Settings $settings ) {
+        $this->settings = $settings;
+    }
+
+    /**
      * Prefijo de la opción en la base de datos donde se almacena el último folio usado
      * para cada tipo de documento. Cada tipo de DTE debe llevar su propio contador
      * de folios, ya que el SII asigna rangos de folios independientes por tipo.
@@ -29,7 +45,7 @@ class SII_Boleta_Folio_Manager {
      * @return int|false El siguiente folio disponible o false si no hay folios.
      */
     public function get_next_folio( $tipo_dte = 39 ) {
-        $settings = ( new SII_Boleta_Settings() )->get_settings();
+        $settings = $this->settings->get_settings();
         $caf_path = $settings['caf_path'];
         if ( ! $caf_path || ! file_exists( $caf_path ) ) {
             return false;

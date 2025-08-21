@@ -10,6 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_Cron {
 
     /**
+     * Instancia de configuraciones del plugin.
+     *
+     * @var SII_Boleta_Settings
+     */
+    private $settings;
+
+    /**
      * Nombre del evento cron que se ejecutará diariamente.
      */
     const CRON_HOOK = 'sii_boleta_dte_daily_rvd';
@@ -17,7 +24,8 @@ class SII_Boleta_Cron {
     /**
      * Constructor. Engancha las funciones al evento programado.
      */
-    public function __construct() {
+    public function __construct( SII_Boleta_Settings $settings ) {
+        $this->settings = $settings;
         add_action( self::CRON_HOOK, [ $this, 'generate_and_send_rvd' ] );
     }
 
@@ -49,13 +57,13 @@ class SII_Boleta_Cron {
     public function generate_and_send_rvd() {
         // Se genera el RVD del día anterior (fecha de hoy menos un día)
         $date = date( 'Y-m-d', strtotime( '-1 day' ) );
-        $rvd_manager = new SII_Boleta_RVD_Manager();
+        $rvd_manager = new SII_Boleta_RVD_Manager( $this->settings );
         $xml = $rvd_manager->generate_rvd_xml( $date );
         if ( ! $xml ) {
             sii_boleta_write_log( 'Fallo al generar el RVD para la fecha ' . $date );
             return;
         }
-        $settings = ( new SII_Boleta_Settings() )->get_settings();
+        $settings = $this->settings->get_settings();
         $env = $settings['environment'];
         $enviado = $rvd_manager->send_rvd_to_sii( $xml, $env );
         if ( $enviado ) {

@@ -144,9 +144,13 @@ class SII_Boleta_Settings {
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
 
-        // Mantener rutas existentes por defecto.
-        $output['cert_path'] = $existing['cert_path'] ?? '';
-        $output['caf_path']  = is_array( $existing['caf_path'] ?? null ) ? $existing['caf_path'] : [];
+        // Guardar ruta de certificado existente o la proporcionada manualmente.
+        if ( ! empty( $input['cert_path'] ) ) {
+            $output['cert_path'] = sanitize_text_field( $input['cert_path'] );
+        } else {
+            $output['cert_path'] = $existing['cert_path'] ?? '';
+        }
+        $output['caf_path'] = is_array( $existing['caf_path'] ?? null ) ? $existing['caf_path'] : [];
 
         // Procesar subida del certificado.
         if ( ! empty( $_FILES['cert_file']['name'] ) ) {
@@ -293,7 +297,11 @@ class SII_Boleta_Settings {
             '<input type="file" name="cert_file" accept=".pfx,.p12" />'
         );
         if ( ! empty( $options['cert_path'] ) ) {
-            echo '<p>' . esc_html( basename( $options['cert_path'] ) ) . '</p>';
+            printf(
+                '<p class="description">%s <code>%s</code></p>',
+                esc_html__( 'Certificado actual:', 'sii-boleta-dte' ),
+                esc_html( basename( $options['cert_path'] ) )
+            );
         }
         echo '<p class="description">' . esc_html__( 'Cargue el certificado .pfx/.p12 o indique la ruta absoluta si ya existe en el servidor.', 'sii-boleta-dte' ) . '</p>';
         printf(

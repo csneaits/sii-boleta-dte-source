@@ -722,10 +722,13 @@ class SII_Boleta_Core {
         if ( ! $rvd_xml ) {
             wp_send_json_error( [ 'message' => __( 'No fue posible generar el RVD.', 'sii-boleta-dte' ) ] );
         }
-        $sent = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'] );
+        $sent     = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'] );
+        $today    = date( 'Y-m-d' );
         if ( $sent ) {
+            sii_boleta_write_log( 'RVD enviado manualmente para la fecha ' . $today );
             wp_send_json_success( [ 'message' => __( 'RVD enviado correctamente.', 'sii-boleta-dte' ) ] );
         } else {
+            sii_boleta_write_log( 'Error al enviar el RVD manual para la fecha ' . $today );
             wp_send_json_error( [ 'message' => __( 'Error al enviar el RVD.', 'sii-boleta-dte' ) ] );
         }
     }

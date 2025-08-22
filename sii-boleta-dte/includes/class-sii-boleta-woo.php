@@ -3,10 +3,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Integración con WooCommerce. Este componente escucha los eventos de
- * creación de pedidos para generar boletas o facturas según sea necesario.
- * Puede ampliarse para ofrecer opciones de selección de documento en la
- * página de checkout, o generar notas de crédito/debito cuando se procesa
- * una devolución.
+ * creación de pedidos para generar boletas, facturas o guías de despacho
+ * según sea necesario. Puede ampliarse para ofrecer opciones de selección
+ * de documento en la página de checkout, o generar notas de crédito/debito
+ * cuando se procesa una devolución.
  */
 class SII_Boleta_Woo {
 
@@ -166,12 +166,14 @@ class SII_Boleta_Woo {
         ];
         // Campo tipo de documento
         $settings = $this->core->get_settings()->get_settings();
-        $enabled  = isset( $settings['enabled_dte_types'] ) && is_array( $settings['enabled_dte_types'] ) ? $settings['enabled_dte_types'] : [ '39', '33', '34' ];
+        $enabled  = isset( $settings['enabled_dte_types'] ) && is_array( $settings['enabled_dte_types'] ) ? $settings['enabled_dte_types'] : [ '39', '33', '34', '52', '56', '61' ];
         $labels   = [
             '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
             '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
             '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
             '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
+            '56' => __( 'Nota de Débito Electrónica', 'sii-boleta-dte' ),
+            '61' => __( 'Nota de Crédito Electrónica', 'sii-boleta-dte' ),
         ];
         $options = [];
         foreach ( $enabled as $code ) {

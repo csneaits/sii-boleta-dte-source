@@ -435,7 +435,13 @@ class SII_Boleta_Core {
         // Lógica para enviar al SII si el usuario lo solicita
         $track_id = false;
         if ( $enviar_sii ) {
-            $track_id = $this->api->send_dte_to_sii( $file_path, $settings['environment'], $settings['api_token'] );
+            $track_id = $this->api->send_dte_to_sii(
+                $file_path,
+                $settings['environment'],
+                $settings['api_token'],
+                $settings['cert_path'],
+                $settings['cert_pass']
+            );
             if ( is_wp_error( $track_id ) ) {
                 wp_send_json_error( [ 'message' => $track_id->get_error_message() ] );
             }

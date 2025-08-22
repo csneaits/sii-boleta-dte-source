@@ -42,6 +42,14 @@ Para producción se recomienda instalar dependencias más robustas mediante Comp
 2. Instalar una librería de PDF417 con un método `encode` compatible (por ejemplo, `lemonidea/pdf417-php`).
 3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin. Si alguna falta, se recurrirá a la representación HTML de respaldo con un código PDF417 obtenido en línea.
 
+## Generación automática del token
+
+El plugin puede obtener de manera automática el token de autenticación del SII utilizando el certificado digital configurado en los ajustes:
+
+1. Indique la ruta y contraseña del certificado en la página de configuración.
+2. Deje en blanco el campo "Token de la API".
+3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
+
 ## Notas sobre la licencia y originalidad
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

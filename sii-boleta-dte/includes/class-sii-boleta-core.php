@@ -371,7 +371,10 @@ class SII_Boleta_Core {
         $razon_ref       = isset( $_POST['razon_ref'] ) ? sanitize_text_field( $_POST['razon_ref'] ) : '';
 
         // Obtener un nuevo folio
-        $folio = $this->folio_manager->get_next_folio();
+        $folio = $this->folio_manager->get_next_folio( $type );
+        if ( is_wp_error( $folio ) ) {
+            wp_send_json_error( [ 'message' => $folio->get_error_message() ] );
+        }
         if ( ! $folio ) {
             wp_send_json_error( [ 'message' => __( 'No hay folios disponibles. Cargue un CAF válido.', 'sii-boleta-dte' ) ] );
         }
@@ -415,7 +418,10 @@ class SII_Boleta_Core {
         }
 
         // Generar XML base para el DTE
-        $xml = $this->xml_generator->generate_dte_xml( $dte_data );
+        $xml = $this->xml_generator->generate_dte_xml( $dte_data, $type );
+        if ( is_wp_error( $xml ) ) {
+            wp_send_json_error( [ 'message' => $xml->get_error_message() ] );
+        }
         if ( ! $xml ) {
             wp_send_json_error( [ 'message' => __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) ] );
         }

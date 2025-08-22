@@ -297,10 +297,11 @@ class SII_Boleta_Settings {
             '<input type="file" name="cert_file" accept=".pfx,.p12" />'
         );
         if ( ! empty( $options['cert_path'] ) ) {
+            $current_cert = wp_basename( wp_normalize_path( $options['cert_path'] ) );
             printf(
                 '<p class="description">%s <code>%s</code></p>',
                 esc_html__( 'Certificado actual:', 'sii-boleta-dte' ),
-                esc_html( basename( $options['cert_path'] ) )
+                esc_html( $current_cert )
             );
         }
         echo '<p class="description">' . esc_html__( 'Cargue el certificado .pfx/.p12 o indique la ruta absoluta si ya existe en el servidor.', 'sii-boleta-dte' ) . '</p>';

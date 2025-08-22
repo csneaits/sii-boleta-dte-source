@@ -42,6 +42,17 @@ Para producción se recomienda instalar dependencias más robustas mediante Comp
 2. Instalar una librería de PDF417 con un método `encode` compatible (por ejemplo, `lemonidea/pdf417-php`).
 3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin. Si alguna falta, se recurrirá a la representación HTML de respaldo con un código PDF417 obtenido en línea.
 
+## Configuración de tipos de documento para el checkout
+
+Desde la página de ajustes del plugin es posible definir qué tipos de documentos se ofrecen a los clientes en el formulario de compra de WooCommerce. Actualmente se incluyen:
+
+- Boleta Electrónica
+- Factura Electrónica
+- Factura Exenta
+- Guía de Despacho
+
+Active o desactive cada opción según las necesidades de su negocio.
+
 ## Generación automática del token
 
 El plugin puede obtener de manera automática el token de autenticación del SII utilizando el certificado digital configurado en los ajustes:

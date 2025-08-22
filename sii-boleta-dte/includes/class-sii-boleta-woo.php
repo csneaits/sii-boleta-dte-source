@@ -165,15 +165,29 @@ class SII_Boleta_Woo {
             'priority'    => 90,
         ];
         // Campo tipo de documento
+        $settings = $this->core->get_settings()->get_settings();
+        $enabled  = isset( $settings['enabled_dte_types'] ) && is_array( $settings['enabled_dte_types'] ) ? $settings['enabled_dte_types'] : [ '39', '33', '34' ];
+        $labels   = [
+            '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
+            '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
+            '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
+            '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
+        ];
+        $options = [];
+        foreach ( $enabled as $code ) {
+            if ( isset( $labels[ $code ] ) ) {
+                $options[ $code ] = $labels[ $code ];
+            }
+        }
+        if ( empty( $options ) ) {
+            $options = [ '39' => $labels['39'] ];
+        }
+        $default = array_key_exists( '39', $options ) ? '39' : array_key_first( $options );
         $fields['billing']['sii_dte_type'] = [
             'type'     => 'select',
             'label'    => __( 'Tipo de Documento', 'sii-boleta-dte' ),
-            'options'  => [
-                '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
-                '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
-                '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
-            ],
-            'default'  => '39',
+            'options'  => $options,
+            'default'  => $default,
             'required' => false,
             'priority' => 91,
         ];

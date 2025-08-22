@@ -186,6 +186,15 @@ class SII_Boleta_Core {
 
         add_submenu_page(
             'sii-boleta-dte',
+            __( 'Panel de Control', 'sii-boleta-dte' ),
+            __( 'Panel de Control', 'sii-boleta-dte' ),
+            'manage_options',
+            'sii-boleta-dte-panel',
+            [ $this, 'render_control_panel_page' ]
+        );
+
+        add_submenu_page(
+            'sii-boleta-dte',
             __( 'Actividad del Job', 'sii-boleta-dte' ),
             __( 'Actividad del Job', 'sii-boleta-dte' ),
             'manage_options',
@@ -203,6 +212,29 @@ class SII_Boleta_Core {
         if ( 'toplevel_page_sii-boleta-dte' === $hook ) {
             wp_enqueue_media();
         }
+    }
+
+    /**
+     * Renderiza un panel de control con pestañas para distintos contenidos.
+     */
+    public function render_control_panel_page() {
+        $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'boletas';
+        ?>
+        <div class='wrap'>
+            <h1><?php esc_html_e( 'Panel de Control', 'sii-boleta-dte' ); ?></h1>
+            <h2 class='nav-tab-wrapper'>
+                <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
+                <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=jobs' ) ); ?>' class='nav-tab <?php echo ( 'jobs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Jobs', 'sii-boleta-dte' ); ?></a>
+            </h2>
+            <?php
+            if ( 'jobs' === $active_tab ) {
+                echo '<p>' . esc_html__( 'Aquí se mostrará la actividad de los jobs programados.', 'sii-boleta-dte' ) . '</p>';
+            } else {
+                echo '<p>' . esc_html__( 'Aquí se mostrarán las boletas generadas.', 'sii-boleta-dte' ) . '</p>';
+            }
+            ?>
+        </div>
+        <?php
     }
 
     /**

@@ -10,6 +10,41 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_API {
 
     /**
+     * Devuelve la URL base de la API según el ambiente.
+     * Permite ser modificada mediante el filtro 'sii_boleta_api_base_url'.
+     *
+     * @param string $environment 'test' o 'production'.
+     * @return string
+     */
+    private function get_base_url( $environment ) {
+        $url = ( 'production' === $environment )
+            ? 'https://api.sii.cl/bolcoreinternetui/api'
+            : 'https://maullin.sii.cl/bolcoreinternetui/api';
+        /**
+         * Filtro para modificar la URL base de la API del SII.
+         *
+         * @param string $url         URL base calculada.
+         * @param string $environment Ambiente solicitado.
+         */
+        return apply_filters( 'sii_boleta_api_base_url', $url, $environment );
+    }
+
+    /**
+     * Obtiene un token válido desde la configuración o lo genera si expiró.
+     */
+    private function get_or_generate_token( $environment, $cert_path, $cert_pass ) {
+        $settings = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
+        $token    = $settings['api_token'] ?? '';
+        $expires  = isset( $settings['api_token_expires'] ) ? intval( $settings['api_token_expires'] ) : 0;
+
+        if ( empty( $token ) || time() >= $expires ) {
+            $token = $this->generate_token( $environment, $cert_path, $cert_pass );
+        }
+
+        return $token;
+    }
+
+    /**
      * Envía un DTE (archivo XML) al servicio de boletas del SII.
      *
      * @param string $file_path   Ruta del archivo XML a enviar.
@@ -23,16 +58,13 @@ class SII_Boleta_API {
         if ( ! file_exists( $file_path ) ) {
             return false;
         }
-        if ( empty( $token ) && $cert_path && $cert_pass ) {
-            $token = $this->generate_token( $environment, $cert_path, $cert_pass );
+        if ( empty( $token ) ) {
+            $token = $this->get_or_generate_token( $environment, $cert_path, $cert_pass );
         }
         if ( empty( $token ) ) {
             return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
         }
-        $base_url = ( 'production' === $environment )
-            ? 'https://api.sii.cl/bolcoreinternetui/api'
-            : 'https://maullin.sii.cl/bolcoreinternetui/api';
-        $endpoint = $base_url . '/envioBoleta';
+        $endpoint = $this->get_base_url( $environment ) . '/envioBoleta';
         $xml_content = file_get_contents( $file_path );
         $args = [
             'body'        => $xml_content,
@@ -47,6 +79,10 @@ class SII_Boleta_API {
         $response = wp_remote_post( $endpoint, $args );
         if ( is_wp_error( $response ) ) {
             return false;
+        }
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            return new \WP_Error( 'sii_boleta_http_error', sprintf( __( 'Error HTTP %d al llamar al servicio del SII.', 'sii-boleta-dte' ), $code ) );
         }
         $body = wp_remote_retrieve_body( $response );
         // El SII puede devolver JSON o XML; intentamos decodificar JSON primero.
@@ -76,22 +112,23 @@ class SII_Boleta_API {
      * @return array|\WP_Error|false Array con datos de estado, WP_Error si falta el token o false si falla.
      */
     public function get_dte_status( $track_id, $environment = 'test', $token = '', $cert_path = '', $cert_pass = '' ) {
-        if ( empty( $token ) && $cert_path && $cert_pass ) {
-            $token = $this->generate_token( $environment, $cert_path, $cert_pass );
+        if ( empty( $token ) ) {
+            $token = $this->get_or_generate_token( $environment, $cert_path, $cert_pass );
         }
         if ( empty( $token ) ) {
             return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
         }
-        $base_url = ( 'production' === $environment )
-            ? 'https://api.sii.cl/bolcoreinternetui/api'
-            : 'https://maullin.sii.cl/bolcoreinternetui/api';
-        $endpoint = $base_url . '/boleta/trackid/' . urlencode( $track_id );
+        $endpoint = $this->get_base_url( $environment ) . '/boleta/trackid/' . urlencode( $track_id );
         $response = wp_remote_get( $endpoint, [
             'timeout' => 30,
             'headers' => [ 'Authorization' => 'Bearer ' . $token ],
         ] );
         if ( is_wp_error( $response ) ) {
             return false;
+        }
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            return new \WP_Error( 'sii_boleta_http_error', sprintf( __( 'Error HTTP %d al llamar al servicio del SII.', 'sii-boleta-dte' ), $code ) );
         }
         $body = wp_remote_retrieve_body( $response );
         $data = json_decode( $body, true );
@@ -183,9 +220,10 @@ class SII_Boleta_API {
         }
 
         if ( $token ) {
-            // Guardar el token en las opciones para reutilizarlo.
-            $settings = get_option( SII_Boleta_Settings::OPTION_NAME, array() );
-            $settings['api_token'] = $token;
+            // Guardar el token y su expiración en las opciones para reutilizarlo.
+            $settings                     = get_option( SII_Boleta_Settings::OPTION_NAME, array() );
+            $settings['api_token']        = $token;
+            $settings['api_token_expires'] = time() + 50 * 60; // 50 minutos.
             update_option( SII_Boleta_Settings::OPTION_NAME, $settings );
         }
 

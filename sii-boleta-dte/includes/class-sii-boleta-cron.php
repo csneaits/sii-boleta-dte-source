@@ -72,11 +72,18 @@ class SII_Boleta_Cron {
         }
         $settings = $this->settings->get_settings();
         $env = $settings['environment'];
-        $enviado = $rvd_manager->send_rvd_to_sii( $xml, $env );
+        $enviado     = $rvd_manager->send_rvd_to_sii( $xml, $env );
+        $admin_email = get_option( 'admin_email' );
         if ( $enviado ) {
             sii_boleta_write_log( 'RVD enviado correctamente para la fecha ' . $date );
+            if ( $admin_email ) {
+                wp_mail( $admin_email, 'RVD enviado', 'RVD enviado correctamente para la fecha ' . $date );
+            }
         } else {
             sii_boleta_write_log( 'Error al enviar el RVD para la fecha ' . $date );
+            if ( $admin_email ) {
+                wp_mail( $admin_email, 'Error al enviar RVD', 'Error al enviar el RVD para la fecha ' . $date );
+            }
         }
     }
 }

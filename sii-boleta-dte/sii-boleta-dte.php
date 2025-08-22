@@ -93,8 +93,10 @@ if ( ! function_exists( 'sii_boleta_write_log' ) ) {
      * @param string $message Mensaje a registrar.
      */
     function sii_boleta_write_log( $message ) {
-        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
-            // Solo registrar si el modo debug está activo para no llenar el disco.
+        $settings        = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
+        $logging_enabled = ! empty( $settings['enable_logging'] );
+        if ( ! $logging_enabled && ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) ) {
+            // Solo registrar si el modo debug está activo o si se habilitó explícitamente en los ajustes.
             return;
         }
         $upload_dir = wp_upload_dir();

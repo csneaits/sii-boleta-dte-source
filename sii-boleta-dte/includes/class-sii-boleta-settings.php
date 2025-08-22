@@ -129,6 +129,13 @@ class SII_Boleta_Settings {
             'sii-boleta-dte',
             'sii_boleta_dte_settings_section'
         );
+        add_settings_field(
+            'enable_logging',
+            __( 'Habilitar logging', 'sii-boleta-dte' ),
+            [ $this, 'render_field_enable_logging' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_settings_section'
+        );
     }
 
     /**
@@ -150,6 +157,8 @@ class SII_Boleta_Settings {
         $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
+        $output['enable_logging'] = ! empty( $input['enable_logging'] );
+        $output['api_token_expires'] = isset( $existing['api_token_expires'] ) ? intval( $existing['api_token_expires'] ) : 0;
         $valid_types            = [ '39', '33', '34', '52', '56', '61' ];
         $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
         $output['enabled_dte_types'] = array_values( array_intersect( $valid_types, array_map( 'sanitize_text_field', $requested_types ) ) );
@@ -235,9 +244,11 @@ class SII_Boleta_Settings {
             'cert_pass'     => '',
             'caf_path'      => [],
             'api_token'    => '',
+            'api_token_expires' => 0,
             'environment'   => 'test',
             'enabled_dte_types' => [ '39', '33', '34', '52', '56', '61' ],
             'logo_id'       => 0,
+            'enable_logging' => 0,
         ];
         return wp_parse_args( get_option( self::OPTION_NAME, [] ), $defaults );
     }
@@ -477,6 +488,19 @@ class SII_Boleta_Settings {
             });
         });
         </script>
+        <?php
+    }
+
+    /**
+     * Renderiza el checkbox para habilitar el logging del plugin.
+     */
+    public function render_field_enable_logging() {
+        $options = $this->get_settings();
+        ?>
+        <label>
+            <input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[enable_logging]" value="1" <?php checked( ! empty( $options['enable_logging'] ) ); ?> />
+            <?php esc_html_e( 'Registrar eventos del plugin incluso si WP_DEBUG está desactivado.', 'sii-boleta-dte' ); ?>
+        </label>
         <?php
     }
 

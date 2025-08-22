@@ -62,6 +62,9 @@ class SII_Boleta_Core {
 
         // Acciones AJAX para operaciones como generación de boletas desde el panel
         add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_list_dtes', [ $this, 'ajax_list_dtes' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
     }
 
     /**
@@ -226,14 +229,80 @@ class SII_Boleta_Core {
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=jobs' ) ); ?>' class='nav-tab <?php echo ( 'jobs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Jobs', 'sii-boleta-dte' ); ?></a>
             </h2>
-            <?php
-            if ( 'jobs' === $active_tab ) {
-                echo '<p>' . esc_html__( 'Aquí se mostrará la actividad de los jobs programados.', 'sii-boleta-dte' ) . '</p>';
-            } else {
-                echo '<p>' . esc_html__( 'Aquí se mostrarán las boletas generadas.', 'sii-boleta-dte' ) . '</p>';
-            }
-            ?>
+            <?php if ( 'jobs' === $active_tab ) : ?>
+                <p>
+                    <?php esc_html_e( 'Próxima ejecución del job:', 'sii-boleta-dte' ); ?>
+                    <span id="sii-job-next"></span>
+                </p>
+                <p>
+                    <button type="button" class="button" id="sii-run-rvd"><?php esc_html_e( 'Generar RVD del día', 'sii-boleta-dte' ); ?></button>
+                </p>
+                <div id="sii-rvd-result"></div>
+                <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
+            <?php else : ?>
+                <p>
+                    <button type="button" class="button" id="sii-refresh-dtes"><?php esc_html_e( 'Actualizar', 'sii-boleta-dte' ); ?></button>
+                </p>
+                <table class="widefat striped" id="sii-dte-table">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Tipo', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Folio', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'XML', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'PDF/HTML', 'sii-boleta-dte' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            <?php endif; ?>
         </div>
+        <script type="text/javascript">
+        jQuery(function($){
+            var activeTab = '<?php echo esc_js( $active_tab ); ?>';
+            if (activeTab === 'boletas') {
+                function loadDtes(){
+                    $('#sii-dte-table tbody').html('<tr><td colspan="5"><?php echo esc_js( __( 'Cargando...', 'sii-boleta-dte' ) ); ?></td></tr>');
+                    $.post(ajaxurl, {action:'sii_boleta_dte_list_dtes'}, function(resp){
+                        if(resp.success){
+                            var rows='';
+                            $.each(resp.data.dtes, function(i,d){
+                                var pdf = d.pdf ? '<a href="'+d.pdf+'" target="_blank"><?php echo esc_js( __( 'Ver', 'sii-boleta-dte' ) ); ?></a>' : '-';
+                                rows += '<tr><td>'+d.tipo+'</td><td>'+d.folio+'</td><td>'+d.fecha+'</td><td><a href="'+d.xml+'" target="_blank">XML</a></td><td>'+pdf+'</td></tr>';
+                            });
+                            if(!rows){ rows = '<tr><td colspan="5"><?php echo esc_js( __( 'No hay DTE disponibles.', 'sii-boleta-dte' ) ); ?></td></tr>'; }
+                            $('#sii-dte-table tbody').html(rows);
+                        } else {
+                            $('#sii-dte-table tbody').html('<tr><td colspan="5">'+resp.data.message+'</td></tr>');
+                        }
+                    });
+                }
+                $('#sii-refresh-dtes').on('click', loadDtes);
+                loadDtes();
+            } else if (activeTab === 'jobs') {
+                function loadLog(){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_job_log'}, function(resp){
+                        if(resp.success){
+                            $('#sii-job-log').text(resp.data.log);
+                            $('#sii-job-next').text(resp.data.next_run);
+                        }
+                    });
+                }
+                $('#sii-run-rvd').on('click', function(){
+                    $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
+                    $.post(ajaxurl, {action:'sii_boleta_dte_run_rvd'}, function(resp){
+                        if(resp.success){
+                            $('#sii-rvd-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
+                        }else{
+                            $('#sii-rvd-result').html('<div class="notice notice-error"><p>'+resp.data.message+'</p></div>');
+                        }
+                        loadLog();
+                    });
+                });
+                loadLog();
+            }
+        });
+        </script>
         <?php
     }
 
@@ -499,5 +568,81 @@ class SII_Boleta_Core {
         }
 
         wp_send_json_success( [ 'message' => $message ] );
+    }
+
+    /**
+     * Devuelve la lista de DTE generados buscando los archivos en la carpeta de uploads.
+     */
+    public function ajax_list_dtes() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $upload_dir = wp_upload_dir();
+        $base_dir   = trailingslashit( $upload_dir['basedir'] );
+        $base_url   = trailingslashit( $upload_dir['baseurl'] );
+        $files      = glob( $base_dir . 'DTE_*.xml' );
+        $dtes       = [];
+        if ( $files ) {
+            foreach ( $files as $file ) {
+                $name = basename( $file );
+                if ( preg_match( '/DTE_(\d+)_(\d+)_(\d+)\.xml$/', $name, $m ) ) {
+                    $tipo = $m[1];
+                    $folio = $m[2];
+                    $ts   = (int) $m[3];
+                    $fecha = date_i18n( 'Y-m-d H:i', $ts );
+                    $pdf   = '';
+                    $pdf_file  = $base_dir . 'DTE_' . $tipo . '_' . $folio . '_' . $m[3] . '.pdf';
+                    $html_file = $base_dir . 'DTE_' . $tipo . '_' . $folio . '_' . $m[3] . '.html';
+                    if ( file_exists( $pdf_file ) ) {
+                        $pdf = $base_url . basename( $pdf_file );
+                    } elseif ( file_exists( $html_file ) ) {
+                        $pdf = $base_url . basename( $html_file );
+                    }
+                    $dtes[] = [
+                        'tipo'  => $tipo,
+                        'folio' => $folio,
+                        'fecha' => $fecha,
+                        'xml'   => $base_url . $name,
+                        'pdf'   => $pdf,
+                    ];
+                }
+            }
+        }
+        wp_send_json_success( [ 'dtes' => $dtes ] );
+    }
+
+    /**
+     * Devuelve el registro de actividad del job y la próxima ejecución programada.
+     */
+    public function ajax_job_log() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $upload_dir = wp_upload_dir();
+        $log_file   = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs/sii-boleta.log';
+        $log        = file_exists( $log_file ) ? file_get_contents( $log_file ) : __( 'No hay actividad registrada.', 'sii-boleta-dte' );
+        $next_run   = wp_next_scheduled( SII_Boleta_Cron::CRON_HOOK );
+        $next_run_human = $next_run ? date_i18n( 'Y-m-d H:i:s', $next_run ) : __( 'No programado', 'sii-boleta-dte' );
+        wp_send_json_success( [ 'log' => $log, 'next_run' => $next_run_human ] );
+    }
+
+    /**
+     * Genera y envía el RVD del día actual mediante AJAX.
+     */
+    public function ajax_run_rvd() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $settings = $this->settings->get_settings();
+        $rvd_xml  = $this->rvd_manager->generate_rvd_xml();
+        if ( ! $rvd_xml ) {
+            wp_send_json_error( [ 'message' => __( 'No fue posible generar el RVD.', 'sii-boleta-dte' ) ] );
+        }
+        $sent = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'] );
+        if ( $sent ) {
+            wp_send_json_success( [ 'message' => __( 'RVD enviado correctamente.', 'sii-boleta-dte' ) ] );
+        } else {
+            wp_send_json_error( [ 'message' => __( 'Error al enviar el RVD.', 'sii-boleta-dte' ) ] );
+        }
     }
 }

@@ -146,7 +146,7 @@ class SII_Boleta_Settings {
 
         // Mantener rutas existentes por defecto.
         $output['cert_path'] = $existing['cert_path'] ?? '';
-        $output['caf_path']  = $existing['caf_path'] ?? '';
+        $output['caf_path']  = is_array( $existing['caf_path'] ?? null ) ? $existing['caf_path'] : [];
 
         // Procesar subida del certificado.
         if ( ! empty( $_FILES['cert_file']['name'] ) ) {
@@ -159,14 +159,43 @@ class SII_Boleta_Settings {
             }
         }
 
-        // Procesar subida del CAF.
-        if ( ! empty( $_FILES['caf_file']['name'] ) ) {
-            $file_type = wp_check_filetype( $_FILES['caf_file']['name'] );
-            if ( 'xml' === $file_type['ext'] ) {
-                $upload = wp_handle_upload( $_FILES['caf_file'], [ 'test_form' => false ] );
-                if ( empty( $upload['error'] ) ) {
-                    $output['caf_path'] = $upload['file'];
+        // Procesar campos de CAF por tipo de DTE.
+        $caf_types = $input['caf_type'] ?? [];
+        $caf_paths = $input['caf_path'] ?? [];
+        $files     = $_FILES['caf_file'] ?? [];
+        $output['caf_path'] = [];
+
+        foreach ( $caf_types as $index => $tipo ) {
+            $tipo = sanitize_text_field( $tipo );
+            if ( empty( $tipo ) ) {
+                continue;
+            }
+
+            $path = sanitize_text_field( $caf_paths[ $index ] ?? '' );
+
+            // Procesar subida del archivo correspondiente al índice.
+            if ( ! empty( $files['name'][ $index ] ) ) {
+                $file = [
+                    'name'     => $files['name'][ $index ],
+                    'type'     => $files['type'][ $index ],
+                    'tmp_name' => $files['tmp_name'][ $index ],
+                    'error'    => $files['error'][ $index ],
+                    'size'     => $files['size'][ $index ],
+                ];
+                $file_type = wp_check_filetype( $file['name'] );
+                if ( 'xml' === $file_type['ext'] ) {
+                    $upload = wp_handle_upload( $file, [ 'test_form' => false ] );
+                    if ( empty( $upload['error'] ) ) {
+                        $path = $upload['file'];
+                    }
                 }
+            } elseif ( isset( $existing['caf_path'][ $tipo ] ) && empty( $path ) ) {
+                // Mantener la ruta existente si no se proporcionó nueva ruta ni archivo
+                $path = $existing['caf_path'][ $tipo ];
+            }
+
+            if ( ! empty( $path ) ) {
+                $output['caf_path'][ $tipo ] = $path;
             }
         }
 
@@ -187,7 +216,7 @@ class SII_Boleta_Settings {
             'comuna'        => '',
             'cert_path'     => '',
             'cert_pass'     => '',
-            'caf_path'      => '',
+            'caf_path'      => [],
             'api_token'    => '',
             'environment'   => 'test',
             'logo_id'       => 0,
@@ -290,17 +319,45 @@ class SII_Boleta_Settings {
      * Renderiza el campo para la ruta del archivo CAF.
      */
     public function render_field_caf_path() {
-        $options = $this->get_settings();
-        printf( '<input type="file" name="caf_file" accept=".xml" />' );
-        if ( ! empty( $options['caf_path'] ) ) {
-            echo '<p>' . esc_html( basename( $options['caf_path'] ) ) . '</p>';
+        $options    = $this->get_settings();
+        $caf_paths  = is_array( $options['caf_path'] ) ? $options['caf_path'] : [];
+        $option_key = esc_attr( self::OPTION_NAME );
+
+        echo '<div id="sii-dte-caf-container">';
+        if ( empty( $caf_paths ) ) {
+            $caf_paths = [ '' => '' ];
         }
-        echo '<p class="description">' . esc_html__( 'Ruta del archivo CAF emitido por el SII para folios de boletas. Este archivo se utiliza para timbrar el DTE.', 'sii-boleta-dte' ) . '</p>';
-        printf(
-            '<input type="text" name="%s[caf_path]" value="%s" class="regular-text" placeholder="/ruta/CAF.xml" />',
-            esc_attr( self::OPTION_NAME ),
-            esc_attr( $options['caf_path'] )
-        );
+        foreach ( $caf_paths as $tipo => $path ) {
+            ?>
+            <div class="sii-dte-caf-row">
+                <input type="text" name="<?php echo $option_key; ?>[caf_type][]" value="<?php echo esc_attr( $tipo ); ?>" placeholder="<?php esc_attr_e( 'Tipo DTE', 'sii-boleta-dte' ); ?>" class="small-text" />
+                <input type="file" name="caf_file[]" accept=".xml" />
+                <input type="text" name="<?php echo $option_key; ?>[caf_path][]" value="<?php echo esc_attr( $path ); ?>" class="regular-text" placeholder="/ruta/CAF.xml" />
+                <button type="button" class="button sii-dte-remove-caf">&times;</button>
+            </div>
+            <?php
+        }
+        echo '</div>';
+        ?>
+        <button type="button" class="button" id="sii-dte-add-caf"><?php esc_html_e( 'Agregar CAF', 'sii-boleta-dte' ); ?></button>
+        <p class="description"><?php esc_html_e( 'Cargue un archivo CAF para cada tipo de DTE necesario. Puede indicar la ruta manualmente o subir un archivo.', 'sii-boleta-dte' ); ?></p>
+        <script type="text/javascript">
+        jQuery(function($){
+            $('#sii-dte-add-caf').on('click', function(){
+                var row = '<div class="sii-dte-caf-row">'
+                    + '<input type="text" name="'+ '<?php echo $option_key; ?>' +'[caf_type][]" placeholder="<?php esc_attr_e( 'Tipo DTE', 'sii-boleta-dte' ); ?>" class="small-text" />'
+                    + '<input type="file" name="caf_file[]" accept=".xml" />'
+                    + '<input type="text" name="'+ '<?php echo $option_key; ?>' +'[caf_path][]" class="regular-text" placeholder="/ruta/CAF.xml" />'
+                    + '<button type="button" class="button sii-dte-remove-caf">&times;</button>'
+                    + '</div>';
+                $('#sii-dte-caf-container').append(row);
+            });
+            $(document).on('click', '.sii-dte-remove-caf', function(){
+                $(this).closest('.sii-dte-caf-row').remove();
+            });
+        });
+        </script>
+        <?php
     }
 
     /**

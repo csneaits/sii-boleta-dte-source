@@ -30,14 +30,17 @@ class SII_Boleta_XML_Generator {
      * contenido como string. Si ocurre un error, devuelve false.
      *
      * @param array $data Datos necesarios para el DTE (ver SII_Boleta_Core::ajax_generate_dte).
-     * @return string|false
+     * @param int   $tipo_dte Tipo de DTE solicitado.
+     * @return string|\WP_Error|false
      */
-    public function generate_dte_xml( array $data ) {
-        $settings = $this->settings->get_settings();
-        $caf_path = $settings['caf_path'];
+    public function generate_dte_xml( array $data, $tipo_dte ) {
+        $settings  = $this->settings->get_settings();
+        $caf_paths = $settings['caf_path'] ?? [];
+        $caf_path  = $caf_paths[ $tipo_dte ] ?? '';
         if ( ! $caf_path || ! file_exists( $caf_path ) ) {
-            return false;
+            return new \WP_Error( 'sii_boleta_missing_caf', sprintf( __( 'No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte' ), $tipo_dte ) );
         }
+        $data['TipoDTE'] = $tipo_dte;
 
         try {
             $xml = new SimpleXMLElement( '<DTE version="1.0" xmlns="http://www.sii.cl/SiiDte"></DTE>' );
@@ -47,7 +50,7 @@ class SII_Boleta_XML_Generator {
             // Encabezado
             $encabezado = $documento->addChild( 'Encabezado' );
             $id_doc = $encabezado->addChild( 'IdDoc' );
-            $id_doc->addChild( 'TipoDTE', $data['TipoDTE'] );
+            $id_doc->addChild( 'TipoDTE', $tipo_dte );
             $id_doc->addChild( 'Folio', $data['Folio'] );
             $id_doc->addChild( 'FchEmis', $data['FchEmis'] );
 

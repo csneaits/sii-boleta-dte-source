@@ -39,16 +39,17 @@ class SII_Boleta_Folio_Manager {
      * Si no se pasa tipo se utilizará el tipo 39 por defecto (boleta). Esta función
      * carga el rango de folios del CAF y actualiza el contador almacenado en la
      * base de datos. Si no quedan folios disponibles o el CAF no está configurado
-     * correctamente, devuelve false.
+     * correctamente, devuelve false o WP_Error si falta el CAF.
      *
      * @param int $tipo_dte El código del tipo de documento (por ejemplo 39, 33, 41, 61, 56).
-     * @return int|false El siguiente folio disponible o false si no hay folios.
+     * @return int|\WP_Error|false El siguiente folio disponible o false/WP_Error si no hay folios o falta CAF.
      */
     public function get_next_folio( $tipo_dte = 39 ) {
-        $settings = $this->settings->get_settings();
-        $caf_path = $settings['caf_path'];
+        $settings  = $this->settings->get_settings();
+        $caf_paths = $settings['caf_path'] ?? [];
+        $caf_path  = $caf_paths[ $tipo_dte ] ?? '';
         if ( ! $caf_path || ! file_exists( $caf_path ) ) {
-            return false;
+            return new \WP_Error( 'sii_boleta_missing_caf', sprintf( __( 'No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte' ), $tipo_dte ) );
         }
         $range = $this->get_caf_range( $caf_path );
         if ( ! $range ) {

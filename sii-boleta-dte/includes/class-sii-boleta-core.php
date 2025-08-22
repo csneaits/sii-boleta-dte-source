@@ -307,13 +307,14 @@ class SII_Boleta_Core {
     }
 
     /**
-     * Renderiza la página de generación manual de DTE (boletas, notas de crédito y débito).
+     * Renderiza la página de generación manual de DTE (boletas, facturas,
+     * guías de despacho y notas de crédito o débito).
      */
     public function render_generate_dte_page() {
         // Cargar folio disponible por AJAX y manejar generación desde el cliente
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Generar DTE (Boleta/Nota)', 'sii-boleta-dte' ); ?></h1>
+            <h1><?php esc_html_e( 'Generar DTE', 'sii-boleta-dte' ); ?></h1>
             <form id="sii-boleta-generate-form" method="post">
                 <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
                 <table class="form-table">
@@ -324,6 +325,7 @@ class SII_Boleta_Core {
                                 <option value="39">Boleta Electrónica (39)</option>
                                 <option value="33">Factura Electrónica (33)</option>
                                 <option value="34">Factura Exenta (34)</option>
+                                <option value="52">Guía de Despacho Electrónica (52)</option>
                                 <option value="61">Nota de Crédito Electrónica (61)</option>
                                 <option value="56">Nota de Débito Electrónica (56)</option>
                             </select>
@@ -365,6 +367,9 @@ class SII_Boleta_Core {
                                 <option value="39">Boleta (39)</option>
                                 <option value="33">Factura (33)</option>
                                 <option value="34">Factura Exenta (34)</option>
+                                <option value="52">Guía de Despacho (52)</option>
+                                <option value="61">Nota de Crédito (61)</option>
+                                <option value="56">Nota de Débito (56)</option>
                             </select><br/>
                             <label for="razon_ref"><?php esc_html_e( 'Razón Referencia', 'sii-boleta-dte' ); ?></label>
                             <input type="text" name="razon_ref" id="razon_ref" class="regular-text" />
@@ -395,7 +400,7 @@ class SII_Boleta_Core {
             }
             function toggleAddressFields() {
                 var type = $('#dte_type').val();
-                if (type === '33' || type === '34') {
+                if (type === '33' || type === '34' || type === '52') {
                     $('#direccion_recep').prop('required', true);
                     $('#comuna_recep').prop('required', true);
                 } else {

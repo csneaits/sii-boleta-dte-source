@@ -150,11 +150,11 @@ class SII_Boleta_Settings {
         $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
-        $valid_types            = [ '39', '33', '34', '52' ];
+        $valid_types            = [ '39', '33', '34', '52', '56', '61' ];
         $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
         $output['enabled_dte_types'] = array_values( array_intersect( $valid_types, array_map( 'sanitize_text_field', $requested_types ) ) );
         if ( empty( $output['enabled_dte_types'] ) ) {
-            $output['enabled_dte_types'] = [ '39', '33', '34' ];
+            $output['enabled_dte_types'] = [ '39', '33', '34', '52', '56', '61' ];
         }
 
         // Guardar ruta de certificado existente o la proporcionada manualmente.
@@ -236,7 +236,7 @@ class SII_Boleta_Settings {
             'caf_path'      => [],
             'api_token'    => '',
             'environment'   => 'test',
-            'enabled_dte_types' => [ '39', '33', '34' ],
+            'enabled_dte_types' => [ '39', '33', '34', '52', '56', '61' ],
             'logo_id'       => 0,
         ];
         return wp_parse_args( get_option( self::OPTION_NAME, [] ), $defaults );
@@ -253,6 +253,8 @@ class SII_Boleta_Settings {
             '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
             '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
             '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
+            '56' => __( 'Nota de Débito Electrónica', 'sii-boleta-dte' ),
+            '61' => __( 'Nota de Crédito Electrónica', 'sii-boleta-dte' ),
         ];
         foreach ( $types as $code => $label ) {
             printf(

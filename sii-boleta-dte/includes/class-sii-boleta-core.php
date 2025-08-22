@@ -23,6 +23,7 @@ class SII_Boleta_Core {
      * @var SII_Boleta_PDF
      * @var SII_Boleta_RVD_Manager
      * @var SII_Boleta_Woo
+     * @var SII_Boleta_Metrics
      */
     private $settings;
     private $folio_manager;
@@ -32,6 +33,7 @@ class SII_Boleta_Core {
     private $pdf;
     private $rvd_manager;
     private $woo;
+    private $metrics;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -46,6 +48,7 @@ class SII_Boleta_Core {
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
+        $this->metrics       = new SII_Boleta_Metrics();
 
         if ( class_exists( 'WooCommerce' ) ) {
             $this->woo = new SII_Boleta_Woo( $this );
@@ -229,6 +232,7 @@ class SII_Boleta_Core {
             <h2 class='nav-tab-wrapper'>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=jobs' ) ); ?>' class='nav-tab <?php echo ( 'jobs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Jobs', 'sii-boleta-dte' ); ?></a>
+                <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=metrics' ) ); ?>' class='nav-tab <?php echo ( 'metrics' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Métricas', 'sii-boleta-dte' ); ?></a>
             </h2>
             <?php if ( 'jobs' === $active_tab ) : ?>
                 <p>
@@ -245,6 +249,43 @@ class SII_Boleta_Core {
                 </p>
                 <div id="sii-rvd-result"></div>
                 <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
+            <?php elseif ( 'metrics' === $active_tab ) : ?>
+                <?php $metrics = $this->metrics->gather_metrics(); ?>
+                <h2><?php esc_html_e( 'Resumen de Documentos', 'sii-boleta-dte' ); ?></h2>
+                <p><?php printf( esc_html__( 'Total de DTE generados: %d', 'sii-boleta-dte' ), intval( $metrics['total'] ) ); ?></p>
+                <p><?php printf( esc_html__( 'DTE enviados al SII: %d', 'sii-boleta-dte' ), intval( $metrics['sent'] ) ); ?></p>
+                <?php if ( ! empty( $metrics['by_type'] ) ) : ?>
+                    <h3><?php esc_html_e( 'Cantidad por tipo', 'sii-boleta-dte' ); ?></h3>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Tipo', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $metrics['by_type'] as $type => $count ) : ?>
+                                <tr>
+                                    <td><?php echo esc_html( $type ); ?></td>
+                                    <td><?php echo esc_html( $count ); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+                <h3><?php esc_html_e( 'Errores detectados', 'sii-boleta-dte' ); ?></h3>
+                <?php if ( $metrics['errors'] ) : ?>
+                    <p><?php printf( esc_html__( 'Total de errores: %d', 'sii-boleta-dte' ), intval( $metrics['errors'] ) ); ?></p>
+                    <?php if ( ! empty( $metrics['error_reasons'] ) ) : ?>
+                        <ul>
+                            <?php foreach ( $metrics['error_reasons'] as $reason => $count ) : ?>
+                                <li><?php echo esc_html( sprintf( '%s: %d', $reason, $count ) ); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                <?php else : ?>
+                    <p><?php esc_html_e( 'No se encontraron errores en el log.', 'sii-boleta-dte' ); ?></p>
+                <?php endif; ?>
             <?php else : ?>
                 <p>
                     <button type="button" class="button" id="sii-refresh-dtes"><?php esc_html_e( 'Actualizar', 'sii-boleta-dte' ); ?></button>

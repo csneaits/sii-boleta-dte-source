@@ -78,6 +78,10 @@ class SII_Boleta_Woo {
 
         // Generar folio para el tipo de DTE seleccionado
         $folio = $this->core->get_folio_manager()->get_next_folio( $tipo_dte );
+        if ( is_wp_error( $folio ) ) {
+            $order->add_order_note( $folio->get_error_message() );
+            return;
+        }
         if ( ! $folio ) {
             return;
         }
@@ -109,8 +113,9 @@ class SII_Boleta_Woo {
             ],
         ];
         // Generar y firmar
-        $xml    = $this->core->get_xml_generator()->generate_dte_xml( $dte_data );
-        if ( ! $xml ) {
+        $xml    = $this->core->get_xml_generator()->generate_dte_xml( $dte_data, $tipo_dte );
+        if ( is_wp_error( $xml ) || ! $xml ) {
+            $order->add_order_note( is_wp_error( $xml ) ? $xml->get_error_message() : __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) );
             return;
         }
         $signed = $this->core->get_signer()->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );

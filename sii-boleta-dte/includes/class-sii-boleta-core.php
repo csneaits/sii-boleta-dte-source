@@ -65,6 +65,7 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_list_dtes', [ $this, 'ajax_list_dtes' ] );
         add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_toggle_job', [ $this, 'ajax_toggle_job' ] );
     }
 
     /**
@@ -231,10 +232,15 @@ class SII_Boleta_Core {
             </h2>
             <?php if ( 'jobs' === $active_tab ) : ?>
                 <p>
+                    <?php esc_html_e( 'Estado del job:', 'sii-boleta-dte' ); ?>
+                    <span id="sii-job-status"></span>
+                </p>
+                <p>
                     <?php esc_html_e( 'Próxima ejecución del job:', 'sii-boleta-dte' ); ?>
                     <span id="sii-job-next"></span>
                 </p>
                 <p>
+                    <button type="button" class="button" id="sii-toggle-job"><?php esc_html_e( 'Programar Job', 'sii-boleta-dte' ); ?></button>
                     <button type="button" class="button" id="sii-run-rvd"><?php esc_html_e( 'Generar RVD del día', 'sii-boleta-dte' ); ?></button>
                 </p>
                 <div id="sii-rvd-result"></div>
@@ -285,9 +291,23 @@ class SII_Boleta_Core {
                         if(resp.success){
                             $('#sii-job-log').text(resp.data.log);
                             $('#sii-job-next').text(resp.data.next_run);
+                            var active = resp.data.status === 'active';
+                            $('#sii-job-status').text(active ? '<?php echo esc_js( __( 'Activo', 'sii-boleta-dte' ) ); ?>' : '<?php echo esc_js( __( 'Inactivo', 'sii-boleta-dte' ) ); ?>');
+                            $('#sii-toggle-job').text(active ? '<?php echo esc_js( __( 'Desprogramar Job', 'sii-boleta-dte' ) ); ?>' : '<?php echo esc_js( __( 'Programar Job', 'sii-boleta-dte' ) ); ?>');
                         }
                     });
                 }
+                $('#sii-toggle-job').on('click', function(){
+                    $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
+                    $.post(ajaxurl, {action:'sii_boleta_dte_toggle_job'}, function(resp){
+                        if(resp.success){
+                            $('#sii-rvd-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
+                        }else{
+                            $('#sii-rvd-result').html('<div class="notice notice-error"><p>'+resp.data.message+'</p></div>');
+                        }
+                        loadLog();
+                    });
+                });
                 $('#sii-run-rvd').on('click', function(){
                     $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
                     $.post(ajaxurl, {action:'sii_boleta_dte_run_rvd'}, function(resp){
@@ -627,8 +647,26 @@ class SII_Boleta_Core {
         $log_file   = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs/sii-boleta.log';
         $log        = file_exists( $log_file ) ? file_get_contents( $log_file ) : __( 'No hay actividad registrada.', 'sii-boleta-dte' );
         $next_run   = wp_next_scheduled( SII_Boleta_Cron::CRON_HOOK );
+        $status     = $next_run ? 'active' : 'inactive';
         $next_run_human = $next_run ? date_i18n( 'Y-m-d H:i:s', $next_run ) : __( 'No programado', 'sii-boleta-dte' );
-        wp_send_json_success( [ 'log' => $log, 'next_run' => $next_run_human ] );
+        wp_send_json_success( [ 'log' => $log, 'next_run' => $next_run_human, 'status' => $status ] );
+    }
+
+    /**
+     * Programa o desprograma el job diario via AJAX.
+     */
+    public function ajax_toggle_job() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $next_run = wp_next_scheduled( SII_Boleta_Cron::CRON_HOOK );
+        if ( $next_run ) {
+            SII_Boleta_Cron::deactivate();
+            wp_send_json_success( [ 'message' => __( 'Job desprogramado.', 'sii-boleta-dte' ) ] );
+        } else {
+            SII_Boleta_Cron::activate();
+            wp_send_json_success( [ 'message' => __( 'Job programado.', 'sii-boleta-dte' ) ] );
+        }
     }
 
     /**

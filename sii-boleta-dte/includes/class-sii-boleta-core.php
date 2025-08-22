@@ -54,6 +54,9 @@ class SII_Boleta_Core {
         // Registrar acciones para páginas del panel de administración
         add_action( 'admin_menu', [ $this, 'add_admin_pages' ] );
 
+        // Recursos necesarios para funcionalidades como la subida de imágenes
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+
         // Indicador visual del ambiente en la barra de administración
         add_action( 'admin_bar_menu', [ $this, 'add_environment_indicator' ], 100 );
 
@@ -180,6 +183,26 @@ class SII_Boleta_Core {
             'sii-boleta-dte-generate',
             [ $this, 'render_generate_dte_page' ]
         );
+
+        add_submenu_page(
+            'sii-boleta-dte',
+            __( 'Actividad del Job', 'sii-boleta-dte' ),
+            __( 'Actividad del Job', 'sii-boleta-dte' ),
+            'manage_options',
+            'sii-boleta-dte-job-log',
+            [ $this, 'render_job_log_page' ]
+        );
+    }
+
+    /**
+     * Encola scripts y estilos necesarios en el área de administración.
+     *
+     * @param string $hook Nombre del hook de la pantalla actual.
+     */
+    public function enqueue_admin_assets( $hook ) {
+        if ( 'toplevel_page_sii-boleta-dte' === $hook ) {
+            wp_enqueue_media();
+        }
     }
 
     /**
@@ -301,6 +324,26 @@ class SII_Boleta_Core {
             });
         });
         </script>
+        <?php
+    }
+
+    /**
+     * Muestra un registro simple de la actividad del job diario.
+     */
+    public function render_job_log_page() {
+        $upload_dir = wp_upload_dir();
+        $log_file   = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs/sii-boleta.log';
+        $log        = file_exists( $log_file ) ? file_get_contents( $log_file ) : __( 'No hay actividad registrada.', 'sii-boleta-dte' );
+        $next_run   = wp_next_scheduled( SII_Boleta_Cron::CRON_HOOK );
+        $next_run_human = $next_run ? date_i18n( 'Y-m-d H:i:s', $next_run ) : __( 'No programado', 'sii-boleta-dte' );
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Actividad del Job', 'sii-boleta-dte' ); ?></h1>
+            <p><?php printf( esc_html__( 'Hora de activación del job: %s', 'sii-boleta-dte' ), esc_html( $next_run_human ) ); ?></p>
+            <pre style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:400px;overflow:auto;">
+<?php echo esc_html( $log ); ?>
+            </pre>
+        </div>
         <?php
     }
 

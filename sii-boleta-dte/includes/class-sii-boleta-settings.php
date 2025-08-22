@@ -116,6 +116,13 @@ class SII_Boleta_Settings {
             'sii_boleta_dte_settings_section'
         );
         add_settings_field(
+            'enabled_dte_types',
+            __( 'Tipos de Documentos en Checkout', 'sii-boleta-dte' ),
+            [ $this, 'render_field_enabled_dte_types' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_settings_section'
+        );
+        add_settings_field(
             'logo_id',
             __( 'Logo de la Empresa', 'sii-boleta-dte' ),
             [ $this, 'render_field_logo' ],
@@ -143,6 +150,12 @@ class SII_Boleta_Settings {
         $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
+        $valid_types            = [ '39', '33', '34', '52' ];
+        $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
+        $output['enabled_dte_types'] = array_values( array_intersect( $valid_types, array_map( 'sanitize_text_field', $requested_types ) ) );
+        if ( empty( $output['enabled_dte_types'] ) ) {
+            $output['enabled_dte_types'] = [ '39', '33', '34' ];
+        }
 
         // Guardar ruta de certificado existente o la proporcionada manualmente.
         if ( ! empty( $input['cert_path'] ) ) {
@@ -223,9 +236,34 @@ class SII_Boleta_Settings {
             'caf_path'      => [],
             'api_token'    => '',
             'environment'   => 'test',
+            'enabled_dte_types' => [ '39', '33', '34' ],
             'logo_id'       => 0,
         ];
         return wp_parse_args( get_option( self::OPTION_NAME, [] ), $defaults );
+    }
+
+    /**
+     * Renderiza checkboxes para seleccionar los tipos de DTE disponibles en el checkout.
+     */
+    public function render_field_enabled_dte_types() {
+        $options = $this->get_settings();
+        $enabled = isset( $options['enabled_dte_types'] ) && is_array( $options['enabled_dte_types'] ) ? $options['enabled_dte_types'] : [];
+        $types = [
+            '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
+            '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
+            '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
+            '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
+        ];
+        foreach ( $types as $code => $label ) {
+            printf(
+                '<label><input type="checkbox" name="%s[enabled_dte_types][]" value="%s" %s /> %s</label><br />',
+                esc_attr( self::OPTION_NAME ),
+                esc_attr( $code ),
+                checked( in_array( $code, $enabled, true ), true, false ),
+                esc_html( $label )
+            );
+        }
+        echo '<p class="description">' . esc_html__( 'Seleccione los tipos de documentos que los clientes pueden elegir durante el checkout.', 'sii-boleta-dte' ) . '</p>';
     }
 
     /**

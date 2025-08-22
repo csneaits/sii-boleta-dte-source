@@ -131,18 +131,45 @@ class SII_Boleta_Settings {
      * @return array Datos sanitizados.
      */
     public function sanitize_settings( $input ) {
-        $output = [];
-        $output['rut_emisor']    = sanitize_text_field( $input['rut_emisor'] ?? '' );
-        $output['razon_social']  = sanitize_text_field( $input['razon_social'] ?? '' );
-        $output['giro']          = sanitize_text_field( $input['giro'] ?? '' );
-        $output['direccion']     = sanitize_text_field( $input['direccion'] ?? '' );
-        $output['comuna']        = sanitize_text_field( $input['comuna'] ?? '' );
-        $output['cert_path']     = sanitize_text_field( $input['cert_path'] ?? '' );
-        $output['cert_pass']     = sanitize_text_field( $input['cert_pass'] ?? '' );
-        $output['caf_path']      = sanitize_text_field( $input['caf_path'] ?? '' );
-        $output['api_token']     = sanitize_text_field( $input['api_token'] ?? '' );
-        $output['environment']   = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
-        $output['logo_id']       = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
+        $output   = [];
+        $existing = $this->get_settings();
+
+        $output['rut_emisor']   = sanitize_text_field( $input['rut_emisor'] ?? '' );
+        $output['razon_social'] = sanitize_text_field( $input['razon_social'] ?? '' );
+        $output['giro']         = sanitize_text_field( $input['giro'] ?? '' );
+        $output['direccion']    = sanitize_text_field( $input['direccion'] ?? '' );
+        $output['comuna']       = sanitize_text_field( $input['comuna'] ?? '' );
+        $output['cert_pass']    = sanitize_text_field( $input['cert_pass'] ?? '' );
+        $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
+        $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
+        $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
+
+        // Mantener rutas existentes por defecto.
+        $output['cert_path'] = $existing['cert_path'] ?? '';
+        $output['caf_path']  = $existing['caf_path'] ?? '';
+
+        // Procesar subida del certificado.
+        if ( ! empty( $_FILES['cert_file']['name'] ) ) {
+            $file_type = wp_check_filetype( $_FILES['cert_file']['name'] );
+            if ( in_array( $file_type['ext'], [ 'pfx', 'p12' ], true ) ) {
+                $upload = wp_handle_upload( $_FILES['cert_file'], [ 'test_form' => false ] );
+                if ( empty( $upload['error'] ) ) {
+                    $output['cert_path'] = $upload['file'];
+                }
+            }
+        }
+
+        // Procesar subida del CAF.
+        if ( ! empty( $_FILES['caf_file']['name'] ) ) {
+            $file_type = wp_check_filetype( $_FILES['caf_file']['name'] );
+            if ( 'xml' === $file_type['ext'] ) {
+                $upload = wp_handle_upload( $_FILES['caf_file'], [ 'test_form' => false ] );
+                if ( empty( $upload['error'] ) ) {
+                    $output['caf_path'] = $upload['file'];
+                }
+            }
+        }
+
         return $output;
     }
 
@@ -234,11 +261,17 @@ class SII_Boleta_Settings {
     public function render_field_cert_path() {
         $options = $this->get_settings();
         printf(
+            '<input type="file" name="cert_file" accept=".pfx,.p12" />'
+        );
+        if ( ! empty( $options['cert_path'] ) ) {
+            echo '<p>' . esc_html( basename( $options['cert_path'] ) ) . '</p>';
+        }
+        echo '<p class="description">' . esc_html__( 'Cargue el certificado .pfx/.p12 o indique la ruta absoluta si ya existe en el servidor.', 'sii-boleta-dte' ) . '</p>';
+        printf(
             '<input type="text" name="%s[cert_path]" value="%s" class="regular-text" placeholder="/ruta/certificado.pfx" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['cert_path'] )
         );
-        echo '<p class="description">' . esc_html__( 'Indique la ruta absoluta al archivo de certificado .pfx/.p12 en el servidor.', 'sii-boleta-dte' ) . '</p>';
     }
 
     /**
@@ -258,12 +291,16 @@ class SII_Boleta_Settings {
      */
     public function render_field_caf_path() {
         $options = $this->get_settings();
+        printf( '<input type="file" name="caf_file" accept=".xml" />' );
+        if ( ! empty( $options['caf_path'] ) ) {
+            echo '<p>' . esc_html( basename( $options['caf_path'] ) ) . '</p>';
+        }
+        echo '<p class="description">' . esc_html__( 'Ruta del archivo CAF emitido por el SII para folios de boletas. Este archivo se utiliza para timbrar el DTE.', 'sii-boleta-dte' ) . '</p>';
         printf(
             '<input type="text" name="%s[caf_path]" value="%s" class="regular-text" placeholder="/ruta/CAF.xml" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['caf_path'] )
         );
-        echo '<p class="description">' . esc_html__( 'Ruta del archivo CAF emitido por el SII para folios de boletas. Este archivo se utiliza para timbrar el DTE.', 'sii-boleta-dte' ) . '</p>';
     }
 
     /**
@@ -345,7 +382,7 @@ class SII_Boleta_Settings {
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Configuración SII Boleta DTE', 'sii-boleta-dte' ); ?></h1>
-            <form action="options.php" method="post">
+            <form action="options.php" method="post" enctype="multipart/form-data">
                 <?php
                 settings_fields( self::OPTION_GROUP );
                 do_settings_sections( 'sii-boleta-dte' );

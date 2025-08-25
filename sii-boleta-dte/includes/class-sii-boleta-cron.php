@@ -71,8 +71,8 @@ class SII_Boleta_Cron {
             return;
         }
         $settings = $this->settings->get_settings();
-        $env = $settings['environment'];
-        $enviado     = $rvd_manager->send_rvd_to_sii( $xml, $env );
+        $env     = $settings['environment'];
+        $enviado = $rvd_manager->send_rvd_to_sii( $xml, $env, $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
         $admin_email = get_option( 'admin_email' );
         if ( $enviado ) {
             sii_boleta_write_log( 'RVD enviado correctamente para la fecha ' . $date );

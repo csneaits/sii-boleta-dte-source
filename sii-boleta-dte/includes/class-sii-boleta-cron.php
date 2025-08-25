@@ -49,6 +49,20 @@ class SII_Boleta_Cron {
     }
 
     /**
+     * Escribe un mensaje en el log de WooCommerce.
+     *
+     * @param string $level   Nivel del log (info, error, etc).
+     * @param string $message Mensaje a registrar.
+     */
+    private function log( $level, $message ) {
+        if ( function_exists( 'wc_get_logger' ) ) {
+            wc_get_logger()->log( $level, $message, [ 'source' => 'sii-boleta' ] );
+        } else {
+            sii_boleta_write_log( $message );
+        }
+    }
+
+    /**
      * Agrega intervalos personalizados al cron.
      *
      * @param array $schedules Listado de intervalos existentes.
@@ -77,10 +91,12 @@ class SII_Boleta_Cron {
 
         // Limpiar eventos antiguos que podían causar errores.
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
+        wp_clear_scheduled_hook( self::CRON_HOOK );
 
         if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-            // Programar para la medianoche de la zona horaria configurada
-            $timestamp = strtotime( 'tomorrow midnight' );
+            $tz        = new DateTimeZone( 'America/Santiago' );
+            $next_run  = new DateTime( 'tomorrow 00:10', $tz );
+            $timestamp = $next_run->getTimestamp();
             wp_schedule_event( $timestamp, 'daily', self::CRON_HOOK );
         }
 
@@ -106,32 +122,64 @@ class SII_Boleta_Cron {
     }
 
     /**
-     * Callback que genera el RVD para el día anterior y lo envía al SII.
+     * Ejecuta el proceso de generación y envío del RVD para una fecha dada.
+     * Aplica idempotencia evitando reenviar el RVD de una fecha ya procesada.
+     *
+     * @param string $date Fecha en formato Y-m-d.
+     *
+     * @return bool True si se procesó/envió correctamente.
      */
-    public function generate_and_send_rvd() {
-        // Se genera el RVD del día anterior (fecha de hoy menos un día)
-        $date = date( 'Y-m-d', strtotime( '-1 day' ) );
+    public function run_rvd_for_date( $date ) {
+        $sent_dates = get_option( 'sii_boleta_dte_rvd_sent_dates', [] );
+        if ( ! is_array( $sent_dates ) ) {
+            $sent_dates = [];
+        }
+        if ( in_array( $date, $sent_dates, true ) ) {
+            $this->log( 'info', 'RVD ya enviado previamente para la fecha ' . $date );
+            return true;
+        }
+
         $rvd_manager = new SII_Boleta_RVD_Manager( $this->settings );
-        $xml = $rvd_manager->generate_rvd_xml( $date );
+        $xml         = $rvd_manager->generate_rvd_xml( $date );
         if ( ! $xml ) {
-            sii_boleta_write_log( 'Fallo al generar el RVD para la fecha ' . $date );
-            return;
+            $this->log( 'error', 'Fallo al generar el RVD para la fecha ' . $date );
+            return false;
         }
         $settings = $this->settings->get_settings();
-        $env     = $settings['environment'];
-        $enviado = $rvd_manager->send_rvd_to_sii( $xml, $env, $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        $env      = $settings['environment'];
+        $enviado  = $rvd_manager->send_rvd_to_sii(
+            $xml,
+            $env,
+            $settings['api_token'] ?? '',
+            $settings['cert_path'] ?? '',
+            $settings['cert_pass'] ?? ''
+        );
         $admin_email = get_option( 'admin_email' );
         if ( $enviado ) {
-            sii_boleta_write_log( 'RVD enviado correctamente para la fecha ' . $date );
+            $sent_dates[] = $date;
+            $sent_dates   = array_values( array_unique( $sent_dates ) );
+            update_option( 'sii_boleta_dte_rvd_sent_dates', $sent_dates );
+            $this->log( 'info', 'RVD enviado correctamente para la fecha ' . $date );
             if ( $admin_email ) {
                 wp_mail( $admin_email, 'RVD enviado', 'RVD enviado correctamente para la fecha ' . $date );
             }
-        } else {
-            sii_boleta_write_log( 'Error al enviar el RVD para la fecha ' . $date );
-            if ( $admin_email ) {
-                wp_mail( $admin_email, 'Error al enviar RVD', 'Error al enviar el RVD para la fecha ' . $date );
-            }
+            return true;
         }
+
+        $this->log( 'error', 'Error al enviar el RVD para la fecha ' . $date );
+        if ( $admin_email ) {
+            wp_mail( $admin_email, 'Error al enviar RVD', 'Error al enviar el RVD para la fecha ' . $date );
+        }
+        return false;
+    }
+
+    /**
+     * Callback que genera el RVD para el día anterior y lo envía al SII.
+     */
+    public function generate_and_send_rvd() {
+        $tz   = new DateTimeZone( 'America/Santiago' );
+        $date = ( new DateTime( 'yesterday', $tz ) )->format( 'Y-m-d' );
+        $this->run_rvd_for_date( $date );
     }
 
     /**
@@ -207,4 +255,27 @@ class SII_Boleta_Cron {
             }
         }
     }
+    /**
+     * Comando WP-CLI: wp sii:rvd --date=YYYY-MM-DD.
+     *
+     * @param array $args       Argumentos posicionados.
+     * @param array $assoc_args Argumentos asociativos.
+     */
+    public static function cli_rvd_command( $args, $assoc_args ) {
+        $date = $assoc_args['date'] ?? '';
+        if ( ! $date || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+            WP_CLI::error( 'Debe indicar la fecha en formato YYYY-MM-DD mediante --date.' );
+        }
+        $settings = new SII_Boleta_Settings();
+        $cron     = new self( $settings );
+        if ( $cron->run_rvd_for_date( $date ) ) {
+            WP_CLI::success( 'RVD procesado para la fecha ' . $date );
+        } else {
+            WP_CLI::error( 'Error al procesar el RVD para la fecha ' . $date );
+        }
+    }
+}
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+    WP_CLI::add_command( 'sii rvd', [ 'SII_Boleta_Cron', 'cli_rvd_command' ] );
 }

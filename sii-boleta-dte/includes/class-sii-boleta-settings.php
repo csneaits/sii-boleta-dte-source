@@ -25,6 +25,22 @@ class SII_Boleta_Settings {
      */
     public function __construct() {
         add_action( 'admin_init', [ $this, 'register_settings' ] );
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_front_assets' ] );
+    }
+
+    /**
+     * Encola los scripts necesarios en el frontend.
+     */
+    public function enqueue_front_assets() {
+        if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+            wp_enqueue_script(
+                'sii-boleta-checkout-rut',
+                SII_BOLETA_DTE_URL . 'assets/js/checkout-rut.js',
+                [],
+                SII_BOLETA_DTE_VERSION,
+                true
+            );
+        }
     }
 
     /**

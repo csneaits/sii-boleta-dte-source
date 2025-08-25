@@ -154,11 +154,35 @@ class SII_Boleta_Woo {
         // Generar representación PDF y enviarla por correo
         $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
         if ( $pdf_path ) {
-            $to      = $order->get_billing_email();
-            $subject = sprintf( __( 'Boleta electrónica de tu pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );
-            $message = __( 'Adjuntamos la representación de tu boleta electrónica.', 'sii-boleta-dte' );
+            $to       = $order->get_billing_email();
+            $subject  = sprintf( __( 'Boleta electrónica de tu pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );
+            $logo_url = $settings['logo_id'] ? wp_get_attachment_image_url( $settings['logo_id'], 'full' ) : '';
+            $message  = '<html><body>';
+            if ( $logo_url ) {
+                $message .= '<p><img src="' . esc_url( $logo_url ) . '" alt="Logo" style="max-width:200px;" /></p>';
+            }
+            $message .= '<p>' . __( 'Gracias por tu compra. Adjuntamos la representación de tu boleta electrónica.', 'sii-boleta-dte' ) . '</p>';
+            $message .= '</body></html>';
             if ( $to ) {
+                $content_type = function() { return 'text/html'; };
+                add_filter( 'wp_mail_content_type', $content_type );
+
+                $phpmailer_ses = function( $phpmailer ) use ( $settings ) {
+                    if ( ! empty( $settings['ses_host'] ) && ! empty( $settings['ses_username'] ) && ! empty( $settings['ses_password'] ) ) {
+                        $phpmailer->isSMTP();
+                        $phpmailer->Host       = $settings['ses_host'];
+                        $phpmailer->Port       = intval( $settings['ses_port'] ?? 587 );
+                        $phpmailer->SMTPAuth   = true;
+                        $phpmailer->SMTPSecure = 'tls';
+                        $phpmailer->Username   = $settings['ses_username'];
+                        $phpmailer->Password   = $settings['ses_password'];
+                    }
+                };
+
+                add_action( 'phpmailer_init', $phpmailer_ses );
                 wp_mail( $to, $subject, $message, [], [ $pdf_path ] );
+                remove_action( 'phpmailer_init', $phpmailer_ses );
+                remove_filter( 'wp_mail_content_type', $content_type );
                 $order->add_order_note( __( 'Boleta electrónica enviada al cliente por correo electrónico.', 'sii-boleta-dte' ) );
             }
         }

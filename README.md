@@ -53,6 +53,10 @@ Desde la página de ajustes del plugin es posible definir qué tipos de document
 
 Active o desactive cada opción según las necesidades de su negocio.
 
+## Envío de correos con Amazon SES
+
+El plugin permite configurar el envío de correos a través de Amazon SES. En la página de ajustes se pueden definir el host y puerto SMTP junto con las credenciales proporcionadas por Amazon. Los mensajes enviados al cliente incluyen un agradecimiento por la compra y el logo configurado en los ajustes del plugin.
+
 ## Generación automática del token
 
 El plugin puede obtener de manera automática el token de autenticación del SII utilizando el certificado digital configurado en los ajustes:

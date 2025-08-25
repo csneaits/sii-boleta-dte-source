@@ -29,6 +29,11 @@ if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
 
 // Registrar autoload para las clases del plugin.
 require_once SII_BOLETA_DTE_PATH . 'includes/autoload.php';
+require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-logger.php';
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+    require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-boleta-cli.php';
+}
 
 // Incluir librerías externas necesarias.
 require_once SII_BOLETA_DTE_PATH . 'includes/libs/xmlseclibs.php';
@@ -86,27 +91,20 @@ register_deactivation_hook( __FILE__, [ 'SII_Boleta_Cron', 'deactivate' ] );
 
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     /**
-     * Escribe un mensaje en el archivo de registro del plugin. Crea el
-     * directorio y archivo de log si no existen. Los mensajes se almacenan
-     * junto a una marca de tiempo para facilitar la depuración.
+     * Escribe un mensaje en el archivo de registro del plugin utilizando
+     * la clase SII_Logger. Los mensajes se almacenan junto a una marca
+     * de tiempo y se rota el archivo diariamente.
      *
      * @param string $message Mensaje a registrar.
+     * @param string $level   Nivel del log (INFO, WARN, ERROR).
      */
-    function sii_boleta_write_log( $message ) {
+    function sii_boleta_write_log( $message, $level = 'INFO' ) {
         $settings        = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
         $logging_enabled = ! empty( $settings['enable_logging'] );
         if ( ! $logging_enabled && ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) ) {
             // Solo registrar si el modo debug está activo o si se habilitó explícitamente en los ajustes.
             return;
         }
-        $upload_dir = wp_upload_dir();
-        $log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs';
-        if ( ! file_exists( $log_dir ) ) {
-            wp_mkdir_p( $log_dir );
-        }
-        $log_file = trailingslashit( $log_dir ) . 'sii-boleta.log';
-        $time     = date( 'Y-m-d H:i:s' );
-        $line     = sprintf( "[%s] %s\n", $time, $message );
-        file_put_contents( $log_file, $line, FILE_APPEND );
+        SII_Logger::log( strtoupper( $level ), $message );
     }
 }

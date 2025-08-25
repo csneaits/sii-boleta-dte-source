@@ -65,12 +65,32 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 2. Deje en blanco el campo "Token de la API".
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
+
 ## Libro de Boletas
 
 El plugin permite generar un **Libro de Boletas** a partir de los DTE emitidos en un rango de fechas y enviarlo manualmente al SII.
 Desde el menú de administración, en la nueva sección "Libro de Boletas", seleccione la fecha de inicio y fin para generar el archivo.
 Posteriormente puede descargarlo o enviarlo directamente al SII reutilizando el token y certificado configurados.
 El XML generado se almacena en la carpeta de subidas de WordPress.
+
+## Resumen de Ventas Diarias
+
+El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
+
+Para validar un archivo generado se puede utilizar `xmllint`:
+
+```bash
+xmllint --noout --schema sii-boleta-dte/includes/schemas/ConsumoFolio_v10.xsd ejemplo_rvd.xml
+```
+
+El envío del RVD reutiliza el mismo token y certificado empleados para las boletas electrónicas.
+
+## Consumo de Folios (CDF)
+
+El plugin permite generar el archivo **Consumo de Folios** requerido por el SII. Desde el panel de control es posible ejecutar manualmente la generación y envío del CDF del día.
+
+Para automatizar este proceso se recomienda programar una tarea cron diaria posterior al envío del Resumen de Ventas Diarias, por ejemplo alrededor de las 23:55. El comando debería invocar la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
+
 
 ## Notas sobre la licencia y originalidad
 

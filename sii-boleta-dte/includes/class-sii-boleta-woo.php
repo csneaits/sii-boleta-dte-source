@@ -27,6 +27,9 @@ class SII_Boleta_Woo {
         // Hook cuando un pedido se marca como completado. Se puede ajustar a otro evento.
         add_action( 'woocommerce_order_status_completed', [ $this, 'generate_dte_for_order' ], 10, 1 );
 
+        // Generar nota de crédito o débito al crear un reembolso.
+        add_action( 'woocommerce_order_refunded', [ $this, 'generate_dte_for_refund' ], 10, 2 );
+
         // Agregar campos personalizados a la página de checkout
         add_filter( 'woocommerce_checkout_fields', [ $this, 'add_custom_checkout_fields' ] );
         // Guardar los campos personalizados
@@ -287,5 +290,176 @@ class SII_Boleta_Woo {
             $res = (string) $res;
         }
         return $res === $dv;
+    }
+
+    /**
+     * Genera una nota de crédito (61) o débito (56) cuando se procesa un
+     * reembolso en WooCommerce. El tipo de documento se determina según el
+     * monto del reembolso: montos positivos generan nota de crédito y
+     * montos negativos generan nota de débito.
+     *
+     * @param int $order_id  ID del pedido original.
+     * @param int $refund_id ID del reembolso.
+     */
+    public function generate_dte_for_refund( $order_id, $refund_id ) {
+        $order  = wc_get_order( $order_id );
+        $refund = wc_get_order( $refund_id );
+        if ( ! $order || ! $refund ) {
+            return;
+        }
+        // Evitar generar múltiples documentos para el mismo reembolso.
+        if ( $refund->get_meta( '_sii_refund_folio', true ) ) {
+            return;
+        }
+
+        $refund_total = (float) $refund->get_amount();
+        $tipo_dte     = $refund_total >= 0 ? 61 : 56;
+        $refund_total = abs( $refund_total );
+        if ( $refund_total <= 0 ) {
+            return;
+        }
+
+        $detalles = [];
+        $line     = 1;
+        foreach ( $refund->get_items() as $item ) {
+            $qty        = abs( $item->get_quantity() );
+            $line_total = abs( $item->get_total() );
+            $price      = $qty > 0 ? $line_total / $qty : 0;
+            $detalles[] = [
+                'NroLinDet' => $line++,
+                'NmbItem'   => $item->get_name(),
+                'QtyItem'   => $qty,
+                'PrcItem'   => $price,
+                'MontoItem' => round( $line_total ),
+            ];
+        }
+        if ( empty( $detalles ) ) {
+            $detalles[] = [
+                'NroLinDet' => 1,
+                'NmbItem'   => 'Reembolso pedido #' . $order->get_order_number(),
+                'QtyItem'   => 1,
+                'PrcItem'   => $refund_total,
+                'MontoItem' => round( $refund_total ),
+            ];
+        }
+
+        $settings = $this->core->get_settings()->get_settings();
+        $folio    = $this->core->get_folio_manager()->get_next_folio( $tipo_dte );
+        if ( is_wp_error( $folio ) || ! $folio ) {
+            if ( is_wp_error( $folio ) ) {
+                $order->add_order_note( $folio->get_error_message() );
+            }
+            return;
+        }
+
+        // Construir referencia al DTE original.
+        $ref_tipo  = (int) ( $order->get_meta( '_sii_dte_type', true ) ?: 39 );
+        $ref_folio = $order->get_meta( '_sii_boleta_folio', true );
+        $ref_fecha = $order->get_date_created() ? $order->get_date_created()->date( 'Y-m-d' ) : date( 'Y-m-d' );
+        $referencias = [];
+        if ( $ref_folio ) {
+            $referencias[] = [
+                'TpoDocRef' => $ref_tipo,
+                'FolioRef'  => $ref_folio,
+                'FchRef'    => $ref_fecha,
+                'RazonRef'  => __( 'Reembolso de pedido WooCommerce', 'sii-boleta-dte' ),
+            ];
+        }
+
+        $rut_receptor = $order->get_meta( '_sii_rut_recep', true );
+        if ( $rut_receptor && ! $this->is_valid_rut( $rut_receptor ) ) {
+            $order->add_order_note( __( 'RUT del receptor inválido, se usó 66666666-6.', 'sii-boleta-dte' ) );
+            $rut_receptor = '66666666-6';
+        }
+
+        $dte_data = [
+            'Folio'      => $folio,
+            'FchEmis'    => date( 'Y-m-d' ),
+            'RutEmisor'  => $settings['rut_emisor'],
+            'RznSoc'     => $settings['razon_social'],
+            'GiroEmisor' => $settings['giro'],
+            'DirOrigen'  => $settings['direccion'],
+            'CmnaOrigen' => $settings['comuna'],
+            'Receptor'   => [
+                'RUTRecep'    => $rut_receptor ?: '66666666-6',
+                'RznSocRecep' => $order->get_billing_first_name() . ' ' . $order->get_billing_last_name(),
+                'DirRecep'    => $order->get_billing_address_1(),
+                'CmnaRecep'   => $order->get_billing_city(),
+            ],
+            'Detalles'   => $detalles,
+        ];
+        if ( ! empty( $referencias ) ) {
+            $dte_data['Referencias'] = $referencias;
+        }
+
+        $xml = $this->core->get_xml_generator()->generate_dte_xml( $dte_data, $tipo_dte );
+        if ( is_wp_error( $xml ) || ! $xml ) {
+            $order->add_order_note( is_wp_error( $xml ) ? $xml->get_error_message() : __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) );
+            return;
+        }
+        $signed = $this->core->get_signer()->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );
+        if ( ! $signed ) {
+            return;
+        }
+
+        $upload_dir = wp_upload_dir();
+        $file_name  = 'Woo_DTE_' . $tipo_dte . '_' . $folio . '_' . time() . '.xml';
+        $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
+        file_put_contents( $file_path, $signed );
+
+        $track_id = $this->core->get_api()->send_dte_to_sii(
+            $file_path,
+            $settings['environment'],
+            $settings['api_token'],
+            $settings['cert_path'],
+            $settings['cert_pass']
+        );
+        if ( is_wp_error( $track_id ) ) {
+            $order->add_order_note( $track_id->get_error_message() );
+            $track_id = false;
+        }
+
+        $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
+        if ( $pdf_path ) {
+            $to       = $order->get_billing_email();
+            $subject  = sprintf( __( 'Documento electrónico de reembolso para pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );
+            $logo_url = $settings['logo_id'] ? wp_get_attachment_image_url( $settings['logo_id'], 'full' ) : '';
+            $message  = '<html><body>';
+            if ( $logo_url ) {
+                $message .= '<p><img src="' . esc_url( $logo_url ) . '" alt="Logo" style="max-width:200px;" /></p>';
+            }
+            $message .= '<p>' . __( 'Adjuntamos la representación de tu documento electrónico de reembolso.', 'sii-boleta-dte' ) . '</p>';
+            $message .= '</body></html>';
+            if ( $to ) {
+                $content_type = function() { return 'text/html'; };
+                add_filter( 'wp_mail_content_type', $content_type );
+
+                $phpmailer_ses = function( $phpmailer ) use ( $settings ) {
+                    if ( ! empty( $settings['ses_host'] ) && ! empty( $settings['ses_username'] ) && ! empty( $settings['ses_password'] ) ) {
+                        $phpmailer->isSMTP();
+                        $phpmailer->Host       = $settings['ses_host'];
+                        $phpmailer->Port       = intval( $settings['ses_port'] ?? 587 );
+                        $phpmailer->SMTPAuth   = true;
+                        $phpmailer->SMTPSecure = 'tls';
+                        $phpmailer->Username   = $settings['ses_username'];
+                        $phpmailer->Password   = $settings['ses_password'];
+                    }
+                };
+
+                add_action( 'phpmailer_init', $phpmailer_ses );
+                wp_mail( $to, $subject, $message, [], [ $pdf_path ] );
+                remove_action( 'phpmailer_init', $phpmailer_ses );
+                remove_filter( 'wp_mail_content_type', $content_type );
+                $order->add_order_note( __( 'Documento electrónico de reembolso enviado al cliente por correo electrónico.', 'sii-boleta-dte' ) );
+            }
+        }
+
+        // Guardar metadatos en el reembolso.
+        $refund->update_meta_data( '_sii_dte_type', $tipo_dte );
+        $refund->update_meta_data( '_sii_refund_folio', $folio );
+        if ( $track_id ) {
+            $refund->update_meta_data( '_sii_refund_track_id', $track_id );
+        }
+        $refund->save();
     }
 }

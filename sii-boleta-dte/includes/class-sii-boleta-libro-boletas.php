@@ -18,12 +18,28 @@ class SII_Boleta_Libro_Boletas {
     private $settings;
 
     /**
+     * Cliente API reutilizado para generar tokens o enviar el libro.
+     *
+     * @var SII_Boleta_API
+     */
+    private $api;
+
+    /**
+     * Firmador reutilizado para aplicar firma digital al XML del libro.
+     *
+     * @var SII_Boleta_Signer
+     */
+    private $signer;
+
+    /**
      * Constructor.
      *
      * @param SII_Boleta_Settings $settings Instancia de configuraciones.
      */
     public function __construct( SII_Boleta_Settings $settings ) {
         $this->settings = $settings;
+        $this->api     = new SII_Boleta_API();
+        $this->signer  = new SII_Boleta_Signer();
     }
 
     /**
@@ -135,25 +151,36 @@ class SII_Boleta_Libro_Boletas {
      * @return bool               True en caso de éxito, false si falla.
      */
     public function send_libro_to_sii( $xml, $environment = 'test', $token = '', $cert_path = '', $cert_pass = '' ) {
-        $api = new SII_Boleta_API();
+        if ( empty( $xml ) ) {
+            return false;
+        }
+
+        $signed_xml = $this->signer->sign_libro_xml( $xml, $cert_path, $cert_pass );
+        if ( ! $signed_xml ) {
+            return false;
+        }
+
         if ( empty( $token ) ) {
-            $token = $api->generate_token( $environment, $cert_path, $cert_pass );
+            $token = $this->api->generate_token( $environment, $cert_path, $cert_pass );
         }
         if ( empty( $token ) ) {
             return false;
         }
+
         $base_url = ( 'production' === $environment )
             ? 'https://api.sii.cl/bolcoreinternetui/api'
             : 'https://maullin.sii.cl/bolcoreinternetui/api';
         $endpoint = $base_url . '/envioLibroBoletas';
+
         $response = wp_remote_post( $endpoint, [
-            'body'    => $xml,
+            'body'    => $signed_xml,
             'headers' => [
                 'Content-Type'  => 'application/xml',
                 'Authorization' => 'Bearer ' . $token,
             ],
             'timeout' => 60,
         ] );
+
         return ! is_wp_error( $response );
     }
 }

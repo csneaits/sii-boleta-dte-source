@@ -36,6 +36,7 @@ class SII_Boleta_Core {
     private $public;
     private $woo;
     private $metrics;
+    private $libro_boletas;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -50,6 +51,7 @@ class SII_Boleta_Core {
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
+        $this->libro_boletas = new SII_Boleta_Libro_Boletas( $this->settings );
         $this->public        = new SII_Boleta_Public();
         $this->metrics       = new SII_Boleta_Metrics();
 
@@ -73,6 +75,8 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
         add_action( 'wp_ajax_sii_boleta_dte_toggle_job', [ $this, 'ajax_toggle_job' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_generate_libro', [ $this, 'ajax_generate_libro' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_send_libro', [ $this, 'ajax_send_libro' ] );
     }
 
     /**
@@ -202,6 +206,15 @@ class SII_Boleta_Core {
             'manage_options',
             'sii-boleta-dte-panel',
             [ $this, 'render_control_panel_page' ]
+        );
+
+        add_submenu_page(
+            'sii-boleta-dte',
+            __( 'Libro de Boletas', 'sii-boleta-dte' ),
+            __( 'Libro de Boletas', 'sii-boleta-dte' ),
+            'manage_options',
+            'sii-boleta-dte-libro',
+            [ $this, 'render_libro_boletas_page' ]
         );
 
         add_submenu_page(
@@ -499,6 +512,66 @@ class SII_Boleta_Core {
     }
 
     /**
+     * Renderiza la página para generar y enviar el Libro de Boletas manualmente.
+     */
+    public function render_libro_boletas_page() {
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Libro de Boletas', 'sii-boleta-dte' ); ?></h1>
+            <form id="sii-libro-form" method="post">
+                <?php wp_nonce_field( 'sii_boleta_generate_libro', 'sii_boleta_generate_libro_nonce' ); ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="fecha_inicio"><?php esc_html_e( 'Fecha inicio', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="date" name="fecha_inicio" id="fecha_inicio" required></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="fecha_fin"><?php esc_html_e( 'Fecha fin', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="date" name="fecha_fin" id="fecha_fin" required></td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <button type="submit" class="button button-primary" id="sii-generate-libro"><?php esc_html_e( 'Generar Libro', 'sii-boleta-dte' ); ?></button>
+                    <button type="button" class="button" id="sii-send-libro"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></button>
+                </p>
+                <div id="sii-libro-result"></div>
+            </form>
+        </div>
+        <script>
+        jQuery(function($){
+            $('#sii-libro-form').on('submit', function(e){
+                e.preventDefault();
+                var data = $(this).serialize();
+                $('#sii-generate-libro').prop('disabled', true);
+                $('#sii-libro-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
+                $.post(ajaxurl, data + '&action=sii_boleta_dte_generate_libro', function(response){
+                    $('#sii-generate-libro').prop('disabled', false);
+                    if (response.success) {
+                        $('#sii-libro-result').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                    } else {
+                        $('#sii-libro-result').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                    }
+                });
+            });
+            $('#sii-send-libro').on('click', function(){
+                var data = $('#sii-libro-form').serialize();
+                $('#sii-send-libro').prop('disabled', true);
+                $('#sii-libro-result').html('<p><?php echo esc_js( __( 'Enviando...', 'sii-boleta-dte' ) ); ?></p>');
+                $.post(ajaxurl, data + '&action=sii_boleta_dte_send_libro', function(response){
+                    $('#sii-send-libro').prop('disabled', false);
+                    if (response.success) {
+                        $('#sii-libro-result').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                    } else {
+                        $('#sii-libro-result').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
      * Muestra un registro simple de la actividad del job diario.
      */
     public function render_job_log_page() {
@@ -744,6 +817,54 @@ class SII_Boleta_Core {
             }
         }
         wp_send_json_success( [ 'dtes' => $dtes ] );
+    }
+
+    /**
+     * Genera el Libro de Boletas para un rango de fechas y guarda el XML.
+     */
+    public function ajax_generate_libro() {
+        check_admin_referer( 'sii_boleta_generate_libro', 'sii_boleta_generate_libro_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $inicio = isset( $_POST['fecha_inicio'] ) ? sanitize_text_field( $_POST['fecha_inicio'] ) : '';
+        $fin    = isset( $_POST['fecha_fin'] ) ? sanitize_text_field( $_POST['fecha_fin'] ) : '';
+        if ( ! $inicio || ! $fin ) {
+            wp_send_json_error( [ 'message' => __( 'Fechas inválidas.', 'sii-boleta-dte' ) ] );
+        }
+        $xml = $this->libro_boletas->generate_libro_xml( $inicio, $fin );
+        if ( ! $xml ) {
+            wp_send_json_error( [ 'message' => __( 'Error al generar el libro.', 'sii-boleta-dte' ) ] );
+        }
+        $upload_dir = wp_upload_dir();
+        $file_name  = 'LibroBoletas_' . $inicio . '_' . $fin . '.xml';
+        file_put_contents( trailingslashit( $upload_dir['basedir'] ) . $file_name, $xml );
+        wp_send_json_success( [ 'message' => sprintf( __( 'Libro generado: %s', 'sii-boleta-dte' ), esc_html( $file_name ) ) ] );
+    }
+
+    /**
+     * Genera y envía el Libro de Boletas al SII.
+     */
+    public function ajax_send_libro() {
+        check_admin_referer( 'sii_boleta_generate_libro', 'sii_boleta_generate_libro_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $inicio = isset( $_POST['fecha_inicio'] ) ? sanitize_text_field( $_POST['fecha_inicio'] ) : '';
+        $fin    = isset( $_POST['fecha_fin'] ) ? sanitize_text_field( $_POST['fecha_fin'] ) : '';
+        if ( ! $inicio || ! $fin ) {
+            wp_send_json_error( [ 'message' => __( 'Fechas inválidas.', 'sii-boleta-dte' ) ] );
+        }
+        $xml = $this->libro_boletas->generate_libro_xml( $inicio, $fin );
+        if ( ! $xml ) {
+            wp_send_json_error( [ 'message' => __( 'Error al generar el libro.', 'sii-boleta-dte' ) ] );
+        }
+        $settings = $this->settings->get_settings();
+        $sent = $this->libro_boletas->send_libro_to_sii( $xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        if ( $sent ) {
+            wp_send_json_success( [ 'message' => __( 'Libro enviado correctamente.', 'sii-boleta-dte' ) ] );
+        }
+        wp_send_json_error( [ 'message' => __( 'Error al enviar el libro.', 'sii-boleta-dte' ) ] );
     }
 
     /**

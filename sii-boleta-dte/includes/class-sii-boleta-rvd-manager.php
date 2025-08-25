@@ -288,9 +288,11 @@ class SII_Boleta_RVD_Manager {
         if ( $cert_path && $cert_pass ) {
             $rvd_xml = $signer->sign_rvd_xml( $rvd_xml, $cert_path, $cert_pass );
         }
+
         if ( ! $rvd_xml || ! $this->validate_rvd_xml( $rvd_xml ) ) {
             return false;
         }
+
         $api = new SII_Boleta_API();
         if ( empty( $token ) ) {
             $token = $api->generate_token( $environment, $cert_path, $cert_pass );
@@ -298,18 +300,12 @@ class SII_Boleta_RVD_Manager {
         if ( empty( $token ) ) {
             return false;
         }
-        $base_url = ( 'production' === $environment )
-            ? 'https://api.sii.cl/bolcoreinternetui/api'
-            : 'https://maullin.sii.cl/bolcoreinternetui/api';
-        $endpoint = $base_url . '/envioRVD';
-        $response = wp_remote_post( $endpoint, [
-            'body'    => $rvd_xml,
-            'headers' => [
-                'Content-Type'  => 'application/xml',
-                'Authorization' => 'Bearer ' . $token,
-            ],
-            'timeout' => 60,
-        ] );
-        return ! is_wp_error( $response );
+
+        $result = $api->send_rvd_to_sii( $rvd_xml, $environment, $token );
+        if ( is_wp_error( $result ) ) {
+            return false;
+        }
+
+        return true;
     }
 }

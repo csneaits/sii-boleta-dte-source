@@ -65,6 +65,7 @@ class SII_Boleta_Core {
 
         // Acciones AJAX para operaciones como generación de boletas desde el panel
         add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_preview_dte', [ $this, 'ajax_preview_dte' ] );
         add_action( 'wp_ajax_sii_boleta_dte_list_dtes', [ $this, 'ajax_list_dtes' ] );
         add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
@@ -634,6 +635,71 @@ class SII_Boleta_Core {
         }
 
         wp_send_json_success( [ 'message' => $message ] );
+    }
+
+    /**
+     * Genera una previsualización del DTE sin consumir folios ni enviarlo al SII.
+     */
+    public function ajax_preview_dte() {
+        check_admin_referer( 'sii_boleta_preview_dte', 'sii_boleta_preview_dte_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+
+        $type            = isset( $_POST['dte_type'] ) ? intval( $_POST['dte_type'] ) : 39;
+        $rut_receptor    = sanitize_text_field( $_POST['receptor_rut'] );
+        $nombre_receptor = sanitize_text_field( $_POST['receptor_nombre'] );
+        $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
+        $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
+        $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
+        $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
+        $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
+
+        $settings   = $this->settings->get_settings();
+        $monto_total = round( $cantidad * $precio_unitario );
+        $dte_data = [
+            'TipoDTE'    => $type,
+            'Folio'      => 0,
+            'FchEmis'    => date( 'Y-m-d' ),
+            'RutEmisor'  => $settings['rut_emisor'],
+            'RznSoc'     => $settings['razon_social'],
+            'GiroEmisor' => $settings['giro'],
+            'DirOrigen'  => $settings['direccion'],
+            'CmnaOrigen' => $settings['comuna'],
+            'Receptor'   => [
+                'RUTRecep'    => $rut_receptor,
+                'RznSocRecep' => $nombre_receptor,
+                'DirRecep'    => $dir_recep,
+                'CmnaRecep'   => $cmna_recep,
+            ],
+            'Detalles' => [
+                [
+                    'NroLinDet' => 1,
+                    'NmbItem'   => $descripcion,
+                    'QtyItem'   => $cantidad,
+                    'PrcItem'   => $precio_unitario,
+                    'MontoItem' => $monto_total,
+                ],
+            ],
+        ];
+
+        $xml = $this->xml_generator->generate_dte_xml( $dte_data, $type, true );
+        if ( is_wp_error( $xml ) || ! $xml ) {
+            wp_send_json_error( [ 'message' => __( 'Error al generar la previsualización del DTE.', 'sii-boleta-dte' ) ] );
+        }
+
+        $pdf_path = $this->pdf->generate_pdf_representation( $xml, $settings );
+        if ( ! $pdf_path ) {
+            wp_send_json_error( [ 'message' => __( 'No se pudo generar el archivo de previsualización.', 'sii-boleta-dte' ) ] );
+        }
+
+        $upload_dir = wp_upload_dir();
+        $preview_url = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $pdf_path );
+
+        wp_send_json_success( [
+            'message'     => __( 'Previsualización generada correctamente.', 'sii-boleta-dte' ),
+            'preview_url' => esc_url_raw( $preview_url ),
+        ] );
     }
 
     /**

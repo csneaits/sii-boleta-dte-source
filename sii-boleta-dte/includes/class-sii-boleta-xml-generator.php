@@ -69,27 +69,55 @@ class SII_Boleta_XML_Generator {
             $receptor->addChild( 'CmnaRecep', $data['Receptor']['CmnaRecep'] );
 
             // Totales
-            $monto_total = 0;
+            $monto_total  = 0;
+            $monto_exento = 0;
+            $desc_total   = 0;
+            $rec_total    = 0;
             foreach ( $data['Detalles'] as $detalle ) {
                 // Asegurarse de que MontoItem está definido correctamente
-                $monto_total += intval( $detalle['MontoItem'] );
+                $monto_item   = intval( $detalle['MontoItem'] );
+                $monto_total += $monto_item;
+                if ( ! empty( $detalle['IndExe'] ) ) {
+                    $monto_exento += $monto_item;
+                }
+                if ( isset( $detalle['DescuentoMonto'] ) ) {
+                    $desc_total += intval( $detalle['DescuentoMonto'] );
+                }
+                if ( isset( $detalle['RecargoMonto'] ) ) {
+                    $rec_total += intval( $detalle['RecargoMonto'] );
+                }
             }
             $totales = $encabezado->addChild( 'Totales' );
             $tipo_dte = intval( $data['TipoDTE'] );
             // Para facturas afectas (33) se debe desglosar en neto e IVA
             if ( $tipo_dte === 33 ) {
-                $neto = round( $monto_total / 1.19 );
-                $iva  = $monto_total - $neto;
+                $monto_afecto = $monto_total - $monto_exento;
+                $neto         = intval( $monto_afecto / 1.19 );
+                $iva          = $monto_afecto - $neto;
                 $totales->addChild( 'MntNeto', $neto );
                 $totales->addChild( 'IVA', $iva );
+                if ( $monto_exento > 0 ) {
+                    $totales->addChild( 'MntExe', $monto_exento );
+                }
                 $totales->addChild( 'MntTotal', $monto_total );
             } elseif ( $tipo_dte === 34 ) {
                 // Factura exenta, total exento
                 $totales->addChild( 'MntExe', $monto_total );
                 $totales->addChild( 'MntTotal', $monto_total );
+            } elseif ( $tipo_dte === 39 ) {
+                if ( $monto_exento > 0 ) {
+                    $totales->addChild( 'MntExe', $monto_exento );
+                }
+                $totales->addChild( 'MntTotal', $monto_total );
             } else {
                 // Boletas y notas utilizan solo MntTotal
                 $totales->addChild( 'MntTotal', $monto_total );
+            }
+            if ( $desc_total > 0 ) {
+                $totales->addChild( 'DescTotal', $desc_total );
+            }
+            if ( $rec_total > 0 ) {
+                $totales->addChild( 'RecargoTotal', $rec_total );
             }
 
             // Detalles
@@ -99,6 +127,15 @@ class SII_Boleta_XML_Generator {
                 $det->addChild( 'NmbItem', $detalle['NmbItem'] );
                 $det->addChild( 'QtyItem', $detalle['QtyItem'] );
                 $det->addChild( 'PrcItem', $detalle['PrcItem'] );
+                if ( ! empty( $detalle['IndExe'] ) ) {
+                    $det->addChild( 'IndExe', 1 );
+                }
+                if ( isset( $detalle['DescuentoMonto'] ) ) {
+                    $det->addChild( 'DescuentoMonto', $detalle['DescuentoMonto'] );
+                }
+                if ( isset( $detalle['RecargoMonto'] ) ) {
+                    $det->addChild( 'RecargoMonto', $detalle['RecargoMonto'] );
+                }
                 $det->addChild( 'MontoItem', $detalle['MontoItem'] );
             }
 

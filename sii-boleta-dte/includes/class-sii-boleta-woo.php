@@ -356,15 +356,17 @@ class SII_Boleta_Woo {
         $ref_tipo  = (int) ( $order->get_meta( '_sii_dte_type', true ) ?: 39 );
         $ref_folio = $order->get_meta( '_sii_boleta_folio', true );
         $ref_fecha = $order->get_date_created() ? $order->get_date_created()->date( 'Y-m-d' ) : date( 'Y-m-d' );
-        $referencias = [];
-        if ( $ref_folio ) {
-            $referencias[] = [
-                'TpoDocRef' => $ref_tipo,
-                'FolioRef'  => $ref_folio,
-                'FchRef'    => $ref_fecha,
-                'RazonRef'  => __( 'Reembolso de pedido WooCommerce', 'sii-boleta-dte' ),
-            ];
+        if ( ! $ref_folio ) {
+            $order->add_order_note( __( 'No se encontró DTE original para referenciar en el reembolso.', 'sii-boleta-dte' ) );
+            return;
         }
+        $referencias = [];
+        $referencias[] = [
+            'TpoDocRef' => $ref_tipo,
+            'FolioRef'  => $ref_folio,
+            'FchRef'    => $ref_fecha,
+            'RazonRef'  => __( 'Reembolso de pedido WooCommerce', 'sii-boleta-dte' ),
+        ];
 
         $rut_receptor = $order->get_meta( '_sii_rut_recep', true );
         if ( $rut_receptor && ! $this->is_valid_rut( $rut_receptor ) ) {

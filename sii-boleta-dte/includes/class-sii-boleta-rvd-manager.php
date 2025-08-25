@@ -70,7 +70,7 @@ class SII_Boleta_RVD_Manager {
             $caratula->appendChild( $doc->createElement( 'FchFinal', $to_cl->format( 'Y-m-d' ) ) );
             $caratula->appendChild( $doc->createElement( 'Correlativo', '1' ) );
             $caratula->appendChild( $doc->createElement( 'SecEnvio', '1' ) );
-            $caratula->appendChild( $doc->createElement( 'TmstFirmaEnv', $now->format( 'Y-m-d\TH:i:s' ) ) );
+            $caratula->appendChild( $doc->createElement( 'TmstFirmaEnv', $now->format( 'Y-m-d\\TH:i:s' ) ) );
             $documento->appendChild( $caratula );
 
             if ( empty( $folios_tipo ) ) {
@@ -78,7 +78,7 @@ class SII_Boleta_RVD_Manager {
                 $resumen = $doc->createElement( 'Resumen' );
                 $resumen->appendChild( $doc->createElement( 'TipoDocumento', 39 ) );
                 $resumen->appendChild( $doc->createElement( 'MntNeto', 0 ) );
-                $resumen->appendChild( $doc->createElement( 'MntExe', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'MntExento', 0 ) );
                 $resumen->appendChild( $doc->createElement( 'MntIVA', 0 ) );
                 $resumen->appendChild( $doc->createElement( 'MntTotal', 0 ) );
                 $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', 0 ) );
@@ -88,23 +88,25 @@ class SII_Boleta_RVD_Manager {
                 $documento->appendChild( $resumen );
             } else {
                 foreach ( $folios_tipo as $tipo => $data ) {
-                    $folios = $data['folios'];
-                    sort( $folios );
-                    $emitidos = count( $folios );
-                    $anulados = 0; // No se registran anulaciones en esta implementacion.
+                    $emitidos = $data['emitidos'];
+                    $anulados = $data['anulados'];
+                    sort( $emitidos );
+                    sort( $anulados );
+                    $utilizados = array_merge( $emitidos, $anulados );
+                    sort( $utilizados );
 
                     $resumen = $doc->createElement( 'Resumen' );
                     $resumen->appendChild( $doc->createElement( 'TipoDocumento', $tipo ) );
                     $resumen->appendChild( $doc->createElement( 'MntNeto', $data['monto_neto'] ) );
-                    $resumen->appendChild( $doc->createElement( 'MntExe', $data['monto_exento'] ) );
+                    $resumen->appendChild( $doc->createElement( 'MntExento', $data['monto_exento'] ) );
                     $resumen->appendChild( $doc->createElement( 'MntIVA', $data['monto_iva'] ) );
                     $resumen->appendChild( $doc->createElement( 'MntTotal', $data['monto_total'] ) );
-                    $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', $emitidos ) );
-                    $resumen->appendChild( $doc->createElement( 'FoliosAnulados', $anulados ) );
-                    $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', $emitidos + $anulados ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', count( $emitidos ) ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosAnulados', count( $anulados ) ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', count( $utilizados ) ) );
 
-                    // Calcular rangos de folios utilizados.
-                    $used_ranges = $this->calculate_ranges( $folios );
+                    // Rangos de folios utilizados (emitidos + anulados).
+                    $used_ranges = $this->calculate_ranges( $utilizados );
                     foreach ( $used_ranges as $r ) {
                         $rango = $doc->createElement( 'RangoUtilizados' );
                         $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
@@ -112,13 +114,22 @@ class SII_Boleta_RVD_Manager {
                         $resumen->appendChild( $rango );
                     }
 
-                    // Calcular folios no utilizados dentro del rango min/max.
+                    // Rangos de folios anulados.
+                    $anulados_ranges = $this->calculate_ranges( $anulados );
+                    foreach ( $anulados_ranges as $r ) {
+                        $rango = $doc->createElement( 'RangoAnulados' );
+                        $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
+                        $rango->appendChild( $doc->createElement( 'Final', $r[1] ) );
+                        $resumen->appendChild( $rango );
+                    }
+
+                    // Calcular folios no utilizados dentro del rango min/max de los utilizados.
                     $no_utilizados = [];
-                    if ( $emitidos > 0 ) {
-                        $min = min( $folios );
-                        $max = max( $folios );
-                        $full_range     = range( $min, $max );
-                        $no_utilizados  = array_values( array_diff( $full_range, $folios ) );
+                    if ( ! empty( $utilizados ) ) {
+                        $min = min( $utilizados );
+                        $max = max( $utilizados );
+                        $full_range    = range( $min, $max );
+                        $no_utilizados = array_values( array_diff( $full_range, $utilizados ) );
                     }
                     $resumen->appendChild( $doc->createElement( 'FoliosNoUtilizados', count( $no_utilizados ) ) );
                     $unused_ranges = $this->calculate_ranges( $no_utilizados );
@@ -203,7 +214,8 @@ class SII_Boleta_RVD_Manager {
 
                     if ( ! isset( $totales[ $tipo ] ) ) {
                         $totales[ $tipo ] = [
-                            'folios'       => [],
+                            'emitidos'     => [],
+                            'anulados'     => [],
                             'monto_neto'   => 0,
                             'monto_exento' => 0,
                             'monto_iva'    => 0,
@@ -211,11 +223,20 @@ class SII_Boleta_RVD_Manager {
                         ];
                     }
 
-                    $totales[ $tipo ]['folios'][]       = $folio;
-                    $totales[ $tipo ]['monto_neto']    += $mnt_neto;
-                    $totales[ $tipo ]['monto_exento']  += $mnt_exe;
-                    $totales[ $tipo ]['monto_iva']     += $mnt_iva;
-                    $totales[ $tipo ]['monto_total']   += $mnt_total;
+                    $anulado = false;
+                    if ( ( isset( $idDoc->Anulado ) && '1' === (string) $idDoc->Anulado ) || ( isset( $doc_node->Anulado ) && '1' === (string) $doc_node->Anulado ) ) {
+                        $anulado = true;
+                    }
+
+                    if ( $anulado ) {
+                        $totales[ $tipo ]['anulados'][] = $folio;
+                    } else {
+                        $totales[ $tipo ]['emitidos'][]   = $folio;
+                        $totales[ $tipo ]['monto_neto']   += $mnt_neto;
+                        $totales[ $tipo ]['monto_exento'] += $mnt_exe;
+                        $totales[ $tipo ]['monto_iva']    += $mnt_iva;
+                        $totales[ $tipo ]['monto_total']  += $mnt_total;
+                    }
                 } catch ( Exception $e ) {
                     continue;
                 }

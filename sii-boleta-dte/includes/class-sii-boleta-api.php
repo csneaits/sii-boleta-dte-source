@@ -74,29 +74,75 @@ class SII_Boleta_API {
             ],
             'method'      => 'POST',
             'data_format' => 'body',
-            'timeout'     => 60,
+            'timeout'     => 90,
         ];
-        $response = wp_remote_post( $endpoint, $args );
+
+        $attempts     = 0;
+        $max_attempts = 3;
+        $delay        = 1;
+        do {
+            $attempts++;
+            $response = wp_remote_post( $endpoint, $args );
+            $retry    = false;
+
+            if ( is_wp_error( $response ) ) {
+                $retry = ( $attempts < $max_attempts );
+                $error_message = $response->get_error_message();
+            } else {
+                $code  = wp_remote_retrieve_response_code( $response );
+                $retry = ( ( 408 === $code || $code >= 500 ) && $attempts < $max_attempts );
+            }
+
+            if ( $retry ) {
+                sleep( $delay );
+                $delay *= 2;
+            }
+        } while ( $retry );
+
         if ( is_wp_error( $response ) ) {
+            sii_boleta_write_log( 'Error de conexión al enviar DTE: ' . $error_message );
             return false;
         }
+
         $code = wp_remote_retrieve_response_code( $response );
-        if ( 200 !== $code ) {
+        if ( ! in_array( $code, [ 200, 202 ], true ) ) {
             return new \WP_Error( 'sii_boleta_http_error', sprintf( __( 'Error HTTP %d al llamar al servicio del SII.', 'sii-boleta-dte' ), $code ) );
         }
+
         $body = wp_remote_retrieve_body( $response );
         // El SII puede devolver JSON o XML; intentamos decodificar JSON primero.
         $data = json_decode( $body, true );
-        if ( isset( $data['trackId'] ) ) {
-            return $data['trackId'];
-        }
-        // Si es XML, intentar parsear el nodo trackId
-        if ( strpos( $body, '<trackId>' ) !== false ) {
-            $xml = simplexml_load_string( $body );
-            if ( $xml && isset( $xml->trackId ) ) {
-                return (string) $xml->trackId;
+        if ( is_array( $data ) ) {
+            if ( isset( $data['trackId'] ) ) {
+                return $data['trackId'];
+            }
+            if ( isset( $data['codigo'] ) && intval( $data['codigo'] ) !== 0 ) {
+                $message = $data['codigo'] . ': ' . ( $data['mensaje'] ?? '' );
+                sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
+            }
+            if ( isset( $data['error'] ) ) {
+                $message = $data['error'];
+                sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
             }
         }
+
+        // Si es XML, intentar parsear
+        $xml = simplexml_load_string( $body );
+        if ( $xml ) {
+            if ( isset( $xml->trackId ) ) {
+                return (string) $xml->trackId;
+            }
+            if ( ( isset( $xml->codigo ) && isset( $xml->causa ) ) || ( isset( $xml->Codigo ) && isset( $xml->Causa ) ) ) {
+                $c = isset( $xml->codigo ) ? (string) $xml->codigo : (string) $xml->Codigo;
+                $m = isset( $xml->causa ) ? (string) $xml->causa : (string) $xml->Causa;
+                $message = $c . ': ' . $m;
+                sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
+            }
+        }
+
         return false;
     }
 
@@ -280,7 +326,25 @@ class SII_Boleta_API {
             return false;
         }
 
-        // 1. Solicitar semilla
+        $lock_key = 'sii_boleta_token_lock';
+        $lock_ttl = 120;
+        $start    = time();
+
+        while ( get_transient( $lock_key ) ) {
+            if ( time() - $start > $lock_ttl ) {
+                break;
+            }
+            sleep( 1 );
+        }
+
+        if ( get_transient( $lock_key ) ) {
+            return false;
+        }
+
+        set_transient( $lock_key, 1, $lock_ttl );
+
+        try {
+            // 1. Solicitar semilla
         $seed_url = ( 'production' === $environment )
             ? 'https://palena.sii.cl/DTEWS/CrSeed.jws'
             : 'https://maullin.sii.cl/DTEWS/CrSeed.jws';
@@ -350,12 +414,15 @@ class SII_Boleta_API {
 
         if ( $token ) {
             // Guardar el token y su expiración en las opciones para reutilizarlo.
-            $settings                     = get_option( SII_Boleta_Settings::OPTION_NAME, array() );
-            $settings['api_token']        = $token;
+            $settings                      = get_option( SII_Boleta_Settings::OPTION_NAME, array() );
+            $settings['api_token']         = $token;
             $settings['api_token_expires'] = time() + 50 * 60; // 50 minutos.
             update_option( SII_Boleta_Settings::OPTION_NAME, $settings );
         }
 
         return $token ? $token : false;
+        } finally {
+            delete_transient( $lock_key );
+        }
     }
 }

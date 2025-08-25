@@ -70,6 +70,7 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 El plugin permite generar un **Libro de Boletas** a partir de los DTE emitidos en un rango de fechas y enviarlo manualmente al SII.
 Desde el menú de administración, en la nueva sección "Libro de Boletas", seleccione la fecha de inicio y fin para generar el archivo.
 Posteriormente puede descargarlo o enviarlo directamente al SII reutilizando el token y certificado configurados.
+El XML generado se almacena en la carpeta de subidas de WordPress.
 
 ## Notas sobre la licencia y originalidad
 

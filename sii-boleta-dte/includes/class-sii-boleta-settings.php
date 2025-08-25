@@ -136,6 +136,47 @@ class SII_Boleta_Settings {
             'sii-boleta-dte',
             'sii_boleta_dte_settings_section'
         );
+
+        add_settings_section(
+            'sii_boleta_dte_ses_settings_section',
+            __( 'Configuración de Amazon SES', 'sii-boleta-dte' ),
+            function() {
+                echo '<p>' . esc_html__( 'Configure las credenciales SMTP de Amazon SES para el envío de correos.', 'sii-boleta-dte' ) . '</p>';
+            },
+            'sii-boleta-dte'
+        );
+
+        add_settings_field(
+            'ses_host',
+            __( 'Host SMTP', 'sii-boleta-dte' ),
+            [ $this, 'render_field_ses_host' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_ses_settings_section'
+        );
+
+        add_settings_field(
+            'ses_port',
+            __( 'Puerto SMTP', 'sii-boleta-dte' ),
+            [ $this, 'render_field_ses_port' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_ses_settings_section'
+        );
+
+        add_settings_field(
+            'ses_username',
+            __( 'Usuario SMTP', 'sii-boleta-dte' ),
+            [ $this, 'render_field_ses_username' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_ses_settings_section'
+        );
+
+        add_settings_field(
+            'ses_password',
+            __( 'Contraseña SMTP', 'sii-boleta-dte' ),
+            [ $this, 'render_field_ses_password' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_ses_settings_section'
+        );
     }
 
     /**
@@ -158,6 +199,10 @@ class SII_Boleta_Settings {
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
+        $output['ses_host']     = sanitize_text_field( $input['ses_host'] ?? '' );
+        $output['ses_port']     = isset( $input['ses_port'] ) ? intval( $input['ses_port'] ) : 587;
+        $output['ses_username'] = sanitize_text_field( $input['ses_username'] ?? '' );
+        $output['ses_password'] = sanitize_text_field( $input['ses_password'] ?? '' );
         $output['api_token_expires'] = isset( $existing['api_token_expires'] ) ? intval( $existing['api_token_expires'] ) : 0;
         $valid_types            = [ '39', '33', '34', '52', '56', '61' ];
         $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
@@ -249,6 +294,10 @@ class SII_Boleta_Settings {
             'enabled_dte_types' => [ '39', '33', '34', '52', '56', '61' ],
             'logo_id'       => 0,
             'enable_logging' => 0,
+            'ses_host'      => '',
+            'ses_port'      => 587,
+            'ses_username'  => '',
+            'ses_password'  => '',
         ];
         return wp_parse_args( get_option( self::OPTION_NAME, [] ), $defaults );
     }
@@ -489,6 +538,42 @@ class SII_Boleta_Settings {
         });
         </script>
         <?php
+    }
+
+    public function render_field_ses_host() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[ses_host]" value="%s" class="regular-text" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['ses_host'] )
+        );
+    }
+
+    public function render_field_ses_port() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="number" name="%s[ses_port]" value="%s" class="small-text" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['ses_port'] )
+        );
+    }
+
+    public function render_field_ses_username() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[ses_username]" value="%s" class="regular-text" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['ses_username'] )
+        );
+    }
+
+    public function render_field_ses_password() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="password" name="%s[ses_password]" value="%s" class="regular-text" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['ses_password'] )
+        );
     }
 
     /**

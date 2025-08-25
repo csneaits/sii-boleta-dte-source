@@ -58,4 +58,55 @@ class SII_Boleta_Signer {
         $doc->documentElement->appendChild( $objDSig->sigNode );
         return $doc->saveXML();
     }
+
+    /**
+     * Firma un XML del Libro de Boletas. Aplica la firma al nodo raíz
+     * "LibroBoletas" para cumplir con los requisitos del SII.
+     *
+     * @param string $xml       Contenido XML del libro.
+     * @param string $cert_path Ruta al archivo PFX.
+     * @param string $cert_pass Contraseña del certificado.
+     * @return string|false     XML firmado o false si ocurre un error.
+     */
+    public function sign_libro_xml( $xml, $cert_path, $cert_pass ) {
+        if ( ! $xml || ! file_exists( $cert_path ) ) {
+            return false;
+        }
+        $doc = new DOMDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput       = false;
+        if ( ! $doc->loadXML( $xml ) ) {
+            return false;
+        }
+        $root = $doc->documentElement;
+        if ( ! $root ) {
+            return false;
+        }
+        if ( ! $root->hasAttribute( 'ID' ) ) {
+            $root->setAttribute( 'ID', 'LibroBoletas' );
+        }
+        $objDSig = new XMLSecurityDSig();
+        $objDSig->addSignature( $doc );
+        $pkcs12 = file_get_contents( $cert_path );
+        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+            return false;
+        }
+        $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );
+        $objKey->loadKey( $creds['pkey'] );
+        $objDSig->addReference( $root );
+        $objDSig->sign( $objKey );
+
+        // Adjuntar certificado en KeyInfo
+        $cert    = str_replace( [ '-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\n", "\r" ], '', $creds['cert'] );
+        $docKey  = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:KeyInfo' );
+        $x509    = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:X509Data' );
+        $certElt = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:X509Certificate', $cert );
+        $x509->appendChild( $certElt );
+        $docKey->appendChild( $x509 );
+        $objDSig->sigNode->appendChild( $docKey );
+
+        $root->appendChild( $objDSig->sigNode );
+
+        return $doc->saveXML();
+    }
 }

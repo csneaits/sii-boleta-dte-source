@@ -25,6 +25,7 @@ class SII_Boleta_Core {
      * @var SII_Boleta_Public
      * @var SII_Boleta_Woo
      * @var SII_Boleta_Metrics
+     * @var SII_Boleta_Consumo_Folios
      */
     private $settings;
     private $folio_manager;
@@ -36,6 +37,7 @@ class SII_Boleta_Core {
     private $public;
     private $woo;
     private $metrics;
+    private $consumo_folios;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -52,6 +54,7 @@ class SII_Boleta_Core {
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
         $this->public        = new SII_Boleta_Public();
         $this->metrics       = new SII_Boleta_Metrics();
+        $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
 
         if ( class_exists( 'WooCommerce' ) ) {
             $this->woo = new SII_Boleta_Woo( $this );
@@ -73,6 +76,7 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
         add_action( 'wp_ajax_sii_boleta_dte_toggle_job', [ $this, 'ajax_toggle_job' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_run_cdf', [ $this, 'ajax_run_cdf' ] );
     }
 
     /**
@@ -136,6 +140,15 @@ class SII_Boleta_Core {
      */
     public function get_rvd_manager() {
         return $this->rvd_manager;
+    }
+
+    /**
+     * Devuelve la instancia del manejador de Consumo de Folios.
+     *
+     * @return SII_Boleta_Consumo_Folios
+     */
+    public function get_consumo_folios() {
+        return $this->consumo_folios;
     }
 
     /**
@@ -250,8 +263,10 @@ class SII_Boleta_Core {
                 <p>
                     <button type="button" class="button" id="sii-toggle-job"><?php esc_html_e( 'Programar Job', 'sii-boleta-dte' ); ?></button>
                     <button type="button" class="button" id="sii-run-rvd"><?php esc_html_e( 'Generar RVD del día', 'sii-boleta-dte' ); ?></button>
+                    <button type="button" class="button" id="sii-run-cdf"><?php esc_html_e( 'Generar CDF del día', 'sii-boleta-dte' ); ?></button>
                 </p>
                 <div id="sii-rvd-result"></div>
+                <div id="sii-cdf-result"></div>
                 <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
             <?php elseif ( 'metrics' === $active_tab ) : ?>
                 <?php $metrics = $this->metrics->gather_metrics(); ?>
@@ -362,6 +377,16 @@ class SII_Boleta_Core {
                             $('#sii-rvd-result').html('<div class="notice notice-error"><p>'+resp.data.message+'</p></div>');
                         }
                         loadLog();
+                    });
+                });
+                $('#sii-run-cdf').on('click', function(){
+                    $('#sii-cdf-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
+                    $.post(ajaxurl, {action:'sii_boleta_dte_run_cdf'}, function(resp){
+                        if(resp.success){
+                            $('#sii-cdf-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
+                        }else{
+                            $('#sii-cdf-result').html('<div class="notice notice-error"><p>'+resp.data.message+'</p></div>');
+                        }
                     });
                 });
                 loadLog();
@@ -799,6 +824,29 @@ class SII_Boleta_Core {
         } else {
             sii_boleta_write_log( 'Error al enviar el RVD manual para la fecha ' . $today );
             wp_send_json_error( [ 'message' => __( 'Error al enviar el RVD.', 'sii-boleta-dte' ) ] );
+        }
+    }
+
+    /**
+     * Genera y envía manualmente el Consumo de Folios.
+     */
+    public function ajax_run_cdf() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $settings = $this->settings->get_settings();
+        $today    = date( 'Y-m-d' );
+        $cdf_xml  = $this->consumo_folios->generate_cdf_xml( $today );
+        if ( ! $cdf_xml ) {
+            wp_send_json_error( [ 'message' => __( 'No fue posible generar el CDF.', 'sii-boleta-dte' ) ] );
+        }
+        $sent = $this->consumo_folios->send_cdf_to_sii( $cdf_xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        if ( $sent ) {
+            sii_boleta_write_log( 'CDF enviado manualmente para la fecha ' . $today );
+            wp_send_json_success( [ 'message' => __( 'CDF enviado correctamente.', 'sii-boleta-dte' ) ] );
+        } else {
+            sii_boleta_write_log( 'Error al enviar el CDF manual para la fecha ' . $today );
+            wp_send_json_error( [ 'message' => __( 'Error al enviar el CDF.', 'sii-boleta-dte' ) ] );
         }
     }
 }

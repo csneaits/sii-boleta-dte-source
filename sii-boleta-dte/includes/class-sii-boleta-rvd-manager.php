@@ -27,80 +27,117 @@ class SII_Boleta_RVD_Manager {
     }
 
     /**
-     * Genera el XML del Resumen de Ventas Diarias para una fecha dada. Este
-     * método recopila las boletas emitidas en la fecha indicada y crea un
-     * documento con la estructura exigida por el SII. Por simplicidad,
-     * actualmente el método genera un XML vacío con la fecha y emisor.
+     * Genera el XML del Resumen de Ventas Diarias (Consumo de Folios) para una
+     * fecha dada siguiendo el esquema oficial del SII.
      *
      * @param string $date Fecha en formato Y-m-d. Por defecto, el día actual.
-     * @return string|false XML del resumen o false si falla.
+     * @return string|false XML generado o false si falla.
      */
     public function generate_rvd_xml( $date = null ) {
         if ( ! $date ) {
             $date = date( 'Y-m-d' );
         }
-        $settings = $this->settings->get_settings();
-        try {
-            $xml = new SimpleXMLElement( '<RVD version="1.0" xmlns="http://www.sii.cl/SiiDte"></RVD>' );
-            $xml->addChild( 'FchRVD', $date );
-            $emisor = $xml->addChild( 'Emisor' );
-            $emisor->addChild( 'RUTEmisor', $settings['rut_emisor'] );
-            $emisor->addChild( 'RznSoc', $settings['razon_social'] );
-            $emisor->addChild( 'GiroEmisor', $settings['giro'] );
+        $settings      = $this->settings->get_settings();
+        $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+        $totales_tipo  = $folio_manager->get_folios_by_date( $date );
+        $caf_info      = $folio_manager->get_caf_info();
 
-            // Recorrer los archivos DTE generados en la carpeta de uploads y sumar montos del día
-            $upload_dir   = wp_upload_dir();
-            $base_dir     = trailingslashit( $upload_dir['basedir'] );
-            $totales_tipo = [];
-            $iterator     = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
-            foreach ( $iterator as $file ) {
-                if ( $file->isFile() && preg_match( '/DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
-                    $content = file_get_contents( $file->getPathname() );
-                    if ( ! $content ) {
-                        continue;
-                    }
-                    try {
-                        $doc = new SimpleXMLElement( $content );
-                        $doc_node = $doc->Documento;
-                        if ( ! $doc_node ) {
-                            continue;
-                        }
-                        $idDoc = $doc_node->Encabezado->IdDoc;
-                        $fecha = (string) $idDoc->FchEmis;
-                        $tipo  = intval( $idDoc->TipoDTE );
-                        if ( $fecha !== $date ) {
-                            continue;
-                        }
-                        $folio  = intval( $idDoc->Folio );
-                        $totals = $doc_node->Encabezado->Totales;
-                        $monto_total = 0;
-                        if ( isset( $totals->MntTotal ) ) {
-                            $monto_total = intval( $totals->MntTotal );
-                        }
-                        if ( ! isset( $totales_tipo[ $tipo ] ) ) {
-                            $totales_tipo[ $tipo ] = [ 'monto' => 0, 'folios' => [] ];
-                        }
-                        $totales_tipo[ $tipo ]['monto']  += $monto_total;
-                        $totales_tipo[ $tipo ]['folios'][] = $folio;
-                    } catch ( Exception $e ) {
-                        continue;
-                    }
-                }
-            }
-            // Crear nodos para cada tipo de documento
+        try {
+            $doc = new DOMDocument( '1.0', 'ISO-8859-1' );
+            $doc->formatOutput = false;
+
+            $root = $doc->createElement( 'ConsumoFolios' );
+            $root->setAttribute( 'version', '1.0' );
+            $root->setAttribute( 'xmlns', 'http://www.sii.cl/SiiDte' );
+            $doc->appendChild( $root );
+
+            $documento = $doc->createElement( 'DocumentoConsumoFolios' );
+            $documento->setAttribute( 'ID', 'RVD' );
+            $root->appendChild( $documento );
+
+            $caratula = $doc->createElement( 'Caratula' );
+            $caratula->setAttribute( 'version', '1.0' );
+            $caratula->appendChild( $doc->createElement( 'RutEmisor', $settings['rut_emisor'] ) );
+            $caratula->appendChild( $doc->createElement( 'RutEnvia', $settings['rut_emisor'] ) );
+            $caratula->appendChild( $doc->createElement( 'FchResol', $caf_info['FchResol'] ?? date( 'Y-m-d' ) ) );
+            $caratula->appendChild( $doc->createElement( 'NroResol', $caf_info['NroResol'] ?? '0' ) );
+            $caratula->appendChild( $doc->createElement( 'FchInicio', $date ) );
+            $caratula->appendChild( $doc->createElement( 'FchFinal', $date ) );
+            $caratula->appendChild( $doc->createElement( 'Correlativo', '1' ) );
+            $caratula->appendChild( $doc->createElement( 'SecEnvio', '1' ) );
+            $caratula->appendChild( $doc->createElement( 'TmstFirmaEnv', date( 'Y-m-d\TH:i:s' ) ) );
+            $documento->appendChild( $caratula );
+
             foreach ( $totales_tipo as $tipo => $data ) {
-                sort( $data['folios'] );
-                $resumen = $xml->addChild( 'Resumen' );
-                $resumen->addChild( 'TipoDTE', $tipo );
-                $resumen->addChild( 'FolioInicial', $data['folios'][0] );
-                $resumen->addChild( 'FolioFinal', end( $data['folios'] ) );
-                $resumen->addChild( 'FoliosEmitidos', count( $data['folios'] ) );
-                $resumen->addChild( 'Totales', $data['monto'] );
+                $folios  = $data['folios'];
+                sort( $folios );
+                $resumen = $doc->createElement( 'Resumen' );
+                $resumen->appendChild( $doc->createElement( 'TipoDocumento', $tipo ) );
+                $resumen->appendChild( $doc->createElement( 'MntTotal', $data['monto'] ) );
+                $emitidos = count( $folios );
+                $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', $emitidos ) );
+                $resumen->appendChild( $doc->createElement( 'FoliosAnulados', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', $emitidos ) );
+                $ranges = $this->calculate_ranges( $folios );
+                foreach ( $ranges as $r ) {
+                    $rango = $doc->createElement( 'RangoUtilizados' );
+                    $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
+                    $rango->appendChild( $doc->createElement( 'Final', $r[1] ) );
+                    $resumen->appendChild( $rango );
+                }
+                $documento->appendChild( $resumen );
             }
-            return $xml->asXML();
+
+            return $doc->saveXML();
         } catch ( Exception $e ) {
             return false;
         }
+    }
+
+    /**
+     * Genera rangos consecutivos a partir de una lista de folios.
+     *
+     * @param array $folios Lista de folios utilizados.
+     * @return array Arreglo de rangos [[inicio, fin], ...].
+     */
+    private function calculate_ranges( array $folios ) {
+        $ranges = [];
+        $start  = null;
+        $end    = null;
+        foreach ( $folios as $folio ) {
+            if ( null === $start ) {
+                $start = $end = $folio;
+                continue;
+            }
+            if ( $folio === $end + 1 ) {
+                $end = $folio;
+                continue;
+            }
+            $ranges[] = [ $start, $end ];
+            $start    = $end = $folio;
+        }
+        if ( null !== $start ) {
+            $ranges[] = [ $start, $end ];
+        }
+        return $ranges;
+    }
+
+    /**
+     * Valida el XML del RVD contra el XSD oficial.
+     *
+     * @param string $xml Contenido XML a validar.
+     * @return bool True si es válido, false en caso contrario.
+     */
+    public function validate_rvd_xml( $xml ) {
+        $doc = new DOMDocument();
+        if ( ! $doc->loadXML( $xml ) ) {
+            return false;
+        }
+        libxml_use_internal_errors( true );
+        $xsd   = __DIR__ . '/schemas/ConsumoFolio_v10.xsd';
+        $valid = $doc->schemaValidate( $xsd );
+        libxml_clear_errors();
+        return $valid;
     }
 
     /**
@@ -116,6 +153,13 @@ class SII_Boleta_RVD_Manager {
      * @return bool True si se envía con éxito, false en caso de error.
      */
     public function send_rvd_to_sii( $rvd_xml, $environment = 'test', $token = '', $cert_path = '', $cert_pass = '' ) {
+        $signer = new SII_Boleta_Signer();
+        if ( $cert_path && $cert_pass ) {
+            $rvd_xml = $signer->sign_rvd_xml( $rvd_xml, $cert_path, $cert_pass );
+        }
+        if ( ! $rvd_xml || ! $this->validate_rvd_xml( $rvd_xml ) ) {
+            return false;
+        }
         $api = new SII_Boleta_API();
         if ( empty( $token ) ) {
             $token = $api->generate_token( $environment, $cert_path, $cert_pass );

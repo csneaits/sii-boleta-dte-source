@@ -192,30 +192,50 @@ class SII_Boleta_XML_Generator {
         }
         // Leer el CAF completo como string
         $caf_content = file_get_contents( $caf_path );
-        $caf_xml     = new SimpleXMLElement( $caf_content );
-        // Extraer el fragmento <CAF> para incluirlo en el TED
-        $caf_fragment = $caf_xml->asXML();
 
-        // Construir el nodo DD con los campos mínimos
-        $dd  = '<DD>';
-        $dd .= '<RE>'  . $data['RutEmisor']               . '</RE>';
-        $dd .= '<TD>'  . $data['TipoDTE']                 . '</TD>';
-        $dd .= '<F>'   . $data['Folio']                   . '</F>';
-        $dd .= '<FE>'  . $data['FchEmis']                 . '</FE>';
-        $dd .= '<RR>'  . $data['Receptor']['RUTRecep']    . '</RR>';
+        // Construir el nodo DD utilizando DOMDocument para evitar
+        // concatenaciones frágiles y asegurar una firma estable.
+        $dom = new DOMDocument( '1.0', 'UTF-8' );
+        $dd  = $dom->createElement( 'DD' );
+        $dom->appendChild( $dd );
+
+        $dd->appendChild( $dom->createElement( 'RE', $data['RutEmisor'] ) );
+        $dd->appendChild( $dom->createElement( 'TD', $data['TipoDTE'] ) );
+        $dd->appendChild( $dom->createElement( 'F', $data['Folio'] ) );
+        $dd->appendChild( $dom->createElement( 'FE', $data['FchEmis'] ) );
+        $dd->appendChild( $dom->createElement( 'RR', $data['Receptor']['RUTRecep'] ) );
+
         // RSR se limita a 40 caracteres según la normativa
-        $rsr = substr( strtoupper( $data['Receptor']['RznSocRecep'] ), 0, 40 );
-        $dd .= '<RSR>' . $rsr                             . '</RSR>';
+        $rsr = mb_substr( mb_strtoupper( $data['Receptor']['RznSocRecep'], 'UTF-8' ), 0, 40 );
+        $dd->appendChild( $dom->createElement( 'RSR', $rsr ) );
+
         $monto_total = 0;
+        $item_names  = [];
         foreach ( $data['Detalles'] as $detalle ) {
             $monto_total += intval( $detalle['MontoItem'] );
+            $item_names[] = $detalle['NmbItem'];
         }
-        $dd .= '<MNT>' . $monto_total                     . '</MNT>';
-        // Se utiliza el nombre del primer ítem como IT1 (puede ampliarse a concatenar otros)
-        $dd .= '<IT1>' . substr( $data['Detalles'][0]['NmbItem'], 0, 40 ) . '</IT1>';
-        $dd .= $caf_fragment;
-        $dd .= '<TSTED>' . date( 'Y-m-d\TH:i:s' ) . '</TSTED>';
-        $dd .= '</DD>';
+        $dd->appendChild( $dom->createElement( 'MNT', $monto_total ) );
+
+        // IT1 se construye concatenando nombres de ítems, separados por coma,
+        // en mayúsculas y limitado a 40 caracteres.
+        $it1        = implode( ', ', $item_names );
+        $it1        = mb_strtoupper( $it1, 'UTF-8' );
+        $it1        = mb_substr( $it1, 0, 40 );
+        $dd->appendChild( $dom->createElement( 'IT1', $it1 ) );
+
+        // Importar el nodo <CAF> completo dentro de <DD>
+        $caf_dom = new DOMDocument();
+        $caf_dom->loadXML( $caf_content );
+        $caf_node = $caf_dom->getElementsByTagName( 'CAF' )->item( 0 );
+        if ( $caf_node ) {
+            $dd->appendChild( $dom->importNode( $caf_node, true ) );
+        }
+
+        $dd->appendChild( $dom->createElement( 'TSTED', date( 'Y-m-d\TH:i:s' ) ) );
+
+        // Canonicalizar DD para firmarlo
+        $dd_string = $dom->C14N();
 
         // Firmar el DD utilizando el certificado y la clave privada
         $pkcs12 = file_get_contents( $cert_path );
@@ -225,14 +245,14 @@ class SII_Boleta_XML_Generator {
         $private_key = $creds['pkey'];
         $firma       = '';
         // Usamos SHA1 (requisito tradicional del SII) para la firma de TED
-        if ( ! openssl_sign( $dd, $firma, $private_key, OPENSSL_ALGO_SHA1 ) ) {
+        if ( ! openssl_sign( $dd_string, $firma, $private_key, OPENSSL_ALGO_SHA1 ) ) {
             return false;
         }
         $frmt = base64_encode( $firma );
 
         // Construir el TED completo
         $ted  = '<TED version="1.0">';
-        $ted .= $dd;
+        $ted .= $dom->saveXML( $dom->documentElement );
         $ted .= '<FRMT algoritmo="SHA1withRSA">' . $frmt . '</FRMT>';
         $ted .= '</TED>';
 

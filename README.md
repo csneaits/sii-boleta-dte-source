@@ -66,6 +66,13 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
 
+## Libro de Boletas
+
+El plugin permite generar un **Libro de Boletas** a partir de los DTE emitidos en un rango de fechas y enviarlo manualmente al SII.
+Desde el menú de administración, en la nueva sección "Libro de Boletas", seleccione la fecha de inicio y fin para generar el archivo.
+Posteriormente puede descargarlo o enviarlo directamente al SII reutilizando el token y certificado configurados.
+El XML generado se almacena en la carpeta de subidas de WordPress.
+
 ## Resumen de Ventas Diarias
 
 El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.

@@ -29,15 +29,16 @@ class SII_Boleta_XML_Generator {
      * Genera el XML de un DTE en formato SimpleXMLElement. Devuelve el
      * contenido como string. Si ocurre un error, devuelve false.
      *
-     * @param array $data Datos necesarios para el DTE (ver SII_Boleta_Core::ajax_generate_dte).
+     * @param array $data    Datos necesarios para el DTE (ver SII_Boleta_Core::ajax_generate_dte).
      * @param int   $tipo_dte Tipo de DTE solicitado.
+     * @param bool  $preview  Si es true, omite la validación de CAF/TED para previsualización.
      * @return string|\WP_Error|false
      */
-    public function generate_dte_xml( array $data, $tipo_dte ) {
+    public function generate_dte_xml( array $data, $tipo_dte, $preview = false ) {
         $settings  = $this->settings->get_settings();
         $caf_paths = $settings['caf_path'] ?? [];
         $caf_path  = $caf_paths[ $tipo_dte ] ?? '';
-        if ( ! $caf_path || ! file_exists( $caf_path ) ) {
+        if ( ! $preview && ( ! $caf_path || ! file_exists( $caf_path ) ) ) {
             return new \WP_Error( 'sii_boleta_missing_caf', sprintf( __( 'No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte' ), $tipo_dte ) );
         }
         $data['TipoDTE'] = $tipo_dte;
@@ -114,15 +115,17 @@ class SII_Boleta_XML_Generator {
                 }
             }
 
-            // Generar TED
-            $ted = $this->generate_ted( $data, $caf_path );
-            if ( $ted ) {
-                // TED debe incluirse como nuevo elemento a nivel de Documento (no dentro de Detalle)
-                $ted_node = new SimpleXMLElement( $ted );
-                // Importar el TED al contexto del documento
-                $dom1 = dom_import_simplexml( $documento );
-                $dom2 = dom_import_simplexml( $ted_node );
-                $dom1->appendChild( $dom1->ownerDocument->importNode( $dom2, true ) );
+            // Generar TED a menos que estemos en modo previsualización
+            if ( ! $preview ) {
+                $ted = $this->generate_ted( $data, $caf_path );
+                if ( $ted ) {
+                    // TED debe incluirse como nuevo elemento a nivel de Documento (no dentro de Detalle)
+                    $ted_node = new SimpleXMLElement( $ted );
+                    // Importar el TED al contexto del documento
+                    $dom1 = dom_import_simplexml( $documento );
+                    $dom2 = dom_import_simplexml( $ted_node );
+                    $dom1->appendChild( $dom1->ownerDocument->importNode( $dom2, true ) );
+                }
             }
 
             return $xml->asXML();

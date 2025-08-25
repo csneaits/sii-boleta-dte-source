@@ -57,6 +57,11 @@ class SII_Boleta_Woo {
         $doc_type     = $order->get_meta( '_sii_dte_type', true );
         // Si no se especificó, por defecto boleta
         $tipo_dte     = (int) ( $doc_type ?: 39 );
+        // Validar RUT y utilizar uno genérico si es inválido
+        if ( $rut_receptor && ! $this->is_valid_rut( $rut_receptor ) ) {
+            $order->add_order_note( __( 'RUT del receptor inválido, se usó 66666666-6.', 'sii-boleta-dte' ) );
+            $rut_receptor = '66666666-6';
+        }
 
         // Dirección y comuna receptor
         $dir_recep   = $order->get_billing_address_1();
@@ -64,17 +69,32 @@ class SII_Boleta_Woo {
 
         // Descripción: listado de productos o número de pedido
         $description = 'Pedido #' . $order->get_order_number();
-        // Calcular total y neto
-        $total        = (float) $order->get_total();
-        $quantity_sum = 0;
+        // Calcular total
+        $total = (float) $order->get_total();
+        // Construir detalles por producto
+        $detalles = [];
+        $line     = 1;
         foreach ( $order->get_items() as $item ) {
-            $quantity_sum += $item->get_quantity();
+            $qty        = $item->get_quantity();
+            $line_total = (float) $item->get_total();
+            $price      = $qty > 0 ? $line_total / $qty : 0;
+            $detalles[] = [
+                'NroLinDet' => $line++,
+                'NmbItem'   => $item->get_name(),
+                'QtyItem'   => $qty,
+                'PrcItem'   => $price,
+                'MontoItem' => round( $line_total ),
+            ];
         }
-        if ( $quantity_sum < 1 ) {
-            $quantity_sum = 1;
+        if ( empty( $detalles ) ) {
+            $detalles[] = [
+                'NroLinDet' => 1,
+                'NmbItem'   => $description,
+                'QtyItem'   => 1,
+                'PrcItem'   => $total,
+                'MontoItem' => round( $total ),
+            ];
         }
-        // Para facturas se usa neto y se aplica IVA, por lo que el precio unitario es total / cantidad
-        $precio_unitario = $total / $quantity_sum;
 
         // Generar folio para el tipo de DTE seleccionado
         $folio = $this->core->get_folio_manager()->get_next_folio( $tipo_dte );
@@ -102,15 +122,7 @@ class SII_Boleta_Woo {
                 'DirRecep'    => $dir_recep,
                 'CmnaRecep'   => $cmna_recep,
             ],
-            'Detalles' => [
-                [
-                    'NroLinDet' => 1,
-                    'NmbItem'   => $description,
-                    'QtyItem'   => $quantity_sum,
-                    'PrcItem'   => $precio_unitario,
-                    'MontoItem' => round( $total ),
-                ],
-            ],
+            'Detalles'   => $detalles,
         ];
         // Generar y firmar
         $xml    = $this->core->get_xml_generator()->generate_dte_xml( $dte_data, $tipo_dte );
@@ -138,6 +150,17 @@ class SII_Boleta_Woo {
         if ( is_wp_error( $track_id ) ) {
             $order->add_order_note( $track_id->get_error_message() );
             $track_id = false;
+        }
+        // Generar representación PDF y enviarla por correo
+        $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
+        if ( $pdf_path ) {
+            $to      = $order->get_billing_email();
+            $subject = sprintf( __( 'Boleta electrónica de tu pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );
+            $message = __( 'Adjuntamos la representación de tu boleta electrónica.', 'sii-boleta-dte' );
+            if ( $to ) {
+                wp_mail( $to, $subject, $message, [], [ $pdf_path ] );
+                $order->add_order_note( __( 'Boleta electrónica enviada al cliente por correo electrónico.', 'sii-boleta-dte' ) );
+            }
         }
         // Guardar metadatos
         $order->update_meta_data( '_sii_dte_type', $tipo_dte );
@@ -210,5 +233,35 @@ class SII_Boleta_Woo {
         if ( isset( $_POST['sii_dte_type'] ) ) {
             $order->update_meta_data( '_sii_dte_type', sanitize_text_field( $_POST['sii_dte_type'] ) );
         }
+    }
+
+    /**
+     * Valida un RUT chileno comprobando su dígito verificador.
+     *
+     * @param string $rut RUT a validar.
+     * @return bool Verdadero si el RUT es válido.
+     */
+    private function is_valid_rut( $rut ) {
+        $rut = preg_replace( '/[^0-9kK]/', '', $rut );
+        if ( strlen( $rut ) < 2 ) {
+            return false;
+        }
+        $dv  = strtoupper( substr( $rut, -1 ) );
+        $num = substr( $rut, 0, -1 );
+        $sum = 0;
+        $fac = 2;
+        for ( $i = strlen( $num ) - 1; $i >= 0; $i-- ) {
+            $sum += $num[ $i ] * $fac;
+            $fac = ( $fac === 7 ) ? 2 : $fac + 1;
+        }
+        $res = 11 - ( $sum % 11 );
+        if ( 11 === $res ) {
+            $res = '0';
+        } elseif ( 10 === $res ) {
+            $res = 'K';
+        } else {
+            $res = (string) $res;
+        }
+        return $res === $dv;
     }
 }

@@ -65,6 +65,18 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 2. Deje en blanco el campo "Token de la API".
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
+## Resumen de Ventas Diarias
+
+El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
+
+Para validar un archivo generado se puede utilizar `xmllint`:
+
+```bash
+xmllint --noout --schema sii-boleta-dte/includes/schemas/ConsumoFolio_v10.xsd ejemplo_rvd.xml
+```
+
+El envío del RVD reutiliza el mismo token y certificado empleados para las boletas electrónicas.
+
 ## Notas sobre la licencia y originalidad
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

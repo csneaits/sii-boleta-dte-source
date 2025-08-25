@@ -22,6 +22,7 @@ class SII_Boleta_Core {
      * @var SII_Boleta_API
      * @var SII_Boleta_PDF
      * @var SII_Boleta_RVD_Manager
+     * @var SII_Boleta_Public
      * @var SII_Boleta_Woo
      * @var SII_Boleta_Metrics
      */
@@ -32,6 +33,7 @@ class SII_Boleta_Core {
     private $api;
     private $pdf;
     private $rvd_manager;
+    private $public;
     private $woo;
     private $metrics;
 
@@ -48,6 +50,7 @@ class SII_Boleta_Core {
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
+        $this->public        = new SII_Boleta_Public();
         $this->metrics       = new SII_Boleta_Metrics();
 
         if ( class_exists( 'WooCommerce' ) ) {
@@ -788,7 +791,7 @@ class SII_Boleta_Core {
         if ( ! $rvd_xml ) {
             wp_send_json_error( [ 'message' => __( 'No fue posible generar el RVD.', 'sii-boleta-dte' ) ] );
         }
-        $sent     = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'] );
+        $sent     = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
         $today    = date( 'Y-m-d' );
         if ( $sent ) {
             sii_boleta_write_log( 'RVD enviado manualmente para la fecha ' . $today );

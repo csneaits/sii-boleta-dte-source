@@ -49,10 +49,10 @@ class SII_Boleta_RVD_Manager {
             $emisor->addChild( 'GiroEmisor', $settings['giro'] );
 
             // Recorrer los archivos DTE generados en la carpeta de uploads y sumar montos del día
-            $upload_dir = wp_upload_dir();
-            $base_dir   = trailingslashit( $upload_dir['basedir'] );
+            $upload_dir   = wp_upload_dir();
+            $base_dir     = trailingslashit( $upload_dir['basedir'] );
             $totales_tipo = [];
-            $iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
+            $iterator     = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
             foreach ( $iterator as $file ) {
                 if ( $file->isFile() && preg_match( '/DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
                     $content = file_get_contents( $file->getPathname() );
@@ -71,25 +71,31 @@ class SII_Boleta_RVD_Manager {
                         if ( $fecha !== $date ) {
                             continue;
                         }
+                        $folio  = intval( $idDoc->Folio );
                         $totals = $doc_node->Encabezado->Totales;
                         $monto_total = 0;
                         if ( isset( $totals->MntTotal ) ) {
                             $monto_total = intval( $totals->MntTotal );
                         }
                         if ( ! isset( $totales_tipo[ $tipo ] ) ) {
-                            $totales_tipo[ $tipo ] = 0;
+                            $totales_tipo[ $tipo ] = [ 'monto' => 0, 'folios' => [] ];
                         }
-                        $totales_tipo[ $tipo ] += $monto_total;
+                        $totales_tipo[ $tipo ]['monto']  += $monto_total;
+                        $totales_tipo[ $tipo ]['folios'][] = $folio;
                     } catch ( Exception $e ) {
                         continue;
                     }
                 }
             }
             // Crear nodos para cada tipo de documento
-            foreach ( $totales_tipo as $tipo => $monto ) {
+            foreach ( $totales_tipo as $tipo => $data ) {
+                sort( $data['folios'] );
                 $resumen = $xml->addChild( 'Resumen' );
                 $resumen->addChild( 'TipoDTE', $tipo );
-                $resumen->addChild( 'Totales', $monto );
+                $resumen->addChild( 'FolioInicial', $data['folios'][0] );
+                $resumen->addChild( 'FolioFinal', end( $data['folios'] ) );
+                $resumen->addChild( 'FoliosEmitidos', count( $data['folios'] ) );
+                $resumen->addChild( 'Totales', $data['monto'] );
             }
             return $xml->asXML();
         } catch ( Exception $e ) {
@@ -102,18 +108,31 @@ class SII_Boleta_RVD_Manager {
      * un ejemplo y no contempla el protocolo de envío real, que puede
      * requerir tokens o endpoints distintos.
      *
-     * @param string $rvd_xml Contenido XML del resumen.
+     * @param string $rvd_xml    Contenido XML del resumen.
      * @param string $environment 'test' o 'production'.
+     * @param string $token       Token de autenticación.
+     * @param string $cert_path   Ruta al certificado PFX para generar el token si falta.
+     * @param string $cert_pass   Contraseña del certificado.
      * @return bool True si se envía con éxito, false en caso de error.
      */
-    public function send_rvd_to_sii( $rvd_xml, $environment = 'test' ) {
+    public function send_rvd_to_sii( $rvd_xml, $environment = 'test', $token = '', $cert_path = '', $cert_pass = '' ) {
+        $api = new SII_Boleta_API();
+        if ( empty( $token ) ) {
+            $token = $api->generate_token( $environment, $cert_path, $cert_pass );
+        }
+        if ( empty( $token ) ) {
+            return false;
+        }
         $base_url = ( 'production' === $environment )
             ? 'https://api.sii.cl/bolcoreinternetui/api'
             : 'https://maullin.sii.cl/bolcoreinternetui/api';
         $endpoint = $base_url . '/envioRVD';
         $response = wp_remote_post( $endpoint, [
             'body'    => $rvd_xml,
-            'headers' => [ 'Content-Type' => 'application/xml' ],
+            'headers' => [
+                'Content-Type'  => 'application/xml',
+                'Authorization' => 'Bearer ' . $token,
+            ],
             'timeout' => 60,
         ] );
         return ! is_wp_error( $response );

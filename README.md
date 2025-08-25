@@ -65,6 +65,12 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 2. Deje en blanco el campo "Token de la API".
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
+## Libro de Boletas
+
+El plugin permite generar un **Libro de Boletas** a partir de los DTE emitidos en un rango de fechas y enviarlo manualmente al SII.
+Desde el menú de administración, en la nueva sección "Libro de Boletas", seleccione la fecha de inicio y fin para generar el archivo.
+Posteriormente puede descargarlo o enviarlo directamente al SII reutilizando el token y certificado configurados.
+
 ## Notas sobre la licencia y originalidad
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

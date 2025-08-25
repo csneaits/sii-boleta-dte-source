@@ -34,7 +34,12 @@ class SII_Boleta_PDF {
             $rut_emisor = $settings['rut_emisor'];
             $receptor   = (string) $documento->Encabezado->Receptor->RznSocRecep;
             $rut_rece   = (string) $documento->Encabezado->Receptor->RUTRecep;
-            $total      = (string) $documento->Encabezado->Totales->MntTotal;
+
+            $totals = $documento->Encabezado->Totales;
+            $total  = (string) $totals->MntTotal;
+            $neto   = isset( $totals->MntNeto ) ? (string) $totals->MntNeto : '';
+            $iva    = isset( $totals->IVA ) ? (string) $totals->IVA : '';
+            $exento = isset( $totals->MntExe ) ? (string) $totals->MntExe : '';
             // Nodo TED
             $ted_node  = $documento->TED;
             $ted_xml   = $ted_node ? $ted_node->asXML() : '';
@@ -112,6 +117,12 @@ class SII_Boleta_PDF {
                 </div>
                 <div class="totals">
                     <table>
+                        <?php if ( '' !== $neto && '' !== $iva ) : ?>
+                            <tr><td><?php esc_html_e( 'Neto', 'sii-boleta-dte' ); ?></td><td style="text-align: right;"><?php echo number_format( (float) $neto, 0, ',', '.' ); ?></td></tr>
+                            <tr><td><?php esc_html_e( 'IVA', 'sii-boleta-dte' ); ?></td><td style="text-align: right;"><?php echo number_format( (float) $iva, 0, ',', '.' ); ?></td></tr>
+                        <?php elseif ( '' !== $exento ) : ?>
+                            <tr><td><?php esc_html_e( 'Exento', 'sii-boleta-dte' ); ?></td><td style="text-align: right;"><?php echo number_format( (float) $exento, 0, ',', '.' ); ?></td></tr>
+                        <?php endif; ?>
                         <tr><td><?php esc_html_e( 'Total', 'sii-boleta-dte' ); ?></td><td style="text-align: right;"><?php echo number_format( (float) $total, 0, ',', '.' ); ?></td></tr>
                     </table>
                 </div>
@@ -219,9 +230,23 @@ class SII_Boleta_PDF {
                 $pdf->Cell( 30, 5, number_format( (float) $det->MontoItem, 0, ',', '.' ), 1, 1, 'R' );
             }
             // Totales
+            $totals = $documento->Encabezado->Totales;
+            $neto   = isset( $totals->MntNeto ) ? (float) $totals->MntNeto : null;
+            $iva    = isset( $totals->IVA ) ? (float) $totals->IVA : null;
+            $exento = isset( $totals->MntExe ) ? (float) $totals->MntExe : null;
+            $total  = (float) $totals->MntTotal;
             $pdf->SetFont( 'Arial', 'B', 10 );
+            if ( null !== $neto && null !== $iva ) {
+                $pdf->Cell( 150, 6, 'Neto', 1, 0, 'R' );
+                $pdf->Cell( 30, 6, number_format( $neto, 0, ',', '.' ), 1, 1, 'R' );
+                $pdf->Cell( 150, 6, 'IVA', 1, 0, 'R' );
+                $pdf->Cell( 30, 6, number_format( $iva, 0, ',', '.' ), 1, 1, 'R' );
+            } elseif ( null !== $exento ) {
+                $pdf->Cell( 150, 6, 'Exento', 1, 0, 'R' );
+                $pdf->Cell( 30, 6, number_format( $exento, 0, ',', '.' ), 1, 1, 'R' );
+            }
             $pdf->Cell( 150, 6, 'Total', 1, 0, 'R' );
-            $pdf->Cell( 30, 6, number_format( (float) $documento->Encabezado->Totales->MntTotal, 0, ',', '.' ), 1, 1, 'R' );
+            $pdf->Cell( 30, 6, number_format( $total, 0, ',', '.' ), 1, 1, 'R' );
 
             // TED texto
             $pdf->Ln( 4 );

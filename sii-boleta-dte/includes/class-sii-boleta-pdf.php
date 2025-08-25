@@ -26,14 +26,15 @@ class SII_Boleta_PDF {
         try {
             $xml = new SimpleXMLElement( $signed_xml );
             // Extraer datos básicos
-            $documento  = $xml->Documento;
-            $folio      = (string) $documento->Encabezado->IdDoc->Folio;
-            $tipo_dte   = (string) $documento->Encabezado->IdDoc->TipoDTE;
-            $fecha      = (string) $documento->Encabezado->IdDoc->FchEmis;
-            $emisor     = $settings['razon_social'];
-            $rut_emisor = $settings['rut_emisor'];
-            $receptor   = (string) $documento->Encabezado->Receptor->RznSocRecep;
-            $rut_rece   = (string) $documento->Encabezado->Receptor->RUTRecep;
+            $documento   = $xml->Documento;
+            $folio       = (string) $documento->Encabezado->IdDoc->Folio;
+            $tipo_dte    = (string) $documento->Encabezado->IdDoc->TipoDTE;
+            $fecha       = (string) $documento->Encabezado->IdDoc->FchEmis;
+            $emisor      = $settings['razon_social'];
+            $rut_emisor  = $settings['rut_emisor'];
+            $receptor    = (string) $documento->Encabezado->Receptor->RznSocRecep;
+            $rut_rece    = (string) $documento->Encabezado->Receptor->RUTRecep;
+            $consulta_url = home_url( '/boleta/' . $folio );
 
             $totals = $documento->Encabezado->Totales;
             $total  = (string) $totals->MntTotal;
@@ -92,6 +93,7 @@ class SII_Boleta_PDF {
                     <p><?php esc_html_e( 'RUT:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $rut_emisor ); ?></p>
                     <p><?php echo esc_html( $settings['direccion'] ); ?>, <?php echo esc_html( $settings['comuna'] ); ?></p>
                     <h3><?php echo esc_html( 'DTE ' . $tipo_dte . ' Folio ' . $folio ); ?></h3>
+                    <p><?php esc_html_e( 'Consulta en', 'sii-boleta-dte' ); ?> <a href="<?php echo esc_url( $consulta_url ); ?>"><?php echo esc_html( $consulta_url ); ?></a></p>
                 </div>
                 <div class="details">
                     <h4><?php esc_html_e( 'Receptor', 'sii-boleta-dte' ); ?></h4>
@@ -185,6 +187,7 @@ class SII_Boleta_PDF {
             }
             $pdf = new FPDF( 'P', 'mm', 'A4' );
             $pdf->AddPage();
+            $consulta_url = home_url( '/boleta/' . (string) $documento->Encabezado->IdDoc->Folio );
             // Logo
             if ( ! empty( $settings['logo_id'] ) ) {
                 $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
@@ -201,6 +204,8 @@ class SII_Boleta_PDF {
             $pdf->Cell( 0, 5, $settings['direccion'] . ', ' . $settings['comuna'], 0, 1, 'L' );
             $pdf->SetFont( 'Arial', 'B', 12 );
             $pdf->Cell( 0, 7, 'DTE ' . $documento->Encabezado->IdDoc->TipoDTE . ' Folio ' . $documento->Encabezado->IdDoc->Folio, 0, 1, 'L' );
+            $pdf->SetFont( 'Arial', '', 9 );
+            $pdf->Cell( 0, 5, sprintf( __( 'Consulta: %s', 'sii-boleta-dte' ), $consulta_url ), 0, 1, 'L' );
             $pdf->Ln( 4 );
             // Receptor
             $pdf->SetFont( 'Arial', 'B', 11 );

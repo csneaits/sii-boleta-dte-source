@@ -22,7 +22,7 @@ class SII_Boleta_Core {
      * @var SII_Boleta_API
      * @var SII_Boleta_PDF
      * @var SII_Boleta_RVD_Manager
-     * @var SII_Boleta_Public
+     * @var SII_Boleta_Endpoints
      * @var SII_Boleta_Woo
      * @var SII_Boleta_Metrics
      * @var SII_Boleta_Consumo_Folios
@@ -34,7 +34,7 @@ class SII_Boleta_Core {
     private $api;
     private $pdf;
     private $rvd_manager;
-    private $public;
+    private $endpoints;
     private $woo;
     private $metrics;
     private $libro_boletas;
@@ -54,7 +54,7 @@ class SII_Boleta_Core {
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
         $this->libro_boletas = new SII_Boleta_Libro_Boletas( $this->settings );
-        $this->public        = new SII_Boleta_Public();
+        $this->endpoints     = new SII_Boleta_Endpoints();
         $this->metrics       = new SII_Boleta_Metrics();
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
 

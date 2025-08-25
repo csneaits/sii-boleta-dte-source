@@ -145,15 +145,25 @@ class SII_Boleta_Cron {
             $this->log( 'error', 'Fallo al generar el RVD para la fecha ' . $date );
             return false;
         }
-        $settings = $this->settings->get_settings();
-        $env      = $settings['environment'];
-        $enviado  = $rvd_manager->send_rvd_to_sii(
-            $xml,
-            $env,
-            $settings['api_token'] ?? '',
-            $settings['cert_path'] ?? '',
-            $settings['cert_pass'] ?? ''
-        );
+        $settings  = $this->settings->get_settings();
+        $env       = $settings['environment'];
+        $token     = $settings['api_token'] ?? '';
+        $cert_path = $settings['cert_path'] ?? '';
+        $cert_pass = $settings['cert_pass'] ?? '';
+
+        $attempts = 0;
+        $max_attempts = 3;
+        $delay = 1;
+        $enviado = false;
+        while ( ! $enviado && $attempts < $max_attempts ) {
+            $attempts++;
+            $enviado = $rvd_manager->send_rvd_to_sii( $xml, $env, $token, $cert_path, $cert_pass );
+            if ( ! $enviado && $attempts < $max_attempts ) {
+                $token = '';
+                sleep( $delay );
+                $delay *= 2;
+            }
+        }
         $admin_email = get_option( 'admin_email' );
         if ( $enviado ) {
             $sent_dates[] = $date;

@@ -27,23 +27,28 @@ class SII_Boleta_RVD_Manager {
     }
 
     /**
-     * Genera el XML del Resumen de Ventas Diarias (Consumo de Folios) para una
-     * fecha dada siguiendo el esquema oficial del SII.
+     * Genera el XML del Resumen de Ventas Diarias para un rango de fechas.
      *
-     * @param string $date Fecha en formato Y-m-d. Por defecto, el día actual.
-     * @return string|false XML generado o false si falla.
+     * @param \DateTimeInterface $from Inicio del rango.
+     * @param \DateTimeInterface $to   Fin del rango.
+     * @return string|\WP_Error        XML generado o error en caso de fallo.
      */
-    public function generate_rvd_xml( $date = null ) {
-        if ( ! $date ) {
-            $date = date( 'Y-m-d' );
-        }
+    public function build_rvd_xml( \DateTimeInterface $from, \DateTimeInterface $to ) {
         $settings      = $this->settings->get_settings();
         $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
-        $totales_tipo  = $folio_manager->get_folios_by_date( $date );
-        $caf_info      = $folio_manager->get_caf_info();
+        $folios_tipo   = $this->collect_folios( $from, $to );
+
+        // Obtener datos de resolución desde el CAF del tipo 39 por defecto.
+        $caf_info = $folio_manager->get_caf_info( 39 );
 
         try {
-            $doc = new DOMDocument( '1.0', 'ISO-8859-1' );
+            $tz  = new \DateTimeZone( 'America/Santiago' );
+            $now = new \DateTime( 'now', $tz );
+
+            $from_cl = ( clone $from )->setTimezone( $tz );
+            $to_cl   = ( clone $to )->setTimezone( $tz );
+
+            $doc               = new DOMDocument( '1.0', 'ISO-8859-1' );
             $doc->formatOutput = false;
 
             $root = $doc->createElement( 'ConsumoFolios' );
@@ -59,39 +64,165 @@ class SII_Boleta_RVD_Manager {
             $caratula->setAttribute( 'version', '1.0' );
             $caratula->appendChild( $doc->createElement( 'RutEmisor', $settings['rut_emisor'] ) );
             $caratula->appendChild( $doc->createElement( 'RutEnvia', $settings['rut_emisor'] ) );
-            $caratula->appendChild( $doc->createElement( 'FchResol', $caf_info['FchResol'] ?? date( 'Y-m-d' ) ) );
+            $caratula->appendChild( $doc->createElement( 'FchResol', $caf_info['FchResol'] ?? $from_cl->format( 'Y-m-d' ) ) );
             $caratula->appendChild( $doc->createElement( 'NroResol', $caf_info['NroResol'] ?? '0' ) );
-            $caratula->appendChild( $doc->createElement( 'FchInicio', $date ) );
-            $caratula->appendChild( $doc->createElement( 'FchFinal', $date ) );
+            $caratula->appendChild( $doc->createElement( 'FchInicio', $from_cl->format( 'Y-m-d' ) ) );
+            $caratula->appendChild( $doc->createElement( 'FchFinal', $to_cl->format( 'Y-m-d' ) ) );
             $caratula->appendChild( $doc->createElement( 'Correlativo', '1' ) );
             $caratula->appendChild( $doc->createElement( 'SecEnvio', '1' ) );
-            $caratula->appendChild( $doc->createElement( 'TmstFirmaEnv', date( 'Y-m-d\TH:i:s' ) ) );
+            $caratula->appendChild( $doc->createElement( 'TmstFirmaEnv', $now->format( 'Y-m-d\TH:i:s' ) ) );
             $documento->appendChild( $caratula );
 
-            foreach ( $totales_tipo as $tipo => $data ) {
-                $folios  = $data['folios'];
-                sort( $folios );
+            if ( empty( $folios_tipo ) ) {
+                // RVD sin movimiento.
                 $resumen = $doc->createElement( 'Resumen' );
-                $resumen->appendChild( $doc->createElement( 'TipoDocumento', $tipo ) );
-                $resumen->appendChild( $doc->createElement( 'MntTotal', $data['monto'] ) );
-                $emitidos = count( $folios );
-                $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', $emitidos ) );
+                $resumen->appendChild( $doc->createElement( 'TipoDocumento', 39 ) );
+                $resumen->appendChild( $doc->createElement( 'MntNeto', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'MntExe', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'MntIVA', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'MntTotal', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', 0 ) );
                 $resumen->appendChild( $doc->createElement( 'FoliosAnulados', 0 ) );
-                $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', $emitidos ) );
-                $ranges = $this->calculate_ranges( $folios );
-                foreach ( $ranges as $r ) {
-                    $rango = $doc->createElement( 'RangoUtilizados' );
-                    $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
-                    $rango->appendChild( $doc->createElement( 'Final', $r[1] ) );
-                    $resumen->appendChild( $rango );
-                }
+                $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', 0 ) );
+                $resumen->appendChild( $doc->createElement( 'FoliosNoUtilizados', 0 ) );
                 $documento->appendChild( $resumen );
+            } else {
+                foreach ( $folios_tipo as $tipo => $data ) {
+                    $folios = $data['folios'];
+                    sort( $folios );
+                    $emitidos = count( $folios );
+                    $anulados = 0; // No se registran anulaciones en esta implementacion.
+
+                    $resumen = $doc->createElement( 'Resumen' );
+                    $resumen->appendChild( $doc->createElement( 'TipoDocumento', $tipo ) );
+                    $resumen->appendChild( $doc->createElement( 'MntNeto', $data['monto_neto'] ) );
+                    $resumen->appendChild( $doc->createElement( 'MntExe', $data['monto_exento'] ) );
+                    $resumen->appendChild( $doc->createElement( 'MntIVA', $data['monto_iva'] ) );
+                    $resumen->appendChild( $doc->createElement( 'MntTotal', $data['monto_total'] ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosEmitidos', $emitidos ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosAnulados', $anulados ) );
+                    $resumen->appendChild( $doc->createElement( 'FoliosUtilizados', $emitidos + $anulados ) );
+
+                    // Calcular rangos de folios utilizados.
+                    $used_ranges = $this->calculate_ranges( $folios );
+                    foreach ( $used_ranges as $r ) {
+                        $rango = $doc->createElement( 'RangoUtilizados' );
+                        $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
+                        $rango->appendChild( $doc->createElement( 'Final', $r[1] ) );
+                        $resumen->appendChild( $rango );
+                    }
+
+                    // Calcular folios no utilizados dentro del rango min/max.
+                    $no_utilizados = [];
+                    if ( $emitidos > 0 ) {
+                        $min = min( $folios );
+                        $max = max( $folios );
+                        $full_range     = range( $min, $max );
+                        $no_utilizados  = array_values( array_diff( $full_range, $folios ) );
+                    }
+                    $resumen->appendChild( $doc->createElement( 'FoliosNoUtilizados', count( $no_utilizados ) ) );
+                    $unused_ranges = $this->calculate_ranges( $no_utilizados );
+                    foreach ( $unused_ranges as $r ) {
+                        $rango = $doc->createElement( 'RangoNoUtilizados' );
+                        $rango->appendChild( $doc->createElement( 'Inicial', $r[0] ) );
+                        $rango->appendChild( $doc->createElement( 'Final', $r[1] ) );
+                        $resumen->appendChild( $rango );
+                    }
+
+                    $documento->appendChild( $resumen );
+                }
             }
 
             return $doc->saveXML();
         } catch ( Exception $e ) {
+            return new \WP_Error( 'sii_boleta_rvd_build_error', $e->getMessage() );
+        }
+    }
+
+    /**
+     * Método de compatibilidad. Genera el RVD para un día específico.
+     *
+     * @param string $date Fecha en formato Y-m-d. Por defecto, el día actual.
+     * @return string|false
+     */
+    public function generate_rvd_xml( $date = null ) {
+        if ( ! $date ) {
+            $date = date( 'Y-m-d' );
+        }
+        $tz   = new \DateTimeZone( 'America/Santiago' );
+        $from = new \DateTimeImmutable( $date . ' 00:00:00', $tz );
+        $to   = new \DateTimeImmutable( $date . ' 23:59:59', $tz );
+        $xml  = $this->build_rvd_xml( $from, $to );
+        if ( is_wp_error( $xml ) ) {
             return false;
         }
+        return $xml;
+    }
+
+    /**
+     * Recolecta folios y montos de los DTE en un rango de fechas.
+     *
+     * @param \DateTimeInterface $from Fecha inicial.
+     * @param \DateTimeInterface $to   Fecha final.
+     * @return array
+     */
+    private function collect_folios( \DateTimeInterface $from, \DateTimeInterface $to ) {
+        $upload_dir = wp_upload_dir();
+        $base_dir   = trailingslashit( $upload_dir['basedir'] );
+        $iterator   = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
+
+        $from_date = $from->format( 'Y-m-d' );
+        $to_date   = $to->format( 'Y-m-d' );
+
+        $totales = [];
+
+        foreach ( $iterator as $file ) {
+            if ( $file->isFile() && preg_match( '/DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
+                $content = file_get_contents( $file->getPathname() );
+                if ( ! $content ) {
+                    continue;
+                }
+                try {
+                    $doc      = new SimpleXMLElement( $content );
+                    $doc_node = $doc->Documento;
+                    if ( ! $doc_node ) {
+                        continue;
+                    }
+                    $idDoc = $doc_node->Encabezado->IdDoc;
+                    $fecha = (string) $idDoc->FchEmis;
+                    if ( $fecha < $from_date || $fecha > $to_date ) {
+                        continue;
+                    }
+                    $tipo       = intval( $idDoc->TipoDTE );
+                    $folio      = intval( $idDoc->Folio );
+                    $totales_xml = $doc_node->Encabezado->Totales;
+                    $mnt_neto    = isset( $totales_xml->MntNeto ) ? intval( $totales_xml->MntNeto ) : 0;
+                    $mnt_exe     = isset( $totales_xml->MntExe ) ? intval( $totales_xml->MntExe ) : 0;
+                    $mnt_iva     = isset( $totales_xml->IVA ) ? intval( $totales_xml->IVA ) : ( isset( $totales_xml->MntIVA ) ? intval( $totales_xml->MntIVA ) : 0 );
+                    $mnt_total   = isset( $totales_xml->MntTotal ) ? intval( $totales_xml->MntTotal ) : 0;
+
+                    if ( ! isset( $totales[ $tipo ] ) ) {
+                        $totales[ $tipo ] = [
+                            'folios'       => [],
+                            'monto_neto'   => 0,
+                            'monto_exento' => 0,
+                            'monto_iva'    => 0,
+                            'monto_total'  => 0,
+                        ];
+                    }
+
+                    $totales[ $tipo ]['folios'][]       = $folio;
+                    $totales[ $tipo ]['monto_neto']    += $mnt_neto;
+                    $totales[ $tipo ]['monto_exento']  += $mnt_exe;
+                    $totales[ $tipo ]['monto_iva']     += $mnt_iva;
+                    $totales[ $tipo ]['monto_total']   += $mnt_total;
+                } catch ( Exception $e ) {
+                    continue;
+                }
+            }
+        }
+
+        return $totales;
     }
 
     /**
@@ -134,7 +265,7 @@ class SII_Boleta_RVD_Manager {
             return false;
         }
         libxml_use_internal_errors( true );
-        $xsd   = __DIR__ . '/schemas/ConsumoFolio_v10.xsd';
+        $xsd   = __DIR__ . '/xml/schemas/consumo_folios.xsd';
         $valid = $doc->schemaValidate( $xsd );
         libxml_clear_errors();
         return $valid;

@@ -101,6 +101,135 @@ class SII_Boleta_API {
     }
 
     /**
+     * Envía el XML del Resumen de Ventas Diarias (RVD) al SII.
+     * Implementa reintentos exponenciales frente a errores de red o
+     * respuestas del servidor en la serie 5xx.
+     *
+     * @param string $xml_signed  XML ya firmado del RVD.
+     * @param string $environment Ambiente de destino ('test' o 'production').
+     * @param string $token       Token de autenticación de la API.
+     * @return array|\WP_Error   Datos de la respuesta (incluyendo trackId) o WP_Error en caso de falla.
+     */
+    public function send_rvd_to_sii( $xml_signed, $environment = 'test', $token = '' ) {
+        if ( empty( $xml_signed ) ) {
+            return new \WP_Error( 'sii_boleta_rvd_empty', __( 'El XML del RVD está vacío.', 'sii-boleta-dte' ) );
+        }
+        if ( empty( $token ) ) {
+            return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
+        }
+
+        $endpoint = $this->get_base_url( $environment ) . '/envioRVD';
+
+        $args = [
+            'body'        => $xml_signed,
+            'headers'     => [
+                'Content-Type'  => 'application/xml',
+                'Authorization' => 'Bearer ' . $token,
+            ],
+            'method'      => 'POST',
+            'data_format' => 'body',
+            'timeout'     => 60,
+        ];
+
+        $attempts = 0;
+        $max_attempts = 3;
+        $delay = 1;
+        do {
+            $attempts++;
+            $response = wp_remote_post( $endpoint, $args );
+            $retry    = false;
+
+            if ( is_wp_error( $response ) ) {
+                $retry = ( $attempts < $max_attempts );
+                $error_message = $response->get_error_message();
+            } else {
+                $code = wp_remote_retrieve_response_code( $response );
+                $retry = ( $code >= 500 && $attempts < $max_attempts );
+            }
+
+            if ( $retry ) {
+                sleep( $delay );
+                $delay *= 2;
+            }
+        } while ( $retry );
+
+        if ( is_wp_error( $response ) ) {
+            $this->log_rvd_message( 'Error de conexión al enviar RVD: ' . $error_message );
+            return $response;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        update_option( 'sii_boleta_rvd_last_response', $body );
+
+        if ( 200 !== $code ) {
+            $message = 'HTTP ' . $code;
+            $data    = json_decode( $body, true );
+            if ( is_array( $data ) ) {
+                if ( isset( $data['codigo'] ) && isset( $data['mensaje'] ) ) {
+                    $message .= ' - ' . $data['codigo'] . ': ' . $data['mensaje'];
+                } elseif ( isset( $data['error'] ) ) {
+                    $message .= ' - ' . $data['error'];
+                }
+            } else {
+                $xml = simplexml_load_string( $body );
+                if ( $xml ) {
+                    if ( isset( $xml->codigo ) && isset( $xml->causa ) ) {
+                        $message .= ' - ' . $xml->codigo . ': ' . $xml->causa;
+                    } elseif ( isset( $xml->Codigo ) && isset( $xml->Causa ) ) {
+                        $message .= ' - ' . $xml->Codigo . ': ' . $xml->Causa;
+                    }
+                }
+            }
+            $this->log_rvd_message( 'Error al enviar RVD: ' . $message );
+            return new \WP_Error( 'sii_boleta_rvd_http_error', $message, [ 'status' => $code, 'body' => $body ] );
+        }
+
+        $track_id = '';
+        $data     = json_decode( $body, true );
+        if ( is_array( $data ) && isset( $data['trackId'] ) ) {
+            $track_id = $data['trackId'];
+        } else {
+            $xml = simplexml_load_string( $body );
+            if ( $xml && isset( $xml->trackId ) ) {
+                $track_id = (string) $xml->trackId;
+            }
+        }
+
+        if ( $track_id ) {
+            update_option( 'sii_boleta_rvd_last_trackid', $track_id );
+            $this->log_rvd_message( 'RVD enviado correctamente. Track ID: ' . $track_id );
+        } else {
+            $this->log_rvd_message( 'RVD enviado sin trackId en la respuesta.' );
+        }
+
+        return [
+            'status'  => $code,
+            'trackId' => $track_id,
+            'body'    => $body,
+        ];
+    }
+
+    /**
+     * Registra mensajes relacionados con el envío del RVD en un archivo de
+     * log diario ubicado en el directorio de cargas de WordPress.
+     *
+     * @param string $message Mensaje a registrar.
+     */
+    private function log_rvd_message( $message ) {
+        $upload_dir = wp_upload_dir();
+        $log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs';
+        if ( ! file_exists( $log_dir ) ) {
+            wp_mkdir_p( $log_dir );
+        }
+        $file = trailingslashit( $log_dir ) . 'rvd-' . date( 'Y-m-d' ) . '.log';
+        $time = date( 'H:i:s' );
+        $line = sprintf( "[%s] %s\n", $time, $message );
+        file_put_contents( $file, $line, FILE_APPEND );
+    }
+
+    /**
      * Consulta el estado de un envío mediante su track ID. Útil para saber si
      * el SII aceptó o rechazó la boleta.
      *

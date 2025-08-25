@@ -58,4 +58,53 @@ class SII_Boleta_Signer {
         $doc->documentElement->appendChild( $objDSig->sigNode );
         return $doc->saveXML();
     }
+
+    /**
+     * Firma un XML de Consumo de Folios (RVD). Similar a la firma del DTE,
+     * pero apuntando al nodo DocumentoConsumoFolios y añadiendo los datos
+     * del certificado en la sección KeyInfo.
+     *
+     * @param string $xml       Contenido XML del RVD.
+     * @param string $cert_path Ruta al archivo PFX.
+     * @param string $cert_pass Contraseña del certificado.
+     * @return string|false     XML firmado o false si ocurre un error.
+     */
+    public function sign_rvd_xml( $xml, $cert_path, $cert_pass ) {
+        if ( ! $xml || ! file_exists( $cert_path ) ) {
+            return false;
+        }
+        $doc = new DOMDocument();
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput       = false;
+        if ( ! $doc->loadXML( $xml ) ) {
+            return false;
+        }
+        $documento = $doc->getElementsByTagName( 'DocumentoConsumoFolios' )->item(0);
+        if ( ! $documento ) {
+            return false;
+        }
+        if ( ! $documento->hasAttribute( 'ID' ) ) {
+            $documento->setAttribute( 'ID', 'RVD' );
+        }
+        $objDSig = new XMLSecurityDSig();
+        $objDSig->addSignature( $doc );
+        $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );
+        $pkcs12 = file_get_contents( $cert_path );
+        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+            return false;
+        }
+        $objKey->loadKey( $creds['pkey'] );
+        $objDSig->addReference( $documento );
+        $objDSig->sign( $objKey );
+        // Agregar certificado al KeyInfo
+        $cert    = str_replace( [ '-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\n", "\r" ], '', $creds['cert'] );
+        $keyInfo = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:KeyInfo' );
+        $x509Data = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:X509Data' );
+        $x509Cert = $doc->createElementNS( XMLSecurityDSig::XMLDSIG_NS, 'ds:X509Certificate', $cert );
+        $x509Data->appendChild( $x509Cert );
+        $keyInfo->appendChild( $x509Data );
+        $objDSig->sigNode->appendChild( $keyInfo );
+        $doc->documentElement->appendChild( $objDSig->sigNode );
+        return $doc->saveXML();
+    }
 }

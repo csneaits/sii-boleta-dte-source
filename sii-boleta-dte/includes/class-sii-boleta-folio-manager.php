@@ -92,4 +92,81 @@ class SII_Boleta_Folio_Manager {
             return false;
         }
     }
+
+    /**
+     * Obtiene información básica del CAF para un tipo de DTE. Se utiliza para
+     * construir el RVD, extrayendo el rango autorizado y los datos de
+     * resolución.
+     *
+     * @param int $tipo_dte Tipo de DTE (por defecto 39 - Boleta).
+     * @return array|false Datos del CAF o false si no se encuentra.
+     */
+    public function get_caf_info( $tipo_dte = 39 ) {
+        $settings  = $this->settings->get_settings();
+        $caf_paths = $settings['caf_path'] ?? [];
+        $caf_path  = $caf_paths[ $tipo_dte ] ?? '';
+        if ( ! $caf_path || ! file_exists( $caf_path ) ) {
+            return false;
+        }
+        try {
+            $xml = new SimpleXMLElement( file_get_contents( $caf_path ) );
+            return [
+                'D'        => isset( $xml->DA->RNG->D ) ? (int) $xml->DA->RNG->D : 0,
+                'H'        => isset( $xml->DA->RNG->H ) ? (int) $xml->DA->RNG->H : 0,
+                'FchResol' => isset( $xml->DA->FA ) ? (string) $xml->DA->FA : '',
+                'NroResol' => isset( $xml->DA->NroAut ) ? (string) $xml->DA->NroAut : '',
+            ];
+        } catch ( Exception $e ) {
+            return false;
+        }
+    }
+
+    /**
+     * Recorre los DTE generados en la carpeta de uploads y devuelve, para una
+     * fecha dada, los folios utilizados y el monto total por tipo de
+     * documento.
+     *
+     * @param string $date Fecha en formato Y-m-d.
+     * @return array Arreglo asociativo tipo => [ 'monto' => int, 'folios' => int[] ].
+     */
+    public function get_folios_by_date( $date ) {
+        $upload_dir   = wp_upload_dir();
+        $base_dir     = trailingslashit( $upload_dir['basedir'] );
+        $totales_tipo = [];
+        $iterator     = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
+
+        foreach ( $iterator as $file ) {
+            if ( $file->isFile() && preg_match( '/DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
+                $content = file_get_contents( $file->getPathname() );
+                if ( ! $content ) {
+                    continue;
+                }
+                try {
+                    $doc      = new SimpleXMLElement( $content );
+                    $doc_node = $doc->Documento;
+                    if ( ! $doc_node ) {
+                        continue;
+                    }
+                    $idDoc = $doc_node->Encabezado->IdDoc;
+                    $fecha = (string) $idDoc->FchEmis;
+                    $tipo  = intval( $idDoc->TipoDTE );
+                    if ( $fecha !== $date ) {
+                        continue;
+                    }
+                    $folio       = intval( $idDoc->Folio );
+                    $totals      = $doc_node->Encabezado->Totales;
+                    $monto_total = isset( $totals->MntTotal ) ? intval( $totals->MntTotal ) : 0;
+                    if ( ! isset( $totales_tipo[ $tipo ] ) ) {
+                        $totales_tipo[ $tipo ] = [ 'monto' => 0, 'folios' => [] ];
+                    }
+                    $totales_tipo[ $tipo ]['monto']  += $monto_total;
+                    $totales_tipo[ $tipo ]['folios'][] = $folio;
+                } catch ( Exception $e ) {
+                    continue;
+                }
+            }
+        }
+
+        return $totales_tipo;
+    }
 }

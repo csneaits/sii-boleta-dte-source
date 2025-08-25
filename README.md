@@ -65,6 +65,12 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 2. Deje en blanco el campo "Token de la API".
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
+## Consumo de Folios (CDF)
+
+El plugin permite generar el archivo **Consumo de Folios** requerido por el SII. Desde el panel de control es posible ejecutar manualmente la generación y envío del CDF del día.
+
+Para automatizar este proceso se recomienda programar una tarea cron diaria posterior al envío del Resumen de Ventas Diarias, por ejemplo alrededor de las 23:55. El comando debería invocar la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
+
 ## Notas sobre la licencia y originalidad
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

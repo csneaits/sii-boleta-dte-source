@@ -60,16 +60,15 @@ class SII_Boleta_Signer {
     }
 
     /**
-     * Firma un XML de Consumo de Folios (RVD). Similar a la firma del DTE,
-     * pero apuntando al nodo DocumentoConsumoFolios y añadiendo los datos
-     * del certificado en la sección KeyInfo.
+     * Firma un XML del Libro de Boletas. Aplica la firma al nodo raíz
+     * "LibroBoletas" para cumplir con los requisitos del SII.
      *
-     * @param string $xml       Contenido XML del RVD.
+     * @param string $xml       Contenido XML del libro.
      * @param string $cert_path Ruta al archivo PFX.
      * @param string $cert_pass Contraseña del certificado.
      * @return string|false     XML firmado o false si ocurre un error.
      */
-    public function sign_rvd_xml( $xml, $cert_path, $cert_pass ) {
+    public function sign_libro_xml( $xml, $cert_path, $cert_pass ) {
         if ( ! $xml || ! file_exists( $cert_path ) ) {
             return false;
         }

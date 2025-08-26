@@ -73,27 +73,28 @@ class SII_Boleta_XML_Generator {
             $monto_exento = 0;
             $desc_total   = 0;
             $rec_total    = 0;
-            foreach ( $data['Detalles'] as $detalle ) {
-                // Asegurarse de que MontoItem está definido correctamente
-                $monto_item   = intval( $detalle['MontoItem'] );
-                $monto_total += $monto_item;
+            foreach ( $data['Detalles'] as &$detalle ) {
+                $qty   = floatval( $detalle['QtyItem'] );
+                $price = floatval( $detalle['PrcItem'] );
+                $desc  = isset( $detalle['DescuentoMonto'] ) ? floatval( $detalle['DescuentoMonto'] ) : 0;
+                $rec   = isset( $detalle['RecargoMonto'] ) ? floatval( $detalle['RecargoMonto'] ) : 0;
+                $monto_item = intval( ( $qty * $price ) - $desc + $rec );
+                $detalle['MontoItem'] = $monto_item;
+                $monto_total         += $monto_item;
                 if ( ! empty( $detalle['IndExe'] ) ) {
                     $monto_exento += $monto_item;
                 }
-                if ( isset( $detalle['DescuentoMonto'] ) ) {
-                    $desc_total += intval( $detalle['DescuentoMonto'] );
-                }
-                if ( isset( $detalle['RecargoMonto'] ) ) {
-                    $rec_total += intval( $detalle['RecargoMonto'] );
-                }
+                $desc_total += intval( $desc );
+                $rec_total  += intval( $rec );
             }
+            unset( $detalle );
             $totales = $encabezado->addChild( 'Totales' );
             $tipo_dte = intval( $data['TipoDTE'] );
             // Para facturas afectas (33) se debe desglosar en neto e IVA
             if ( $tipo_dte === 33 ) {
                 $monto_afecto = $monto_total - $monto_exento;
                 $neto         = intval( $monto_afecto / 1.19 );
-                $iva          = $monto_afecto - $neto;
+                $iva          = $monto_total - $monto_exento - $neto;
                 $totales->addChild( 'MntNeto', $neto );
                 $totales->addChild( 'IVA', $iva );
                 if ( $monto_exento > 0 ) {

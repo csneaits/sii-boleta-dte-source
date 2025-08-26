@@ -62,7 +62,7 @@ class SII_Boleta_CLI {
         $end   = date( 'Y-m-t', strtotime( $to . '-01' ) );
         $settings_obj = new SII_Boleta_Settings();
         $settings     = $settings_obj->get_settings();
-        $manager      = new SII_Boleta_Libro_Boletas( $settings_obj );
+        $manager      = new SII_Libro_Boletas( $settings_obj );
         $xml = $manager->generate_libro_xml( $start, $end );
         if ( ! $xml ) {
             WP_CLI::error( 'Error al generar el Libro.' );

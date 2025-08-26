@@ -60,8 +60,8 @@ class SII_Boleta_Signer {
     }
 
     /**
-     * Firma un XML del Libro de Boletas. Aplica la firma al nodo raíz
-     * "LibroBoletas" para cumplir con los requisitos del SII.
+     * Firma un XML del Libro de Boletas. El SII exige que se firme el nodo
+     * <EnvioLibro> incluyendo el certificado utilizado.
      *
      * @param string $xml       Contenido XML del libro.
      * @param string $cert_path Ruta al archivo PFX.
@@ -78,13 +78,13 @@ class SII_Boleta_Signer {
         if ( ! $doc->loadXML( $xml ) ) {
             return false;
         }
-        $documento = $doc->getElementsByTagName( 'LibroBoletas' )->item(0);
+        $documento = $doc->getElementsByTagName( 'EnvioLibro' )->item(0);
         if ( ! $documento ) {
             return false;
         }
-        // El nodo raíz debe tener un ID estable para la referencia de la firma.
+        // El nodo EnvioLibro debe tener un ID estable para la referencia de la firma.
         if ( ! $documento->hasAttribute( 'ID' ) ) {
-            $documento->setAttribute( 'ID', 'LibroBoletas' );
+            $documento->setAttribute( 'ID', 'EnvioLibro' );
         }
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );

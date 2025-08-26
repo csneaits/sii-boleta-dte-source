@@ -51,23 +51,31 @@ class SII_Libro_Boletas {
      * @return string|false        XML generado o false si falla.
      */
     public function generate_libro_xml( $fecha_inicio, $fecha_fin ) {
-        $settings = $this->settings->get_settings();
+        $settings       = $this->settings->get_settings();
+        $folio_manager  = new SII_Boleta_Folio_Manager( $this->settings );
+        $caf_info       = $folio_manager->get_caf_info();
 
         try {
-            $xml = new SimpleXMLElement( '<LibroBoletas version="1.0" xmlns="http://www.sii.cl/SiiDte"></LibroBoletas>' );
-            $xml->addChild( 'FchInicio', $fecha_inicio );
-            $xml->addChild( 'FchFin', $fecha_fin );
+            $xml   = new SimpleXMLElement( '<LibroBoleta version="1.0" xmlns="http://www.sii.cl/SiiDte"></LibroBoleta>' );
+            $envio = $xml->addChild( 'EnvioLibro' );
+            $envio->addAttribute( 'ID', 'EnvioLibro' );
 
-            $emisor = $xml->addChild( 'Emisor' );
-            $emisor->addChild( 'RUTEmisor', $settings['rut_emisor'] ?? '' );
-            $emisor->addChild( 'RznSoc', $settings['razon_social'] ?? '' );
+            // Carátula obligatoria
+            $caratula = $envio->addChild( 'Caratula' );
+            $caratula->addChild( 'RutEmisorLibro', $settings['rut_emisor'] ?? '' );
+            $caratula->addChild( 'RutEnvia', $settings['rut_emisor'] ?? '' );
+            $caratula->addChild( 'PeriodoTributario', substr( $fecha_inicio, 0, 7 ) );
+            $caratula->addChild( 'FchResol', $caf_info['FchResol'] ?? '' );
+            $caratula->addChild( 'NroResol', $caf_info['NroResol'] ?? '' );
+            $caratula->addChild( 'TipoLibro', 'ESPECIAL' );
+            $caratula->addChild( 'TipoEnvio', 'TOTAL' );
 
             $upload_dir = wp_upload_dir();
             $base_dir   = trailingslashit( $upload_dir['basedir'] );
             $iterator   = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir ) );
 
             $resumenes = [];
-            $anulados  = [];
+            $detalles  = [];
 
             foreach ( $iterator as $file ) {
                 if ( ! $file->isFile() || ! preg_match( '/DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
@@ -88,10 +96,14 @@ class SII_Libro_Boletas {
                     if ( $fecha < $fecha_inicio || $fecha > $fecha_fin ) {
                         continue;
                     }
-                    $tipo   = intval( $id_doc->TipoDTE );
-                    $folio  = intval( $id_doc->Folio );
-                    $totals = $documento->Encabezado->Totales;
-                    $monto  = isset( $totals->MntTotal ) ? intval( $totals->MntTotal ) : 0;
+                    $tipo    = intval( $id_doc->TipoDTE );
+                    $folio   = intval( $id_doc->Folio );
+                    $totals  = $documento->Encabezado->Totales;
+                    $mnt_exe = isset( $totals->MntExe ) ? intval( $totals->MntExe ) : 0;
+                    $mnt_neto = isset( $totals->MntNeto ) ? intval( $totals->MntNeto ) : 0;
+                    $tasa_iva = isset( $totals->TasaIVA ) ? floatval( $totals->TasaIVA ) : 0;
+                    $mnt_iva  = isset( $totals->IVA ) ? intval( $totals->IVA ) : 0;
+                    $mnt_total = isset( $totals->MntTotal ) ? intval( $totals->MntTotal ) : 0;
 
                     $anulado = false;
                     if ( isset( $id_doc->Anulado ) && '1' === (string) $id_doc->Anulado ) {
@@ -100,39 +112,80 @@ class SII_Libro_Boletas {
                         $anulado = true;
                     }
 
+                    $detalles[] = [
+                        'TpoDoc'    => $tipo,
+                        'FolioDoc'  => $folio,
+                        'Anulado'   => $anulado,
+                        'FchEmiDoc' => $fecha,
+                        'MntExe'    => $mnt_exe,
+                        'MntTotal'  => $mnt_total,
+                    ];
+
+                    if ( ! isset( $resumenes[ $tipo ] ) ) {
+                        $resumenes[ $tipo ] = [
+                            'TotDoc'       => 0,
+                            'TotMntExe'    => 0,
+                            'TotMntNeto'   => 0,
+                            'TasaIVA'      => $tasa_iva,
+                            'TotMntIVA'    => 0,
+                            'TotMntTotal'  => 0,
+                            'TotAnulado'   => 0,
+                        ];
+                    }
+
                     if ( $anulado ) {
-                        $anulados[] = $folio;
+                        $resumenes[ $tipo ]['TotAnulado']++;
                         continue;
                     }
 
-                    if ( ! isset( $resumenes[ $tipo ] ) ) {
-                        $resumenes[ $tipo ] = [ 'monto' => 0, 'folios' => [] ];
-                    }
-                    $resumenes[ $tipo ]['monto']  += $monto;
-                    $resumenes[ $tipo ]['folios'][] = $folio;
+                    $resumenes[ $tipo ]['TotDoc']++;
+                    $resumenes[ $tipo ]['TotMntExe']   += $mnt_exe;
+                    $resumenes[ $tipo ]['TotMntNeto']  += $mnt_neto;
+                    $resumenes[ $tipo ]['TotMntIVA']   += $mnt_iva;
+                    $resumenes[ $tipo ]['TotMntTotal'] += $mnt_total;
                 } catch ( Exception $e ) {
                     continue;
                 }
             }
 
-            $resumen_periodo = $xml->addChild( 'ResumenPeriodo' );
-            foreach ( $resumenes as $tipo => $data ) {
-                sort( $data['folios'] );
-                $resumen = $resumen_periodo->addChild( 'TotalesTipo' );
-                $resumen->addChild( 'TipoDTE', $tipo );
-                $resumen->addChild( 'FolioInicial', $data['folios'][0] );
-                $resumen->addChild( 'FolioFinal', end( $data['folios'] ) );
-                $resumen->addChild( 'FoliosEmitidos', count( $data['folios'] ) );
-                $resumen->addChild( 'MntTotal', $data['monto'] );
-            }
-
-            if ( ! empty( $anulados ) ) {
-                sort( $anulados );
-                $anulados_node = $xml->addChild( 'FoliosAnulados' );
-                foreach ( $anulados as $folio ) {
-                    $anulados_node->addChild( 'Folio', $folio );
+            if ( ! empty( $resumenes ) ) {
+                $resumen_seg = $envio->addChild( 'ResumenSegmento' );
+                foreach ( $resumenes as $tipo => $data ) {
+                    $totales_segmento = $resumen_seg->addChild( 'TotalesSegmento' );
+                    $totales_segmento->addChild( 'TpoDoc', $tipo );
+                    if ( $data['TotAnulado'] > 0 ) {
+                        $totales_segmento->addChild( 'TotAnulado', $data['TotAnulado'] );
+                    }
+                    $tot_serv = $totales_segmento->addChild( 'TotalesServicio' );
+                    $tot_serv->addChild( 'TpoServ', 3 );
+                    $tot_serv->addChild( 'TotDoc', $data['TotDoc'] );
+                    if ( $data['TotMntExe'] > 0 ) {
+                        $tot_serv->addChild( 'TotMntExe', $data['TotMntExe'] );
+                    }
+                    $tot_serv->addChild( 'TotMntNeto', $data['TotMntNeto'] );
+                    if ( $data['TasaIVA'] > 0 ) {
+                        $tot_serv->addChild( 'TasaIVA', number_format( $data['TasaIVA'], 2, '.', '' ) );
+                    }
+                    $tot_serv->addChild( 'TotMntIVA', $data['TotMntIVA'] );
+                    $tot_serv->addChild( 'TotMntTotal', $data['TotMntTotal'] );
                 }
             }
+
+            foreach ( $detalles as $det ) {
+                $det_node = $envio->addChild( 'Detalle' );
+                $det_node->addChild( 'TpoDoc', $det['TpoDoc'] );
+                $det_node->addChild( 'FolioDoc', $det['FolioDoc'] );
+                if ( $det['Anulado'] ) {
+                    $det_node->addChild( 'Anulado', 'A' );
+                }
+                $det_node->addChild( 'FchEmiDoc', $det['FchEmiDoc'] );
+                if ( $det['MntExe'] > 0 ) {
+                    $det_node->addChild( 'MntExe', $det['MntExe'] );
+                }
+                $det_node->addChild( 'MntTotal', $det['MntTotal'] );
+            }
+
+            $envio->addChild( 'TmstFirma', date( 'c' ) );
 
             return $xml->asXML();
         } catch ( Exception $e ) {

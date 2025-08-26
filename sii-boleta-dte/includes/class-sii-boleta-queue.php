@@ -49,6 +49,7 @@ class SII_Boleta_Queue {
         } else {
             wp_schedule_single_event( time(), self::CRON_HOOK, [ $file_path, $order_id, $attempt ] );
         }
+        $this->log_queue_status( sprintf( 'Encolado envío DTE para pedido %d (intento %d)', $order_id, $attempt ) );
     }
 
     /**
@@ -78,6 +79,7 @@ class SII_Boleta_Queue {
                 } else {
                     wp_schedule_single_event( time() + $delay, self::CRON_HOOK, [ $file_path, $order_id, $attempt + 1 ] );
                 }
+                $this->log_queue_status( sprintf( 'Reintento programado para pedido %d (intento %d)', $order_id, $attempt + 1 ) );
             }
             return;
         }
@@ -89,5 +91,22 @@ class SII_Boleta_Queue {
                 $order->save();
             }
         }
+        $this->log_queue_status( sprintf( 'Envío DTE exitoso para pedido %d', $order_id ) );
+    }
+
+    /**
+     * Registra en el log el número de eventos pendientes en la cola.
+     *
+     * @param string $context Mensaje que describe el punto de registro.
+     */
+    private function log_queue_status( $context ) {
+        $crons = _get_cron_array();
+        $count = 0;
+        foreach ( $crons as $timestamp => $hooks ) {
+            if ( isset( $hooks[ self::CRON_HOOK ] ) ) {
+                $count += count( $hooks[ self::CRON_HOOK ] );
+            }
+        }
+        sii_boleta_write_log( sprintf( '%s. Eventos pendientes en cola: %d', $context, $count ), 'INFO' );
     }
 }

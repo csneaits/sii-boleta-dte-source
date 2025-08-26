@@ -3,9 +3,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Maneja las tareas programadas del plugin (WP-Cron). Esta clase
- * registra un evento diario para generar y enviar el Resumen de Ventas
- * Diarias (RVD) automáticamente. También ofrece funciones de activación
- * y desactivación para registrar o eliminar dicho evento.
+ * registra un evento cada 12 horas para generar y enviar el Resumen de Ventas
+ * Diarias (RVD) automáticamente, además de un evento diario para el Consumo de
+ * Folios (CDF). También ofrece funciones de activación y desactivación para
+ * registrar o eliminar dichos eventos.
  */
 class SII_Boleta_Cron {
 
@@ -20,11 +21,6 @@ class SII_Boleta_Cron {
      * Nombre del evento cron que se ejecutará diariamente para el RVD.
      */
     const CRON_HOOK = 'sii_boleta_dte_daily_rvd';
-
-    /**
-     * Evento cron mensual para el envío del libro.
-     */
-    const LIBRO_CRON_HOOK = 'sii_boleta_dte_monthly_libro';
 
     /**
      * Evento cron diario para el envío del CDF.
@@ -43,9 +39,7 @@ class SII_Boleta_Cron {
     public function __construct( SII_Boleta_Settings $settings ) {
         $this->settings = $settings;
         add_action( self::CRON_HOOK, [ $this, 'generate_and_send_rvd' ] );
-        add_action( self::LIBRO_CRON_HOOK, [ $this, 'generate_and_send_libro' ] );
         add_action( self::CDF_CRON_HOOK, [ $this, 'generate_and_send_cdf' ] );
-        add_filter( 'cron_schedules', [ __CLASS__, 'add_cron_schedules' ] );
     }
 
     /**
@@ -63,41 +57,23 @@ class SII_Boleta_Cron {
     }
 
     /**
-     * Agrega intervalos personalizados al cron.
-     *
-     * @param array $schedules Listado de intervalos existentes.
-     *
-     * @return array
-     */
-    public static function add_cron_schedules( $schedules ) {
-        if ( ! isset( $schedules['monthly'] ) ) {
-            $schedules['monthly'] = [
-                'interval' => MONTH_IN_SECONDS,
-                'display'  => __( 'Una vez al mes', 'sii-boleta-dte' ),
-            ];
-        }
-
-        return $schedules;
-    }
-
-    /**
      * Programa los eventos cron al activar el plugin.
      *
      * Se ejecutan diariamente para el RVD y CDF, y mensualmente para el libro.
      * Si ya existe un evento programado, no vuelve a programarlo.
      */
     public static function activate() {
-        add_filter( 'cron_schedules', [ __CLASS__, 'add_cron_schedules' ] );
-
         // Limpiar eventos antiguos que podían causar errores.
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
         wp_clear_scheduled_hook( self::CRON_HOOK );
 
         if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-            $tz        = new DateTimeZone( 'America/Santiago' );
-            $next_run  = new DateTime( 'tomorrow 00:10', $tz );
-            $timestamp = $next_run->getTimestamp();
-            wp_schedule_event( $timestamp, 'daily', self::CRON_HOOK );
+            $tz       = new DateTimeZone( 'America/Santiago' );
+            $next_run = new DateTime( 'today 00:10', $tz );
+            while ( $next_run->getTimestamp() <= time() ) {
+                $next_run->modify( '+12 hours' );
+            }
+            wp_schedule_event( $next_run->getTimestamp(), 'twicedaily', self::CRON_HOOK );
         }
 
         wp_clear_scheduled_hook( 'sii_boleta_dte_daily_cdf' );
@@ -111,10 +87,6 @@ class SII_Boleta_Cron {
             wp_schedule_event( $timestamp, 'daily', self::CDF_CRON_HOOK );
         }
 
-        if ( ! wp_next_scheduled( self::LIBRO_CRON_HOOK ) ) {
-            $timestamp = strtotime( 'first day of next month midnight' );
-            wp_schedule_event( $timestamp, 'monthly', self::LIBRO_CRON_HOOK );
-        }
     }
 
     /**
@@ -124,7 +96,6 @@ class SII_Boleta_Cron {
         wp_clear_scheduled_hook( self::CRON_HOOK );
         wp_clear_scheduled_hook( self::CDF_CRON_HOOK );
         wp_clear_scheduled_hook( 'sii_boleta_dte_daily_cdf' );
-        wp_clear_scheduled_hook( self::LIBRO_CRON_HOOK );
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
     }
 
@@ -202,40 +173,6 @@ class SII_Boleta_Cron {
     /**
      * Callback que genera el Libro del mes anterior y lo envía al SII.
      */
-    public function generate_and_send_libro() {
-        $month         = date( 'Y-m', strtotime( 'first day of previous month' ) );
-        $libro_manager = new SII_Boleta_Libro_Manager( $this->settings );
-        $xml           = $libro_manager->generate_libro_xml( $month );
-
-        if ( ! $xml ) {
-            sii_boleta_write_log( 'Fallo al generar el Libro para el mes ' . $month );
-            return;
-        }
-
-        $settings = $this->settings->get_settings();
-        $env      = $settings['environment'];
-        $enviado  = $libro_manager->send_libro_to_sii(
-            $xml,
-            $env,
-            $settings['api_token'] ?? '',
-            $settings['cert_path'] ?? '',
-            $settings['cert_pass'] ?? ''
-        );
-
-        $admin_email = get_option( 'admin_email' );
-        if ( $enviado ) {
-            sii_boleta_write_log( 'Libro enviado correctamente para el mes ' . $month );
-            if ( $admin_email ) {
-                wp_mail( $admin_email, 'Libro enviado', 'Libro enviado correctamente para el mes ' . $month );
-            }
-        } else {
-            sii_boleta_write_log( 'Error al enviar el Libro para el mes ' . $month );
-            if ( $admin_email ) {
-                wp_mail( $admin_email, 'Error al enviar Libro', 'Error al enviar el Libro para el mes ' . $month );
-            }
-        }
-    }
-
     /**
      * Callback que genera el CDF para el día en curso y lo envía al SII.
      */

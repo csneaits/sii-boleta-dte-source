@@ -124,13 +124,7 @@ class SII_Boleta_RVD_Manager {
                     }
 
                     // Calcular folios no utilizados dentro del rango min/max de los utilizados.
-                    $no_utilizados = [];
-                    if ( ! empty( $utilizados ) ) {
-                        $min = min( $utilizados );
-                        $max = max( $utilizados );
-                        $full_range    = range( $min, $max );
-                        $no_utilizados = array_values( array_diff( $full_range, $utilizados ) );
-                    }
+                    $no_utilizados = $this->calculate_missing_numbers( $utilizados );
                     $resumen->appendChild( $doc->createElement( 'FoliosNoUtilizados', count( $no_utilizados ) ) );
                     $unused_ranges = $this->calculate_ranges( $no_utilizados );
                     foreach ( $unused_ranges as $r ) {
@@ -231,11 +225,12 @@ class SII_Boleta_RVD_Manager {
                     if ( $anulado ) {
                         $totales[ $tipo ]['anulados'][] = $folio;
                     } else {
+                        $sign = ( 61 === $tipo ) ? -1 : 1;
                         $totales[ $tipo ]['emitidos'][]   = $folio;
-                        $totales[ $tipo ]['monto_neto']   += $mnt_neto;
-                        $totales[ $tipo ]['monto_exento'] += $mnt_exe;
-                        $totales[ $tipo ]['monto_iva']    += $mnt_iva;
-                        $totales[ $tipo ]['monto_total']  += $mnt_total;
+                        $totales[ $tipo ]['monto_neto']   += $sign * $mnt_neto;
+                        $totales[ $tipo ]['monto_exento'] += $sign * $mnt_exe;
+                        $totales[ $tipo ]['monto_iva']    += $sign * $mnt_iva;
+                        $totales[ $tipo ]['monto_total']  += $sign * $mnt_total;
                     }
                 } catch ( Exception $e ) {
                     continue;
@@ -272,6 +267,29 @@ class SII_Boleta_RVD_Manager {
             $ranges[] = [ $start, $end ];
         }
         return $ranges;
+    }
+
+    /**
+     * Calcula los folios faltantes dentro del rango de folios utilizados.
+     *
+     * @param array $used Lista de folios utilizados (incluye emitidos y anulados).
+     * @return array Lista de folios no utilizados.
+     */
+    private function calculate_missing_numbers( array $used ) {
+        $missing = [];
+        $count   = count( $used );
+        if ( 0 === $count ) {
+            return $missing;
+        }
+        $start    = $used[0];
+        $end      = $used[ $count - 1 ];
+        $used_set = array_flip( $used );
+        for ( $i = $start; $i <= $end; $i++ ) {
+            if ( ! isset( $used_set[ $i ] ) ) {
+                $missing[] = $i;
+            }
+        }
+        return $missing;
     }
 
     /**

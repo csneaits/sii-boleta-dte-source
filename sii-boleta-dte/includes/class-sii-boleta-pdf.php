@@ -133,21 +133,15 @@ class SII_Boleta_PDF {
                     <pre><?php echo esc_html( $ted_xml ); ?></pre>
                     <div class="barcode">
                         <?php
-                        $barcode_url = '';
-                        if ( $ted_node ) {
-                            $dd_xml = '';
-                            if ( isset( $ted_node->DD ) ) {
-                                $dd_xml = $ted_node->DD->asXML();
-                            } else {
-                                $dd_xml = $ted_node->asXML();
-                            }
-                            $barcode_data = base64_encode( $dd_xml );
-                            $barcode_url  = 'https://barcode.tec-it.com/barcode.ashx?data=' . rawurlencode( $barcode_data ) . '&code=PDF417&multiple=4&quiet=1';
+                        $barcode_svg = '';
+                        if ( $ted_node && class_exists( 'PDF417', false ) ) {
+                            $dd_xml = isset( $ted_node->DD ) ? $ted_node->DD->asXML() : $ted_node->asXML();
+                            $barcode_svg = $this->render_pdf417_svg( $dd_xml );
                         }
-                        if ( $barcode_url ) :
+                        if ( $barcode_svg ) :
+                            echo $barcode_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                        else :
                         ?>
-                            <img src="<?php echo esc_url( $barcode_url ); ?>" alt="PDF417" />
-                        <?php else : ?>
                             <p><?php esc_html_e( 'No se pudo generar el código PDF417.', 'sii-boleta-dte' ); ?></p>
                         <?php endif; ?>
                     </div>
@@ -299,5 +293,38 @@ class SII_Boleta_PDF {
         } catch ( Exception $e ) {
             return false;
         }
+    }
+
+    /**
+     * Genera un SVG simple para el código PDF417 utilizando la librería local.
+     *
+     * @param string $data Contenido a codificar.
+     * @return string SVG generado o cadena vacía si falla.
+     */
+    private function render_pdf417_svg( $data ) {
+        if ( empty( $data ) || ! class_exists( 'PDF417', false ) ) {
+            return '';
+        }
+        $pdf417 = new PDF417();
+        $code    = $pdf417->encode( $data );
+        if ( empty( $code['bcode'] ) || empty( $code['cols'] ) || empty( $code['rows'] ) ) {
+            return '';
+        }
+        $module = 2; // tamaño del módulo en pixeles
+        $width  = $code['cols'] * $module;
+        $height = $code['rows'] * $module;
+        $svg    = sprintf( '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">', $width, $height );
+        foreach ( $code['bcode'] as $r => $row ) {
+            $y = $r * $module;
+            $len = strlen( $row );
+            for ( $c = 0; $c < $len; $c++ ) {
+                if ( '1' === $row[ $c ] ) {
+                    $x = $c * $module;
+                    $svg .= sprintf( '<rect x="%d" y="%d" width="%d" height="%d" fill="#000"/>', $x, $y, $module, $module );
+                }
+            }
+        }
+        $svg .= '</svg>';
+        return $svg;
     }
 }

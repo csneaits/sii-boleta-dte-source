@@ -34,13 +34,13 @@ Se creará el archivo ZIP en la carpeta `dist\` con el nombre correspondiente.
 
 ## Dependencias opcionales
 
-El plugin puede generar la representación PDF del DTE utilizando las clases `FPDF` y `PDF417`. Se incluyen implementaciones básicas de ambas en `sii-boleta-dte/includes/libs/` que permiten crear un PDF sencillo con un timbre electrónico mínimo. Estas versiones son útiles para entornos de prueba o demostración, pero no reemplazan a las bibliotecas completas.
+El plugin puede generar la representación PDF del DTE utilizando las clases `FPDF` y `PDF417`. Se incluye una implementación básica de `FPDF` y la librería `BigFish/PDF417` dentro de `sii-boleta-dte/includes/libs/`, permitiendo crear un PDF con código de barras PDF417 sin depender de servicios externos.
 
 Para producción se recomienda instalar dependencias más robustas mediante Composer:
 
 1. Instalar FPDF: `composer require setasign/fpdf`.
-2. Instalar una librería de PDF417 con un método `encode` compatible (por ejemplo, `lemonidea/pdf417-php`).
-3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin. Si alguna falta, se recurrirá a la representación HTML de respaldo con un código PDF417 obtenido en línea.
+2. (Opcional) Reemplazar la librería PDF417 incluida por otra de su preferencia.
+3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin.
 
 ## Configuración de tipos de documento para el checkout
 

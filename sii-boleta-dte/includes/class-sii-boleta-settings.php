@@ -21,13 +21,6 @@ class SII_Boleta_Settings {
     const OPTION_NAME  = 'sii_boleta_dte_settings';
 
     /**
-     * Nombre de la variable de entorno utilizada para obtener la
-     * contraseña del certificado cuando no se desea almacenar en la
-     * base de datos.
-     */
-    const ENV_CERT_PASS = 'SII_BOLETA_CERT_PASS';
-
-    /**
      * Constructor. Registra el menú y los campos de ajustes.
      */
     public function __construct() {
@@ -204,15 +197,26 @@ class SII_Boleta_Settings {
      */
     public function sanitize_settings( $input ) {
         $output   = [];
-        $existing = $this->get_settings();
+        $existing = get_option( self::OPTION_NAME, [] );
+        $existing_decrypted = $existing;
+        if ( ! empty( $existing_decrypted['cert_pass'] ) ) {
+            $decoded = $this->decrypt_value( $existing_decrypted['cert_pass'] );
+            if ( false !== $decoded ) {
+                $existing_decrypted['cert_pass'] = $decoded;
+            }
+        }
 
         $output['rut_emisor']   = sanitize_text_field( $input['rut_emisor'] ?? '' );
         $output['razon_social'] = sanitize_text_field( $input['razon_social'] ?? '' );
         $output['giro']         = sanitize_text_field( $input['giro'] ?? '' );
         $output['direccion']    = sanitize_text_field( $input['direccion'] ?? '' );
         $output['comuna']       = sanitize_text_field( $input['comuna'] ?? '' );
-        $output['cert_pass']    = sanitize_text_field( $input['cert_pass'] ?? '' );
-        $output['api_token']    = $existing['api_token'] ?? '';
+        if ( ! empty( $input['cert_pass'] ) ) {
+            $output['cert_pass'] = $this->encrypt_value( sanitize_text_field( $input['cert_pass'] ) );
+        } else {
+            $output['cert_pass'] = $existing['cert_pass'] ?? '';
+        }
+        $output['api_token']    = $existing_decrypted['api_token'] ?? '';
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
@@ -220,7 +224,7 @@ class SII_Boleta_Settings {
         $output['ses_port']     = isset( $input['ses_port'] ) ? intval( $input['ses_port'] ) : 587;
         $output['ses_username'] = sanitize_text_field( $input['ses_username'] ?? '' );
         $output['ses_password'] = sanitize_text_field( $input['ses_password'] ?? '' );
-        $output['api_token_expires'] = isset( $existing['api_token_expires'] ) ? intval( $existing['api_token_expires'] ) : 0;
+        $output['api_token_expires'] = isset( $existing_decrypted['api_token_expires'] ) ? intval( $existing_decrypted['api_token_expires'] ) : 0;
         $valid_types            = [ '39', '33', '34', '52', '56', '61' ];
         $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
         $output['enabled_dte_types'] = array_values( array_intersect( $valid_types, array_map( 'sanitize_text_field', $requested_types ) ) );
@@ -232,9 +236,9 @@ class SII_Boleta_Settings {
         if ( ! empty( $input['cert_path'] ) ) {
             $output['cert_path'] = sanitize_text_field( $input['cert_path'] );
         } else {
-            $output['cert_path'] = $existing['cert_path'] ?? '';
+            $output['cert_path'] = $existing_decrypted['cert_path'] ?? '';
         }
-        $output['caf_path'] = is_array( $existing['caf_path'] ?? null ) ? $existing['caf_path'] : [];
+        $output['caf_path'] = is_array( $existing_decrypted['caf_path'] ?? null ) ? $existing_decrypted['caf_path'] : [];
 
         // Procesar subida del certificado.
         if ( ! empty( $_FILES['cert_file']['name'] ) ) {
@@ -290,6 +294,42 @@ class SII_Boleta_Settings {
         return $output;
     }
 
+    private function get_encryption_key() {
+        return hash( 'sha256', wp_salt( 'sii_boleta_dte_cert' ) );
+    }
+
+    private function get_encryption_iv() {
+        return substr( hash( 'sha256', 'sii_boleta_dte_iv' ), 0, 16 );
+    }
+
+    private function encrypt_value( $value ) {
+        $encrypted = openssl_encrypt( $value, 'AES-256-CBC', $this->get_encryption_key(), 0, $this->get_encryption_iv() );
+        return $encrypted ? base64_encode( $encrypted ) : '';
+    }
+
+    private function decrypt_value( $value ) {
+        $decoded = base64_decode( $value, true );
+        if ( false === $decoded ) {
+            return false;
+        }
+        return openssl_decrypt( $decoded, 'AES-256-CBC', $this->get_encryption_key(), 0, $this->get_encryption_iv() );
+    }
+
+    private function get_certificate_valid_to( $cert_path, $cert_pass ) {
+        if ( empty( $cert_path ) || empty( $cert_pass ) || ! file_exists( $cert_path ) ) {
+            return false;
+        }
+        $certs = [];
+        if ( ! @openssl_pkcs12_read( file_get_contents( $cert_path ), $certs, $cert_pass ) ) {
+            return false;
+        }
+        $info = openssl_x509_parse( $certs['cert'] );
+        if ( ! $info || empty( $info['validTo_time_t'] ) ) {
+            return false;
+        }
+        return (int) $info['validTo_time_t'];
+    }
+
     /**
      * Devuelve los ajustes guardados o valores por defecto si aún no existen.
      *
@@ -318,9 +358,11 @@ class SII_Boleta_Settings {
         ];
         $options = get_option( self::OPTION_NAME, [] );
 
-        $env_pass = getenv( self::ENV_CERT_PASS );
-        if ( false !== $env_pass && '' !== $env_pass ) {
-            $options['cert_pass'] = $env_pass;
+        if ( ! empty( $options['cert_pass'] ) ) {
+            $decrypted = $this->decrypt_value( $options['cert_pass'] );
+            if ( false !== $decrypted ) {
+                $options['cert_pass'] = $decrypted;
+            }
         }
 
         return wp_parse_args( $options, $defaults );
@@ -424,10 +466,14 @@ class SII_Boleta_Settings {
         );
         if ( ! empty( $options['cert_path'] ) ) {
             $current_cert = wp_basename( wp_normalize_path( $options['cert_path'] ) );
+            $expiry_ts    = $this->get_certificate_valid_to( $options['cert_path'], $options['cert_pass'] );
+            $expiry_str   = $expiry_ts ? date_i18n( get_option( 'date_format' ), $expiry_ts ) : '';
+            $extra        = $expiry_str ? sprintf( ' (%s: %s)', esc_html__( 'Válido hasta', 'sii-boleta-dte' ), esc_html( $expiry_str ) ) : '';
             printf(
-                '<p class="description">%s <code>%s</code></p>',
+                '<p class="description">%s <code>%s</code>%s</p>',
                 esc_html__( 'Certificado actual:', 'sii-boleta-dte' ),
-                esc_html( $current_cert )
+                esc_html( $current_cert ),
+                $extra
             );
         }
         echo '<p class="description">' . esc_html__( 'Cargue el certificado .pfx/.p12 o indique la ruta absoluta si ya existe en el servidor.', 'sii-boleta-dte' ) . '</p>';
@@ -608,25 +654,13 @@ class SII_Boleta_Settings {
      * esté próximo a vencer.
      */
     public function maybe_show_cert_expiry_notice() {
-        $settings  = $this->get_settings();
-        $cert_path = $settings['cert_path'] ?? '';
-        $cert_pass = $settings['cert_pass'] ?? '';
-
-        if ( empty( $cert_path ) || empty( $cert_pass ) || ! file_exists( $cert_path ) ) {
+        $settings = $this->get_settings();
+        $expiry   = $this->get_certificate_valid_to( $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        if ( ! $expiry ) {
             return;
         }
 
-        $certs = [];
-        if ( ! @openssl_pkcs12_read( file_get_contents( $cert_path ), $certs, $cert_pass ) ) {
-            return;
-        }
-
-        $info = openssl_x509_parse( $certs['cert'] );
-        if ( ! $info || empty( $info['validTo_time_t'] ) ) {
-            return;
-        }
-
-        $days_left = (int) floor( ( $info['validTo_time_t'] - time() ) / DAY_IN_SECONDS );
+        $days_left = (int) floor( ( $expiry - time() ) / DAY_IN_SECONDS );
         if ( $days_left > 30 ) {
             return;
         }

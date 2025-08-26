@@ -66,6 +66,15 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
 
+## Ambientes: Integración y Producción
+
+El plugin puede operar contra dos servicios distintos del SII, seleccionables en el campo **Ambiente** de la página de ajustes:
+
+- **Integración (test)**: utiliza los servidores de prueba del SII (`maullin.sii.cl`). Selecciónalo durante el desarrollo, las pruebas internas y el proceso de certificación. Aquí se emplean certificados y archivos CAF de prueba y los documentos no tienen validez tributaria.
+- **Producción**: usa los servicios oficiales del SII (`api.sii.cl`). Actívalo sólo cuando la empresa haya sido autorizada y disponga del certificado y CAF de producción. Los DTE enviados en este modo poseen validez legal y deben reportarse correctamente al SII.
+
+Cambia al ambiente de producción únicamente después de completar exitosamente la certificación y verificar que el flujo de envío funciona en integración.
+
 ## Resumen de Ventas Diarias
 
 El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.

@@ -82,6 +82,7 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
         add_action( 'wp_ajax_sii_boleta_dte_toggle_job', [ $this, 'ajax_toggle_job' ] );
         add_action( 'wp_ajax_sii_boleta_dte_run_cdf', [ $this, 'ajax_run_cdf' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_queue_status', [ $this, 'ajax_queue_status' ] );
     }
 
     /**
@@ -264,6 +265,7 @@ class SII_Boleta_Core {
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=jobs' ) ); ?>' class='nav-tab <?php echo ( 'jobs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Jobs', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=metrics' ) ); ?>' class='nav-tab <?php echo ( 'metrics' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Métricas', 'sii-boleta-dte' ); ?></a>
+                <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=logs' ) ); ?>' class='nav-tab <?php echo ( 'logs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Log de Envíos', 'sii-boleta-dte' ); ?></a>
             </h2>
             <?php if ( 'jobs' === $active_tab ) : ?>
                 <p>
@@ -275,6 +277,10 @@ class SII_Boleta_Core {
                     <span id="sii-job-next"></span>
                 </p>
                 <p>
+                    <?php esc_html_e( 'Cola de envíos pendientes:', 'sii-boleta-dte' ); ?>
+                    <span id="sii-queue-count"></span>
+                </p>
+                <p>
                     <button type="button" class="button" id="sii-toggle-job"><?php esc_html_e( 'Programar Job', 'sii-boleta-dte' ); ?></button>
                     <button type="button" class="button" id="sii-run-rvd"><?php esc_html_e( 'Generar RVD del día', 'sii-boleta-dte' ); ?></button>
                     <button type="button" class="button" id="sii-run-cdf"><?php esc_html_e( 'Generar CDF del día', 'sii-boleta-dte' ); ?></button>
@@ -284,6 +290,7 @@ class SII_Boleta_Core {
                 <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
             <?php elseif ( 'metrics' === $active_tab ) : ?>
                 <?php $metrics = $this->metrics->gather_metrics(); ?>
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                 <h2><?php esc_html_e( 'Resumen de Documentos', 'sii-boleta-dte' ); ?></h2>
                 <p><?php printf( esc_html__( 'Total de DTE generados: %d', 'sii-boleta-dte' ), intval( $metrics['total'] ) ); ?></p>
                 <p><?php printf( esc_html__( 'DTE enviados al SII: %d', 'sii-boleta-dte' ), intval( $metrics['sent'] ) ); ?></p>
@@ -319,6 +326,34 @@ class SII_Boleta_Core {
                 <?php else : ?>
                     <p><?php esc_html_e( 'No se encontraron errores en el log.', 'sii-boleta-dte' ); ?></p>
                 <?php endif; ?>
+                <canvas id="sii-chart-by-type" height="120"></canvas>
+                <canvas id="sii-chart-errors" height="120"></canvas>
+            <?php elseif ( 'logs' === $active_tab ) : ?>
+                <?php $logs = SII_Boleta_Log_DB::get_entries(); ?>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Track ID', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Estado', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Respuesta', 'sii-boleta-dte' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ( $logs ) : ?>
+                            <?php foreach ( $logs as $log ) : ?>
+                                <tr>
+                                    <td><?php echo esc_html( $log['created_at'] ); ?></td>
+                                    <td><?php echo esc_html( $log['track_id'] ); ?></td>
+                                    <td><?php echo esc_html( $log['status'] ); ?></td>
+                                    <td><?php echo esc_html( $log['response'] ); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <tr><td colspan="4"><?php esc_html_e( 'Sin registros.', 'sii-boleta-dte' ); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             <?php else : ?>
                 <p>
                     <button type="button" class="button" id="sii-refresh-dtes"><?php esc_html_e( 'Actualizar', 'sii-boleta-dte' ); ?></button>
@@ -371,6 +406,13 @@ class SII_Boleta_Core {
                         }
                     });
                 }
+                function loadQueue(){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_queue_status'}, function(resp){
+                        if(resp.success){
+                            $('#sii-queue-count').text(resp.data.count);
+                        }
+                    });
+                }
                 $('#sii-toggle-job').on('click', function(){
                     $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
                     $.post(ajaxurl, {action:'sii_boleta_dte_toggle_job'}, function(resp){
@@ -404,6 +446,16 @@ class SII_Boleta_Core {
                     });
                 });
                 loadLog();
+                loadQueue();
+            } else if (activeTab === 'metrics') {
+                var byType = <?php echo ( 'metrics' === $active_tab ) ? wp_json_encode( $metrics['by_type'] ) : '[]'; ?>;
+                var ctx1 = document.getElementById('sii-chart-by-type').getContext('2d');
+                new Chart(ctx1, {type:'bar', data:{labels:Object.keys(byType), datasets:[{label:'DTE', data:Object.values(byType)}]}});
+                var errors = <?php echo ( 'metrics' === $active_tab ) ? wp_json_encode( $metrics['error_reasons'] ) : '[]'; ?>;
+                if(Object.keys(errors).length){
+                    var ctx2 = document.getElementById('sii-chart-errors').getContext('2d');
+                    new Chart(ctx2, {type:'pie', data:{labels:Object.keys(errors), datasets:[{data:Object.values(errors)}]}});
+                }
             }
         });
         </script>
@@ -864,5 +916,22 @@ class SII_Boleta_Core {
             sii_boleta_write_log( 'Error al enviar el CDF manual para la fecha ' . $today );
             wp_send_json_error( [ 'message' => __( 'Error al enviar el CDF.', 'sii-boleta-dte' ) ] );
         }
+    }
+
+    /**
+     * Devuelve el número de eventos pendientes en la cola de envíos.
+     */
+    public function ajax_queue_status() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $crons = _get_cron_array();
+        $count = 0;
+        foreach ( $crons as $timestamp => $hooks ) {
+            if ( isset( $hooks[ SII_Boleta_Queue::CRON_HOOK ] ) ) {
+                $count += count( $hooks[ SII_Boleta_Queue::CRON_HOOK ] );
+            }
+        }
+        wp_send_json_success( [ 'count' => $count ] );
     }
 }

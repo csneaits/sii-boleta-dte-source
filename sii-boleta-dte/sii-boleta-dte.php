@@ -88,6 +88,8 @@ new SII_Boleta_DTE();
 // momento de activación del plugin.
 register_activation_hook( __FILE__, [ 'SII_Boleta_Cron', 'activate' ] );
 register_deactivation_hook( __FILE__, [ 'SII_Boleta_Cron', 'deactivate' ] );
+// Crear tabla de log consolidado al activar el plugin.
+register_activation_hook( __FILE__, [ 'SII_Boleta_Log_DB', 'install' ] );
 
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     /**

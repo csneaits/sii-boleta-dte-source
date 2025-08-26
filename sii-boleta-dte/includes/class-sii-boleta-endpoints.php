@@ -119,6 +119,10 @@ class SII_Boleta_Endpoints {
             <?php if ( $pdf_url ) : ?>
                 <p><a href="<?php echo esc_url( $pdf_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Descargar PDF', 'sii-boleta-dte' ); ?></a></p>
             <?php endif; ?>
+            <details>
+                <summary><?php esc_html_e( 'Ver XML', 'sii-boleta-dte' ); ?></summary>
+                <pre><?php echo esc_html( file_get_contents( $xml_file ) ); ?></pre>
+            </details>
         </body>
         </html>
         <?php

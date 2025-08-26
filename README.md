@@ -89,7 +89,7 @@ El envío del RVD reutiliza el mismo token y certificado empleados para las bole
 
 El plugin permite generar el archivo **Consumo de Folios** requerido por el SII. Desde el panel de control es posible ejecutar manualmente la generación y envío del CDF del día.
 
-Para automatizar este proceso se recomienda programar una tarea cron diaria posterior al envío del Resumen de Ventas Diarias, por ejemplo alrededor de las 23:55. El comando debería invocar la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
+El sistema programa automáticamente una tarea diaria `sii_boleta_dte_run_cdf` que envía el CDF del día alrededor de las 23:55 (hora de Santiago). Si se prefiere gestionarlo externamente, puede invocar manualmente la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
 
 
 ## Certificación y manejo de errores

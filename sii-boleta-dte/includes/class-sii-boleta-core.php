@@ -294,6 +294,9 @@ class SII_Boleta_Core {
             'sii-boleta-dte-job-log',
             [ $this, 'render_job_log_page' ]
         );
+
+        // Página de ayuda del plugin.
+        $this->help->register_page();
     }
 
     /**

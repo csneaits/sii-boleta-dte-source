@@ -21,13 +21,6 @@ class SII_Boleta_Settings {
     const OPTION_NAME  = 'sii_boleta_dte_settings';
 
     /**
-     * Nombre de la variable de entorno utilizada para obtener la
-     * contraseña del certificado cuando no se desea almacenar en la
-     * base de datos.
-     */
-    const ENV_CERT_PASS = 'SII_BOLETA_CERT_PASS';
-
-    /**
      * Constructor. Registra el menú y los campos de ajustes.
      */
     public function __construct() {
@@ -218,7 +211,7 @@ class SII_Boleta_Settings {
         $output['giro']         = sanitize_text_field( $input['giro'] ?? '' );
         $output['direccion']    = sanitize_text_field( $input['direccion'] ?? '' );
         $output['comuna']       = sanitize_text_field( $input['comuna'] ?? '' );
-        $output['cert_pass']    = sanitize_text_field( $input['cert_pass'] ?? '' );
+        $output['cert_pass']    = $this->encrypt_value( sanitize_text_field( $input['cert_pass'] ?? '' ) );
         $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
@@ -325,12 +318,43 @@ class SII_Boleta_Settings {
         ];
         $options = get_option( self::OPTION_NAME, [] );
 
-        $env_pass = getenv( self::ENV_CERT_PASS );
-        if ( false !== $env_pass && '' !== $env_pass ) {
-            $options['cert_pass'] = $env_pass;
+        if ( ! empty( $options['cert_pass'] ) ) {
+            $options['cert_pass'] = $this->decrypt_value( $options['cert_pass'] );
         }
 
         return wp_parse_args( $options, $defaults );
+    }
+
+    /**
+     * Encripta un valor utilizando las claves de WordPress.
+     *
+     * @param string $value Valor en texto plano.
+     * @return string Valor encriptado en base64.
+     */
+    private function encrypt_value( $value ) {
+        if ( '' === $value ) {
+            return '';
+        }
+        $key = hash( 'sha256', AUTH_KEY . SECURE_AUTH_KEY );
+        $iv  = substr( hash( 'sha256', AUTH_SALT ), 0, 16 );
+        $encrypted = openssl_encrypt( $value, 'AES-256-CBC', $key, 0, $iv );
+        return $encrypted ? base64_encode( $encrypted ) : '';
+    }
+
+    /**
+     * Desencripta un valor encriptado con encrypt_value().
+     *
+     * @param string $value Valor encriptado en base64.
+     * @return string Valor desencriptado o el original si falla.
+     */
+    private function decrypt_value( $value ) {
+        if ( '' === $value ) {
+            return '';
+        }
+        $key = hash( 'sha256', AUTH_KEY . SECURE_AUTH_KEY );
+        $iv  = substr( hash( 'sha256', AUTH_SALT ), 0, 16 );
+        $decrypted = openssl_decrypt( base64_decode( $value ), 'AES-256-CBC', $key, 0, $iv );
+        return false === $decrypted ? $value : $decrypted;
     }
 
     /**
@@ -447,12 +471,31 @@ class SII_Boleta_Settings {
      * Renderiza el campo para la contraseña del certificado.
      */
     public function render_field_cert_pass() {
-        $options = $this->get_settings();
+        $options   = $this->get_settings();
         printf(
             '<input type="password" name="%s[cert_pass]" value="%s" class="regular-text" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['cert_pass'] )
         );
+
+        $cert_path = $options['cert_path'] ?? '';
+        $cert_pass = $options['cert_pass'] ?? '';
+
+        if ( ! empty( $cert_path ) && ! empty( $cert_pass ) && file_exists( $cert_path ) ) {
+            $certs = [];
+            if ( @openssl_pkcs12_read( file_get_contents( $cert_path ), $certs, $cert_pass ) ) {
+                $info = openssl_x509_parse( $certs['cert'] );
+                if ( $info && ! empty( $info['validTo_time_t'] ) ) {
+                    printf(
+                        ' <span>%s</span>',
+                        sprintf(
+                            esc_html__( 'Válido hasta: %s', 'sii-boleta-dte' ),
+                            esc_html( date_i18n( get_option( 'date_format', 'Y-m-d' ), $info['validTo_time_t'] ) )
+                        )
+                    );
+                }
+            }
+        }
     }
 
     /**

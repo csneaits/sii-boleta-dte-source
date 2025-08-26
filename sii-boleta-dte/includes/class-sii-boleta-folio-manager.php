@@ -57,14 +57,35 @@ class SII_Boleta_Folio_Manager {
         }
         // Clave de opción específica por tipo de DTE
         $option_key = self::OPTION_LAST_FOLIO_PREFIX . intval( $tipo_dte );
-        // Recuperar el último folio para este tipo; si no existe, empezar en D - 1
-        $last_folio = intval( get_option( $option_key, $range['D'] - 1 ) );
-        $next_folio = $last_folio + 1;
-        if ( $next_folio > $range['H'] ) {
-            return false; // Se acabaron los folios autorizados
+        $lock_key   = $option_key . '_lock';
+        $lock_ttl   = 5;
+        $start      = time();
+
+        while ( get_transient( $lock_key ) ) {
+            if ( time() - $start > $lock_ttl ) {
+                break;
+            }
+            sleep( 1 );
         }
-        update_option( $option_key, $next_folio );
-        return $next_folio;
+
+        if ( get_transient( $lock_key ) ) {
+            return false;
+        }
+
+        set_transient( $lock_key, 1, $lock_ttl );
+
+        try {
+            // Recuperar el último folio para este tipo; si no existe, empezar en D - 1
+            $last_folio = intval( get_option( $option_key, $range['D'] - 1 ) );
+            $next_folio = $last_folio + 1;
+            if ( $next_folio > $range['H'] ) {
+                return false; // Se acabaron los folios autorizados
+            }
+            update_option( $option_key, $next_folio, false );
+            return $next_folio;
+        } finally {
+            delete_transient( $lock_key );
+        }
     }
 
     /**

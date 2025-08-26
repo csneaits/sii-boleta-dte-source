@@ -126,13 +126,6 @@ class SII_Boleta_Settings {
             'sii_boleta_dte_settings_section'
         );
         add_settings_field(
-            'api_token',
-            __( 'Token de la API', 'sii-boleta-dte' ),
-            [ $this, 'render_field_api_token' ],
-            'sii-boleta-dte',
-            'sii_boleta_dte_settings_section'
-        );
-        add_settings_field(
             'environment',
             __( 'Ambiente', 'sii-boleta-dte' ),
             [ $this, 'render_field_environment' ],
@@ -219,7 +212,7 @@ class SII_Boleta_Settings {
         $output['direccion']    = sanitize_text_field( $input['direccion'] ?? '' );
         $output['comuna']       = sanitize_text_field( $input['comuna'] ?? '' );
         $output['cert_pass']    = sanitize_text_field( $input['cert_pass'] ?? '' );
-        $output['api_token']    = sanitize_text_field( $input['api_token'] ?? '' );
+        $output['api_token']    = $existing['api_token'] ?? '';
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
@@ -498,18 +491,6 @@ class SII_Boleta_Settings {
         });
         </script>
         <?php
-    }
-
-    /**
-     * Renderiza el campo para el token de la API.
-     */
-    public function render_field_api_token() {
-        $options = $this->get_settings();
-        printf(
-            '<input type="text" name="%s[api_token]" value="%s" class="regular-text" />',
-            esc_attr( self::OPTION_NAME ),
-            esc_attr( $options['api_token'] )
-        );
     }
 
     /**

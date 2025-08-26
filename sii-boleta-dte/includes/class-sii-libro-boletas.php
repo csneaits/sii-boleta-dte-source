@@ -138,11 +138,12 @@ class SII_Libro_Boletas {
                         continue;
                     }
 
+                    $sign = ( 61 === $tipo ) ? -1 : 1;
                     $resumenes[ $tipo ]['TotDoc']++;
-                    $resumenes[ $tipo ]['TotMntExe']   += $mnt_exe;
-                    $resumenes[ $tipo ]['TotMntNeto']  += $mnt_neto;
-                    $resumenes[ $tipo ]['TotMntIVA']   += $mnt_iva;
-                    $resumenes[ $tipo ]['TotMntTotal'] += $mnt_total;
+                    $resumenes[ $tipo ]['TotMntExe']   += $sign * $mnt_exe;
+                    $resumenes[ $tipo ]['TotMntNeto']  += $sign * $mnt_neto;
+                    $resumenes[ $tipo ]['TotMntIVA']   += $sign * $mnt_iva;
+                    $resumenes[ $tipo ]['TotMntTotal'] += $sign * $mnt_total;
                 } catch ( Exception $e ) {
                     continue;
                 }

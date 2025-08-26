@@ -361,11 +361,17 @@ class SII_Boleta_Woo {
             return;
         }
         $referencias = [];
+        $razon_ref   = $refund->get_reason();
+        if ( $razon_ref ) {
+            $razon_ref = sanitize_text_field( $razon_ref );
+        } else {
+            $razon_ref = __( 'Reembolso de pedido WooCommerce', 'sii-boleta-dte' );
+        }
         $referencias[] = [
             'TpoDocRef' => $ref_tipo,
             'FolioRef'  => $ref_folio,
             'FchRef'    => $ref_fecha,
-            'RazonRef'  => __( 'Reembolso de pedido WooCommerce', 'sii-boleta-dte' ),
+            'RazonRef'  => $razon_ref,
         ];
 
         $rut_receptor = $order->get_meta( '_sii_rut_recep', true );

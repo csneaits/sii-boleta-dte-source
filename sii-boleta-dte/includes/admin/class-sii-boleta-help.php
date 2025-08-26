@@ -5,10 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * Página de ayuda y certificación para el plugin.
  */
 class SII_Boleta_Help {
-    public function __construct() {
-        add_action( 'admin_menu', [ $this, 'register_page' ] );
-    }
-
     public function register_page() {
         add_submenu_page(
             'sii-boleta-dte',

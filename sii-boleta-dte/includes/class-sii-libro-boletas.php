@@ -5,10 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * Clase encargada de generar y enviar el Libro de Boletas al SII.
  *
  * Recorre los archivos DTE emitidos en un rango de fechas para construir
- * el XML conforme al esquema de "LibroBoletas". También permite enviar
- * dicho XML utilizando el token de la API del SII.
+ * el XML conforme al esquema de "LibroBoletas". También permite validar,
+ * firmar y enviar dicho XML utilizando la API del SII.
  */
-class SII_Boleta_Libro_Boletas {
+class SII_Libro_Boletas {
 
     /**
      * Instancia de configuraciones del plugin.
@@ -78,7 +78,7 @@ class SII_Boleta_Libro_Boletas {
                     continue;
                 }
                 try {
-                    $doc      = new SimpleXMLElement( $content );
+                    $doc       = new SimpleXMLElement( $content );
                     $documento = $doc->Documento;
                     if ( ! $documento ) {
                         continue;
@@ -141,7 +141,25 @@ class SII_Boleta_Libro_Boletas {
     }
 
     /**
-     * Envía el Libro de Boletas al SII utilizando la API.
+     * Valida el XML del libro contra el XSD oficial.
+     *
+     * @param string $xml Contenido XML a validar.
+     * @return bool True si es válido, false en caso contrario.
+     */
+    public function validate_libro_xml( $xml ) {
+        $doc = new DOMDocument();
+        if ( ! $doc->loadXML( $xml ) ) {
+            return false;
+        }
+        libxml_use_internal_errors( true );
+        $xsd   = __DIR__ . '/xml/schemas/libro_boletas.xsd';
+        $valid = $doc->schemaValidate( $xsd );
+        libxml_clear_errors();
+        return $valid;
+    }
+
+    /**
+     * Firma y envía el Libro de Boletas al SII utilizando la API.
      *
      * @param string $xml         Contenido XML del libro.
      * @param string $environment Ambiente de destino ('test' o 'production').
@@ -156,7 +174,7 @@ class SII_Boleta_Libro_Boletas {
         }
 
         $signed_xml = $this->signer->sign_libro_xml( $xml, $cert_path, $cert_pass );
-        if ( ! $signed_xml ) {
+        if ( ! $signed_xml || ! $this->validate_libro_xml( $signed_xml ) ) {
             return false;
         }
 
@@ -167,21 +185,7 @@ class SII_Boleta_Libro_Boletas {
             return false;
         }
 
-        $base_url = ( 'production' === $environment )
-            ? 'https://api.sii.cl/bolcoreinternetui/api'
-            : 'https://maullin.sii.cl/bolcoreinternetui/api';
-        $endpoint = $base_url . '/envioLibroBoletas';
-
-        $response = wp_remote_post( $endpoint, [
-            'body'    => $signed_xml,
-            'headers' => [
-                'Content-Type'  => 'application/xml',
-                'Authorization' => 'Bearer ' . $token,
-            ],
-            'timeout' => 60,
-        ] );
-
+        $response = $this->api->send_libro_to_sii( $signed_xml, $environment, $token );
         return ! is_wp_error( $response );
     }
 }
-

@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 spl_autoload_register( function ( $class ) {
-    if ( 0 !== strpos( $class, 'SII_Boleta_' ) ) {
+    if ( 0 !== strpos( $class, 'SII_' ) ) {
         return;
     }
     $filename = 'class-' . strtolower( str_replace( '_', '-', $class ) ) . '.php';

@@ -258,6 +258,87 @@ class SII_Boleta_API {
     }
 
     /**
+     * Envía el XML del Libro de Boletas al SII.
+     *
+     * @param string $xml_signed  XML ya firmado del libro.
+     * @param string $environment Ambiente de destino ('test' o 'production').
+     * @param string $token       Token de autenticación de la API.
+     * @return array|\WP_Error   Datos de la respuesta (incluyendo trackId) o WP_Error en caso de falla.
+     */
+    public function send_libro_to_sii( $xml_signed, $environment = 'test', $token = '' ) {
+        if ( empty( $xml_signed ) ) {
+            return new \WP_Error( 'sii_boleta_libro_empty', __( 'El XML del libro está vacío.', 'sii-boleta-dte' ) );
+        }
+        if ( empty( $token ) ) {
+            return new \WP_Error( 'sii_boleta_missing_token', __( 'El token de la API no está configurado.', 'sii-boleta-dte' ) );
+        }
+
+        $endpoint = $this->get_base_url( $environment ) . '/envioLibroBoletas';
+
+        $args = [
+            'body'        => $xml_signed,
+            'headers'     => [
+                'Content-Type'  => 'application/xml',
+                'Authorization' => 'Bearer ' . $token,
+            ],
+            'method'      => 'POST',
+            'data_format' => 'body',
+            'timeout'     => 60,
+        ];
+
+        $attempts = 0;
+        $max_attempts = 3;
+        $delay = 1;
+        do {
+            $attempts++;
+            $response = wp_remote_post( $endpoint, $args );
+            $retry    = false;
+
+            if ( is_wp_error( $response ) ) {
+                $retry = ( $attempts < $max_attempts );
+                $error_message = $response->get_error_message();
+            } else {
+                $code = wp_remote_retrieve_response_code( $response );
+                $retry = ( $code >= 500 && $attempts < $max_attempts );
+            }
+
+            if ( $retry ) {
+                sleep( $delay );
+                $delay *= 2;
+            }
+        } while ( $retry );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        if ( 200 !== $code ) {
+            $message = 'HTTP ' . $code;
+            return new \WP_Error( 'sii_boleta_libro_http_error', $message, [ 'status' => $code, 'body' => $body ] );
+        }
+
+        $track_id = '';
+        $data     = json_decode( $body, true );
+        if ( is_array( $data ) && isset( $data['trackId'] ) ) {
+            $track_id = $data['trackId'];
+        } else {
+            $xml = simplexml_load_string( $body );
+            if ( $xml && isset( $xml->trackId ) ) {
+                $track_id = (string) $xml->trackId;
+            }
+        }
+
+        return [
+            'status'  => $code,
+            'trackId' => $track_id,
+            'body'    => $body,
+        ];
+    }
+
+    /**
      * Registra mensajes relacionados con el envío del RVD en un archivo de
      * log diario ubicado en el directorio de cargas de WordPress.
      *

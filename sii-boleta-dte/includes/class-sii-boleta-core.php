@@ -74,6 +74,9 @@ class SII_Boleta_Core {
         // Indicador visual del ambiente en la barra de administración
         add_action( 'admin_bar_menu', [ $this, 'add_environment_indicator' ], 100 );
 
+        // Advertencias visuales en el panel de administración
+        add_action( 'admin_notices', [ $this, 'maybe_show_admin_warnings' ] );
+
         // Acciones AJAX para operaciones como generación de boletas desde el panel
         add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
         add_action( 'wp_ajax_sii_boleta_dte_preview_dte', [ $this, 'ajax_preview_dte' ] );
@@ -198,6 +201,57 @@ class SII_Boleta_Core {
             'title' => $title,
             'href'  => admin_url( 'admin.php?page=sii-boleta-dte' ),
         ]);
+    }
+
+    /**
+     * Muestra advertencias visuales en la administración sobre el ambiente,
+     * folios disponibles y errores recientes en los envíos.
+     */
+    public function maybe_show_admin_warnings() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $settings = $this->settings->get_settings();
+        $env      = isset( $settings['environment'] ) ? $settings['environment'] : 'test';
+        if ( 'test' === $env ) {
+            echo '<div class="notice notice-warning"><p>' . esc_html__( 'El plugin está en modo de pruebas.', 'sii-boleta-dte' ) . '</p></div>';
+        } else {
+            echo '<div class="notice notice-success"><p>' . esc_html__( 'El plugin está en modo de producción.', 'sii-boleta-dte' ) . '</p></div>';
+        }
+
+        $enabled = $settings['enabled_dte_types'] ?? [];
+        foreach ( $enabled as $type ) {
+            $info = $this->folio_manager->get_caf_info( intval( $type ) );
+            if ( ! $info ) {
+                continue;
+            }
+            $option_key = SII_Boleta_Folio_Manager::OPTION_LAST_FOLIO_PREFIX . intval( $type );
+            $last       = intval( get_option( $option_key, $info['D'] - 1 ) );
+            $remaining  = intval( $info['H'] ) - $last;
+            if ( $remaining <= 0 ) {
+                echo '<div class="notice notice-error"><p>' . sprintf( esc_html__( 'No quedan folios disponibles para el tipo %s.', 'sii-boleta-dte' ), esc_html( $type ) ) . '</p></div>';
+            } elseif ( $remaining <= 10 ) {
+                echo '<div class="notice notice-warning"><p>' . sprintf( esc_html__( 'Quedan %1$d folios para el tipo %2$s.', 'sii-boleta-dte' ), $remaining, esc_html( $type ) ) . '</p></div>';
+            }
+        }
+
+        $upload_dir = wp_upload_dir();
+        $log_file   = trailingslashit( $upload_dir['basedir'] ) . 'sii-boleta-logs/sii-boleta-' . date( 'Y-m-d' ) . '.log';
+        if ( file_exists( $log_file ) ) {
+            $lines  = file( $log_file );
+            $errors = 0;
+            if ( $lines ) {
+                foreach ( $lines as $line ) {
+                    if ( false !== strpos( $line, 'ERROR' ) ) {
+                        $errors++;
+                    }
+                }
+            }
+            if ( $errors >= 5 ) {
+                echo '<div class="notice notice-error"><p>' . sprintf( esc_html__( 'Se han detectado %d errores recientes en los envíos.', 'sii-boleta-dte' ), $errors ) . '</p></div>';
+            }
+        }
     }
 
     /**
@@ -366,6 +420,7 @@ class SII_Boleta_Core {
                             <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
                             <th><?php esc_html_e( 'XML', 'sii-boleta-dte' ); ?></th>
                             <th><?php esc_html_e( 'PDF/HTML', 'sii-boleta-dte' ); ?></th>
+                            <th><?php esc_html_e( 'Estado', 'sii-boleta-dte' ); ?></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -377,18 +432,19 @@ class SII_Boleta_Core {
             var activeTab = '<?php echo esc_js( $active_tab ); ?>';
             if (activeTab === 'boletas') {
                 function loadDtes(){
-                    $('#sii-dte-table tbody').html('<tr><td colspan="5"><?php echo esc_js( __( 'Cargando...', 'sii-boleta-dte' ) ); ?></td></tr>');
+                    $('#sii-dte-table tbody').html('<tr><td colspan="6"><?php echo esc_js( __( 'Cargando...', 'sii-boleta-dte' ) ); ?></td></tr>');
                     $.post(ajaxurl, {action:'sii_boleta_dte_list_dtes'}, function(resp){
                         if(resp.success){
                             var rows='';
                             $.each(resp.data.dtes, function(i,d){
                                 var pdf = d.pdf ? '<a href="'+d.pdf+'" target="_blank"><?php echo esc_js( __( 'Ver', 'sii-boleta-dte' ) ); ?></a>' : '-';
-                                rows += '<tr><td>'+d.tipo+'</td><td>'+d.folio+'</td><td>'+d.fecha+'</td><td><a href="'+d.xml+'" target="_blank">XML</a></td><td>'+pdf+'</td></tr>';
+                                var status = d.status === 'pending' ? '<?php echo esc_js( __( 'Pendiente', 'sii-boleta-dte' ) ); ?>' : '<?php echo esc_js( __( 'Enviado', 'sii-boleta-dte' ) ); ?>';
+                                rows += '<tr><td>'+d.tipo+'</td><td>'+d.folio+'</td><td>'+d.fecha+'</td><td><a href="'+d.xml+'" target="_blank">XML</a></td><td>'+pdf+'</td><td>'+status+'</td></tr>';
                             });
-                            if(!rows){ rows = '<tr><td colspan="5"><?php echo esc_js( __( 'No hay DTE disponibles.', 'sii-boleta-dte' ) ); ?></td></tr>'; }
+                            if(!rows){ rows = '<tr><td colspan="6"><?php echo esc_js( __( 'No hay DTE disponibles.', 'sii-boleta-dte' ) ); ?></td></tr>'; }
                             $('#sii-dte-table tbody').html(rows);
                         } else {
-                            $('#sii-dte-table tbody').html('<tr><td colspan="5">'+resp.data.message+'</td></tr>');
+                            $('#sii-dte-table tbody').html('<tr><td colspan="6">'+resp.data.message+'</td></tr>');
                         }
                     });
                 }
@@ -808,7 +864,19 @@ class SII_Boleta_Core {
         $base_dir   = trailingslashit( $upload_dir['basedir'] );
         $base_url   = trailingslashit( $upload_dir['baseurl'] );
         $files      = glob( $base_dir . 'DTE_*.xml' );
-        $dtes       = [];
+        $crons      = _get_cron_array();
+        $pending    = [];
+        foreach ( $crons as $timestamp => $hooks ) {
+            if ( isset( $hooks[ SII_Boleta_Queue::CRON_HOOK ] ) ) {
+                foreach ( $hooks[ SII_Boleta_Queue::CRON_HOOK ] as $event ) {
+                    $args = $event['args'] ?? [];
+                    if ( ! empty( $args[0] ) ) {
+                        $pending[] = basename( $args[0] );
+                    }
+                }
+            }
+        }
+        $dtes = [];
         if ( $files ) {
             foreach ( $files as $file ) {
                 $name = basename( $file );
@@ -825,12 +893,14 @@ class SII_Boleta_Core {
                     } elseif ( file_exists( $html_file ) ) {
                         $pdf = $base_url . basename( $html_file );
                     }
+                    $status = in_array( $name, $pending, true ) ? 'pending' : 'sent';
                     $dtes[] = [
-                        'tipo'  => $tipo,
-                        'folio' => $folio,
-                        'fecha' => $fecha,
-                        'xml'   => $base_url . $name,
-                        'pdf'   => $pdf,
+                        'tipo'   => $tipo,
+                        'folio'  => $folio,
+                        'fecha'  => $fecha,
+                        'xml'    => $base_url . $name,
+                        'pdf'    => $pdf,
+                        'status' => $status,
                     ];
                 }
             }

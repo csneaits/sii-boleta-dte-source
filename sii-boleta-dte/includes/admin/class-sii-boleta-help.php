@@ -58,7 +58,7 @@ class SII_Boleta_Help {
                 </li>
                 <li><strong><?php esc_html_e( 'Solicitud del Set de Pruebas', 'sii-boleta-dte' ); ?></strong>
                     <ul>
-                        <li><?php esc_html_e( 'Solicitar el set mediante el sitio del SII y esperar la respuesta (aprox. 24 horas).', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'El representante legal debe solicitar el set en sii.cl y esperar la respuesta (aprox. 24 horas).', 'sii-boleta-dte' ); ?></li>
                     </ul>
                 </li>
                 <li><strong><?php esc_html_e( 'Preparación del ambiente de certificación', 'sii-boleta-dte' ); ?></strong>
@@ -70,8 +70,9 @@ class SII_Boleta_Help {
                 </li>
                 <li><strong><?php esc_html_e( 'Emisión y envío de escenarios de prueba', 'sii-boleta-dte' ); ?></strong>
                     <ul>
-                        <li><?php esc_html_e( 'Generar boletas, RVD, Libro y CDF capturando el trackId devuelto.', 'sii-boleta-dte' ); ?></li>
-                        <li><?php esc_html_e( 'Comandos WP-CLI:', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'En "SII Boletas → Generar DTE" complete los datos del escenario y marque "Enviar al SII" para firmar y enviar el XML, guardando el trackId.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'Repita el proceso hasta completar los cinco escenarios. Los XML firmados quedan en wp-content/uploads.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'Comandos WP-CLI adicionales:', 'sii-boleta-dte' ); ?></li>
                         <li><code>wp sii rvd --date=YYYY-MM-DD</code></li>
                         <li><code>wp sii libro --from=YYYY-MM --to=YYYY-MM</code></li>
                         <li><code>wp sii cdf --date=YYYY-MM-DD</code></li>
@@ -80,7 +81,7 @@ class SII_Boleta_Help {
                 </li>
                 <li><strong><?php esc_html_e( 'Envío de antecedentes al SII', 'sii-boleta-dte' ); ?></strong>
                     <ul>
-                        <li><?php esc_html_e( 'Enviar cinco lotes de pruebas al correo SII_BE_Certificacion@sii.cl con el asunto solicitado.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'Enviar cinco lotes de prueba al correo SII_BE_Certificacion@sii.cl con el asunto solicitado, adjuntando XML, PDF y trackId.', 'sii-boleta-dte' ); ?></li>
                     </ul>
                 </li>
                 <li><strong><?php esc_html_e( 'Verificación y corrección', 'sii-boleta-dte' ); ?></strong>
@@ -90,7 +91,7 @@ class SII_Boleta_Help {
                 </li>
                 <li><strong><?php esc_html_e( 'Declaración de cumplimiento', 'sii-boleta-dte' ); ?></strong>
                     <ul>
-                        <li><?php esc_html_e( 'Una vez aprobado, declarar en línea y esperar la autorización final.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'Una vez aprobado, ingresar a sii.cl para completar y firmar la declaración de cumplimiento.', 'sii-boleta-dte' ); ?></li>
                     </ul>
                 </li>
                 <li><strong><?php esc_html_e( 'Paso a producción', 'sii-boleta-dte' ); ?></strong>

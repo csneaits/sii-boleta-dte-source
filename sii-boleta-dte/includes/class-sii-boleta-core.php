@@ -932,6 +932,9 @@ class SII_Boleta_Core {
                 $count += count( $hooks[ SII_Boleta_Queue::CRON_HOOK ] );
             }
         }
+        if ( $count > 0 ) {
+            sii_boleta_write_log( sprintf( 'Cola de envíos pendiente: %d evento(s)', $count ) );
+        }
         wp_send_json_success( [ 'count' => $count ] );
     }
 }

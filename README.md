@@ -66,13 +66,6 @@ El plugin puede obtener de manera automática el token de autenticación del SII
 3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
 
-## Libro de Boletas
-
-El plugin permite generar un **Libro de Boletas** a partir de los DTE emitidos en un rango de fechas y enviarlo manualmente al SII.
-Desde el menú de administración, en la nueva sección "Libro de Boletas", seleccione la fecha de inicio y fin para generar el archivo.
-Posteriormente puede descargarlo o enviarlo directamente al SII reutilizando el token y certificado configurados.
-El XML generado se almacena en la carpeta de subidas de WordPress.
-
 ## Resumen de Ventas Diarias
 
 El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
@@ -96,18 +89,14 @@ El sistema programa automáticamente una tarea diaria `sii_boleta_dte_run_cdf` q
 1. **Emisión de boletas en WooCommerce**
    - Configura el plugin con RUT, certificado, CAF y tipos de documento permitidos.
    - En el checkout se solicita el RUT del cliente y se valida en tiempo real en el navegador.
-   - Al completar un pedido se genera el XML, se firma, se envía al SII y se genera un PDF que se envía por correo.
+   - Al completar un pedido se genera el XML, se firma y se encola para envío inmediato al SII mediante tareas asíncronas con reintentos; también se valida teléfono/correo según el medio de pago y se reemplaza el RUT genérico en ventas de alto valor. Además se genera un PDF que se envía por correo.
    - Cada boleta queda disponible públicamente en `/boleta/{folio}` donde puede descargarse el PDF.
 
-2. **Libro de Boletas**
-   - Desde WP‑CLI: `wp sii libro --from=YYYY-MM --to=YYYY-MM` genera y envía el libro del periodo.
-   - El cron mensual `sii_boleta_dte_monthly_libro` ejecuta automáticamente el proceso para el mes anterior.
-
-3. **Resumen de Ventas Diarias (RVD)**
-   - Cron diario `sii_boleta_dte_daily_rvd` envía el resumen del día anterior.
+2. **Resumen de Ventas Diarias (RVD)**
+   - Cron `sii_boleta_dte_daily_rvd` lo envía cada 12 horas para asegurar el reporte oportuno del día anterior.
    - Manualmente se puede ejecutar `wp sii rvd --date=YYYY-MM-DD`.
 
-4. **Consumo de Folios (CDF)**
+3. **Consumo de Folios (CDF)**
    - Cron diario `sii_boleta_dte_run_cdf` envía el consumo del día en curso.
    - Manualmente: `wp sii cdf --date=YYYY-MM-DD`.
 

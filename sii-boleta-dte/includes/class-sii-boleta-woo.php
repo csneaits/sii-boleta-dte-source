@@ -52,6 +52,17 @@ class SII_Boleta_Woo {
         if ( ! $order ) {
             return;
         }
+
+        $payment_method = $order->get_payment_method();
+        if ( in_array( $payment_method, [ 'cod', 'bacs' ], true ) && ! $order->get_billing_phone() ) {
+            $order->add_order_note( __( 'Se requiere teléfono para este método de pago.', 'sii-boleta-dte' ) );
+            return;
+        }
+        if ( in_array( $payment_method, [ 'paypal', 'stripe' ], true ) && ! is_email( $order->get_billing_email() ) ) {
+            $order->add_order_note( __( 'Correo electrónico inválido para este método de pago.', 'sii-boleta-dte' ) );
+            return;
+        }
+
         // Preparar datos de receptor
         // Recoger datos del checkout
         $billing_name = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
@@ -109,6 +120,10 @@ class SII_Boleta_Woo {
             return;
         }
         $settings = $this->core->get_settings()->get_settings();
+        if ( $total >= 200000 && ( ! $rut_receptor || '66666666-6' === $rut_receptor ) ) {
+            $rut_receptor = $settings['rut_emisor'];
+            $order->add_order_note( __( 'RUT genérico reemplazado por RUT del emisor para venta de alto valor.', 'sii-boleta-dte' ) );
+        }
         // Construir data
         $dte_data = [
             'TipoDTE'    => $tipo_dte,
@@ -142,18 +157,9 @@ class SII_Boleta_Woo {
         $file_name  = 'Woo_DTE_' . $tipo_dte . '_' . $folio . '_' . time() . '.xml';
         $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
         file_put_contents( $file_path, $signed );
-        // Enviar al SII
-        $track_id = $this->core->get_api()->send_dte_to_sii(
-            $file_path,
-            $settings['environment'],
-            $settings['api_token'],
-            $settings['cert_path'],
-            $settings['cert_pass']
-        );
-        if ( is_wp_error( $track_id ) ) {
-            $order->add_order_note( $track_id->get_error_message() );
-            $track_id = false;
-        }
+        // Enviar al SII de forma asíncrona
+        $this->core->get_queue()->enqueue( $file_path, $order_id );
+        $order->add_order_note( __( 'DTE en cola para envío al SII.', 'sii-boleta-dte' ) );
         // Generar representación PDF y enviarla por correo
         $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
         if ( $pdf_path ) {
@@ -192,9 +198,6 @@ class SII_Boleta_Woo {
         // Guardar metadatos
         $order->update_meta_data( '_sii_dte_type', $tipo_dte );
         $order->update_meta_data( '_sii_boleta_folio', $folio );
-        if ( $track_id ) {
-            $order->update_meta_data( '_sii_boleta_track_id', $track_id );
-        }
         $order->save();
     }
 

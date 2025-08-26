@@ -53,7 +53,7 @@ class SII_Boleta_Core {
         $this->api           = new SII_Boleta_API();
         $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
-        $this->libro_boletas = new SII_Boleta_Libro_Boletas( $this->settings );
+        $this->libro_boletas = new SII_Libro_Boletas( $this->settings );
         $this->endpoints     = new SII_Boleta_Endpoints();
         $this->metrics       = new SII_Boleta_Metrics();
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );

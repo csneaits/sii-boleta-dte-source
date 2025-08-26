@@ -45,26 +45,46 @@ class SII_Boleta_Endpoints {
             return;
         }
 
+        $html = $this->get_boleta_html( $folio );
+        if ( false === $html ) {
+            status_header( 404 );
+            wp_die( esc_html__( 'Boleta no encontrada', 'sii-boleta-dte' ) );
+        } elseif ( is_wp_error( $html ) ) {
+            status_header( 500 );
+            wp_die( esc_html__( 'Error al cargar el DTE.', 'sii-boleta-dte' ) );
+        }
+
+        status_header( 200 );
+        nocache_headers();
+        echo $html;
+        exit;
+    }
+
+    /**
+     * Genera el HTML del DTE para un folio determinado.
+     *
+     * @param int $folio Folio a consultar.
+     * @return string|false|\WP_Error HTML generado o false/\WP_Error si falla.
+     */
+    public function get_boleta_html( $folio ) {
         $upload_dir = wp_upload_dir();
         $pattern    = trailingslashit( $upload_dir['basedir'] ) . 'DTE_*_' . $folio . '_*.xml';
         $files      = glob( $pattern );
         if ( empty( $files ) ) {
-            status_header( 404 );
-            wp_die( esc_html__( 'Boleta no encontrada', 'sii-boleta-dte' ) );
+            return false;
         }
 
         $xml_file = $files[0];
         $xml      = @simplexml_load_file( $xml_file );
         if ( ! $xml ) {
-            status_header( 500 );
-            wp_die( esc_html__( 'Error al cargar el DTE.', 'sii-boleta-dte' ) );
+            return new \WP_Error( 'sii_boleta_invalid_xml' );
         }
 
-        $documento   = $xml->Documento;
-        $encabezado  = $documento->Encabezado;
-        $emisor      = $encabezado->Emisor;
-        $receptor    = $encabezado->Receptor;
-        $totales     = $encabezado->Totales;
+        $documento  = $xml->Documento;
+        $encabezado = $documento->Encabezado;
+        $emisor     = $encabezado->Emisor;
+        $receptor   = $encabezado->Receptor;
+        $totales    = $encabezado->Totales;
 
         $pdf_pattern = trailingslashit( $upload_dir['basedir'] ) . 'DTE_*_' . $folio . '_*.pdf';
         $pdf_files   = glob( $pdf_pattern );
@@ -72,9 +92,6 @@ class SII_Boleta_Endpoints {
         if ( $pdf_files ) {
             $pdf_url = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $pdf_files[0] );
         }
-
-        status_header( 200 );
-        nocache_headers();
 
         ob_start();
         ?>
@@ -126,8 +143,7 @@ class SII_Boleta_Endpoints {
         </body>
         </html>
         <?php
-        echo ob_get_clean();
-        exit;
+        return ob_get_clean();
     }
 }
 

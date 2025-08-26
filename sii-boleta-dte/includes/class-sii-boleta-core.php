@@ -39,6 +39,7 @@ class SII_Boleta_Core {
     private $metrics;
     private $libro_boletas;
     private $consumo_folios;
+    private $help;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -57,6 +58,8 @@ class SII_Boleta_Core {
         $this->endpoints     = new SII_Boleta_Endpoints();
         $this->metrics       = new SII_Boleta_Metrics();
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
+        require_once SII_BOLETA_DTE_PATH . 'includes/admin/class-sii-boleta-help.php';
+        $this->help = new SII_Boleta_Help();
 
         if ( class_exists( 'WooCommerce' ) ) {
             $this->woo = new SII_Boleta_Woo( $this );

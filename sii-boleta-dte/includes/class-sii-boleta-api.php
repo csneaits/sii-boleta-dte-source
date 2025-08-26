@@ -101,11 +101,13 @@ class SII_Boleta_API {
 
         if ( is_wp_error( $response ) ) {
             sii_boleta_write_log( 'Error de conexión al enviar DTE: ' . $error_message );
+            SII_Boleta_Log_DB::add_entry( '', 'error', $error_message );
             return false;
         }
 
         $code = wp_remote_retrieve_response_code( $response );
         if ( ! in_array( $code, [ 200, 202 ], true ) ) {
+            SII_Boleta_Log_DB::add_entry( '', 'error', 'HTTP ' . $code );
             return new \WP_Error( 'sii_boleta_http_error', sprintf( __( 'Error HTTP %d al llamar al servicio del SII.', 'sii-boleta-dte' ), $code ) );
         }
 
@@ -114,16 +116,19 @@ class SII_Boleta_API {
         $data = json_decode( $body, true );
         if ( is_array( $data ) ) {
             if ( isset( $data['trackId'] ) ) {
+                SII_Boleta_Log_DB::add_entry( $data['trackId'], 'sent', $body );
                 return $data['trackId'];
             }
             if ( isset( $data['codigo'] ) && intval( $data['codigo'] ) !== 0 ) {
                 $message = $data['codigo'] . ': ' . ( $data['mensaje'] ?? '' );
                 sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                SII_Boleta_Log_DB::add_entry( '', 'error', $body );
                 return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
             }
             if ( isset( $data['error'] ) ) {
                 $message = $data['error'];
                 sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                SII_Boleta_Log_DB::add_entry( '', 'error', $body );
                 return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
             }
         }
@@ -132,17 +137,20 @@ class SII_Boleta_API {
         $xml = simplexml_load_string( $body );
         if ( $xml ) {
             if ( isset( $xml->trackId ) ) {
-                return (string) $xml->trackId;
+                $tid = (string) $xml->trackId;
+                SII_Boleta_Log_DB::add_entry( $tid, 'sent', $body );
+                return $tid;
             }
             if ( ( isset( $xml->codigo ) && isset( $xml->causa ) ) || ( isset( $xml->Codigo ) && isset( $xml->Causa ) ) ) {
                 $c = isset( $xml->codigo ) ? (string) $xml->codigo : (string) $xml->Codigo;
                 $m = isset( $xml->causa ) ? (string) $xml->causa : (string) $xml->Causa;
                 $message = $c . ': ' . $m;
                 sii_boleta_write_log( 'Rechazo al enviar DTE: ' . $message );
+                SII_Boleta_Log_DB::add_entry( '', 'error', $body );
                 return new \WP_Error( 'sii_boleta_rechazo', $message, [ 'status' => $code, 'body' => $body ] );
             }
         }
-
+        SII_Boleta_Log_DB::add_entry( '', 'error', $body );
         return false;
     }
 

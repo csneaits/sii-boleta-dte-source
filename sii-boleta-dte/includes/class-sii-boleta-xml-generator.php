@@ -123,9 +123,16 @@ class SII_Boleta_XML_Generator {
                 $totales->addChild( 'MntExe', $monto_total );
                 $totales->addChild( 'MntTotal', $monto_total );
             } elseif ( $tipo_dte === 39 ) {
+                // Boleta afecta: separar neto e IVA
+                $totales->addChild( 'MntNeto', $neto_total );
+                $totales->addChild( 'IVA', $iva_total );
                 if ( $monto_exento > 0 ) {
                     $totales->addChild( 'MntExe', $monto_exento );
                 }
+                $totales->addChild( 'MntTotal', $monto_total );
+            } elseif ( $tipo_dte === 41 ) {
+                // Boleta exenta, total exento
+                $totales->addChild( 'MntExe', $monto_total );
                 $totales->addChild( 'MntTotal', $monto_total );
             } else {
                 // Boletas y notas utilizan solo MntTotal

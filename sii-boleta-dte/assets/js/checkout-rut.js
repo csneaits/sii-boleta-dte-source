@@ -56,10 +56,12 @@
             input.value = format(c);
             if (c === '666666666') {
                 input.setCustomValidity('RUT genérico no permitido');
+                input.reportValidity();
                 return false;
             }
             if (!isValid(c)) {
                 input.setCustomValidity('RUT inválido');
+                input.reportValidity();
                 return false;
             }
             input.setCustomValidity('');
@@ -69,6 +71,7 @@
         form.addEventListener('submit', function(e) {
             if (!check()) {
                 e.preventDefault();
+                input.reportValidity();
             }
         });
     });

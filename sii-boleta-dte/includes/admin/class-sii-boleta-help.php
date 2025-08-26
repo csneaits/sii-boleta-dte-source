@@ -19,7 +19,6 @@ class SII_Boleta_Help {
     public function render_page() {
         $readme_url = SII_BOLETA_DTE_URL . '../README.md';
         $consumo_xsd = SII_BOLETA_DTE_URL . 'includes/xml/schemas/consumo_folios.xsd';
-        $libro_xsd   = SII_BOLETA_DTE_URL . 'includes/xml/schemas/libro_boletas.xsd';
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Ayuda Boleta SII', 'sii-boleta-dte' ); ?></h1>
@@ -37,9 +36,15 @@ class SII_Boleta_Help {
             <ul>
                 <li><?php esc_html_e( 'Emisión de boletas y envío al SII.', 'sii-boleta-dte' ); ?></li>
                 <li><?php esc_html_e( 'Generación de notas de crédito o débito.', 'sii-boleta-dte' ); ?></li>
-                <li><?php esc_html_e( 'Generación y envío del Libro de Boletas.', 'sii-boleta-dte' ); ?></li>
                 <li><?php esc_html_e( 'Resumen de Ventas Diarias (RVD).', 'sii-boleta-dte' ); ?></li>
                 <li><?php esc_html_e( 'Consumo de Folios (CDF).', 'sii-boleta-dte' ); ?></li>
+            </ul>
+
+            <h2><?php esc_html_e( '¿Qué son el CAF, RVD y CDF?', 'sii-boleta-dte' ); ?></h2>
+            <ul>
+                <li><strong><?php esc_html_e( 'CAF', 'sii-boleta-dte' ); ?></strong> <?php esc_html_e( 'Archivo XML entregado por el SII que autoriza un rango de folios para emitir DTE.', 'sii-boleta-dte' ); ?></li>
+                <li><strong><?php esc_html_e( 'RVD', 'sii-boleta-dte' ); ?></strong> <?php esc_html_e( 'Resumen de Ventas Diarias que informa al SII los montos y folios utilizados cada día.', 'sii-boleta-dte' ); ?></li>
+                <li><strong><?php esc_html_e( 'CDF', 'sii-boleta-dte' ); ?></strong> <?php esc_html_e( 'Consumo de Folios que reporta al SII los folios utilizados y disponibles.', 'sii-boleta-dte' ); ?></li>
             </ul>
 
             <h2><?php esc_html_e( 'Proceso de certificación', 'sii-boleta-dte' ); ?></h2>
@@ -70,7 +75,6 @@ class SII_Boleta_Help {
                         <li><?php esc_html_e( 'Repita el proceso hasta completar los cinco escenarios. Los XML firmados quedan en wp-content/uploads.', 'sii-boleta-dte' ); ?></li>
                         <li><?php esc_html_e( 'Comandos WP-CLI adicionales:', 'sii-boleta-dte' ); ?></li>
                         <li><code>wp sii rvd --date=YYYY-MM-DD</code></li>
-                        <li><code>wp sii libro --from=YYYY-MM --to=YYYY-MM</code></li>
                         <li><code>wp sii cdf --date=YYYY-MM-DD</code></li>
                         <li><?php esc_html_e( 'Revisar el estado de cada envío hasta ser aceptado.', 'sii-boleta-dte' ); ?></li>
                     </ul>
@@ -122,7 +126,6 @@ class SII_Boleta_Help {
 
             <p>
                 <a href="<?php echo esc_url( $readme_url ); ?>" target="_blank">README</a> |
-                <a href="<?php echo esc_url( $libro_xsd ); ?>" target="_blank">libro_boletas.xsd</a> |
                 <a href="<?php echo esc_url( $consumo_xsd ); ?>" target="_blank">consumo_folios.xsd</a>
             </p>
         </div>

@@ -338,7 +338,9 @@ class SII_Boleta_Settings {
      */
     public function render_field_enabled_dte_types() {
         $options = $this->get_settings();
-        $enabled = isset( $options['enabled_dte_types'] ) && is_array( $options['enabled_dte_types'] ) ? $options['enabled_dte_types'] : [];
+        $enabled = isset( $options['enabled_dte_types'] ) && is_array( $options['enabled_dte_types'] )
+            ? array_map( 'strval', $options['enabled_dte_types'] )
+            : [];
         $types = [
             '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
             '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
@@ -352,7 +354,7 @@ class SII_Boleta_Settings {
                 '<label><input type="checkbox" name="%s[enabled_dte_types][]" value="%s" %s /> %s</label><br />',
                 esc_attr( self::OPTION_NAME ),
                 esc_attr( $code ),
-                checked( in_array( $code, $enabled, true ), true, false ),
+                checked( in_array( (string) $code, $enabled, true ), true, false ),
                 esc_html( $label )
             );
         }

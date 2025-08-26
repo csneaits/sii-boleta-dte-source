@@ -1,0 +1,7 @@
+<?php
+define('ABSPATH', __DIR__.'/../');
+// Constants for plugin
+define('SII_BOLETA_DTE_PATH', __DIR__.'/../');
+define('SII_BOLETA_DTE_URL', 'http://example.com/');
+define('SII_BOLETA_DTE_VERSION', 'test');
+require SII_BOLETA_DTE_PATH . 'includes/autoload.php';

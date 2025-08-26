@@ -200,7 +200,7 @@ class SII_Boleta_XML_Generator {
      * @param string $caf_path Ruta al archivo CAF.
      * @return string XML del TED o false si falla.
      */
-    private function generate_ted( array $data, $caf_path ) {
+    protected function generate_ted( array $data, $caf_path ) {
         // Cargar configuración y certificado
         $settings = $this->settings->get_settings();
         $cert_path = $settings['cert_path'];

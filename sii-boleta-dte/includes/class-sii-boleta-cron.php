@@ -29,7 +29,7 @@ class SII_Boleta_Cron {
     /**
      * Evento cron diario para el envío del CDF.
      */
-    const CDF_CRON_HOOK = 'sii_boleta_dte_daily_cdf';
+    const CDF_CRON_HOOK = 'sii_boleta_dte_run_cdf';
 
     /**
      * Gancho legado usado en versiones anteriores del plugin.
@@ -100,8 +100,14 @@ class SII_Boleta_Cron {
             wp_schedule_event( $timestamp, 'daily', self::CRON_HOOK );
         }
 
+        wp_clear_scheduled_hook( 'sii_boleta_dte_daily_cdf' );
         if ( ! wp_next_scheduled( self::CDF_CRON_HOOK ) ) {
-            $timestamp = strtotime( 'tomorrow midnight' );
+            $tz       = new DateTimeZone( 'America/Santiago' );
+            $next_run = new DateTime( 'today 23:55', $tz );
+            if ( $next_run->getTimestamp() <= time() ) {
+                $next_run->modify( '+1 day' );
+            }
+            $timestamp = $next_run->getTimestamp();
             wp_schedule_event( $timestamp, 'daily', self::CDF_CRON_HOOK );
         }
 
@@ -117,6 +123,7 @@ class SII_Boleta_Cron {
     public static function deactivate() {
         wp_clear_scheduled_hook( self::CRON_HOOK );
         wp_clear_scheduled_hook( self::CDF_CRON_HOOK );
+        wp_clear_scheduled_hook( 'sii_boleta_dte_daily_cdf' );
         wp_clear_scheduled_hook( self::LIBRO_CRON_HOOK );
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
     }
@@ -230,12 +237,15 @@ class SII_Boleta_Cron {
     }
 
     /**
-     * Callback que genera el CDF para el día anterior y lo envía al SII.
+     * Callback que genera el CDF para el día en curso y lo envía al SII.
      */
     public function generate_and_send_cdf() {
-        $date         = date( 'Y-m-d', strtotime( '-1 day' ) );
-        $cdf_manager  = new SII_Boleta_CDF_Manager( $this->settings );
-        $xml          = $cdf_manager->generate_cdf_xml( $date );
+        $tz          = new DateTimeZone( 'America/Santiago' );
+        $date        = ( new DateTime( 'today', $tz ) )->format( 'Y-m-d' );
+        $folio_mgr   = new SII_Boleta_Folio_Manager( $this->settings );
+        $api         = new SII_Boleta_API();
+        $cdf_manager = new SII_Boleta_Consumo_Folios( $this->settings, $folio_mgr, $api );
+        $xml         = $cdf_manager->generate_cdf_xml( $date );
 
         if ( ! $xml ) {
             sii_boleta_write_log( 'Fallo al generar el CDF para la fecha ' . $date );

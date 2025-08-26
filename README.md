@@ -62,8 +62,7 @@ El plugin permite configurar el envío de correos a través de Amazon SES. En la
 El plugin puede obtener de manera automática el token de autenticación del SII utilizando el certificado digital configurado en los ajustes:
 
 1. Indique la ruta y contraseña del certificado en la página de configuración.
-2. Deje en blanco el campo "Token de la API".
-3. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
+2. Al enviar un DTE, el plugin solicitará la semilla, la firmará y recuperará el token, guardándolo en los ajustes para reutilizarlo mientras sea válido.
 
 
 ## Ambientes: Integración y Producción

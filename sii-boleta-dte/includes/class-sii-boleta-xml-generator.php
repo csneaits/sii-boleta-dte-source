@@ -54,6 +54,9 @@ class SII_Boleta_XML_Generator {
             $id_doc->addChild( 'TipoDTE', $tipo_dte );
             $id_doc->addChild( 'Folio', $data['Folio'] );
             $id_doc->addChild( 'FchEmis', $data['FchEmis'] );
+            if ( ! empty( $data['MedioPago'] ) ) {
+                $id_doc->addChild( 'MedioPago', $data['MedioPago'] );
+            }
 
             $emisor = $encabezado->addChild( 'Emisor' );
             $emisor->addChild( 'RUTEmisor', $data['RutEmisor'] );
@@ -67,6 +70,12 @@ class SII_Boleta_XML_Generator {
             $receptor->addChild( 'RznSocRecep', $data['Receptor']['RznSocRecep'] );
             $receptor->addChild( 'DirRecep', $data['Receptor']['DirRecep'] );
             $receptor->addChild( 'CmnaRecep', $data['Receptor']['CmnaRecep'] );
+            if ( ! empty( $data['Receptor']['CorreoRecep'] ) ) {
+                $receptor->addChild( 'CorreoRecep', $data['Receptor']['CorreoRecep'] );
+            }
+            if ( ! empty( $data['Receptor']['TelefonoRecep'] ) ) {
+                $receptor->addChild( 'TelefonoRecep', $data['Receptor']['TelefonoRecep'] );
+            }
 
             // Totales
             $monto_total  = 0;
@@ -143,6 +152,12 @@ class SII_Boleta_XML_Generator {
             }
             if ( $rec_total > 0 ) {
                 $totales->addChild( 'RecargoTotal', $rec_total );
+            }
+
+            if ( $monto_total > $this->get_high_value_threshold() ) {
+                if ( empty( $data['Receptor']['RUTRecep'] ) || empty( $data['Receptor']['CorreoRecep'] ) ) {
+                    return new \WP_Error( 'sii_boleta_high_value_contact', __( 'Boletas superiores a 135 UF deben ser nominativas e incluir contacto.', 'sii-boleta-dte' ) );
+                }
             }
 
             // Detalles
@@ -282,5 +297,15 @@ class SII_Boleta_XML_Generator {
         $ted .= '</TED>';
 
         return $ted;
+    }
+
+    /**
+     * Threshold in pesos for requiring nominative invoices (135 UF approx).
+     *
+     * @return int
+     */
+    protected function get_high_value_threshold() {
+        // Valor UF aproximado $30.000 CLP.
+        return 135 * 30000;
     }
 }

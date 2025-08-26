@@ -17,9 +17,10 @@ class SII_Boleta_Signer {
      * @param string $xml       Contenido XML del DTE.
      * @param string $cert_path Ruta al archivo PFX.
      * @param string $cert_pass Contraseña del certificado.
+     * @param string $algo      Algoritmo RSA a utilizar.
      * @return string|false     XML firmado o false si ocurre un error.
      */
-    public function sign_dte_xml( $xml, $cert_path, $cert_pass ) {
+    public function sign_dte_xml( $xml, $cert_path, $cert_pass, $algo = XMLSecurityKey::RSA_SHA1 ) {
         if ( ! $xml || ! file_exists( $cert_path ) ) {
             return false;
         }
@@ -43,7 +44,7 @@ class SII_Boleta_Signer {
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );
         // Crear clave para firmar
-        $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );
+        $objKey = new XMLSecurityKey( $algo );
         // Extraer clave privada del PFX
         $pkcs12 = file_get_contents( $cert_path );
         if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
@@ -66,9 +67,10 @@ class SII_Boleta_Signer {
      * @param string $xml       Contenido XML del libro.
      * @param string $cert_path Ruta al archivo PFX.
      * @param string $cert_pass Contraseña del certificado.
+     * @param string $algo      Algoritmo RSA a utilizar.
      * @return string|false     XML firmado o false si ocurre un error.
      */
-    public function sign_libro_xml( $xml, $cert_path, $cert_pass ) {
+    public function sign_libro_xml( $xml, $cert_path, $cert_pass, $algo = XMLSecurityKey::RSA_SHA1 ) {
         if ( ! $xml || ! file_exists( $cert_path ) ) {
             return false;
         }
@@ -88,7 +90,7 @@ class SII_Boleta_Signer {
         }
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );
-        $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );
+        $objKey = new XMLSecurityKey( $algo );
         $pkcs12 = file_get_contents( $cert_path );
         if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
             return false;
@@ -116,9 +118,10 @@ class SII_Boleta_Signer {
      * @param string $xml       Contenido XML del RVD.
      * @param string $cert_path Ruta al certificado en formato PFX.
      * @param string $cert_pass Contraseña del certificado.
+     * @param string $algo      Algoritmo RSA a utilizar.
      * @return string|false     XML firmado o false si ocurre un error.
      */
-    public function sign_rvd_xml( $xml, $cert_path, $cert_pass ) {
+    public function sign_rvd_xml( $xml, $cert_path, $cert_pass, $algo = XMLSecurityKey::RSA_SHA1 ) {
         if ( ! $xml || ! file_exists( $cert_path ) ) {
             return false;
         }
@@ -142,7 +145,7 @@ class SII_Boleta_Signer {
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );
 
-        $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );
+        $objKey = new XMLSecurityKey( $algo );
         $pkcs12 = file_get_contents( $cert_path );
         if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
             return false;

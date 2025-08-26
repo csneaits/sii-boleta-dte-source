@@ -92,6 +92,19 @@ El plugin permite generar el archivo **Consumo de Folios** requerido por el SII.
 Para automatizar este proceso se recomienda programar una tarea cron diaria posterior al envío del Resumen de Ventas Diarias, por ejemplo alrededor de las 23:55. El comando debería invocar la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
 
 
+## Certificación y manejo de errores
+
+Durante el proceso de certificación ante el SII se recomienda:
+
+1. Generar y firmar los DTE en el ambiente de prueba validando cada XML contra el XSD correspondiente.
+2. Enviar los archivos utilizando el token de ensayo y revisar los **trackId** devueltos por la API.
+3. Consultar el estado de cada envío hasta que sea **ACEPTADO** o aparezca un motivo de rechazo.
+
+El plugin registra los eventos relevantes mediante la función `sii_boleta_write_log` que utiliza la clase `SII_Logger`.
+Los archivos de log se guardan diariamente en `wp-content/uploads/sii-boleta-logs/`, evitando exponer datos sensibles.
+Ante un rechazo del SII, revise el cuerpo de la respuesta y el archivo de log para identificar la causa exacta.
+
+
 ## Notas sobre la licencia y originalidad
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

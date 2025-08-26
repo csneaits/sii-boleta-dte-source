@@ -59,7 +59,7 @@ class SII_Boleta_Cron {
     /**
      * Programa los eventos cron al activar el plugin.
      *
-     * Se ejecutan diariamente para el RVD y CDF, y mensualmente para el libro.
+     * Se ejecutan diariamente para el RVD y CDF.
      * Si ya existe un evento programado, no vuelve a programarlo.
      */
     public static function activate() {
@@ -170,9 +170,6 @@ class SII_Boleta_Cron {
         $this->run_rvd_for_date( $date );
     }
 
-    /**
-     * Callback que genera el Libro del mes anterior y lo envía al SII.
-     */
     /**
      * Callback que genera el CDF para el día en curso y lo envía al SII.
      */

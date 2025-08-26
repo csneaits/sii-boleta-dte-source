@@ -124,6 +124,15 @@ Asegúrate de tener instalado PHPUnit en el sistema (por ejemplo, `apt-get insta
 
 ## Certificación y manejo de errores
 
+El SII exige que el representante legal solicite un set de pruebas y envíe cinco envíos de boletas de prueba al correo indicado por el servicio. El plugin facilita este proceso en modo de pruebas.
+
+### Proceso de certificación ante el SII
+
+1. **Solicitud del set de pruebas**: el representante legal ingresa a [sii.cl](https://www.sii.cl) y solicita el set en la sección de Boleta Electrónica. La respuesta suele llegar en aproximadamente 24 horas.
+2. **Generar XML de prueba**: con el set recibido, configura el plugin en modo `test` con el certificado y CAF de prueba. En el administrador ve a **SII Boletas → Generar DTE**, completa los datos de cada escenario y marca la opción **Enviar al SII**. El plugin firmará el XML, lo guardará en `wp-content/uploads` y mostrará el `trackId` devuelto.
+3. **Enviar evidencias**: repite el proceso para los cinco escenarios. Adjunta los XML, PDF y `trackId` generados y envíalos al correo `SII_BE_Certificacion@sii.cl` con el asunto solicitado por el SII.
+4. **Declaración de cumplimiento**: una vez aceptados los envíos, ingresa nuevamente a [sii.cl](https://www.sii.cl) y completa la declaración de cumplimiento firmándola con el certificado digital.
+
 Durante el proceso de certificación ante el SII se recomienda:
 
 1. Generar y firmar los DTE en el ambiente de prueba validando cada XML contra el XSD correspondiente.

@@ -114,6 +114,11 @@ El sistema programa automáticamente una tarea diaria `sii_boleta_dte_run_cdf` q
 Todos los comandos WP‑CLI requieren que el sitio tenga acceso a los archivos generados en `wp-content/uploads` y a las credenciales del SII configuradas en los ajustes del plugin.
 
 
+## Ayuda en el panel de WordPress
+
+En el administrador navega a **SII Boletas → Ayuda Boleta SII** para abrir la página de ayuda incluida en el plugin. Allí encontrarás la configuración inicial, flujos de operación, preguntas frecuentes y un detalle paso a paso del proceso de certificación del SII, además de enlaces a este README y a los archivos XSD oficiales.
+
+
 ## Pruebas
 
 El repositorio incluye un conjunto básico de pruebas unitarias con **PHPUnit** que cubren el cálculo de neto/IVA, la generación de TED y la validación de esquemas XML.

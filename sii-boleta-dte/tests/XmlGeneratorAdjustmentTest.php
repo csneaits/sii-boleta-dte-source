@@ -9,14 +9,14 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
     }
 }
 
-class Mock_XML_Generator extends SII_Boleta_XML_Generator {
+class Mock_XML_Generator_Adjust extends SII_Boleta_XML_Generator {
     protected function generate_ted( array $data, $caf_path ) {
         return '<TED><FRMT>mock</FRMT></TED>';
     }
 }
 
-class XmlGeneratorTest extends TestCase {
-    public function test_neto_iva_calculation_and_ted() {
+class XmlGeneratorAdjustmentTest extends TestCase {
+    public function test_totals_consistency_and_last_line_adjustment() {
         $settings = new Dummy_Settings([
             'caf_path'  => [ 33 => __DIR__ . '/fixtures/caf.xml' ],
             'rut_emisor' => '11111111-1',
@@ -25,7 +25,7 @@ class XmlGeneratorTest extends TestCase {
             'direccion' => 'Calle 1',
             'comuna' => 'Santiago',
         ]);
-        $generator = new Mock_XML_Generator( $settings );
+        $generator = new Mock_XML_Generator_Adjust( $settings );
         $data = [
             'Folio' => 1,
             'FchEmis' => '2024-05-01',
@@ -41,21 +41,18 @@ class XmlGeneratorTest extends TestCase {
                 'CmnaRecep' => 'Comuna',
             ],
             'Detalles' => [
-                [ 'NroLinDet'=>1, 'NmbItem'=>'Afecto', 'QtyItem'=>1, 'PrcItem'=>1190 ],
-                [ 'NroLinDet'=>2, 'NmbItem'=>'Exento', 'QtyItem'=>1, 'PrcItem'=>500, 'IndExe'=>1 ],
+                [ 'NroLinDet'=>1, 'NmbItem'=>'A', 'QtyItem'=>1, 'PrcItem'=>1001 ],
+                [ 'NroLinDet'=>2, 'NmbItem'=>'B', 'QtyItem'=>1, 'PrcItem'=>1001 ],
+                [ 'NroLinDet'=>3, 'NmbItem'=>'Exento', 'QtyItem'=>1, 'PrcItem'=>500, 'IndExe'=>1 ],
             ],
         ];
         $xml = $generator->generate_dte_xml( $data, 33, false );
         $this->assertNotFalse( $xml );
         $sx = simplexml_load_string( $xml );
         $tot = $sx->Documento->Encabezado->Totales;
-        $this->assertEquals( 1000, intval( $tot->MntNeto ) );
-        $this->assertEquals( 190, intval( $tot->IVA ) );
-        $this->assertEquals( 500, intval( $tot->MntExe ) );
-        $this->assertEquals( 1690, intval( $tot->MntTotal ) );
-        $sumLines = 0;
-        foreach ( $sx->Documento->Detalle as $d ) { $sumLines += intval( $d->MontoItem ); }
-        $this->assertEquals( intval( $tot->MntTotal ), $sumLines );
-        $this->assertNotEmpty( $sx->Documento->TED );
+        $sum = 0;
+        foreach ( $sx->Documento->Detalle as $d ) { $sum += intval( $d->MontoItem ); }
+        $this->assertEquals( intval( $tot->MntTotal ), $sum );
+        $this->assertEquals( intval( $tot->MntNeto ) + intval( $tot->IVA ) + intval( $tot->MntExe ), intval( $tot->MntTotal ) );
     }
 }

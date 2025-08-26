@@ -91,6 +91,42 @@ El plugin permite generar el archivo **Consumo de Folios** requerido por el SII.
 
 El sistema programa automáticamente una tarea diaria `sii_boleta_dte_run_cdf` que envía el CDF del día alrededor de las 23:55 (hora de Santiago). Si se prefiere gestionarlo externamente, puede invocar manualmente la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
 
+## Flujos de operación
+
+1. **Emisión de boletas en WooCommerce**
+   - Configura el plugin con RUT, certificado, CAF y tipos de documento permitidos.
+   - En el checkout se solicita el RUT del cliente y se valida en tiempo real en el navegador.
+   - Al completar un pedido se genera el XML, se firma, se envía al SII y se genera un PDF que se envía por correo.
+   - Cada boleta queda disponible públicamente en `/boleta/{folio}` donde puede descargarse el PDF.
+
+2. **Libro de Boletas**
+   - Desde WP‑CLI: `wp sii libro --from=YYYY-MM --to=YYYY-MM` genera y envía el libro del periodo.
+   - El cron mensual `sii_boleta_dte_monthly_libro` ejecuta automáticamente el proceso para el mes anterior.
+
+3. **Resumen de Ventas Diarias (RVD)**
+   - Cron diario `sii_boleta_dte_daily_rvd` envía el resumen del día anterior.
+   - Manualmente se puede ejecutar `wp sii rvd --date=YYYY-MM-DD`.
+
+4. **Consumo de Folios (CDF)**
+   - Cron diario `sii_boleta_dte_run_cdf` envía el consumo del día en curso.
+   - Manualmente: `wp sii cdf --date=YYYY-MM-DD`.
+
+Todos los comandos WP‑CLI requieren que el sitio tenga acceso a los archivos generados en `wp-content/uploads` y a las credenciales del SII configuradas en los ajustes del plugin.
+
+
+## Pruebas
+
+El repositorio incluye un conjunto básico de pruebas unitarias con **PHPUnit** que cubren el cálculo de neto/IVA, la generación de TED y la validación de esquemas XML.
+
+Para ejecutarlas:
+
+```bash
+cd sii-boleta-dte
+phpunit
+```
+
+Asegúrate de tener instalado PHPUnit en el sistema (por ejemplo, `apt-get install phpunit` en distribuciones basadas en Debian).
+
 
 ## Certificación y manejo de errores
 

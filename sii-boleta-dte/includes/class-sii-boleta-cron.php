@@ -240,8 +240,18 @@ class SII_Boleta_Cron {
      * Callback que genera el CDF para el día en curso y lo envía al SII.
      */
     public function generate_and_send_cdf() {
-        $tz          = new DateTimeZone( 'America/Santiago' );
-        $date        = ( new DateTime( 'today', $tz ) )->format( 'Y-m-d' );
+        $tz   = new DateTimeZone( 'America/Santiago' );
+        $date = ( new DateTime( 'today', $tz ) )->format( 'Y-m-d' );
+        $this->run_cdf_for_date( $date );
+    }
+
+    /**
+     * Ejecuta el proceso de generación y envío del CDF para una fecha dada.
+     *
+     * @param string $date Fecha en formato Y-m-d.
+     * @return bool True si se envió correctamente.
+     */
+    public function run_cdf_for_date( $date ) {
         $folio_mgr   = new SII_Boleta_Folio_Manager( $this->settings );
         $api         = new SII_Boleta_API();
         $cdf_manager = new SII_Boleta_Consumo_Folios( $this->settings, $folio_mgr, $api );
@@ -249,7 +259,7 @@ class SII_Boleta_Cron {
 
         if ( ! $xml ) {
             sii_boleta_write_log( 'Fallo al generar el CDF para la fecha ' . $date );
-            return;
+            return false;
         }
 
         $settings = $this->settings->get_settings();
@@ -268,12 +278,14 @@ class SII_Boleta_Cron {
             if ( $admin_email ) {
                 wp_mail( $admin_email, 'CDF enviado', 'CDF enviado correctamente para la fecha ' . $date );
             }
-        } else {
-            sii_boleta_write_log( 'Error al enviar el CDF para la fecha ' . $date );
-            if ( $admin_email ) {
-                wp_mail( $admin_email, 'Error al enviar CDF', 'Error al enviar el CDF para la fecha ' . $date );
-            }
+            return true;
         }
+
+        sii_boleta_write_log( 'Error al enviar el CDF para la fecha ' . $date );
+        if ( $admin_email ) {
+            wp_mail( $admin_email, 'Error al enviar CDF', 'Error al enviar el CDF para la fecha ' . $date );
+        }
+        return false;
     }
     /**
      * Comando WP-CLI: wp sii:rvd --date=YYYY-MM-DD.
@@ -294,8 +306,29 @@ class SII_Boleta_Cron {
             WP_CLI::error( 'Error al procesar el RVD para la fecha ' . $date );
         }
     }
+
+    /**
+     * Comando WP-CLI: wp sii:cdf [--date=YYYY-MM-DD].
+     *
+     * @param array $args       Argumentos posicionados.
+     * @param array $assoc_args Argumentos asociativos.
+     */
+    public static function cli_cdf_command( $args, $assoc_args ) {
+        $date = $assoc_args['date'] ?? date( 'Y-m-d' );
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+            WP_CLI::error( 'Debe indicar la fecha en formato YYYY-MM-DD mediante --date.' );
+        }
+        $settings = new SII_Boleta_Settings();
+        $cron     = new self( $settings );
+        if ( $cron->run_cdf_for_date( $date ) ) {
+            WP_CLI::success( 'CDF procesado para la fecha ' . $date );
+        } else {
+            WP_CLI::error( 'Error al procesar el CDF para la fecha ' . $date );
+        }
+    }
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
     WP_CLI::add_command( 'sii rvd', [ 'SII_Boleta_Cron', 'cli_rvd_command' ] );
+    WP_CLI::add_command( 'sii cdf', [ 'SII_Boleta_Cron', 'cli_cdf_command' ] );
 }

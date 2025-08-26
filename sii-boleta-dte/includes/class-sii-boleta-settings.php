@@ -21,11 +21,19 @@ class SII_Boleta_Settings {
     const OPTION_NAME  = 'sii_boleta_dte_settings';
 
     /**
+     * Nombre de la variable de entorno utilizada para obtener la
+     * contraseña del certificado cuando no se desea almacenar en la
+     * base de datos.
+     */
+    const ENV_CERT_PASS = 'SII_BOLETA_CERT_PASS';
+
+    /**
      * Constructor. Registra el menú y los campos de ajustes.
      */
     public function __construct() {
         add_action( 'admin_init', [ $this, 'register_settings' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_front_assets' ] );
+        add_action( 'admin_notices', [ $this, 'maybe_show_cert_expiry_notice' ] );
     }
 
     /**
@@ -315,7 +323,14 @@ class SII_Boleta_Settings {
             'ses_username'  => '',
             'ses_password'  => '',
         ];
-        return wp_parse_args( get_option( self::OPTION_NAME, [] ), $defaults );
+        $options = get_option( self::OPTION_NAME, [] );
+
+        $env_pass = getenv( self::ENV_CERT_PASS );
+        if ( false !== $env_pass && '' !== $env_pass ) {
+            $options['cert_pass'] = $env_pass;
+        }
+
+        return wp_parse_args( $options, $defaults );
     }
 
     /**
@@ -603,6 +618,42 @@ class SII_Boleta_Settings {
             <?php esc_html_e( 'Registrar eventos del plugin incluso si WP_DEBUG está desactivado.', 'sii-boleta-dte' ); ?>
         </label>
         <?php
+    }
+
+    /**
+     * Muestra un aviso en el panel de administración cuando el certificado
+     * esté próximo a vencer.
+     */
+    public function maybe_show_cert_expiry_notice() {
+        $settings  = $this->get_settings();
+        $cert_path = $settings['cert_path'] ?? '';
+        $cert_pass = $settings['cert_pass'] ?? '';
+
+        if ( empty( $cert_path ) || empty( $cert_pass ) || ! file_exists( $cert_path ) ) {
+            return;
+        }
+
+        $certs = [];
+        if ( ! @openssl_pkcs12_read( file_get_contents( $cert_path ), $certs, $cert_pass ) ) {
+            return;
+        }
+
+        $info = openssl_x509_parse( $certs['cert'] );
+        if ( ! $info || empty( $info['validTo_time_t'] ) ) {
+            return;
+        }
+
+        $days_left = (int) floor( ( $info['validTo_time_t'] - time() ) / DAY_IN_SECONDS );
+        if ( $days_left > 30 ) {
+            return;
+        }
+
+        $class   = $days_left > 0 ? 'notice-warning' : 'notice-error';
+        $message = $days_left > 0
+            ? sprintf( __( 'El certificado digital vence en %d días.', 'sii-boleta-dte' ), $days_left )
+            : __( 'El certificado digital ha vencido.', 'sii-boleta-dte' );
+
+        printf( '<div class="notice %s"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
     }
 
     /**

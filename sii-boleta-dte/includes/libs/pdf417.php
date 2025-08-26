@@ -1,30 +1,60 @@
 <?php
+// Autoloader for BigFish\PDF417 classes bundled with the plugin.
+spl_autoload_register(function ( $class ) {
+    $prefix   = 'BigFish\\PDF417\\';
+    $base_dir = __DIR__ . '/bigfish-pdf417/src/';
+    $len      = strlen( $prefix );
+    if ( 0 !== strncmp( $prefix, $class, $len ) ) {
+        return;
+    }
+    $relative_class = substr( $class, $len );
+    $file           = $base_dir . str_replace( '\\', '/', $relative_class ) . '.php';
+    if ( file_exists( $file ) ) {
+        require_once $file;
+    }
+});
+
+use BigFish\PDF417\PDF417 as BigFishPDF417;
+use BigFish\PDF417\Renderers\JsonRenderer;
+
 /**
- * Implementación muy simple de la clase PDF417 utilizada por el plugin.
- * No genera un código de barras PDF417 real, pero produce una matriz de
- * bits compatible con el uso que hace la clase SII_Boleta_PDF para
- * dibujar rectángulos que representan el timbre electrónico.
+ * Wrapper de la librería BigFish\PDF417 para mantener la compatibilidad
+ * con el uso anterior en el plugin. Expone una clase global `PDF417`
+ * con un método `encode` que devuelve una matriz de bits utilizable
+ * para dibujar el código de barras.
  */
 class PDF417 {
+    /** @var BigFishPDF417 */
+    private $generator;
+
+    public function __construct() {
+        $this->generator = new BigFishPDF417();
+    }
+
     /**
-     * Codifica una cadena de texto en una matriz binaria.
+     * Codifica el texto proporcionado en un arreglo de bits.
      *
-     * @param string $text Texto a codificar.
-     * @param array  $options Opciones adicionales (no utilizadas).
-     * @return array Estructura con claves 'bcode', 'cols' y 'rows'.
+     * @param string $text    Texto a codificar.
+     * @param array  $options Opciones de generación.
+     * @return array{'bcode':array<int,string>,'cols':int,'rows':int}
      */
     public function encode( $text, $options = [] ) {
-        $binary = '';
-        for ( $i = 0, $len = strlen( $text ); $i < $len; $i++ ) {
-            $binary .= str_pad( decbin( ord( $text[ $i ] ) ), 8, '0', STR_PAD_LEFT );
+        if ( isset( $options['columns'] ) ) {
+            $this->generator->setColumns( (int) $options['columns'] );
         }
-        $cols = isset( $options['cols'] ) ? max( 1, (int) $options['cols'] ) : 80;
-        $rows = (int) ceil( strlen( $binary ) / $cols );
-        $bcode = [];
-        for ( $r = 0; $r < $rows; $r++ ) {
-            $row = substr( $binary, $r * $cols, $cols );
-            $row = str_pad( $row, $cols, '0', STR_PAD_RIGHT );
-            $bcode[] = $row;
+        if ( isset( $options['security_level'] ) ) {
+            $this->generator->setSecurityLevel( (int) $options['security_level'] );
+        }
+        $data     = $this->generator->encode( $text );
+        $renderer = new JsonRenderer();
+        $grid     = json_decode( $renderer->render( $data ), true );
+        $rows     = is_array( $grid ) ? count( $grid ) : 0;
+        $cols     = $rows ? count( $grid[0] ) : 0;
+        $bcode    = [];
+        if ( is_array( $grid ) ) {
+            foreach ( $grid as $row ) {
+                $bcode[] = implode( '', $row );
+            }
         }
         return [
             'bcode' => $bcode,

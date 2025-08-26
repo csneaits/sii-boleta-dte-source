@@ -34,11 +34,14 @@ class XmlGeneratorTest extends TestCase {
             'GiroEmisor' => 'Giro',
             'DirOrigen' => 'Calle 1',
             'CmnaOrigen' => 'Santiago',
+            'MedioPago' => 'EFECTIVO',
             'Receptor' => [
                 'RUTRecep' => '22222222-2',
                 'RznSocRecep' => 'Cliente',
                 'DirRecep' => 'Dir',
                 'CmnaRecep' => 'Comuna',
+                'CorreoRecep' => 'cliente@example.com',
+                'TelefonoRecep' => '123456789',
             ],
             'Detalles' => [
                 [ 'NroLinDet'=>1, 'NmbItem'=>'Afecto', 'QtyItem'=>1, 'PrcItem'=>1190 ],
@@ -57,5 +60,8 @@ class XmlGeneratorTest extends TestCase {
         foreach ( $sx->Documento->Detalle as $d ) { $sumLines += intval( $d->MontoItem ); }
         $this->assertEquals( intval( $tot->MntTotal ), $sumLines );
         $this->assertNotEmpty( $sx->Documento->TED );
+        $this->assertEquals( 'EFECTIVO', (string) $sx->Documento->Encabezado->IdDoc->MedioPago );
+        $this->assertEquals( 'cliente@example.com', (string) $sx->Documento->Encabezado->Receptor->CorreoRecep );
+        $this->assertEquals( '123456789', (string) $sx->Documento->Encabezado->Receptor->TelefonoRecep );
     }
 }

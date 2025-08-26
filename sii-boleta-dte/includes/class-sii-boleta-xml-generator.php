@@ -73,30 +73,47 @@ class SII_Boleta_XML_Generator {
             $monto_exento = 0;
             $desc_total   = 0;
             $rec_total    = 0;
-            foreach ( $data['Detalles'] as &$detalle ) {
+            $neto_total   = 0;
+            $iva_total    = 0;
+            $last_afecto  = null;
+            foreach ( $data['Detalles'] as $index => &$detalle ) {
                 $qty   = floatval( $detalle['QtyItem'] );
                 $price = floatval( $detalle['PrcItem'] );
                 $desc  = isset( $detalle['DescuentoMonto'] ) ? floatval( $detalle['DescuentoMonto'] ) : 0;
                 $rec   = isset( $detalle['RecargoMonto'] ) ? floatval( $detalle['RecargoMonto'] ) : 0;
-                $monto_item = intval( ( $qty * $price ) - $desc + $rec );
+                $monto_item           = intval( ( $qty * $price ) - $desc + $rec );
                 $detalle['MontoItem'] = $monto_item;
                 $monto_total         += $monto_item;
                 if ( ! empty( $detalle['IndExe'] ) ) {
                     $monto_exento += $monto_item;
+                } else {
+                    // Calcular neto e IVA por línea para mantener consistencia
+                    $neto_linea = intval( $monto_item / 1.19 );
+                    $iva_linea  = $monto_item - $neto_linea;
+                    $neto_total += $neto_linea;
+                    $iva_total  += $iva_linea;
+                    $last_afecto = $index;
                 }
                 $desc_total += intval( $desc );
                 $rec_total  += intval( $rec );
             }
             unset( $detalle );
+
+            // Ajuste por diferencias de redondeo hasta $1
+            $monto_afecto = $monto_total - $monto_exento;
+            $diff         = $monto_afecto - ( $neto_total + $iva_total );
+            if ( 0 !== $diff && null !== $last_afecto && isset( $data['Detalles'][ $last_afecto ] ) ) {
+                $data['Detalles'][ $last_afecto ]['MontoItem'] += $diff;
+                $monto_total += $diff;
+                $neto_total  += $diff;
+            }
+
             $totales = $encabezado->addChild( 'Totales' );
             $tipo_dte = intval( $data['TipoDTE'] );
             // Para facturas afectas (33) se debe desglosar en neto e IVA
             if ( $tipo_dte === 33 ) {
-                $monto_afecto = $monto_total - $monto_exento;
-                $neto         = intval( $monto_afecto / 1.19 );
-                $iva          = $monto_total - $monto_exento - $neto;
-                $totales->addChild( 'MntNeto', $neto );
-                $totales->addChild( 'IVA', $iva );
+                $totales->addChild( 'MntNeto', $neto_total );
+                $totales->addChild( 'IVA', $iva_total );
                 if ( $monto_exento > 0 ) {
                     $totales->addChild( 'MntExe', $monto_exento );
                 }

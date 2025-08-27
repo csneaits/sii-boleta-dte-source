@@ -26,6 +26,7 @@ class SII_Boleta_Settings {
     public function __construct() {
         add_action( 'admin_init', [ $this, 'register_settings' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_front_assets' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'admin_notices', [ $this, 'maybe_show_cert_expiry_notice' ] );
     }
 
@@ -42,6 +43,32 @@ class SII_Boleta_Settings {
                 true
             );
         }
+    }
+
+    /**
+     * Encola scripts y estilos para la página de ajustes en el admin.
+     *
+     * @param string $hook Hook de la página actual.
+     */
+    public function enqueue_admin_assets( $hook ) {
+        if ( 'toplevel_page_sii-boleta-dte' !== $hook ) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'sii-boleta-admin-settings',
+            SII_BOLETA_DTE_URL . 'assets/css/admin-settings.css',
+            [],
+            SII_BOLETA_DTE_VERSION
+        );
+
+        wp_enqueue_script(
+            'sii-boleta-admin-settings',
+            SII_BOLETA_DTE_URL . 'assets/js/admin-settings.js',
+            [],
+            SII_BOLETA_DTE_VERSION,
+            true
+        );
     }
 
     /**
@@ -242,6 +269,9 @@ class SII_Boleta_Settings {
 
         // Procesar subida del certificado.
         if ( ! empty( $_FILES['cert_file']['name'] ) ) {
+            if ( ! function_exists( 'wp_handle_upload' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
             $file_type = wp_check_filetype( $_FILES['cert_file']['name'] );
             if ( in_array( $file_type['ext'], [ 'pfx', 'p12' ], true ) ) {
                 $upload = wp_handle_upload( $_FILES['cert_file'], [ 'test_form' => false ] );
@@ -461,9 +491,18 @@ class SII_Boleta_Settings {
      */
     public function render_field_cert_path() {
         $options = $this->get_settings();
+
+        echo '<div class="sii-dte-cert-row">';
         printf(
-            '<input type="file" name="cert_file" accept=".pfx,.p12" />'
+            '<input type="file" id="sii-dte-cert-file" name="cert_file" accept=".pfx,.p12" />'
         );
+        printf(
+            '<input type="text" id="sii-dte-cert-path" name="%s[cert_path]" value="%s" class="regular-text" placeholder="/ruta/certificado.pfx" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['cert_path'] )
+        );
+        echo '</div>';
+
         if ( ! empty( $options['cert_path'] ) ) {
             $current_cert = wp_basename( wp_normalize_path( $options['cert_path'] ) );
             $expiry_ts    = $this->get_certificate_valid_to( $options['cert_path'], $options['cert_pass'] );
@@ -476,12 +515,8 @@ class SII_Boleta_Settings {
                 $extra
             );
         }
+
         echo '<p class="description">' . esc_html__( 'Cargue el certificado .pfx/.p12 o indique la ruta absoluta si ya existe en el servidor.', 'sii-boleta-dte' ) . '</p>';
-        printf(
-            '<input type="text" name="%s[cert_path]" value="%s" class="regular-text" placeholder="/ruta/certificado.pfx" />',
-            esc_attr( self::OPTION_NAME ),
-            esc_attr( $options['cert_path'] )
-        );
     }
 
     /**

@@ -92,6 +92,8 @@ El plugin permite generar el archivo **Consumo de Folios** requerido por el SII.
 
 El sistema programa automáticamente una tarea diaria `sii_boleta_dte_run_cdf` que envía el CDF del día alrededor de las 23:55 (hora de Santiago). Si se prefiere gestionarlo externamente, puede invocar manualmente la acción `sii_boleta_dte_run_cdf` dentro de WordPress.
 
+Dentro del panel de control también se incluye la pestaña **Folios**, donde se listan los CAF configurados con su rango autorizado, el último folio utilizado y la cantidad de folios disponibles. Esto facilita identificar cuándo solicitar nuevos folios antes de que se agoten.
+
 ## Flujos de operación
 
 1. **Emisión de boletas en WooCommerce**

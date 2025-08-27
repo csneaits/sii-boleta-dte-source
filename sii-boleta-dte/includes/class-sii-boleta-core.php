@@ -320,6 +320,7 @@ class SII_Boleta_Core {
             <h1><?php esc_html_e( 'Panel de Control', 'sii-boleta-dte' ); ?></h1>
             <h2 class='nav-tab-wrapper'>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
+                <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=folios' ) ); ?>' class='nav-tab <?php echo ( 'folios' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Folios', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=jobs' ) ); ?>' class='nav-tab <?php echo ( 'jobs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Jobs', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=metrics' ) ); ?>' class='nav-tab <?php echo ( 'metrics' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Métricas', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=logs' ) ); ?>' class='nav-tab <?php echo ( 'logs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Log de Envíos', 'sii-boleta-dte' ); ?></a>
@@ -345,6 +346,50 @@ class SII_Boleta_Core {
                 <div id="sii-rvd-result"></div>
                 <div id="sii-cdf-result"></div>
                 <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
+            <?php elseif ( 'folios' === $active_tab ) : ?>
+                <?php
+                $settings  = $this->settings->get_settings();
+                $caf_paths = $settings['caf_path'] ?? [];
+                ?>
+                <h2><?php esc_html_e( 'CAF Cargados', 'sii-boleta-dte' ); ?></h2>
+                <?php if ( ! empty( $caf_paths ) ) : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Tipo DTE', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Desde', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Hasta', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Último Usado', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Disponibles', 'sii-boleta-dte' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $caf_paths as $tipo => $path ) : ?>
+                                <?php
+                                $info = $this->folio_manager->get_caf_info( intval( $tipo ) );
+                                if ( ! $info ) {
+                                    continue;
+                                }
+                                $option_key = SII_Boleta_Folio_Manager::OPTION_LAST_FOLIO_PREFIX . intval( $tipo );
+                                $last_folio = intval( get_option( $option_key, $info['D'] - 1 ) );
+                                if ( $last_folio < $info['D'] - 1 ) {
+                                    $last_folio = $info['D'] - 1;
+                                }
+                                $remaining = $info['H'] - $last_folio;
+                                ?>
+                                <tr>
+                                    <td><?php echo esc_html( $tipo ); ?></td>
+                                    <td><?php echo esc_html( $info['D'] ); ?></td>
+                                    <td><?php echo esc_html( $info['H'] ); ?></td>
+                                    <td><?php echo esc_html( $last_folio ); ?></td>
+                                    <td><?php echo esc_html( $remaining ); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else : ?>
+                    <p><?php esc_html_e( 'No se encontraron CAF configurados.', 'sii-boleta-dte' ); ?></p>
+                <?php endif; ?>
             <?php elseif ( 'metrics' === $active_tab ) : ?>
                 <?php $metrics = $this->metrics->gather_metrics(); ?>
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -32,15 +32,20 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 
 Se creará el archivo ZIP en la carpeta `dist\` con el nombre correspondiente.
 
-## Dependencias opcionales
+## Dependencias y herramientas de desarrollo
 
-El plugin puede generar la representación PDF del DTE utilizando las clases `FPDF` y `PDF417`. Se incluye una implementación básica de `FPDF` y la librería `BigFish/PDF417` dentro de `sii-boleta-dte/includes/libs/`, permitiendo crear un PDF con código de barras PDF417 sin depender de servicios externos.
+Las bibliotecas externas y herramientas se gestionan con Composer. Desde la carpeta del plugin (`sii-boleta-dte/`) ejecuta:
 
-Para producción se recomienda instalar dependencias más robustas mediante Composer:
+```bash
+composer install
+```
 
-1. Instalar FPDF: `composer require setasign/fpdf`.
-2. (Opcional) Reemplazar la librería PDF417 incluida por otra de su preferencia.
-3. Asegurarse de que ambas clases estén cargadas antes de usar el plugin.
+Esto instalará `xmlseclibs`, `FPDF` y `BigFish/PDF417` junto con utilidades para pruebas y estándares de código.
+
+### Pruebas y calidad
+
+- `composer test` ejecuta los tests con PHPUnit.
+- `composer phpcs` verifica el código con WordPress Coding Standards.
 
 ## Configuración de tipos de documento para el checkout
 

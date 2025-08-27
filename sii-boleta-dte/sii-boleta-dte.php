@@ -31,12 +31,18 @@ if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
 require_once SII_BOLETA_DTE_PATH . 'includes/autoload.php';
 require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-logger.php';
 
+if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
+    require_once SII_BOLETA_DTE_PATH . 'vendor/autoload.php';
+}
+
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
     require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-boleta-cli.php';
 }
 
-// Incluir librerías externas necesarias.
-require_once SII_BOLETA_DTE_PATH . 'includes/libs/xmlseclibs.php';
+// Incluir librerías externas necesarias si Composer no las cargó.
+if ( ! class_exists( '\RobRichards\XMLSecLibs\XMLSecurityDSig', false ) ) {
+    require_once SII_BOLETA_DTE_PATH . 'includes/libs/xmlseclibs.php';
+}
 if ( ! class_exists( 'FPDF', false ) ) {
     require_once SII_BOLETA_DTE_PATH . 'includes/libs/fpdf.php';
 }

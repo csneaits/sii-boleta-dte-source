@@ -28,3 +28,4 @@ Thumbs.db
 *.log
 src/admin/css/main.bundle.css
 src/admin/css/main.bundle.css
+sii-boleta-dte/.phpunit.result.cache

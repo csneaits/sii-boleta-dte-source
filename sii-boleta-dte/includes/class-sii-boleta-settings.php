@@ -665,10 +665,18 @@ class SII_Boleta_Settings {
             return;
         }
 
-        $class   = $days_left > 0 ? 'notice-warning' : 'notice-error';
-        $message = $days_left > 0
-            ? sprintf( __( 'El certificado digital vence en %d días.', 'sii-boleta-dte' ), $days_left )
-            : __( 'El certificado digital ha vencido.', 'sii-boleta-dte' );
+        $class       = $days_left > 0 ? 'notice-warning' : 'notice-error';
+        $expiry_date = date_i18n( get_option( 'date_format' ), $expiry );
+        $message     = $days_left > 0
+            ? sprintf(
+                __( 'El certificado digital vence el %1$s (%2$d días restantes).', 'sii-boleta-dte' ),
+                $expiry_date,
+                $days_left
+            )
+            : sprintf(
+                __( 'El certificado digital venció el %s.', 'sii-boleta-dte' ),
+                $expiry_date
+            );
 
         printf( '<div class="notice %s"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
     }

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="SII Boleta DTE">
+    <config name="installed_paths" value="vendor/wp-coding-standards/wpcs"/>
+    <file>./</file>
+    <rule ref="WordPress"/>
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>tests/*</exclude-pattern>
+</ruleset>

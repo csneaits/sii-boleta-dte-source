@@ -1,0 +1,9 @@
+.sii-dte-cert-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sii-dte-cert-row input[type="text"] {
+    flex: 1;
+}

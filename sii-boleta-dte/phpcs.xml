@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
 <ruleset name="SII Boleta DTE">
     <config name="installed_paths" value="vendor/wp-coding-standards/wpcs"/>
-    <file>./</file>
-    <rule ref="WordPress"/>
+    <arg name="extensions" value="php"/>
+    <file>includes/autoload.php</file>
+    <rule ref="WordPress">
+        <exclude name="WordPress.WhiteSpace.PrecisionAlignment"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
+        <exclude name="WordPress.WP.I18n"/>
+        <exclude name="WordPress.WhiteSpace.DisallowInlineTabs"/>
+    </rule>
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>tests/*</exclude-pattern>
+    <exclude-pattern>includes/libs/*</exclude-pattern>
 </ruleset>

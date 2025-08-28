@@ -725,15 +725,17 @@ class SII_Boleta_Settings {
      */
     public function render_settings_page() {
         ?>
-        <div class="wrap">
+        <div class="wrap sii-dte-settings">
             <h1><?php esc_html_e( 'Configuración SII Boleta DTE', 'sii-boleta-dte' ); ?></h1>
-            <form action="options.php" method="post" enctype="multipart/form-data">
-                <?php
-                settings_fields( self::OPTION_GROUP );
-                do_settings_sections( 'sii-boleta-dte' );
-                submit_button();
-                ?>
-            </form>
+            <div class="sii-dte-card">
+                <form action="options.php" method="post" class="sii-dte-form" enctype="multipart/form-data">
+                    <?php
+                    settings_fields( self::OPTION_GROUP );
+                    do_settings_sections( 'sii-boleta-dte' );
+                    submit_button();
+                    ?>
+                </form>
+            </div>
         </div>
         <?php
     }

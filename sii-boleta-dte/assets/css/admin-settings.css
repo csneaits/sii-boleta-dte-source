@@ -1,9 +1,64 @@
-.sii-dte-cert-row {
+.sii-dte-settings .sii-dte-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 900px;
+    margin-top: 20px;
+}
+
+.sii-dte-settings .sii-dte-form table.form-table th {
+    width: 220px;
+}
+
+.sii-dte-settings .sii-dte-form input[type="text"],
+.sii-dte-settings .sii-dte-form input[type="password"],
+.sii-dte-settings .sii-dte-form select {
+    max-width: 400px;
+}
+
+.sii-dte-cert-row,
+.sii-dte-caf-row {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
 }
 
-.sii-dte-cert-row input[type="text"] {
+.sii-dte-cert-row input[type="text"],
+.sii-dte-caf-row input[type="text"] {
     flex: 1;
 }
+
+.sii-dte-caf-row .sii-dte-remove-caf {
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.sii-dte-caf-row .sii-dte-remove-caf:hover {
+    background: #d32f2f;
+}
+
+#sii-dte-logo-preview {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid #ccd0d4;
+    padding: 4px;
+    background: #fff;
+}
+
+.sii-dte-settings .sii-dte-form .button-primary {
+    background: #007cba;
+    border-color: #007cba;
+    box-shadow: none;
+}
+
+.sii-dte-settings .sii-dte-form .button-primary:hover {
+    background: #006ba1;
+    border-color: #006ba1;
+}
+

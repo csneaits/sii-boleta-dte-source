@@ -1,0 +1,19 @@
+.sii-dte-panel .sii-dte-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.sii-dte-panel .nav-tab-wrapper {
+    margin-top: 20px;
+}
+
+.sii-dte-panel .sii-job-log {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 10px;
+    max-height: 300px;
+    overflow: auto;
+}

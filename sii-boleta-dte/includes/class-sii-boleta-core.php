@@ -308,6 +308,15 @@ class SII_Boleta_Core {
         if ( 'toplevel_page_sii-boleta-dte' === $hook ) {
             wp_enqueue_media();
         }
+
+        if ( 'sii-boleta-dte_page_sii-boleta-dte-panel' === $hook ) {
+            wp_enqueue_style(
+                'sii-boleta-control-panel',
+                SII_BOLETA_DTE_URL . 'assets/css/control-panel.css',
+                [],
+                SII_BOLETA_DTE_VERSION
+            );
+        }
     }
 
     /**
@@ -316,7 +325,7 @@ class SII_Boleta_Core {
     public function render_control_panel_page() {
         $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'boletas';
         ?>
-        <div class='wrap'>
+        <div class='wrap sii-dte-panel'>
             <h1><?php esc_html_e( 'Panel de Control', 'sii-boleta-dte' ); ?></h1>
             <h2 class='nav-tab-wrapper'>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=boletas' ) ); ?>' class='nav-tab <?php echo ( 'boletas' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Boletas', 'sii-boleta-dte' ); ?></a>
@@ -325,6 +334,7 @@ class SII_Boleta_Core {
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=metrics' ) ); ?>' class='nav-tab <?php echo ( 'metrics' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Métricas', 'sii-boleta-dte' ); ?></a>
                 <a href='<?php echo esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel&tab=logs' ) ); ?>' class='nav-tab <?php echo ( 'logs' === $active_tab ) ? 'nav-tab-active' : ''; ?>'><?php esc_html_e( 'Log de Envíos', 'sii-boleta-dte' ); ?></a>
             </h2>
+            <div class='sii-dte-card'>
             <?php if ( 'jobs' === $active_tab ) : ?>
                 <p>
                     <?php esc_html_e( 'Estado del job:', 'sii-boleta-dte' ); ?>
@@ -345,7 +355,7 @@ class SII_Boleta_Core {
                 </p>
                 <div id="sii-rvd-result"></div>
                 <div id="sii-cdf-result"></div>
-                <pre id="sii-job-log" style="background:#fff;border:1px solid #ccd0d4;padding:10px;max-height:300px;overflow:auto;"></pre>
+                <pre id="sii-job-log" class="sii-job-log"></pre>
             <?php elseif ( 'folios' === $active_tab ) : ?>
                 <?php
                 $settings  = $this->settings->get_settings();
@@ -474,6 +484,7 @@ class SII_Boleta_Core {
                     <tbody></tbody>
                 </table>
             <?php endif; ?>
+            </div>
         </div>
         <script type="text/javascript">
         jQuery(function($){

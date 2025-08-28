@@ -282,16 +282,19 @@ class SII_Boleta_Settings {
         }
 
         // Procesar campos de CAF por tipo de DTE.
-        $caf_types = $input['caf_type'] ?? [];
-        $caf_paths = $input['caf_path'] ?? [];
-        $files     = $_FILES['caf_file'] ?? [];
+        $caf_types  = $input['caf_type'] ?? [];
+        $caf_paths  = $input['caf_path'] ?? [];
+        $files      = $_FILES['caf_file'] ?? [];
         $output['caf_path'] = [];
+        $valid_caf_types = [ '39', '41', '33', '34', '52', '56', '61' ];
+        $seen_types      = [];
 
         foreach ( $caf_types as $index => $tipo ) {
             $tipo = sanitize_text_field( $tipo );
-            if ( empty( $tipo ) ) {
+            if ( empty( $tipo ) || ! in_array( $tipo, $valid_caf_types, true ) || in_array( $tipo, $seen_types, true ) ) {
                 continue;
             }
+            $seen_types[] = $tipo;
 
             $path = sanitize_text_field( $caf_paths[ $index ] ?? '' );
 
@@ -539,6 +542,16 @@ class SII_Boleta_Settings {
         $caf_paths  = is_array( $options['caf_path'] ) ? $options['caf_path'] : [];
         $option_key = esc_attr( self::OPTION_NAME );
 
+        $types      = [
+            '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
+            '41' => __( 'Boleta Exenta Electrónica', 'sii-boleta-dte' ),
+            '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
+            '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
+            '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
+            '56' => __( 'Nota de Débito Electrónica', 'sii-boleta-dte' ),
+            '61' => __( 'Nota de Crédito Electrónica', 'sii-boleta-dte' ),
+        ];
+
         echo '<div id="sii-dte-caf-container">';
         if ( empty( $caf_paths ) ) {
             $caf_paths = [ '' => '' ];
@@ -546,7 +559,12 @@ class SII_Boleta_Settings {
         foreach ( $caf_paths as $tipo => $path ) {
             ?>
             <div class="sii-dte-caf-row">
-                <input type="text" name="<?php echo $option_key; ?>[caf_type][]" value="<?php echo esc_attr( $tipo ); ?>" placeholder="<?php esc_attr_e( 'Tipo DTE', 'sii-boleta-dte' ); ?>" class="small-text" />
+                <select name="<?php echo $option_key; ?>[caf_type][]" class="sii-dte-caf-type">
+                    <option value=""><?php esc_html_e( 'Seleccione documento', 'sii-boleta-dte' ); ?></option>
+                    <?php foreach ( $types as $code => $label ) : ?>
+                        <option value="<?php echo esc_attr( $code ); ?>" <?php selected( $tipo, $code ); ?>><?php echo esc_html( $label ); ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <input type="file" name="caf_file[]" accept=".xml" />
                 <input type="text" name="<?php echo $option_key; ?>[caf_path][]" value="<?php echo esc_attr( $path ); ?>" class="regular-text" placeholder="/ruta/CAF.xml" />
                 <button type="button" class="button sii-dte-remove-caf">&times;</button>
@@ -559,18 +577,46 @@ class SII_Boleta_Settings {
         <p class="description"><?php esc_html_e( 'Cargue un archivo CAF para cada tipo de DTE necesario. Puede indicar la ruta manualmente o subir un archivo.', 'sii-boleta-dte' ); ?></p>
         <script type="text/javascript">
         jQuery(function($){
+            var cafOptions = <?php echo wp_json_encode( $types ); ?>;
+            var optionKey = '<?php echo $option_key; ?>';
+
+            function updateCafOptions() {
+                var selected = $('.sii-dte-caf-type').map(function(){ return $(this).val(); }).get();
+                $('.sii-dte-caf-type').each(function(){
+                    var current = $(this).val();
+                    $(this).find('option').each(function(){
+                        var val = $(this).val();
+                        if ( val && val !== current && selected.indexOf( val ) !== -1 ) {
+                            $(this).prop('disabled', true);
+                        } else {
+                            $(this).prop('disabled', false);
+                        }
+                    });
+                });
+            }
+
             $('#sii-dte-add-caf').on('click', function(){
+                var select = '<select name="'+ optionKey +'[caf_type][]" class="sii-dte-caf-type">';
+                select += '<option value="">' + '<?php echo esc_js( __( 'Seleccione documento', 'sii-boleta-dte' ) ); ?>' + '</option>';
+                $.each(cafOptions, function(val, label){
+                    select += '<option value="'+ val +'">'+ label +'</option>';
+                });
+                select += '</select>';
                 var row = '<div class="sii-dte-caf-row">'
-                    + '<input type="text" name="'+ '<?php echo $option_key; ?>' +'[caf_type][]" placeholder="<?php esc_attr_e( 'Tipo DTE', 'sii-boleta-dte' ); ?>" class="small-text" />'
+                    + select
                     + '<input type="file" name="caf_file[]" accept=".xml" />'
-                    + '<input type="text" name="'+ '<?php echo $option_key; ?>' +'[caf_path][]" class="regular-text" placeholder="/ruta/CAF.xml" />'
+                    + '<input type="text" name="'+ optionKey +'[caf_path][]" class="regular-text" placeholder="/ruta/CAF.xml" />'
                     + '<button type="button" class="button sii-dte-remove-caf">&times;</button>'
                     + '</div>';
                 $('#sii-dte-caf-container').append(row);
+                updateCafOptions();
             });
             $(document).on('click', '.sii-dte-remove-caf', function(){
                 $(this).closest('.sii-dte-caf-row').remove();
+                updateCafOptions();
             });
+            $(document).on('change', '.sii-dte-caf-type', updateCafOptions);
+            updateCafOptions();
         });
         </script>
         <?php

@@ -34,6 +34,32 @@ class SII_Boleta_Woo {
         add_filter( 'woocommerce_checkout_fields', [ $this, 'add_custom_checkout_fields' ] );
         // Guardar los campos personalizados
         add_action( 'woocommerce_checkout_create_order', [ $this, 'save_custom_checkout_fields' ], 10, 2 );
+
+        // Acción manual en detalle de pedido: Enviar DTE al SII
+        add_filter( 'woocommerce_order_actions', [ $this, 'register_order_action' ] );
+        add_action( 'woocommerce_order_action_sii_send_dte', [ $this, 'order_action_send_dte' ] );
+    }
+
+    /**
+     * Añade acción manual para enviar DTE en el detalle del pedido.
+     */
+    public function register_order_action( $actions ) {
+        $actions['sii_send_dte'] = __( 'Enviar DTE al SII (SII Boleta DTE)', 'sii-boleta-dte' );
+        return $actions;
+    }
+
+    /**
+     * Handler de la acción manual de enviar DTE.
+     */
+    public function order_action_send_dte( $order ) {
+        if ( ! $order instanceof WC_Order ) {
+            $order = wc_get_order( $order );
+        }
+        if ( ! $order ) { return; }
+
+        // Reutilizar el flujo de generación para el pedido (se encola y consume folio al enviar)
+        $this->generate_dte_for_order( $order->get_id() );
+        $order->add_order_note( __( 'Acción manual: DTE encolado para envío al SII.', 'sii-boleta-dte' ) );
     }
 
     /**
@@ -110,13 +136,10 @@ class SII_Boleta_Woo {
             ];
         }
 
-        // Generar folio para el tipo de DTE seleccionado
-        $folio = $this->core->get_folio_manager()->get_next_folio( $tipo_dte );
-        if ( is_wp_error( $folio ) ) {
-            $order->add_order_note( $folio->get_error_message() );
-            return;
-        }
-        if ( ! $folio ) {
+        // Peek de folio (no consumir hasta envío exitoso)
+        $folio = $this->core->get_folio_manager()->peek_next_folio( $tipo_dte );
+        if ( is_wp_error( $folio ) || ! $folio ) {
+            $order->add_order_note( is_wp_error( $folio ) ? $folio->get_error_message() : __( 'No hay folios disponibles.', 'sii-boleta-dte' ) );
             return;
         }
         $settings = $this->core->get_settings()->get_settings();
@@ -142,26 +165,27 @@ class SII_Boleta_Woo {
             ],
             'Detalles'   => $detalles,
         ];
-        // Generar y firmar
-        $xml    = $this->core->get_xml_generator()->generate_dte_xml( $dte_data, $tipo_dte );
+        // Generar y firmar (con TED; envío inmediato)
+        $xml    = $this->core->get_engine()->generate_dte_xml( $dte_data, $tipo_dte, false );
         if ( is_wp_error( $xml ) || ! $xml ) {
             $order->add_order_note( is_wp_error( $xml ) ? $xml->get_error_message() : __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) );
             return;
         }
-        $signed = $this->core->get_signer()->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );
+        $signed = $this->core->get_engine()->sign_dte_xml( $xml );
         if ( ! $signed ) {
             return;
         }
-        // Guardar archivo XML
+        // Guardar archivo XML temporal y encolar envío
         $upload_dir = wp_upload_dir();
+        $tmp_dir = trailingslashit( $upload_dir['basedir'] ) . 'dte/tmp/';
+        if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $tmp_dir ); } else { if ( ! is_dir( $tmp_dir ) ) { @mkdir( $tmp_dir, 0755, true ); } }
         $file_name  = 'Woo_DTE_' . $tipo_dte . '_' . $folio . '_' . time() . '.xml';
-        $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
+        $file_path  = trailingslashit( $tmp_dir ) . $file_name;
         file_put_contents( $file_path, $signed );
-        // Enviar al SII de forma asíncrona
         $this->core->get_queue()->enqueue( $file_path, $order_id );
-        $order->add_order_note( __( 'DTE en cola para envío al SII.', 'sii-boleta-dte' ) );
+        $order->add_order_note( __( 'DTE en cola para envío al SII (folio reservado).', 'sii-boleta-dte' ) );
         // Generar representación PDF y enviarla por correo
-        $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
+        $pdf_path = $this->core->get_engine()->render_pdf( $signed, $settings );
         if ( $pdf_path ) {
             $to       = $order->get_billing_email();
             $subject  = sprintf( __( 'Boleta electrónica de tu pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );
@@ -176,28 +200,20 @@ class SII_Boleta_Woo {
                 $content_type = function() { return 'text/html'; };
                 add_filter( 'wp_mail_content_type', $content_type );
 
-                $phpmailer_ses = function( $phpmailer ) use ( $settings ) {
-                    if ( ! empty( $settings['ses_host'] ) && ! empty( $settings['ses_username'] ) && ! empty( $settings['ses_password'] ) ) {
-                        $phpmailer->isSMTP();
-                        $phpmailer->Host       = $settings['ses_host'];
-                        $phpmailer->Port       = intval( $settings['ses_port'] ?? 587 );
-                        $phpmailer->SMTPAuth   = true;
-                        $phpmailer->SMTPSecure = 'tls';
-                        $phpmailer->Username   = $settings['ses_username'];
-                        $phpmailer->Password   = $settings['ses_password'];
-                    }
+                $mailer_profile = $settings['smtp_profile'] ?? '';
+                $configure_mailer = function( $phpmailer ) use ( $mailer_profile ) {
+                    do_action( 'sii_boleta_setup_mailer', $phpmailer, $mailer_profile );
                 };
-
-                add_action( 'phpmailer_init', $phpmailer_ses );
+                add_action( 'phpmailer_init', $configure_mailer );
                 wp_mail( $to, $subject, $message, [], [ $pdf_path ] );
-                remove_action( 'phpmailer_init', $phpmailer_ses );
+                remove_action( 'phpmailer_init', $configure_mailer );
                 remove_filter( 'wp_mail_content_type', $content_type );
                 $order->add_order_note( __( 'Boleta electrónica enviada al cliente por correo electrónico.', 'sii-boleta-dte' ) );
             }
         }
         // Guardar metadatos
         $order->update_meta_data( '_sii_dte_type', $tipo_dte );
-        $order->update_meta_data( '_sii_boleta_folio', $folio );
+        $order->update_meta_data( '_sii_boleta_folio_peek', $folio );
         $order->save();
     }
 
@@ -403,12 +419,12 @@ class SII_Boleta_Woo {
             $dte_data['Referencias'] = $referencias;
         }
 
-        $xml = $this->core->get_xml_generator()->generate_dte_xml( $dte_data, $tipo_dte );
+        $xml = $this->core->get_engine()->generate_dte_xml( $dte_data, $tipo_dte );
         if ( is_wp_error( $xml ) || ! $xml ) {
             $order->add_order_note( is_wp_error( $xml ) ? $xml->get_error_message() : __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) );
             return;
         }
-        $signed = $this->core->get_signer()->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );
+        $signed = $this->core->get_engine()->sign_dte_xml( $xml );
         if ( ! $signed ) {
             return;
         }
@@ -418,19 +434,19 @@ class SII_Boleta_Woo {
         $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
         file_put_contents( $file_path, $signed );
 
-        $track_id = $this->core->get_api()->send_dte_to_sii(
+        $track_id = $this->core->get_engine()->send_dte_file(
             $file_path,
-            $settings['environment'],
-            $settings['api_token'],
-            $settings['cert_path'],
-            $settings['cert_pass']
+            $settings['environment'] ?? 'test',
+            $settings['api_token'] ?? '',
+            $settings['cert_path'] ?? '',
+            $settings['cert_pass'] ?? ''
         );
         if ( is_wp_error( $track_id ) ) {
             $order->add_order_note( $track_id->get_error_message() );
             $track_id = false;
         }
 
-        $pdf_path = $this->core->get_pdf()->generate_pdf_representation( $signed, $settings );
+        $pdf_path = $this->core->get_engine()->render_pdf( $signed, $settings );
         if ( $pdf_path ) {
             $to       = $order->get_billing_email();
             $subject  = sprintf( __( 'Documento electrónico de reembolso para pedido #%s', 'sii-boleta-dte' ), $order->get_order_number() );

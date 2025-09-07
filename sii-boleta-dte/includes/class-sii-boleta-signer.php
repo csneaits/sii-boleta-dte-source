@@ -11,6 +11,65 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class SII_Boleta_Signer {
 
     /**
+     * Intenta cargar credenciales (clave privada y certificado) desde un PFX/P12.
+     * Primero usa openssl_pkcs12_read. Si falla con OpenSSL 3 por algoritmos legacy,
+     * intenta convertir temporalmente el PFX a PEM usando el binario `openssl` y
+     * extrae la clave/certificados desde allí.
+     *
+     * @param string $cert_path
+     * @param string $cert_pass
+     * @return array|false Array con claves ['pkey' => string, 'cert' => string] o false si falla.
+     */
+    public static function load_pkcs12_creds( $cert_path, $cert_pass ) {
+        if ( ! $cert_path || ! file_exists( $cert_path ) ) {
+            return false;
+        }
+        $pkcs12 = @file_get_contents( $cert_path );
+        $creds  = [];
+        if ( $pkcs12 && @openssl_pkcs12_read( $pkcs12, $creds, (string) $cert_pass ) ) {
+            return $creds;
+        }
+        // Fallback: usar binario openssl si está disponible y funciones no están deshabilitadas.
+        $can_exec = function_exists( 'exec' ) && ! in_array( 'exec', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true );
+        if ( ! $can_exec ) {
+            return false;
+        }
+        // Convertir a PEM en un archivo temporal y extraer clave/cert.
+        $tmpDir = function_exists( 'wp_upload_dir' ) ? ( wp_upload_dir()['basedir'] ?? sys_get_temp_dir() ) : sys_get_temp_dir();
+        $tmpPem = rtrim( $tmpDir, '/\\' ) . DIRECTORY_SEPARATOR . 'cert_bundle_' . uniqid() . '.pem';
+        $cmd    = 'openssl pkcs12 -in %s -passin pass:%s -nodes -out %s 2>&1';
+        $cmd    = sprintf( $cmd, escapeshellarg( $cert_path ), escapeshellarg( (string) $cert_pass ), escapeshellarg( $tmpPem ) );
+        @exec( $cmd, $out, $ret );
+        if ( $ret !== 0 || ! file_exists( $tmpPem ) ) {
+            if ( file_exists( $tmpPem ) ) { @unlink( $tmpPem ); }
+            return false;
+        }
+        $pem = @file_get_contents( $tmpPem );
+        @unlink( $tmpPem );
+        if ( ! $pem ) {
+            return false;
+        }
+        // Extraer clave privada y primer certificado del bundle.
+        $pkey = '';
+        if ( preg_match( '/-----BEGIN (?:ENCRYPTED )?PRIVATE KEY-----(.*?)-----END (?:ENCRYPTED )?PRIVATE KEY-----/s', $pem, $m ) ) {
+            $pkey = "-----BEGIN PRIVATE KEY-----" . trim( $m[1] ) . "-----END PRIVATE KEY-----";
+            // Reconstituir saltos de línea si se perdieron
+            $pkey = preg_replace( '/(-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----)/', "\n$1\n", $pkey );
+            $pkey = preg_replace( '/([A-Za-z0-9+\/=]{64})/', "$1\n", $pkey );
+        }
+        $cert = '';
+        if ( preg_match( '/-----BEGIN CERTIFICATE-----(.*?)-----END CERTIFICATE-----/s', $pem, $m ) ) {
+            $cert = "-----BEGIN CERTIFICATE-----" . trim( $m[1] ) . "-----END CERTIFICATE-----";
+            $cert = preg_replace( '/(-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----)/', "\n$1\n", $cert );
+            $cert = preg_replace( '/([A-Za-z0-9+\/=]{64})/', "$1\n", $cert );
+        }
+        if ( $pkey && $cert ) {
+            return [ 'pkey' => $pkey, 'cert' => $cert ];
+        }
+        return false;
+    }
+
+    /**
      * Firma un XML de DTE. Carga el certificado en formato PFX y aplica
      * digitalmente la firma al nodo Documento.
      *
@@ -45,9 +104,9 @@ class SII_Boleta_Signer {
         $objDSig->addSignature( $doc );
         // Crear clave para firmar
         $objKey = new XMLSecurityKey( $algo );
-        // Extraer clave privada del PFX
-        $pkcs12 = file_get_contents( $cert_path );
-        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+        // Extraer clave privada del PFX (con fallback a conversión)
+        $creds = self::load_pkcs12_creds( $cert_path, $cert_pass );
+        if ( ! is_array( $creds ) || empty( $creds['pkey'] ) ) {
             return false;
         }
         $objKey->loadKey( $creds['pkey'] );
@@ -91,8 +150,8 @@ class SII_Boleta_Signer {
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );
         $objKey = new XMLSecurityKey( $algo );
-        $pkcs12 = file_get_contents( $cert_path );
-        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+        $creds = self::load_pkcs12_creds( $cert_path, $cert_pass );
+        if ( ! is_array( $creds ) || empty( $creds['pkey'] ) || empty( $creds['cert'] ) ) {
             return false;
         }
         $objKey->loadKey( $creds['pkey'] );
@@ -146,8 +205,8 @@ class SII_Boleta_Signer {
         $objDSig->addSignature( $doc );
 
         $objKey = new XMLSecurityKey( $algo );
-        $pkcs12 = file_get_contents( $cert_path );
-        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+        $creds = self::load_pkcs12_creds( $cert_path, $cert_pass );
+        if ( ! is_array( $creds ) || empty( $creds['pkey'] ) || empty( $creds['cert'] ) ) {
             return false;
         }
         $objKey->loadKey( $creds['pkey'] );

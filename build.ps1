@@ -31,6 +31,22 @@ if (-not $version) {
     exit 1
 }
 
+$pluginDir = 'sii-boleta-dte'
+$composerJson = Join-Path $pluginDir 'composer.json'
+if (Test-Path $composerJson) {
+    Write-Host '[INFO] Ejecutando composer install --no-dev --prefer-dist --optimize-autoloader ...'
+    $composer = Get-Command composer -ErrorAction SilentlyContinue
+    if ($composer) {
+        & composer install --no-dev --prefer-dist --optimize-autoloader --working-dir $pluginDir
+    } elseif (Test-Path (Join-Path $pluginDir 'composer.phar')) {
+        $php = Get-Command php -ErrorAction SilentlyContinue
+        if (-not $php) { Write-Error 'PHP no está en el PATH y se requiere para ejecutar composer.phar'; exit 1 }
+        & php (Join-Path $pluginDir 'composer.phar') install --no-dev --prefer-dist --optimize-autoloader
+    } else {
+        Write-Warning 'Composer no disponible y no se encontró composer.phar. Se empaquetará sin vendor actualizado.'
+    }
+}
+
 $distDir = 'dist'
 $zipName = "sii-boleta-dte-$version.zip"
 

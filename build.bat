@@ -40,24 +40,34 @@ REM ===== Preparar dist =====
 if exist "%DIST%" rmdir /s /q "%DIST%" >nul 2>&1
 mkdir "%DIST%" >nul 2>&1
 
+REM ===== Preparar copia temporal para excluir tests =====
+set "PKG_DIR=%DIST%\pkg"
+mkdir "%PKG_DIR%" >nul 2>&1
+echo [INFO] Copiando "%PLUGIN_DIR%" a carpeta temporal...
+xcopy "%PLUGIN_DIR%" "%PKG_DIR%\%PLUGIN_DIR%" /E /I /Q >nul 2>&1
+if exist "%PKG_DIR%\%PLUGIN_DIR%\tests" (
+  echo [INFO] Excluyendo carpeta tests/ del paquete
+  rmdir /s /q "%PKG_DIR%\%PLUGIN_DIR%\tests" >nul 2>&1
+)
+
 echo [INFO] Version detectada: %VERSION%
 echo [INFO] Generando "%ZIP%"...
 
 REM ===== Intentar con tar.exe (Windows 10/11) =====
-where tar >nul 2>&1
-if %ERRORLEVEL%==0 (
-  tar -a -c -f "%ZIP%" "%PLUGIN_DIR%"
-  goto :done_zip
-)
-
-REM ===== Intentar con 7-Zip si tar no existe =====
 where 7z >nul 2>&1
 if %ERRORLEVEL%==0 (
-  7z a -tzip "%ZIP%" ".\%PLUGIN_DIR%\*" -mx=9 -xr0!*.DS_Store >nul
+  7z a -tzip "%ZIP%" ".\%PKG_DIR%\%PLUGIN_DIR%\*" -mx=9 -xr0!*.DS_Store >nul
   goto :done_zip
 )
 
-echo [ERROR] No se encontro ^"tar.exe^" ni ^"7z.exe^" en el PATH.
+REM ===== Intentar con tar.exe (Windows 10/11) =====
+where tar >nul 2>&1
+if %ERRORLEVEL%==0 (
+  tar -a -c -f "%ZIP%" -C "%PKG_DIR%" "%PLUGIN_DIR%"
+  goto :done_zip
+)
+
+echo [ERROR] No se encontro "tar.exe" ni "7z.exe" en el PATH.
 echo         Opciones:
 echo         - En Windows 10/11 habilita tar.exe (deberia venir por defecto).
 echo         - Instala 7-Zip y agrega 7z.exe al PATH.
@@ -66,6 +76,8 @@ exit /b 1
 :done_zip
 if exist "%ZIP%" (
   echo [OK] Paquete creado: %ZIP%
+  REM Limpiar temporal
+  rmdir /s /q "%PKG_DIR%" >nul 2>&1
   exit /b 0
 ) else (
   echo [ERROR] Fallo al crear el ZIP.

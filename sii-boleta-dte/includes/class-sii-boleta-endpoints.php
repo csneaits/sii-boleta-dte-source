@@ -68,13 +68,22 @@ class SII_Boleta_Endpoints {
      */
     public function get_boleta_html( $folio ) {
         $upload_dir = wp_upload_dir();
-        $pattern    = trailingslashit( $upload_dir['basedir'] ) . 'DTE_*_' . $folio . '_*.xml';
-        $files      = glob( $pattern );
-        if ( empty( $files ) ) {
+        $base_dir   = trailingslashit( $upload_dir['basedir'] );
+        // Buscar recursivamente por nombre de archivo que termine con _<folio>_*.xml (DTE o Woo_DTE)
+        $xml_file = '';
+        $it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir, FilesystemIterator::SKIP_DOTS ) );
+        foreach ( $it as $file ) {
+            if ( $file->isFile() ) {
+                $name = $file->getFilename();
+                if ( preg_match( '/^(?:Woo_)?DTE_\d+_' . preg_quote( (string) $folio, '/' ) . '_\d+\.xml$/', $name ) ) {
+                    $xml_file = $file->getPathname();
+                    break;
+                }
+            }
+        }
+        if ( ! $xml_file ) {
             return false;
         }
-
-        $xml_file = $files[0];
         $xml      = @simplexml_load_file( $xml_file );
         if ( ! $xml ) {
             return new \WP_Error( 'sii_boleta_invalid_xml' );
@@ -86,11 +95,21 @@ class SII_Boleta_Endpoints {
         $receptor   = $encabezado->Receptor;
         $totales    = $encabezado->Totales;
 
-        $pdf_pattern = trailingslashit( $upload_dir['basedir'] ) . 'DTE_*_' . $folio . '_*.pdf';
-        $pdf_files   = glob( $pdf_pattern );
-        $pdf_url     = '';
-        if ( $pdf_files ) {
-            $pdf_url = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $pdf_files[0] );
+        // Buscar PDF recursivamente en misma base
+        $pdf_url = '';
+        $pdf_path = '';
+        $it2 = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir, FilesystemIterator::SKIP_DOTS ) );
+        foreach ( $it2 as $file ) {
+            if ( $file->isFile() ) {
+                $name = $file->getFilename();
+                if ( preg_match( '/^(?:Woo_)?DTE_\d+_' . preg_quote( (string) $folio, '/' ) . '_\d+\.pdf$/', $name ) ) {
+                    $pdf_path = $file->getPathname();
+                    break;
+                }
+            }
+        }
+        if ( $pdf_path ) {
+            $pdf_url = str_replace( $upload_dir['basedir'], $upload_dir['baseurl'], $pdf_path );
         }
 
         ob_start();

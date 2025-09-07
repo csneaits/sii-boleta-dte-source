@@ -57,6 +57,10 @@ class SII_Boleta_XML_Generator {
             if ( ! empty( $data['MedioPago'] ) ) {
                 $id_doc->addChild( 'MedioPago', $data['MedioPago'] );
             }
+            // Para Guía (52): tipo de traslado opcional
+            if ( ! empty( $data['TpoTraslado'] ) ) {
+                $id_doc->addChild( 'TpoTraslado', $data['TpoTraslado'] );
+            }
 
             $emisor = $encabezado->addChild( 'Emisor' );
             $emisor->addChild( 'RUTEmisor', $data['RutEmisor'] );
@@ -75,6 +79,16 @@ class SII_Boleta_XML_Generator {
             }
             if ( ! empty( $data['Receptor']['TelefonoRecep'] ) ) {
                 $receptor->addChild( 'TelefonoRecep', $data['Receptor']['TelefonoRecep'] );
+            }
+
+            // Datos de transporte (principalmente para Guía 52)
+            if ( ! empty( $data['Transporte'] ) && is_array( $data['Transporte'] ) ) {
+                $transporte = $encabezado->addChild( 'Transporte' );
+                foreach ( [ 'Patente', 'RUTTrans', 'RUTChofer', 'NombreChofer', 'DirDest', 'CmnaDest' ] as $tkey ) {
+                    if ( ! empty( $data['Transporte'][ $tkey ] ) ) {
+                        $transporte->addChild( $tkey, $data['Transporte'][ $tkey ] );
+                    }
+                }
             }
 
             // Totales
@@ -278,8 +292,8 @@ class SII_Boleta_XML_Generator {
         $dd_string = $dom->C14N();
 
         // Firmar el DD utilizando el certificado y la clave privada
-        $pkcs12 = file_get_contents( $cert_path );
-        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+        $creds = SII_Boleta_Signer::load_pkcs12_creds( $cert_path, $cert_pass );
+        if ( ! is_array( $creds ) || empty( $creds['pkey'] ) || empty( $creds['cert'] ) ) {
             return false;
         }
         $private_key = $creds['pkey'];

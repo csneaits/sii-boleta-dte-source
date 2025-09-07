@@ -40,6 +40,7 @@ class SII_Boleta_Core {
     private $consumo_folios;
     private $queue;
     private $help;
+    private $engine;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -57,7 +58,28 @@ class SII_Boleta_Core {
         $this->endpoints     = new SII_Boleta_Endpoints();
         $this->metrics       = new SII_Boleta_Metrics();
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
-        $this->queue         = new SII_Boleta_Queue( $this->api, $this->settings );
+
+        // Construir motor nativo y permitir reemplazo vía filtro.
+        $native_engine = new SII_Native_Engine(
+            $this->settings,
+            $this->xml_generator,
+            $this->signer,
+            $this->api,
+            $this->pdf,
+            $this->rvd_manager,
+            $this->consumo_folios,
+            new SII_Libro_Boletas( $this->settings )
+        );
+        // Motor por defecto: LibreDTE (con fallback interno al nativo si no está disponible la lib).
+        $default_engine = new SII_LibreDTE_Engine( $native_engine, $this->settings );
+        /**
+         * Permite reemplazar el motor DTE por otro (p.ej. LibreDTE) desde un addon.
+         *
+         * @param SII_DTE_Engine $default_engine Motor por defecto.
+         */
+        $this->engine = apply_filters( 'sii_boleta_dte_engine', $default_engine );
+
+        $this->queue         = new SII_Boleta_Queue( $this->engine, $this->settings );
         require_once SII_BOLETA_DTE_PATH . 'includes/admin/class-sii-boleta-help.php';
         $this->help = new SII_Boleta_Help();
 
@@ -86,6 +108,56 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_toggle_job', [ $this, 'ajax_toggle_job' ] );
         add_action( 'wp_ajax_sii_boleta_dte_run_cdf', [ $this, 'ajax_run_cdf' ] );
         add_action( 'wp_ajax_sii_boleta_dte_queue_status', [ $this, 'ajax_queue_status' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_check_status_now', [ $this, 'ajax_check_status_now' ] );
+
+        // Integración automática con FluentSMTP (perfiles + selección de remitente)
+        add_filter( 'sii_boleta_available_smtp_profiles', [ $this, 'fluent_smtp_profiles' ] );
+        add_action( 'sii_boleta_setup_mailer', [ $this, 'fluent_smtp_setup_mailer' ], 10, 2 );
+    }
+
+    /**
+     * Detecta perfiles de FluentSMTP y los expone para el selector de perfiles SMTP.
+     *
+     * @param array $profiles Perfiles actuales.
+     * @return array
+     */
+    public function fluent_smtp_profiles( $profiles ) {
+        $out = [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ];
+        $settings = get_option( 'fluent_smtp_settings' );
+        $conns    = isset( $settings['connections'] ) && is_array( $settings['connections'] ) ? $settings['connections'] : [];
+        foreach ( $conns as $key => $conn ) {
+            $email = isset( $conn['sender_email'] ) ? (string) $conn['sender_email'] : '';
+            $name  = isset( $conn['sender_name'] ) ? (string) $conn['sender_name'] : '';
+            if ( $email ) {
+                $label = trim( $name . ' <' . $email . '>' );
+                $out[ (string) $key ] = $label ?: $email;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Configura PHPMailer para que FluentSMTP seleccione la conexión indicada.
+     * Establece el From/Return-Path al del perfil. FluentSMTP enruta por remitente.
+     *
+     * @param PHPMailer $phpmailer
+     * @param string    $profile   Clave del perfil seleccionado.
+     */
+    public function fluent_smtp_setup_mailer( $phpmailer, $profile ) {
+        if ( empty( $profile ) ) {
+            return;
+        }
+        $settings = get_option( 'fluent_smtp_settings' );
+        $conn     = isset( $settings['connections'][ $profile ] ) ? $settings['connections'][ $profile ] : null;
+        if ( ! $conn ) {
+            return;
+        }
+        $from = isset( $conn['sender_email'] ) ? (string) $conn['sender_email'] : '';
+        $name = isset( $conn['sender_name'] ) ? (string) $conn['sender_name'] : '';
+        if ( $from && method_exists( $phpmailer, 'setFrom' ) ) {
+            $phpmailer->setFrom( $from, $name, false );
+            $phpmailer->Sender = $from; // Return-Path
+        }
     }
 
     /**
@@ -170,6 +242,32 @@ class SII_Boleta_Core {
     }
 
     /**
+     * Devuelve el motor DTE activo (nativo o inyectado por addon).
+     *
+     * @return SII_DTE_Engine
+     */
+    public function get_engine() {
+        return $this->engine;
+    }
+
+    /**
+     * AJAX: Forzar verificación de estados ahora.
+     */
+    public function ajax_check_status_now() {
+        check_ajax_referer( 'sii_boleta_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        try {
+            $cron = new SII_Boleta_Cron( $this->settings );
+            $cron->check_pending_statuses();
+            wp_send_json_success( [ 'message' => __( 'Verificación ejecutada.', 'sii-boleta-dte' ) ] );
+        } catch ( Exception $e ) {
+            wp_send_json_error( [ 'message' => $e->getMessage() ] );
+        }
+    }
+
+    /**
      * Agrega un indicador en la barra de administración para mostrar si el
      * plugin está operando en ambiente de pruebas o producción.
      *
@@ -215,9 +313,9 @@ class SII_Boleta_Core {
         $settings = $this->settings->get_settings();
         $env      = isset( $settings['environment'] ) ? $settings['environment'] : 'test';
         if ( 'test' === $env ) {
-            echo '<div class="notice notice-warning"><p>' . esc_html__( 'El plugin está en modo de pruebas.', 'sii-boleta-dte' ) . '</p></div>';
+            echo '<div class="notice notice-warning"><p>' . esc_html__( 'SII Boleta DTE está en modo de pruebas.', 'sii-boleta-dte' ) . '</p></div>';
         } else {
-            echo '<div class="notice notice-success"><p>' . esc_html__( 'El plugin está en modo de producción.', 'sii-boleta-dte' ) . '</p></div>';
+            echo '<div class="notice notice-success"><p>' . esc_html__( 'SII Boleta DTE está en modo de producción.', 'sii-boleta-dte' ) . '</p></div>';
         }
 
         $enabled = $settings['enabled_dte_types'] ?? [];
@@ -441,31 +539,108 @@ class SII_Boleta_Core {
                 <canvas id="sii-chart-by-type" height="120"></canvas>
                 <canvas id="sii-chart-errors" height="120"></canvas>
             <?php elseif ( 'logs' === $active_tab ) : ?>
-                <?php $logs = SII_Boleta_Log_DB::get_entries(); ?>
-                <table class="widefat striped">
-                    <thead>
-                        <tr>
-                            <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
-                            <th><?php esc_html_e( 'Track ID', 'sii-boleta-dte' ); ?></th>
-                            <th><?php esc_html_e( 'Estado', 'sii-boleta-dte' ); ?></th>
-                            <th><?php esc_html_e( 'Respuesta', 'sii-boleta-dte' ); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ( $logs ) : ?>
-                            <?php foreach ( $logs as $log ) : ?>
+                <?php
+                $filter_track   = isset( $_GET['track'] ) ? sanitize_text_field( wp_unslash( $_GET['track'] ) ) : '';
+                $filter_status  = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : '';
+                $filter_from    = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '';
+                $filter_to      = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '';
+                $per_page       = 20;
+                $paged          = isset( $_GET['paged'] ) ? max( 1, intval( $_GET['paged'] ) ) : 1;
+                $offset         = ( $paged - 1 ) * $per_page;
+                $total          = class_exists( 'SII_Boleta_Log_DB' ) ? SII_Boleta_Log_DB::count_entries_filtered( $filter_track, $filter_status, $filter_from, $filter_to ) : 0;
+                $entries        = class_exists( 'SII_Boleta_Log_DB' ) ? SII_Boleta_Log_DB::get_entries_filtered( $filter_track, $filter_status, $filter_from, $filter_to, $per_page, $offset ) : [];
+                ?>
+                <h2><?php esc_html_e( 'Log de Envíos al SII', 'sii-boleta-dte' ); ?></h2>
+                <form method="get" style="margin-bottom:10px;">
+                    <input type="hidden" name="page" value="sii-boleta-dte-panel" />
+                    <input type="hidden" name="tab" value="logs" />
+                    <input type="text" name="track" placeholder="Track ID" value="<?php echo esc_attr( $filter_track ); ?>" />
+                    <input type="text" name="status" placeholder="Estado" value="<?php echo esc_attr( $filter_status ); ?>" />
+                    <input type="date" name="date_from" value="<?php echo esc_attr( $filter_from ); ?>" />
+                    <input type="date" name="date_to" value="<?php echo esc_attr( $filter_to ); ?>" />
+                    <button type="submit" class="button"><?php esc_html_e( 'Filtrar', 'sii-boleta-dte' ); ?></button>
+                    <button type="button" id="sii-check-status-now" class="button button-primary" style="float:right;"><?php esc_html_e( 'Revisar estados ahora', 'sii-boleta-dte' ); ?></button>
+                    <span id="sii-check-status-result" style="float:right;margin-right:10px;"></span>
+                </form>
+                <?php if ( empty( $entries ) ) : ?>
+                    <p><?php esc_html_e( 'No hay envíos registrados aún.', 'sii-boleta-dte' ); ?></p>
+                <?php else : ?>
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Track ID', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Estado', 'sii-boleta-dte' ); ?></th>
+                                <th><?php esc_html_e( 'Detalle', 'sii-boleta-dte' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $entries as $row ) : ?>
                                 <tr>
-                                    <td><?php echo esc_html( $log['created_at'] ); ?></td>
-                                    <td><?php echo esc_html( $log['track_id'] ); ?></td>
-                                    <td><?php echo esc_html( $log['status'] ); ?></td>
-                                    <td><?php echo esc_html( $log['response'] ); ?></td>
+                                    <td><?php echo esc_html( $row['created_at'] ); ?></td>
+                                    <td><?php echo esc_html( $row['track_id'] ); ?></td>
+                                    <td><?php echo esc_html( $row['status'] ); ?></td>
+                                    <td>
+                                        <?php
+                                        $resp = trim( (string) ( $row['response'] ?? '' ) );
+                                        $short = mb_strimwidth( $resp, 0, 120, '…', 'UTF-8' );
+                                        echo esc_html( $short );
+                                        ?>
+                                        <?php if ( $resp !== '' ) : ?>
+                                            <button type="button" class="button-link sii-log-view" data-response="<?php echo esc_attr( $resp ); ?>"><?php esc_html_e( 'Ver', 'sii-boleta-dte' ); ?></button>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
-                        <?php else : ?>
-                            <tr><td colspan="4"><?php esc_html_e( 'Sin registros.', 'sii-boleta-dte' ); ?></td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                    <?php
+                    $total_pages = max( 1, ceil( $total / $per_page ) );
+                    if ( $total_pages > 1 ) :
+                        echo '<div class="tablenav"><div class="tablenav-pages">';
+                        $base_url = remove_query_arg( [ 'paged' ] );
+                        for ( $p = 1; $p <= $total_pages; $p++ ) {
+                            $url = esc_url( add_query_arg( 'paged', $p, $base_url ) );
+                            $class = ( $p === $paged ) ? ' class="page-numbers current"' : ' class="page-numbers"';
+                            echo '<a' . $class . ' href="' . $url . '">' . $p . '</a> ';
+                        }
+                        echo '</div></div>';
+                    endif;
+                    ?>
+                    <div id="sii-log-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;">
+                        <div style="background:#fff;max-width:800px;margin:60px auto;padding:15px;border-radius:4px;position:relative;">
+                            <button type="button" id="sii-log-close" class="button" style="position:absolute;top:10px;right:10px;">&times;</button>
+                            <h3><?php esc_html_e( 'Detalle de respuesta', 'sii-boleta-dte' ); ?></h3>
+                            <pre id="sii-log-content" style="white-space:pre-wrap;max-height:60vh;overflow:auto;"></pre>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <script>
+                jQuery(function($){
+                    $('#sii-check-status-now').on('click', function(){
+                        var $btn = $(this);
+                        $btn.prop('disabled', true);
+                        $('#sii-check-status-result').text('<?php echo esc_js( __( 'Consultando...', 'sii-boleta-dte' ) ); ?>');
+                        $.post(ajaxurl, { action: 'sii_boleta_dte_check_status_now', _wpnonce: '<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>' }, function(resp){
+                            $btn.prop('disabled', false);
+                            if (resp && resp.success) {
+                                $('#sii-check-status-result').text(resp.data.message || 'OK');
+                            } else {
+                                $('#sii-check-status-result').text('Error');
+                            }
+                        });
+                    });
+                    $(document).on('click', '.sii-log-view', function(){
+                        var resp = $(this).data('response') || '';
+                        $('#sii-log-content').text(resp);
+                        $('#sii-log-modal').show();
+                    });
+                    $('#sii-log-close').on('click', function(){
+                        $('#sii-log-modal').hide();
+                        $('#sii-log-content').text('');
+                    });
+                });
+                </script>
             <?php else : ?>
                 <p>
                     <button type="button" class="button" id="sii-refresh-dtes"><?php esc_html_e( 'Actualizar', 'sii-boleta-dte' ); ?></button>
@@ -492,7 +667,7 @@ class SII_Boleta_Core {
             if (activeTab === 'boletas') {
                 function loadDtes(){
                     $('#sii-dte-table tbody').html('<tr><td colspan="6"><?php echo esc_js( __( 'Cargando...', 'sii-boleta-dte' ) ); ?></td></tr>');
-                    $.post(ajaxurl, {action:'sii_boleta_dte_list_dtes'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_list_dtes', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             var rows='';
                             $.each(resp.data.dtes, function(i,d){
@@ -511,7 +686,7 @@ class SII_Boleta_Core {
                 loadDtes();
             } else if (activeTab === 'jobs') {
                 function loadLog(){
-                    $.post(ajaxurl, {action:'sii_boleta_dte_job_log'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_job_log', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             $('#sii-job-log').text(resp.data.log);
                             $('#sii-job-next').text(resp.data.next_run);
@@ -522,7 +697,7 @@ class SII_Boleta_Core {
                     });
                 }
                 function loadQueue(){
-                    $.post(ajaxurl, {action:'sii_boleta_dte_queue_status'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_queue_status', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             $('#sii-queue-count').text(resp.data.count);
                         }
@@ -530,7 +705,7 @@ class SII_Boleta_Core {
                 }
                 $('#sii-toggle-job').on('click', function(){
                     $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
-                    $.post(ajaxurl, {action:'sii_boleta_dte_toggle_job'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_toggle_job', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             $('#sii-rvd-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
                         }else{
@@ -541,7 +716,7 @@ class SII_Boleta_Core {
                 });
                 $('#sii-run-rvd').on('click', function(){
                     $('#sii-rvd-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
-                    $.post(ajaxurl, {action:'sii_boleta_dte_run_rvd'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_run_rvd', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             $('#sii-rvd-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
                         }else{
@@ -552,7 +727,7 @@ class SII_Boleta_Core {
                 });
                 $('#sii-run-cdf').on('click', function(){
                     $('#sii-cdf-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
-                    $.post(ajaxurl, {action:'sii_boleta_dte_run_cdf'}, function(resp){
+                    $.post(ajaxurl, {action:'sii_boleta_dte_run_cdf', _wpnonce:'<?php echo esc_js( wp_create_nonce( 'sii_boleta_nonce' ) ); ?>'}, function(resp){
                         if(resp.success){
                             $('#sii-cdf-result').html('<div class="notice notice-success"><p>'+resp.data.message+'</p></div>');
                         }else{
@@ -592,7 +767,7 @@ class SII_Boleta_Core {
                     <tr>
                         <th scope="row"><label for="dte_type"><?php esc_html_e( 'Tipo de DTE', 'sii-boleta-dte' ); ?></label></th>
                         <td>
-                    <select name="dte_type" id="dte_type">
+                            <select name="dte_type" id="dte_type">
                                 <option value="39">Boleta Electrónica (39)</option>
                                 <option value="33">Factura Electrónica (33)</option>
                                 <option value="34">Factura Exenta (34)</option>
@@ -602,6 +777,10 @@ class SII_Boleta_Core {
                             </select>
                         </td>
                     </tr>
+                </table>
+
+                <h2><?php esc_html_e( 'Datos del Receptor', 'sii-boleta-dte' ); ?></h2>
+                <table class="form-table">
                     <tr>
                         <th scope="row"><label for="receptor_rut"><?php esc_html_e( 'RUT Receptor', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="text" name="receptor_rut" id="receptor_rut" class="regular-text" required></td>
@@ -610,48 +789,147 @@ class SII_Boleta_Core {
                         <th scope="row"><label for="receptor_nombre"><?php esc_html_e( 'Nombre Receptor', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="text" name="receptor_nombre" id="receptor_nombre" class="regular-text" required></td>
                     </tr>
-                    <tr>
+                    <tr class="recipient-details-fields" style="display:none;">
                         <th scope="row"><label for="direccion_recep"><?php esc_html_e( 'Dirección Receptor', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="text" name="direccion_recep" id="direccion_recep" class="regular-text"></td>
                     </tr>
-                    <tr>
+                    <tr class="recipient-details-fields" style="display:none;">
                         <th scope="row"><label for="comuna_recep"><?php esc_html_e( 'Comuna Receptor', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="text" name="comuna_recep" id="comuna_recep" class="regular-text"></td>
                     </tr>
-                    <tr>
-                        <th scope="row"><label for="descripcion"><?php esc_html_e( 'Descripción Ítem', 'sii-boleta-dte' ); ?></label></th>
-                        <td><textarea name="descripcion" id="descripcion" class="large-text" rows="3" required></textarea></td>
+                    <tr class="recipient-details-fields" style="display:none;">
+                        <th scope="row"><label for="correo_recep"><?php esc_html_e( 'Correo Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="email" name="correo_recep" id="correo_recep" class="regular-text"></td>
                     </tr>
-                    <tr>
-                        <th scope="row"><label for="cantidad"><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></label></th>
-                        <td><input type="number" name="cantidad" id="cantidad" class="small-text" step="1" min="1" value="1" required></td>
+                    <tr class="recipient-details-fields" style="display:none;">
+                        <th scope="row"><label for="telefono_recep"><?php esc_html_e( 'Teléfono Receptor', 'sii-boleta-dte' ); ?></label></th>
+                        <td><input type="text" name="telefono_recep" id="telefono_recep" class="regular-text"></td>
                     </tr>
-                    <tr>
-                        <th scope="row"><label for="precio_unitario"><?php esc_html_e( 'Precio Unitario', 'sii-boleta-dte' ); ?></label></th>
-                        <td><input type="number" name="precio_unitario" id="precio_unitario" class="small-text" step="0.01" min="0" value="0" required></td>
-                    </tr>
-                    <tr id="referencia_fields" style="display:none;">
-                        <th scope="row"><label for="folio_ref"><?php esc_html_e( 'Folio Documento Referencia', 'sii-boleta-dte' ); ?></label></th>
-                        <td><input type="text" name="folio_ref" id="folio_ref" class="regular-text"><br/>
-                            <label for="tipo_doc_ref"><?php esc_html_e( 'Tipo Doc Referencia', 'sii-boleta-dte' ); ?></label>
-                            <select name="tipo_doc_ref" id="tipo_doc_ref">
-                                <option value="39">Boleta (39)</option>
-                                <option value="33">Factura (33)</option>
-                                <option value="34">Factura Exenta (34)</option>
-                                <option value="52">Guía de Despacho (52)</option>
-                                <option value="61">Nota de Crédito (61)</option>
-                                <option value="56">Nota de Débito (56)</option>
-                            </select><br/>
-                            <label for="razon_ref"><?php esc_html_e( 'Razón Referencia', 'sii-boleta-dte' ); ?></label>
-                            <input type="text" name="razon_ref" id="razon_ref" class="regular-text" />
-                        </td>
-                    </tr>
+                </table>
+
+                <h2><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></h2>
+                <table class="widefat striped" id="tabla-items">
+                    <thead>
+                        <tr>
+                            <th style="width:55%"><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
+                            <th style="width:15%"><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
+                            <th style="width:20%"><?php esc_html_e( 'Precio Unitario', 'sii-boleta-dte' ); ?></th>
+                            <th style="width:10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" name="descripcion[]" class="regular-text" required></td>
+                            <td><input type="number" name="cantidad[]" class="small-text" step="1" min="1" value="1" required></td>
+                            <td><input type="number" name="precio_unitario[]" class="small-text" step="0.01" min="0" value="0" required></td>
+                            <td><button type="button" class="button remove-item" aria-label="Eliminar">&times;</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    <button type="button" class="button" id="agregar-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button>
+                </p>
+
+                <div id="medio_pago_fields" style="display:none;">
+                    <h2><?php esc_html_e( 'Condiciones de Venta', 'sii-boleta-dte' ); ?></h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="medio_pago"><?php esc_html_e( 'Medio de Pago', 'sii-boleta-dte' ); ?></label></th>
+                            <td>
+                                <select name="medio_pago" id="medio_pago">
+                                    <option value=""><?php esc_html_e( 'Seleccione…', 'sii-boleta-dte' ); ?></option>
+                                    <option value="1"><?php esc_html_e( 'Contado', 'sii-boleta-dte' ); ?></option>
+                                    <option value="2"><?php esc_html_e( 'Crédito', 'sii-boleta-dte' ); ?></option>
+                                    <option value="3"><?php esc_html_e( 'Gratuito', 'sii-boleta-dte' ); ?></option>
+                                    <option value="4"><?php esc_html_e( 'Cheque', 'sii-boleta-dte' ); ?></option>
+                                    <option value="5"><?php esc_html_e( 'Transferencia', 'sii-boleta-dte' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div id="referencia_fields" style="display:none;">
+                    <h2><?php esc_html_e( 'Referencia', 'sii-boleta-dte' ); ?></h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="folio_ref"><?php esc_html_e( 'Folio Documento Referencia', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="folio_ref" id="folio_ref" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="tipo_doc_ref"><?php esc_html_e( 'Tipo Doc Referencia', 'sii-boleta-dte' ); ?></label></th>
+                            <td>
+                                <select name="tipo_doc_ref" id="tipo_doc_ref">
+                                    <option value="39">Boleta (39)</option>
+                                    <option value="33">Factura (33)</option>
+                                    <option value="34">Factura Exenta (34)</option>
+                                    <option value="52">Guía de Despacho (52)</option>
+                                    <option value="61">Nota de Crédito (61)</option>
+                                    <option value="56">Nota de Débito (56)</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="razon_ref"><?php esc_html_e( 'Razón Referencia', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="razon_ref" id="razon_ref" class="regular-text" /></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div id="guia_fields" style="display:none;">
+                    <h2><?php esc_html_e( 'Datos de Transporte (Guía 52)', 'sii-boleta-dte' ); ?></h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="tpo_traslado"><?php esc_html_e( 'Tipo de Traslado', 'sii-boleta-dte' ); ?></label></th>
+                            <td>
+                                <select name="tpo_traslado" id="tpo_traslado">
+                                    <option value=""><?php esc_html_e( 'Seleccione…', 'sii-boleta-dte' ); ?></option>
+                                    <option value="1"><?php esc_html_e( 'Venta', 'sii-boleta-dte' ); ?></option>
+                                    <option value="2"><?php esc_html_e( 'Consignación', 'sii-boleta-dte' ); ?></option>
+                                    <option value="3"><?php esc_html_e( 'Entrega Gratuita', 'sii-boleta-dte' ); ?></option>
+                                    <option value="5"><?php esc_html_e( 'Traslado Interno', 'sii-boleta-dte' ); ?></option>
+                                    <option value="6"><?php esc_html_e( 'Devolución', 'sii-boleta-dte' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="patente"><?php esc_html_e( 'Patente Vehículo', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="patente" id="patente" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="rut_trans"><?php esc_html_e( 'RUT Transportista', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="rut_trans" id="rut_trans" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="rut_chofer"><?php esc_html_e( 'RUT Chofer', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="rut_chofer" id="rut_chofer" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="nombre_chofer"><?php esc_html_e( 'Nombre Chofer', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="nombre_chofer" id="nombre_chofer" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="dir_dest"><?php esc_html_e( 'Dirección Destino', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="dir_dest" id="dir_dest" class="regular-text"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="cmna_dest"><?php esc_html_e( 'Comuna Destino', 'sii-boleta-dte' ); ?></label></th>
+                            <td><input type="text" name="cmna_dest" id="cmna_dest" class="regular-text"></td>
+                        </tr>
+                        
+                    </table>
+                </div>
+
+                <table class="form-table">
                     <tr>
                         <th scope="row"><label for="enviar_sii"><?php esc_html_e( '¿Enviar al SII?', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="checkbox" name="enviar_sii" id="enviar_sii" value="1"></td>
                     </tr>
                 </table>
+
+                <?php wp_nonce_field( 'sii_boleta_preview_dte', 'sii_boleta_preview_dte_nonce' ); ?>
                 <p class="submit">
+                    <button type="button" class="button" id="sii-preview-dte"><?php esc_html_e( 'Previsualizar', 'sii-boleta-dte' ); ?></button>
                     <button type="submit" class="button button-primary" id="sii-generate-dte">
                         <?php esc_html_e( 'Generar DTE', 'sii-boleta-dte' ); ?>
                     </button>
@@ -661,30 +939,62 @@ class SII_Boleta_Core {
         </div>
         <script>
         jQuery(document).ready(function($){
-            function toggleReferenceFields() {
+            function updateFormByType(){
                 var type = $('#dte_type').val();
+                // Mostrar/ocultar referencias (notas de crédito/débito)
                 if (type === '56' || type === '61') {
                     $('#referencia_fields').show();
+                    $('#folio_ref, #tipo_doc_ref, #razon_ref').prop('required', true);
                 } else {
                     $('#referencia_fields').hide();
+                    $('#folio_ref, #tipo_doc_ref, #razon_ref').prop('required', false);
                 }
-            }
-            function toggleAddressFields() {
-                var type = $('#dte_type').val();
+                // Detalles receptor obligatorios para factura/exenta/guía
                 if (type === '33' || type === '34' || type === '52') {
-                    $('#direccion_recep').prop('required', true);
-                    $('#comuna_recep').prop('required', true);
+                    $('.recipient-details-fields').show();
+                    $('#direccion_recep, #comuna_recep').prop('required', true);
                 } else {
-                    $('#direccion_recep').prop('required', false);
-                    $('#comuna_recep').prop('required', false);
+                    $('.recipient-details-fields').hide();
+                    $('#direccion_recep, #comuna_recep').prop('required', false);
+                }
+                // Medio de pago solo para facturas (33/34)
+                if (type === '33' || type === '34') {
+                    $('#medio_pago_fields').show();
+                } else {
+                    $('#medio_pago_fields').hide();
+                    $('#medio_pago').val('');
+                }
+                // Datos de Guía (52)
+                if (type === '52') {
+                    $('#guia_fields').show();
+                    $('#tpo_traslado, #dir_dest, #cmna_dest').prop('required', true);
+                } else {
+                    $('#guia_fields').hide();
+                    $('#tpo_traslado, #dir_dest, #cmna_dest').prop('required', false);
+                    $('#tpo_traslado').val('');
+                    $('#patente, #rut_trans, #rut_chofer, #nombre_chofer, #dir_dest, #cmna_dest').val('');
                 }
             }
-            toggleReferenceFields();
-            toggleAddressFields();
-            $('#dte_type').on('change', function(){
-                toggleReferenceFields();
-                toggleAddressFields();
+            updateFormByType();
+            $('#dte_type').on('change', updateFormByType);
+
+            // Manejo dinámico de ítems
+            $('#agregar-item').on('click', function(){
+                var row = '<tr>'+
+                    '<td><input type="text" name="descripcion[]" class="regular-text" required></td>'+
+                    '<td><input type="number" name="cantidad[]" class="small-text" step="1" min="1" value="1" required></td>'+
+                    '<td><input type="number" name="precio_unitario[]" class="small-text" step="0.01" min="0" value="0" required></td>'+
+                    '<td><button type="button" class="button remove-item" aria-label="Eliminar">&times;</button></td>'+
+                '</tr>';
+                $('#tabla-items tbody').append(row);
             });
+            $(document).on('click', '.remove-item', function(){
+                var $rows = $('#tabla-items tbody tr');
+                if ($rows.length > 1) {
+                    $(this).closest('tr').remove();
+                }
+            });
+
             $('#sii-boleta-generate-form').on('submit', function(e){
                 e.preventDefault();
                 var data = $(this).serialize();
@@ -695,7 +1005,26 @@ class SII_Boleta_Core {
                     if (response.success) {
                         $('#sii-boleta-result').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
                     } else {
-                        $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                        $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + (response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Error inesperado.', 'sii-boleta-dte' ) ); ?>') + '</p></div>');
+                    }
+                });
+            });
+
+            $('#sii-preview-dte').on('click', function(){
+                var data = $('#sii-boleta-generate-form').serialize();
+                $('#sii-preview-dte').prop('disabled', true);
+                $('#sii-boleta-result').html('<p><?php echo esc_js( __( 'Generando previsualización...', 'sii-boleta-dte' ) ); ?></p>');
+                $.post(ajaxurl, data + '&action=sii_boleta_dte_preview_dte', function(response){
+                    $('#sii-preview-dte').prop('disabled', false);
+                    if (response.success) {
+                        var url = response.data.preview_url;
+                        var html = '<div class="notice notice-success"><p><?php echo esc_js( __( 'Previsualización lista.', 'sii-boleta-dte' ) ); ?> ';
+                        if (url) { html += '<a href="'+url+'" target="_blank"><?php echo esc_js( __( 'Abrir en una nueva pestaña', 'sii-boleta-dte' ) ); ?></a>'; }
+                        html += '</p></div>';
+                        $('#sii-boleta-result').html(html);
+                        if (url) { try { window.open(url, '_blank'); } catch(e) {} }
+                    } else {
+                        $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + (response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Error al previsualizar.', 'sii-boleta-dte' ) ); ?>') + '</p></div>');
                     }
                 });
             });
@@ -739,27 +1068,74 @@ class SII_Boleta_Core {
         $nombre_receptor = sanitize_text_field( $_POST['receptor_nombre'] );
         $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
         $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
-        $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
-        $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
-        $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
-        $enviar_sii      = isset( $_POST['enviar_sii'] );
+        $correo_recep    = sanitize_text_field( $_POST['correo_recep'] ?? '' );
+        $telefono_recep  = sanitize_text_field( $_POST['telefono_recep'] ?? '' );
+        // Ítems múltiples
+        $descripciones   = isset( $_POST['descripcion'] ) ? (array) $_POST['descripcion'] : [];
+        $cantidades      = isset( $_POST['cantidad'] ) ? (array) $_POST['cantidad'] : [];
+        $precios         = isset( $_POST['precio_unitario'] ) ? (array) $_POST['precio_unitario'] : [];
+        // Datos Guía (52)
+        $tpo_traslado    = isset( $_POST['tpo_traslado'] ) ? sanitize_text_field( $_POST['tpo_traslado'] ) : '';
+        $patente         = isset( $_POST['patente'] ) ? sanitize_text_field( $_POST['patente'] ) : '';
+        $rut_trans       = isset( $_POST['rut_trans'] ) ? sanitize_text_field( $_POST['rut_trans'] ) : '';
+        $rut_chofer      = isset( $_POST['rut_chofer'] ) ? sanitize_text_field( $_POST['rut_chofer'] ) : '';
+        $nombre_chofer   = isset( $_POST['nombre_chofer'] ) ? sanitize_text_field( $_POST['nombre_chofer'] ) : '';
+        $dir_dest        = isset( $_POST['dir_dest'] ) ? sanitize_text_field( $_POST['dir_dest'] ) : '';
+        $cmna_dest       = isset( $_POST['cmna_dest'] ) ? sanitize_text_field( $_POST['cmna_dest'] ) : '';
         // Datos de referencia para notas
         $folio_ref       = isset( $_POST['folio_ref'] ) ? sanitize_text_field( $_POST['folio_ref'] ) : '';
         $tipo_doc_ref    = isset( $_POST['tipo_doc_ref'] ) ? sanitize_text_field( $_POST['tipo_doc_ref'] ) : '';
         $razon_ref       = isset( $_POST['razon_ref'] ) ? sanitize_text_field( $_POST['razon_ref'] ) : '';
+        $enviar_sii      = isset( $_POST['enviar_sii'] );
+        $medio_pago      = isset( $_POST['medio_pago'] ) ? sanitize_text_field( $_POST['medio_pago'] ) : '';
 
-        // Obtener un nuevo folio
-        $folio = $this->folio_manager->get_next_folio( $type );
-        if ( is_wp_error( $folio ) ) {
-            wp_send_json_error( [ 'message' => $folio->get_error_message() ] );
-        }
-        if ( ! $folio ) {
-            wp_send_json_error( [ 'message' => __( 'No hay folios disponibles. Cargue un CAF válido.', 'sii-boleta-dte' ) ] );
+        // Política: solo consumir folio si se envía al SII con éxito.
+        $folio = 0;
+        if ( $enviar_sii ) {
+            $folio = $this->folio_manager->peek_next_folio( $type );
+            if ( is_wp_error( $folio ) ) {
+                wp_send_json_error( [ 'message' => $folio->get_error_message() ] );
+            }
+            if ( ! $folio ) {
+                wp_send_json_error( [ 'message' => __( 'No hay folios disponibles. Cargue un CAF válido.', 'sii-boleta-dte' ) ] );
+            }
         }
 
         // Preparar datos comunes para el DTE
         $settings = $this->settings->get_settings();
-        $monto_total = round( $cantidad * $precio_unitario );
+        // Construir detalles desde arrays (con fallback a un solo ítem)
+        $detalles = [];
+        $line     = 1;
+        $monto_total = 0;
+        if ( ! empty( $descripciones ) ) {
+            foreach ( $descripciones as $i => $desc ) {
+                $desc  = sanitize_text_field( $desc );
+                $qty   = isset( $cantidades[ $i ] ) ? max( 1, intval( $cantidades[ $i ] ) ) : 1;
+                $price = isset( $precios[ $i ] ) ? max( 0, floatval( $precios[ $i ] ) ) : 0;
+                $monto = round( $qty * $price );
+                $monto_total += $monto;
+                $detalles[] = [
+                    'NroLinDet' => $line++,
+                    'NmbItem'   => $desc,
+                    'QtyItem'   => $qty,
+                    'PrcItem'   => $price,
+                    'MontoItem' => $monto,
+                ];
+            }
+        } else {
+            $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
+            $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
+            $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
+            $monto_total = round( $cantidad * $precio_unitario );
+            $detalles[] = [
+                'NroLinDet' => 1,
+                'NmbItem'   => $descripcion,
+                'QtyItem'   => $cantidad,
+                'PrcItem'   => $precio_unitario,
+                'MontoItem' => $monto_total,
+            ];
+        }
+
         $dte_data = [
             'TipoDTE'    => $type,
             'Folio'      => $folio,
@@ -770,23 +1146,42 @@ class SII_Boleta_Core {
             'DirOrigen'  => $settings['direccion'],
             'CmnaOrigen' => $settings['comuna'],
             'Receptor'   => [
-                'RUTRecep'    => $rut_receptor,
-                'RznSocRecep' => $nombre_receptor,
-                'DirRecep'    => $dir_recep,
-                'CmnaRecep'   => $cmna_recep,
+                'RUTRecep'       => $rut_receptor,
+                'RznSocRecep'    => $nombre_receptor,
+                'DirRecep'       => $dir_recep,
+                'CmnaRecep'      => $cmna_recep,
+                'CorreoRecep'    => $correo_recep,
+                'TelefonoRecep'  => $telefono_recep,
             ],
-            'Detalles' => [
-                [
-                    'NroLinDet' => 1,
-                    'NmbItem'   => $descripcion,
-                    'QtyItem'   => $cantidad,
-                    'PrcItem'   => $precio_unitario,
-                    'MontoItem' => $monto_total,
-                ],
-            ],
+            'Detalles' => $detalles,
         ];
+        // Validaciones por tipo
+        if ( in_array( $type, [33,34,52], true ) ) {
+            if ( empty( $dir_recep ) || empty( $cmna_recep ) ) {
+                wp_send_json_error( [ 'message' => __( 'Dirección y comuna del receptor son obligatorias para facturas y guías.', 'sii-boleta-dte' ) ] );
+            }
+        }
+        if ( 52 === $type ) {
+            if ( empty( $tpo_traslado ) || empty( $dir_dest ) || empty( $cmna_dest ) ) {
+                wp_send_json_error( [ 'message' => __( 'Para la Guía 52 debe indicar tipo de traslado, dirección y comuna de destino.', 'sii-boleta-dte' ) ] );
+            }
+        }
+        // Medio de pago para facturas (33/34)
+        if ( in_array( $type, [33,34], true ) && $medio_pago !== '' ) {
+            $dte_data['MedioPago'] = $medio_pago;
+        }
+        // Marcar ítem exento cuando es factura exenta (34)
+        if ( 34 === $type ) {
+            foreach ( $dte_data['Detalles'] as &$d ) {
+                $d['IndExe'] = 1;
+            }
+            unset( $d );
+        }
         // Añadir referencia si corresponde (notas de crédito o débito)
-        if ( in_array( $type, [56,61], true ) && $folio_ref && $tipo_doc_ref ) {
+        if ( in_array( $type, [56,61], true ) ) {
+            if ( ! $folio_ref || ! $tipo_doc_ref ) {
+                wp_send_json_error( [ 'message' => __( 'Debe indicar documento y folio de referencia para notas.', 'sii-boleta-dte' ) ] );
+            }
             $dte_data['Referencias'][] = [
                 'TpoDocRef' => $tipo_doc_ref,
                 'FolioRef'  => $folio_ref,
@@ -795,8 +1190,23 @@ class SII_Boleta_Core {
             ];
         }
 
-        // Generar XML base para el DTE
-        $xml = $this->xml_generator->generate_dte_xml( $dte_data, $type );
+        // Datos de guía (52)
+        if ( 52 === $type ) {
+            $dte_data['TpoTraslado'] = $tpo_traslado;
+            $dte_data['Transporte'] = array_filter([
+                'Patente'      => $patente,
+                'RUTTrans'     => $rut_trans,
+                'RUTChofer'    => $rut_chofer,
+                'NombreChofer' => $nombre_chofer,
+                'DirDest'      => $dir_dest,
+                'CmnaDest'     => $cmna_dest,
+                'CiudadDest'   => $ciudad_dest,
+                'TipoVehiculo' => $tipo_vehiculo,
+            ]);
+        }
+
+        // Generar XML base para el DTE usando el motor activo (en preview no exige CAF/TED)
+        $xml = $this->engine->generate_dte_xml( $dte_data, $type, ! $enviar_sii );
         if ( is_wp_error( $xml ) ) {
             wp_send_json_error( [ 'message' => $xml->get_error_message() ] );
         }
@@ -804,38 +1214,71 @@ class SII_Boleta_Core {
             wp_send_json_error( [ 'message' => __( 'Error al generar el XML del DTE.', 'sii-boleta-dte' ) ] );
         }
 
-        // Firmar el XML
-        $signed_xml = $this->signer->sign_dte_xml( $xml, $settings['cert_path'], $settings['cert_pass'] );
-        if ( ! $signed_xml ) {
+        // Firmar el XML con el motor
+        $signed_xml = $this->engine->sign_dte_xml( $xml );
+        if ( $enviar_sii && ! $signed_xml ) {
             wp_send_json_error( [ 'message' => __( 'Error al firmar el XML. Verifique su certificado.', 'sii-boleta-dte' ) ] );
         }
 
-        // Guardar el archivo XML en la carpeta uploads
+        // Guardar el archivo XML en la carpeta uploads/dte/<RUTRecep>
         $upload_dir = wp_upload_dir();
-        $file_name  = 'DTE_' . $type . '_' . $folio . '_' . time() . '.xml';
-        $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
-        file_put_contents( $file_path, $signed_xml );
+        $rut_folder = strtoupper( preg_replace( '/[^0-9Kk-]/', '', $rut_receptor ?: 'SIN-RUT' ) );
+        $target_dir = trailingslashit( $upload_dir['basedir'] ) . 'dte/' . $rut_folder . '/';
+        if ( function_exists( 'wp_mkdir_p' ) ) {
+            wp_mkdir_p( $target_dir );
+        } else {
+            if ( ! is_dir( $target_dir ) ) {
+                @mkdir( $target_dir, 0755, true );
+            }
+        }
+        $timestamp  = time();
+        $file_name  = 'DTE_' . $type . '_' . ( $folio ?: 0 ) . '_' . $timestamp . '.xml';
+        $file_path  = $target_dir . $file_name;
+        if ( $enviar_sii ) {
+            // Guardar temporalmente para envío; confirmar y mover tras éxito
+            $tmp_dir = trailingslashit( $upload_dir['basedir'] ) . 'dte/tmp/';
+            if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $tmp_dir ); } else { if ( ! is_dir( $tmp_dir ) ) { @mkdir( $tmp_dir, 0755, true ); } }
+            $tmp_path = $tmp_dir . $file_name;
+            file_put_contents( $tmp_path, $signed_xml );
+        }
 
         // Lógica para enviar al SII si el usuario lo solicita
         $track_id = false;
         if ( $enviar_sii ) {
-            $track_id = $this->api->send_dte_to_sii(
-                $file_path,
-                $settings['environment'],
-                $settings['api_token'],
-                $settings['cert_path'],
-                $settings['cert_pass']
-            );
+            $send_path = isset( $tmp_path ) ? $tmp_path : $file_path;
+            $track_id = $this->engine->send_dte_file( $send_path, $settings['environment'] ?? 'test', $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
             if ( is_wp_error( $track_id ) ) {
                 wp_send_json_error( [ 'message' => $track_id->get_error_message() ] );
             }
+            if ( $track_id ) {
+                // Consumir folio y mover XML definitivo
+                $this->folio_manager->consume_folio( $type, $folio );
+                if ( isset( $tmp_path ) ) { @rename( $tmp_path, $file_path ); }
+            }
         }
 
-        // Generar PDF de representación de la boleta con TED y PDF417
-        $pdf_path = $this->pdf->generate_pdf_representation( $signed_xml, $settings );
+        // Generar PDF/HTML de representación vía motor
+        $pdf_path = $this->engine->render_pdf( $signed_xml ?: $xml, $settings );
+        $upload_url = $upload_dir['baseurl'];
+        $xml_url    = '';
+        $pdf_url    = '';
+        if ( $enviar_sii && ! empty( $file_path ) && file_exists( $file_path ) ) {
+            $xml_url = str_replace( $upload_dir['basedir'], $upload_url, $file_path );
+        }
+        if ( $pdf_path && file_exists( $pdf_path ) ) {
+            $pdf_url = str_replace( $upload_dir['basedir'], $upload_url, $pdf_path );
+        }
 
         // Agregar el resultado del envío al mensaje de éxito
-        $message = sprintf( __( 'DTE generado correctamente. Archivo XML: %s', 'sii-boleta-dte' ), esc_html( $file_name ) );
+        $message = $enviar_sii
+            ? sprintf( __( 'DTE emitido. Archivo XML: %s', 'sii-boleta-dte' ), esc_html( $file_name ) )
+            : __( 'Representación generada sin consumir folio.', 'sii-boleta-dte' );
+        if ( $xml_url ) {
+            $message .= ' | <a href="' . esc_url( $xml_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'Descargar XML', 'sii-boleta-dte' ) . '</a>';
+        }
+        if ( $pdf_url ) {
+            $message .= ' | <a href="' . esc_url( $pdf_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'Abrir PDF', 'sii-boleta-dte' ) . '</a>';
+        }
         if ( $track_id ) {
             $message .= ' | ' . sprintf( __( 'Enviado al SII. Track ID: %s', 'sii-boleta-dte' ), esc_html( $track_id ) );
         }
@@ -861,12 +1304,48 @@ class SII_Boleta_Core {
         $nombre_receptor = sanitize_text_field( $_POST['receptor_nombre'] );
         $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
         $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
-        $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
-        $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
-        $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
+        $correo_recep    = sanitize_text_field( $_POST['correo_recep'] ?? '' );
+        $telefono_recep  = sanitize_text_field( $_POST['telefono_recep'] ?? '' );
+        $medio_pago      = isset( $_POST['medio_pago'] ) ? sanitize_text_field( $_POST['medio_pago'] ) : '';
+        // Ítems múltiples
+        $descripciones   = isset( $_POST['descripcion'] ) ? (array) $_POST['descripcion'] : [];
+        $cantidades      = isset( $_POST['cantidad'] ) ? (array) $_POST['cantidad'] : [];
+        $precios         = isset( $_POST['precio_unitario'] ) ? (array) $_POST['precio_unitario'] : [];
 
         $settings   = $this->settings->get_settings();
-        $monto_total = round( $cantidad * $precio_unitario );
+        // Construir detalles desde arrays (con fallback a un solo ítem)
+        $detalles = [];
+        $line     = 1;
+        $monto_total = 0;
+        if ( ! empty( $descripciones ) ) {
+            foreach ( $descripciones as $i => $desc ) {
+                $desc  = sanitize_text_field( $desc );
+                $qty   = isset( $cantidades[ $i ] ) ? max( 1, intval( $cantidades[ $i ] ) ) : 1;
+                $price = isset( $precios[ $i ] ) ? max( 0, floatval( $precios[ $i ] ) ) : 0;
+                $monto = round( $qty * $price );
+                $monto_total += $monto;
+                $detalles[] = [
+                    'NroLinDet' => $line++,
+                    'NmbItem'   => $desc,
+                    'QtyItem'   => $qty,
+                    'PrcItem'   => $price,
+                    'MontoItem' => $monto,
+                ];
+            }
+        } else {
+            $descripcion     = sanitize_textarea_field( $_POST['descripcion'] );
+            $cantidad        = max( 1, intval( $_POST['cantidad'] ) );
+            $precio_unitario = max( 0, floatval( $_POST['precio_unitario'] ) );
+            $monto_total = round( $cantidad * $precio_unitario );
+            $detalles[] = [
+                'NroLinDet' => 1,
+                'NmbItem'   => $descripcion,
+                'QtyItem'   => $cantidad,
+                'PrcItem'   => $precio_unitario,
+                'MontoItem' => $monto_total,
+            ];
+        }
+
         $dte_data = [
             'TipoDTE'    => $type,
             'Folio'      => 0,
@@ -877,28 +1356,65 @@ class SII_Boleta_Core {
             'DirOrigen'  => $settings['direccion'],
             'CmnaOrigen' => $settings['comuna'],
             'Receptor'   => [
-                'RUTRecep'    => $rut_receptor,
-                'RznSocRecep' => $nombre_receptor,
-                'DirRecep'    => $dir_recep,
-                'CmnaRecep'   => $cmna_recep,
+                'RUTRecep'       => $rut_receptor,
+                'RznSocRecep'    => $nombre_receptor,
+                'DirRecep'       => $dir_recep,
+                'CmnaRecep'      => $cmna_recep,
+                'CorreoRecep'    => $correo_recep,
+                'TelefonoRecep'  => $telefono_recep,
             ],
-            'Detalles' => [
-                [
-                    'NroLinDet' => 1,
-                    'NmbItem'   => $descripcion,
-                    'QtyItem'   => $cantidad,
-                    'PrcItem'   => $precio_unitario,
-                    'MontoItem' => $monto_total,
-                ],
-            ],
+            'Detalles' => $detalles,
         ];
+        // Validaciones por tipo (previsualización)
+        if ( in_array( $type, [33,34,52], true ) ) {
+            if ( empty( $dir_recep ) || empty( $cmna_recep ) ) {
+                wp_send_json_error( [ 'message' => __( 'Dirección y comuna del receptor son obligatorias para facturas y guías.', 'sii-boleta-dte' ) ] );
+            }
+        }
+        if ( 52 === $type ) {
+            if ( empty( $tpo_traslado ) || empty( $dir_dest ) || empty( $cmna_dest ) ) {
+                wp_send_json_error( [ 'message' => __( 'Para la Guía 52 debe indicar tipo de traslado, dirección y comuna de destino.', 'sii-boleta-dte' ) ] );
+            }
+        }
+        // Medio de pago para facturas (33/34)
+        if ( in_array( $type, [33,34], true ) && $medio_pago !== '' ) {
+            $dte_data['MedioPago'] = $medio_pago;
+        }
+        // Marcar ítem exento cuando es factura exenta (34)
+        if ( 34 === $type ) {
+            foreach ( $dte_data['Detalles'] as &$d ) {
+                $d['IndExe'] = 1;
+            }
+            unset( $d );
+        }
+        // Añadir referencia si corresponde (notas de crédito o débito)
+        if ( in_array( $type, [56,61], true ) && $folio_ref && $tipo_doc_ref ) {
+            $dte_data['Referencias'][] = [
+                'TpoDocRef' => $tipo_doc_ref,
+                'FolioRef'  => $folio_ref,
+                'FchRef'    => date( 'Y-m-d' ),
+                'RazonRef'  => $razon_ref ?: 'Corrección',
+            ];
+        }
+        // Datos de guía (52)
+        if ( 52 === $type ) {
+            $dte_data['TpoTraslado'] = $tpo_traslado;
+            $dte_data['Transporte'] = array_filter([
+                'Patente'      => $patente,
+                'RUTTrans'     => $rut_trans,
+                'RUTChofer'    => $rut_chofer,
+                'NombreChofer' => $nombre_chofer,
+                'DirDest'      => $dir_dest,
+                'CmnaDest'     => $cmna_dest,
+            ]);
+        }
 
-        $xml = $this->xml_generator->generate_dte_xml( $dte_data, $type, true );
+        $xml = $this->engine->generate_dte_xml( $dte_data, $type, true );
         if ( is_wp_error( $xml ) || ! $xml ) {
             wp_send_json_error( [ 'message' => __( 'Error al generar la previsualización del DTE.', 'sii-boleta-dte' ) ] );
         }
 
-        $pdf_path = $this->pdf->generate_pdf_representation( $xml, $settings );
+        $pdf_path = $this->engine->render_pdf( $xml, $settings );
         if ( ! $pdf_path ) {
             wp_send_json_error( [ 'message' => __( 'No se pudo generar el archivo de previsualización.', 'sii-boleta-dte' ) ] );
         }
@@ -916,13 +1432,21 @@ class SII_Boleta_Core {
      * Devuelve la lista de DTE generados buscando los archivos en la carpeta de uploads.
      */
     public function ajax_list_dtes() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }
         $upload_dir = wp_upload_dir();
         $base_dir   = trailingslashit( $upload_dir['basedir'] );
         $base_url   = trailingslashit( $upload_dir['baseurl'] );
-        $files      = glob( $base_dir . 'DTE_*.xml' );
+                // Recorrer recursivamente para encontrar archivos DTE/Woo_DTE
+                $files = [];
+                $it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir, FilesystemIterator::SKIP_DOTS ) );
+                foreach ( $it as $file ) {
+                    if ( $file->isFile() && preg_match( '/^(?:Woo_)?DTE_\d+_\d+_\d+\.xml$/', $file->getFilename() ) ) {
+                        $files[] = $file->getPathname();
+                    }
+                }
         $crons      = _get_cron_array();
         $pending    = [];
         foreach ( $crons as $timestamp => $hooks ) {
@@ -972,6 +1496,7 @@ class SII_Boleta_Core {
      * Devuelve el registro de actividad del job y la próxima ejecución programada.
      */
     public function ajax_job_log() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }
@@ -988,6 +1513,7 @@ class SII_Boleta_Core {
      * Programa o desprograma el job diario via AJAX.
      */
     public function ajax_toggle_job() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }
@@ -1005,15 +1531,21 @@ class SII_Boleta_Core {
      * Genera y envía el RVD del día actual mediante AJAX.
      */
     public function ajax_run_rvd() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }
         $settings = $this->settings->get_settings();
-        $rvd_xml  = $this->rvd_manager->generate_rvd_xml();
+        $rvd_xml  = $this->engine->build_rvd_xml( date( 'Y-m-d' ) );
         if ( ! $rvd_xml ) {
             wp_send_json_error( [ 'message' => __( 'No fue posible generar el RVD.', 'sii-boleta-dte' ) ] );
         }
-        $sent     = $this->rvd_manager->send_rvd_to_sii( $rvd_xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        // Firmado y validación ocurren dentro de los componentes del engine.
+        $signed = ( new SII_Boleta_Signer() )->sign_rvd_xml( $rvd_xml, $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        if ( ! $signed ) {
+            wp_send_json_error( [ 'message' => __( 'No fue posible firmar el RVD.', 'sii-boleta-dte' ) ] );
+        }
+        $sent     = $this->engine->send_rvd( $signed, $settings['environment'], $settings['api_token'] ?? '' );
         $today    = date( 'Y-m-d' );
         if ( $sent ) {
             sii_boleta_write_log( 'RVD enviado manualmente para la fecha ' . $today );
@@ -1028,16 +1560,17 @@ class SII_Boleta_Core {
      * Genera y envía manualmente el Consumo de Folios.
      */
     public function ajax_run_cdf() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }
         $settings = $this->settings->get_settings();
         $today    = date( 'Y-m-d' );
-        $cdf_xml  = $this->consumo_folios->generate_cdf_xml( $today );
+        $cdf_xml  = $this->engine->generate_cdf_xml( $today );
         if ( ! $cdf_xml ) {
             wp_send_json_error( [ 'message' => __( 'No fue posible generar el CDF.', 'sii-boleta-dte' ) ] );
         }
-        $sent = $this->consumo_folios->send_cdf_to_sii( $cdf_xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
+        $sent = $this->engine->send_cdf( $cdf_xml, $settings['environment'], $settings['api_token'] ?? '', $settings['cert_path'] ?? '', $settings['cert_pass'] ?? '' );
         if ( $sent ) {
             sii_boleta_write_log( 'CDF enviado manualmente para la fecha ' . $today );
             wp_send_json_success( [ 'message' => __( 'CDF enviado correctamente.', 'sii-boleta-dte' ) ] );
@@ -1051,6 +1584,7 @@ class SII_Boleta_Core {
      * Devuelve el número de eventos pendientes en la cola de envíos.
      */
     public function ajax_queue_status() {
+        check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }

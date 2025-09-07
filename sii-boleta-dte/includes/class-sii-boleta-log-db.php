@@ -64,4 +64,107 @@ class SII_Boleta_Log_DB {
         $sql   = $wpdb->prepare( "SELECT * FROM $table ORDER BY id DESC LIMIT %d", $limit );
         return $wpdb->get_results( $sql, ARRAY_A );
     }
+
+    /**
+     * Obtiene track IDs pendientes (estado 'sent') para verificación.
+     *
+     * @param int $limit
+     * @return array Lista de track IDs (strings)
+     */
+    public static function get_pending_track_ids( $limit = 50 ) {
+        global $wpdb;
+        $table = $wpdb->prefix . self::TABLE;
+        $sql   = $wpdb->prepare(
+            "SELECT DISTINCT track_id FROM $table WHERE status = %s ORDER BY id DESC LIMIT %d",
+            'sent',
+            $limit
+        );
+        return $wpdb->get_col( $sql );
+    }
+
+    /**
+     * Obtiene registros filtrados con paginación.
+     *
+     * @param string $trackIdFiltro Filtro parcial por track ID.
+     * @param string $statusFiltro  Filtro parcial por estado.
+     * @param int    $limit         Cantidad por página.
+     * @param int    $offset        Desplazamiento.
+     * @return array                Registros como arreglo asociativo.
+     */
+    public static function get_entries_filtered( $trackIdFiltro = '', $statusFiltro = '', $dateFrom = '', $dateTo = '', $limit = 20, $offset = 0 ) {
+        global $wpdb;
+        $table = $wpdb->prefix . self::TABLE;
+
+        $where  = '1=1';
+        $params = [];
+        if ( $trackIdFiltro !== '' ) {
+            $where   .= ' AND track_id LIKE %s';
+            $params[] = '%' . $wpdb->esc_like( $trackIdFiltro ) . '%';
+        }
+        if ( $statusFiltro !== '' ) {
+            $where   .= ' AND status LIKE %s';
+            $params[] = '%' . $wpdb->esc_like( $statusFiltro ) . '%';
+        }
+        if ( $dateFrom !== '' ) {
+            // Normalizar a inicio de día si viene solo fecha
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $dateFrom ) ) {
+                $dateFrom .= ' 00:00:00';
+            }
+            $where   .= ' AND created_at >= %s';
+            $params[] = $dateFrom;
+        }
+        if ( $dateTo !== '' ) {
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $dateTo ) ) {
+                $dateTo .= ' 23:59:59';
+            }
+            $where   .= ' AND created_at <= %s';
+            $params[] = $dateTo;
+        }
+
+        $sql = "SELECT * FROM $table WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d";
+        $params[] = intval( $limit );
+        $params[] = intval( $offset );
+
+        return $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+    }
+
+    /**
+     * Cuenta registros filtrados.
+     *
+     * @param string $trackIdFiltro
+     * @param string $statusFiltro
+     * @return int Total de registros filtrados.
+     */
+    public static function count_entries_filtered( $trackIdFiltro = '', $statusFiltro = '', $dateFrom = '', $dateTo = '' ) {
+        global $wpdb;
+        $table = $wpdb->prefix . self::TABLE;
+
+        $where  = '1=1';
+        $params = [];
+        if ( $trackIdFiltro !== '' ) {
+            $where   .= ' AND track_id LIKE %s';
+            $params[] = '%' . $wpdb->esc_like( $trackIdFiltro ) . '%';
+        }
+        if ( $statusFiltro !== '' ) {
+            $where   .= ' AND status LIKE %s';
+            $params[] = '%' . $wpdb->esc_like( $statusFiltro ) . '%';
+        }
+        if ( $dateFrom !== '' ) {
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $dateFrom ) ) {
+                $dateFrom .= ' 00:00:00';
+            }
+            $where   .= ' AND created_at >= %s';
+            $params[] = $dateFrom;
+        }
+        if ( $dateTo !== '' ) {
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $dateTo ) ) {
+                $dateTo .= ' 23:59:59';
+            }
+            $where   .= ' AND created_at <= %s';
+            $params[] = $dateTo;
+        }
+
+        $sql = "SELECT COUNT(*) FROM $table WHERE $where";
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) );
+    }
 }

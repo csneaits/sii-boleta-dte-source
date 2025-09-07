@@ -84,13 +84,91 @@ class SII_Boleta_Folio_Manager {
      */
     private function get_caf_range( $caf_path ) {
         try {
-            $xml = new SimpleXMLElement( file_get_contents( $caf_path ) );
-            $d = (int) $xml->DA->RNG->D;
-            $h = (int) $xml->DA->RNG->H;
+            $content = @file_get_contents( $caf_path );
+            if ( false === $content ) {
+                return false;
+            }
+            $xml = @simplexml_load_string( $content );
+            if ( ! $xml ) {
+                return false;
+            }
+            // Usar XPath con local-name() para ignorar namespaces y estructura exacta
+            $da_nodes = $xml->xpath( "//*[local-name()='DA']" );
+            if ( empty( $da_nodes ) ) {
+                return false;
+            }
+            $da  = $da_nodes[0];
+            $rng_nodes = $da->xpath( "*[local-name()='RNG']" );
+            if ( empty( $rng_nodes ) ) {
+                return false;
+            }
+            $rng = $rng_nodes[0];
+            $d_nodes = $rng->xpath( "*[local-name()='D']" );
+            $h_nodes = $rng->xpath( "*[local-name()='H']" );
+            $d = ! empty( $d_nodes ) ? intval( (string) $d_nodes[0] ) : 0;
+            $h = ! empty( $h_nodes ) ? intval( (string) $h_nodes[0] ) : 0;
+            if ( $d <= 0 || $h <= 0 ) {
+                return false;
+            }
             return [ 'D' => $d, 'H' => $h ];
         } catch ( Exception $e ) {
             return false;
         }
+    }
+
+    /**
+     * Devuelve el siguiente folio disponible sin consumirlo (no actualiza la opción persistente).
+     *
+     * @param int $tipo_dte
+     * @return int|\WP_Error|false
+     */
+    public function peek_next_folio( $tipo_dte = 39 ) {
+        $settings  = $this->settings->get_settings();
+        $caf_paths = $settings['caf_path'] ?? [];
+        $caf_path  = $caf_paths[ $tipo_dte ] ?? '';
+        if ( ! $caf_path || ! file_exists( $caf_path ) ) {
+            return new \WP_Error( 'sii_boleta_missing_caf', sprintf( __( 'No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte' ), $tipo_dte ) );
+        }
+        $range = $this->get_caf_range( $caf_path );
+        if ( ! $range ) {
+            return false;
+        }
+        $option_key = self::OPTION_LAST_FOLIO_PREFIX . intval( $tipo_dte );
+        $last_folio = intval( get_option( $option_key, $range['D'] - 1 ) );
+        $next_folio = $last_folio + 1;
+        if ( $next_folio > $range['H'] ) {
+            return false;
+        }
+        return $next_folio;
+    }
+
+    /**
+     * Marca un folio como consumido si corresponde con el siguiente disponible.
+     *
+     * @param int $tipo_dte
+     * @param int $folio
+     * @return bool True al actualizar, false en caso contrario.
+     */
+    public function consume_folio( $tipo_dte, $folio ) {
+        $tipo_dte   = intval( $tipo_dte );
+        $folio      = intval( $folio );
+        $settings   = $this->settings->get_settings();
+        $caf_paths  = $settings['caf_path'] ?? [];
+        $caf_path   = $caf_paths[ $tipo_dte ] ?? '';
+        $range      = $caf_path && file_exists( $caf_path ) ? $this->get_caf_range( $caf_path ) : false;
+        if ( ! $range ) {
+            return false;
+        }
+        if ( $folio < $range['D'] || $folio > $range['H'] ) {
+            return false;
+        }
+        $option_key = self::OPTION_LAST_FOLIO_PREFIX . $tipo_dte;
+        $last       = intval( get_option( $option_key, $range['D'] - 1 ) );
+        if ( $folio === ( $last + 1 ) ) {
+            update_option( $option_key, $folio );
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -109,12 +187,38 @@ class SII_Boleta_Folio_Manager {
             return false;
         }
         try {
-            $xml = new SimpleXMLElement( file_get_contents( $caf_path ) );
+            $content = @file_get_contents( $caf_path );
+            if ( false === $content ) {
+                return false;
+            }
+            $xml = @simplexml_load_string( $content );
+            if ( ! $xml ) {
+                return false;
+            }
+            $da_nodes = $xml->xpath( "//*[local-name()='DA']" );
+            if ( empty( $da_nodes ) ) {
+                return false;
+            }
+            $da  = $da_nodes[0];
+            $rng_nodes = $da->xpath( "*[local-name()='RNG']" );
+            if ( empty( $rng_nodes ) ) {
+                return false;
+            }
+            $rng = $rng_nodes[0];
+            $d_nodes = $rng->xpath( "*[local-name()='D']" );
+            $h_nodes = $rng->xpath( "*[local-name()='H']" );
+            $fa_nodes = $da->xpath( "*[local-name()='FA']" );
+            $na_nodes = $da->xpath( "*[local-name()='NroAut']" );
+            $d = ! empty( $d_nodes ) ? intval( (string) $d_nodes[0] ) : 0;
+            $h = ! empty( $h_nodes ) ? intval( (string) $h_nodes[0] ) : 0;
+            if ( $d <= 0 || $h <= 0 ) {
+                return false;
+            }
             return [
-                'D'        => isset( $xml->DA->RNG->D ) ? (int) $xml->DA->RNG->D : 0,
-                'H'        => isset( $xml->DA->RNG->H ) ? (int) $xml->DA->RNG->H : 0,
-                'FchResol' => isset( $xml->DA->FA ) ? (string) $xml->DA->FA : '',
-                'NroResol' => isset( $xml->DA->NroAut ) ? (string) $xml->DA->NroAut : '',
+                'D'        => $d,
+                'H'        => $h,
+                'FchResol' => ! empty( $fa_nodes ) ? (string) $fa_nodes[0] : '',
+                'NroResol' => ! empty( $na_nodes ) ? (string) $na_nodes[0] : '',
             ];
         } catch ( Exception $e ) {
             return false;

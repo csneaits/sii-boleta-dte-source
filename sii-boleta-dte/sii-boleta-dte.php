@@ -3,7 +3,7 @@
 Plugin Name:       SII Boleta DTE
 Description:       Plugin modular para la emisión de boletas, facturas, guías de despacho y notas de crédito o débito electrónicas con integración al Servicio de Impuestos Internos (SII) de Chile. Permite configurar certificados, gestionar folios, generar el timbre electrónico (TED) y firmar digitalmente los documentos. Incluye integración con WooCommerce, generación del Resumen de Ventas Diarias (RVD) y soporte para distintos tipos de DTE. Incorpora una librería local para generar el código de barras PDF417 sin depender de servicios externos.
 Version:           1.0.0
-Requires PHP:      7.0
+Requires PHP:      8.4
 Author:            Tu Nombre
 Text Domain:       sii-boleta-dte
 Domain Path:       /languages
@@ -19,9 +19,9 @@ define( 'SII_BOLETA_DTE_URL', plugin_dir_url( __FILE__ ) );
 define( 'SII_BOLETA_DTE_VERSION', '1.0.0' );
 
 // Verificar versión mínima de PHP.
-if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
+if ( version_compare( PHP_VERSION, '8.4', '<' ) ) {
     function sii_boleta_dte_php_version_error() {
-        wp_die( esc_html__( 'SII Boleta DTE requiere PHP 7.0 o superior.', 'sii-boleta-dte' ) );
+        wp_die( esc_html__( 'SII Boleta DTE requiere PHP 8.4 o superior.', 'sii-boleta-dte' ) );
     }
     register_activation_hook( __FILE__, 'sii_boleta_dte_php_version_error' );
     return;
@@ -31,8 +31,13 @@ if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
 require_once SII_BOLETA_DTE_PATH . 'includes/autoload.php';
 require_once SII_BOLETA_DTE_PATH . 'includes/class-sii-logger.php';
 
+// Cargar autoload de Composer desde ubicaciones comunes
 if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
     require_once SII_BOLETA_DTE_PATH . 'vendor/autoload.php';
+} elseif ( defined( 'ABSPATH') && file_exists( ABSPATH . 'vendor/autoload.php' ) ) {
+    require_once ABSPATH . 'vendor/autoload.php';
+} elseif ( defined( 'WP_CONTENT_DIR') && file_exists( WP_CONTENT_DIR . '/vendor/autoload.php' ) ) {
+    require_once WP_CONTENT_DIR . '/vendor/autoload.php';
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -43,12 +48,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 if ( ! class_exists( '\RobRichards\XMLSecLibs\XMLSecurityDSig', false ) ) {
     require_once SII_BOLETA_DTE_PATH . 'includes/libs/xmlseclibs.php';
 }
-if ( ! class_exists( 'FPDF', false ) ) {
-    require_once SII_BOLETA_DTE_PATH . 'includes/libs/fpdf.php';
-}
-if ( ! class_exists( 'PDF417', false ) ) {
-    require_once SII_BOLETA_DTE_PATH . 'includes/libs/pdf417.php';
-}
+// Eliminado soporte PDF nativo: se usa renderer LibreDTE
 
 /**
  * Clase principal del plugin. Encargada de inicializar componentes y cargar dependencias.

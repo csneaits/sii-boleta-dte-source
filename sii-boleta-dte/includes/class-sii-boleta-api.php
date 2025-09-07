@@ -463,8 +463,8 @@ class SII_Boleta_API {
         $doc->loadXML( '<getToken ID="GetToken"><item><Semilla>' . $seed . '</Semilla></item></getToken>' );
         $objDSig = new XMLSecurityDSig();
         $objDSig->addSignature( $doc );
-        $pkcs12 = file_get_contents( $cert_path );
-        if ( ! openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
+        $creds = SII_Boleta_Signer::load_pkcs12_creds( $cert_path, $cert_pass );
+        if ( ! is_array( $creds ) || empty( $creds['pkey'] ) || empty( $creds['cert'] ) ) {
             return false;
         }
         $objKey = new XMLSecurityKey( XMLSecurityKey::RSA_SHA1 );

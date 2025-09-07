@@ -25,27 +25,54 @@ class SII_Boleta_PDF {
         }
         try {
             $xml = new SimpleXMLElement( $signed_xml );
-            // Extraer datos básicos
+            // Extraer datos básicos (soporte con y sin namespace por defecto)
             $documento   = $xml->Documento;
-            $folio       = (string) $documento->Encabezado->IdDoc->Folio;
-            $tipo_dte    = (string) $documento->Encabezado->IdDoc->TipoDTE;
-            $fecha       = (string) $documento->Encabezado->IdDoc->FchEmis;
+            $ns_default  = null;
+            if ( ! $documento ) {
+                $doc_ns = $xml->getDocNamespaces( true );
+                if ( isset( $doc_ns[''] ) ) {
+                    $ns_default = $doc_ns[''];
+                    $documento = $xml->children( $ns_default )->Documento;
+                }
+            }
+            if ( ! $documento ) {
+                return false;
+            }
+            $doc = $documento;
+            if ( $ns_default ) {
+                $doc = $documento->children( $ns_default );
+            }
+            $folio       = (string) $doc->Encabezado->IdDoc->Folio;
+            $tipo_dte    = (string) $doc->Encabezado->IdDoc->TipoDTE;
+            $fecha       = (string) $doc->Encabezado->IdDoc->FchEmis;
             $emisor      = $settings['razon_social'];
             $rut_emisor  = $settings['rut_emisor'];
-            $receptor    = (string) $documento->Encabezado->Receptor->RznSocRecep;
-            $rut_rece    = (string) $documento->Encabezado->Receptor->RUTRecep;
+            $receptor    = (string) $doc->Encabezado->Receptor->RznSocRecep;
+            $rut_rece    = (string) $doc->Encabezado->Receptor->RUTRecep;
             $consulta_url = home_url( '/boleta/' . $folio );
 
-            $totals = $documento->Encabezado->Totales;
+            $totals = $doc->Encabezado->Totales;
             $total  = (string) $totals->MntTotal;
             $neto   = isset( $totals->MntNeto ) ? (string) $totals->MntNeto : '';
             $iva    = isset( $totals->IVA ) ? (string) $totals->IVA : '';
             $exento = isset( $totals->MntExe ) ? (string) $totals->MntExe : '';
             // Nodo TED
-            $ted_node  = $documento->TED;
+            $ted_node  = $doc->TED;
             $ted_xml   = $ted_node ? $ted_node->asXML() : '';
 
             $upload_dir = wp_upload_dir();
+            // Carpeta destino: dte/<RUTRecep>
+            $rut_recep_raw = (string) $doc->Encabezado->Receptor->RUTRecep;
+            $rut_folder    = strtoupper( preg_replace( '/[^0-9Kk-]/', '', $rut_recep_raw ?: 'SIN-RUT' ) );
+            $target_dir    = trailingslashit( $upload_dir['basedir'] ) . 'dte/' . $rut_folder . '/';
+            if ( function_exists( 'wp_mkdir_p' ) ) {
+                wp_mkdir_p( $target_dir );
+            } else {
+                if ( ! is_dir( $target_dir ) ) {
+                    @mkdir( $target_dir, 0755, true );
+                }
+            }
+
             // Prefijo de nombre de archivo por tipo
             $timestamp  = time();
             $file_base  = 'DTE_' . $tipo_dte . '_' . $folio . '_' . $timestamp;
@@ -53,7 +80,7 @@ class SII_Boleta_PDF {
             // Intentar generar PDF si existe FPDF y la clase PDF417
             $pdf_path = false;
             if ( class_exists( 'FPDF', false ) && class_exists( 'PDF417', false ) ) {
-                $pdf_path = $this->generate_pdf( $documento, $settings, $ted_node, $file_base );
+                $pdf_path = $this->generate_pdf( $doc, $settings, $ted_node, $file_base, $target_dir );
             }
 
             // Si se generó PDF, retornar la ruta
@@ -63,7 +90,7 @@ class SII_Boleta_PDF {
 
             // Fallback a HTML si no se puede generar el PDF
             $file_name  = $file_base . '.html';
-            $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_name;
+            $file_path  = $target_dir . $file_name;
             // Construir HTML simple
             ob_start();
             ?>
@@ -74,6 +101,7 @@ class SII_Boleta_PDF {
                 <title><?php echo esc_html( 'DTE ' . $folio ); ?></title>
                 <style>
                     body { font-family: Arial, sans-serif; margin: 20px; }
+                    .container { <?php echo ( strtoupper( $settings['pdf_format'] ?? 'A4' ) === '80mm' ) ? 'width:80mm;margin:0 auto;' : '' ; ?> }
                     .header { text-align: center; margin-bottom: 20px; }
                     .logo { max-height: 80px; }
                     .details, .items, .totals { margin-bottom: 15px; }
@@ -82,11 +110,13 @@ class SII_Boleta_PDF {
                     .totals td { font-weight: bold; }
                     .ted { font-size: 8px; word-wrap: break-word; }
                     .barcode { margin-top: 10px; }
+                    .footer { margin-top: 12px; text-align:center; font-size: 10px; color:#666; }
                 </style>
             </head>
             <body>
+                <div class="container">
                 <div class="header">
-                    <?php if ( ! empty( $settings['logo_id'] ) ) : ?>
+                    <?php if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) ) : ?>
                         <?php echo wp_get_attachment_image( $settings['logo_id'], 'medium', false, [ 'class' => 'logo' ] ); ?>
                     <?php endif; ?>
                     <h2><?php echo esc_html( $emisor ); ?></h2>
@@ -146,6 +176,10 @@ class SII_Boleta_PDF {
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php if ( ! empty( $settings['pdf_footer'] ) ) : ?>
+                    <div class="footer"><?php echo esc_html( $settings['pdf_footer'] ); ?></div>
+                <?php endif; ?>
+                </div>
             </body>
             </html>
             <?php
@@ -168,10 +202,9 @@ class SII_Boleta_PDF {
      * @param string           $file_base Nombre base para el archivo (sin extensión).
      * @return string|false Ruta del PDF generado o false en caso de falla.
      */
-    private function generate_pdf( $documento, array $settings, $ted_node, $file_base ) {
+    private function generate_pdf( $documento, array $settings, $ted_node, $file_base, $target_dir ) {
         try {
-            $upload_dir = wp_upload_dir();
-            $file_path  = trailingslashit( $upload_dir['basedir'] ) . $file_base . '.pdf';
+            $file_path  = rtrim( $target_dir, '/\\' ) . DIRECTORY_SEPARATOR . $file_base . '.pdf';
             // Incluir librerías
             if ( ! class_exists( 'FPDF', false ) ) {
                 return false;
@@ -179,18 +212,20 @@ class SII_Boleta_PDF {
             if ( ! class_exists( 'PDF417', false ) ) {
                 return false;
             }
-            $pdf = new FPDF( 'P', 'mm', 'A4' );
+            $format = strtoupper( $settings['pdf_format'] ?? 'A4' );
+            $page_size = ( $format === '80mm' ) ? [80, 297] : 'A4';
+            $pdf = new FPDF( 'P', 'mm', $page_size );
             $pdf->AddPage();
             $consulta_url = home_url( '/boleta/' . (string) $documento->Encabezado->IdDoc->Folio );
             // Logo
-            if ( ! empty( $settings['logo_id'] ) ) {
+            if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) ) {
                 $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
                 if ( $img && ! empty( $img[0] ) ) {
-                    $pdf->Image( $img[0], 10, 10, 40 );
+                    $pdf->Image( $img[0], 10, 10, ( $format === '80mm' ) ? 30 : 40 );
                 }
             }
             // Encabezado
-            $pdf->SetFont( 'Arial', 'B', 12 );
+            $pdf->SetFont( 'Arial', 'B', ( $format === '80mm' ) ? 11 : 12 );
             $pdf->SetXY( 10, 20 );
             $pdf->Cell( 0, 7, $settings['razon_social'], 0, 1, 'L' );
             $pdf->SetFont( 'Arial', '', 10 );
@@ -215,18 +250,36 @@ class SII_Boleta_PDF {
             // Tabla de ítems
             $pdf->SetFont( 'Arial', 'B', 10 );
             $pdf->SetFillColor( 230, 230, 230 );
-            $pdf->Cell( 10, 6, '#', 1, 0, 'C', true );
-            $pdf->Cell( 90, 6, 'Descripción', 1, 0, 'L', true );
-            $pdf->Cell( 20, 6, 'Cant.', 1, 0, 'R', true );
-            $pdf->Cell( 30, 6, 'Precio', 1, 0, 'R', true );
-            $pdf->Cell( 30, 6, 'Subtotal', 1, 1, 'R', true );
+            if ( $format === '80mm' ) {
+                $pdf->Cell( 8, 6, '#', 1, 0, 'C', true );
+                $pdf->Cell( 44, 6, 'Descripción', 1, 0, 'L', true );
+                $pdf->Cell( 12, 6, 'Cant.', 1, 0, 'R', true );
+                $pdf->Cell( 16, 6, 'Precio', 1, 0, 'R', true );
+                $pdf->Cell( 0, 6, 'Subt.', 1, 1, 'R', true );
+            } else {
+                $pdf->Cell( 10, 6, '#', 1, 0, 'C', true );
+                $pdf->Cell( 90, 6, 'Descripción', 1, 0, 'L', true );
+                $pdf->Cell( 20, 6, 'Cant.', 1, 0, 'R', true );
+                $pdf->Cell( 30, 6, 'Precio', 1, 0, 'R', true );
+                $pdf->Cell( 30, 6, 'Subtotal', 1, 1, 'R', true );
+            }
             $pdf->SetFont( 'Arial', '', 10 );
-            foreach ( $documento->Detalle as $idx => $det ) {
-                $pdf->Cell( 10, 5, strval( $idx + 1 ), 1, 0, 'C' );
-                $pdf->Cell( 90, 5, strval( $det->NmbItem ), 1, 0, 'L' );
-                $pdf->Cell( 20, 5, number_format( (float) $det->QtyItem, 0, ',', '.' ), 1, 0, 'R' );
-                $pdf->Cell( 30, 5, number_format( (float) $det->PrcItem, 0, ',', '.' ), 1, 0, 'R' );
-                $pdf->Cell( 30, 5, number_format( (float) $det->MontoItem, 0, ',', '.' ), 1, 1, 'R' );
+            $line_no = 1;
+            foreach ( $documento->Detalle as $det ) {
+                if ( $format === '80mm' ) {
+                    $pdf->Cell( 8, 5, strval( $line_no ), 1, 0, 'C' );
+                    $pdf->Cell( 44, 5, strval( $det->NmbItem ), 1, 0, 'L' );
+                    $pdf->Cell( 12, 5, number_format( (float) $det->QtyItem, 0, ',', '.' ), 1, 0, 'R' );
+                    $pdf->Cell( 16, 5, number_format( (float) $det->PrcItem, 0, ',', '.' ), 1, 0, 'R' );
+                    $pdf->Cell( 0, 5, number_format( (float) $det->MontoItem, 0, ',', '.' ), 1, 1, 'R' );
+                } else {
+                    $pdf->Cell( 10, 5, strval( $line_no ), 1, 0, 'C' );
+                    $pdf->Cell( 90, 5, strval( $det->NmbItem ), 1, 0, 'L' );
+                    $pdf->Cell( 20, 5, number_format( (float) $det->QtyItem, 0, ',', '.' ), 1, 0, 'R' );
+                    $pdf->Cell( 30, 5, number_format( (float) $det->PrcItem, 0, ',', '.' ), 1, 0, 'R' );
+                    $pdf->Cell( 30, 5, number_format( (float) $det->MontoItem, 0, ',', '.' ), 1, 1, 'R' );
+                }
+                $line_no++;
             }
             // Totales
             $totals = $documento->Encabezado->Totales;
@@ -244,8 +297,13 @@ class SII_Boleta_PDF {
                 $pdf->Cell( 150, 6, 'Exento', 1, 0, 'R' );
                 $pdf->Cell( 30, 6, number_format( $exento, 0, ',', '.' ), 1, 1, 'R' );
             }
-            $pdf->Cell( 150, 6, 'Total', 1, 0, 'R' );
-            $pdf->Cell( 30, 6, number_format( $total, 0, ',', '.' ), 1, 1, 'R' );
+            if ( $format === '80mm' ) {
+                $pdf->Cell( 50, 6, 'Total', 1, 0, 'R' );
+                $pdf->Cell( 0, 6, number_format( $total, 0, ',', '.' ), 1, 1, 'R' );
+            } else {
+                $pdf->Cell( 150, 6, 'Total', 1, 0, 'R' );
+                $pdf->Cell( 30, 6, number_format( $total, 0, ',', '.' ), 1, 1, 'R' );
+            }
 
             // TED texto
             $pdf->Ln( 4 );
@@ -270,8 +328,8 @@ class SII_Boleta_PDF {
                 $pdf417 = new PDF417();
                 $barcode = $pdf417->encode( $dd_xml );
                 if ( isset( $barcode['bcode'] ) && isset( $barcode['cols'] ) && isset( $barcode['rows'] ) ) {
-                    $module_w  = 0.5; // ancho de módulo en mm
-                    $module_h  = 0.75; // alto de módulo en mm
+                    $module_w  = ( $format === '80mm' ) ? 0.4 : 0.5; // ancho de módulo en mm
+                    $module_h  = ( $format === '80mm' ) ? 0.6 : 0.75; // alto de módulo en mm
                     // Posicionar el código de barras al final de la página (20 mm del margen inferior)
                     $x = 10;
                     $y = $pdf->GetPageHeight() - 20 - ( $barcode['rows'] * $module_h );
@@ -287,6 +345,11 @@ class SII_Boleta_PDF {
                         }
                     }
                 }
+            }
+            if ( ! empty( $settings['pdf_footer'] ) ) {
+                $pdf->Ln( 3 );
+                $pdf->SetFont( 'Arial', '', 8 );
+                $pdf->Cell( 0, 4, $settings['pdf_footer'], 0, 1, 'C' );
             }
             $pdf->Output( 'F', $file_path );
             return $file_path;

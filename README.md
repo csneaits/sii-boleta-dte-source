@@ -1,12 +1,14 @@
-# SII Boleta DTE – Código Fuente
+# SII Boleta DTE – Guía Completa (Chile)
 
-Este directorio contiene el código fuente completo del plugin **SII Boleta DTE** y los scripts de empaquetado. A diferencia del archivo ZIP que instalas en WordPress, aquí están todos los archivos PHP organizados por carpetas y un par de scripts de compilación para generar el ZIP instalable.
+Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con integración al SII de Chile. Soporta firma, timbraje con CAF, envío/consulta, almacenado por RUT, integración con WooCommerce, previsualización, y PDF con LibreDTE.
 
 ## Estructura
 
 - `sii-boleta-dte/` – carpeta del plugin con todos los archivos de código (PHP) que implementan la integración con el Servicio de Impuestos Internos de Chile, generación de XML, firma digital, manejo de folios, integración con WooCommerce, tareas cron para el Resumen de Ventas Diarias (RVD) y representación en PDF/HTML.
   - `includes/` – contiene las clases que encapsulan cada responsabilidad (API, gestor de folios, generador de XML, firma, PDF, RVD, cron y WooCommerce).
   - `includes/libs/xmlseclibs.php` – biblioteca de firma XML utilizada por el plugin. Se incluye la librería `xmlseclibs` en su versión autónoma para firmar digitalmente los DTE.
+  - `resources/` – plantillas y recursos de LibreDTE. Copia aquí los `resources` de LibreDTE si tu build los busca fuera de vendor.
+  - `resources/templates/billing/document/renderer/estandar.html.twig` – plantilla Twig adaptada del diseño original de LibreDTE, con soporte de logo y detalle y clases de formato A4/80mm.
 - `build.sh` – script de empaquetado para sistemas Linux/macOS. Genera un ZIP instalable bajo `dist/` con el número de versión que aparece en el encabezado del plugin.
 - `build.ps1` – script de empaquetado para PowerShell (Windows). Cumple la misma función que `build.sh`, pero adaptado a entornos Windows.
 
@@ -34,18 +36,42 @@ Se creará el archivo ZIP en la carpeta `dist\` con el nombre correspondiente.
 
 ## Dependencias y herramientas de desarrollo
 
+Requisitos mínimos: PHP 8.4 con extensiones `soap`, `mbstring`, `openssl`.
+
 Las bibliotecas externas y herramientas se gestionan con Composer. Desde la carpeta del plugin (`sii-boleta-dte/`) ejecuta:
 
 ```bash
 composer install
 ```
 
-Esto instalará `xmlseclibs`, `FPDF` y `BigFish/PDF417` junto con utilidades para pruebas y estándares de código.
+Esto instalará `xmlseclibs`, LibreDTE (core) y utilidades para pruebas y estándares de código.
+
+Notas de actualización a PHP 8.4:
+- Se elevó el requisito mínimo a PHP 8.4 (composer.json y cabecera WP).
+- PHPUnit actualizado a ^11 (ajusta tu entorno CI a PHP 8.4 + PHPUnit 11).
+- Se inicializan variables intermedias para evitar notices en runtimes estrictos.
+
+Motor DTE: el plugin está forzado a LibreDTE (sin fallbacks nativos). Si la lib no está disponible o no tiene recursos, verás un error explícito.
+
+LibreDTE y recursos:
+- Algunas instalaciones requieren copiar recursos (templates/datos) desde vendor a `sii-boleta-dte/resources/` porque la lib los busca ahí: por ejemplo `resources/templates/billing/document/renderer/estandar.html.twig` y `resources/data/repository/*`.
 
 ### Pruebas y calidad
 
 - `composer test` ejecuta los tests con PHPUnit.
 - `composer phpcs` verifica el código con WordPress Coding Standards.
+
+## Configuración y diagnóstico
+
+En Ajustes → SII Boletas configure:
+
+- Emisor: `RUT`, `Razón Social`, `Giro`, `Dirección`, `Comuna`, `Acteco`, `CdgSIISucur` (opcional)
+- Certificado: `Ruta` (`.p12/.pfx`) y `Contraseña`
+- CAF: rutas por tipo de DTE (39/41/33/34/52/56/61)
+- Ambiente: `test` (CERT) o `production`
+- PDF: `Formato (A4/80mm)`, `Mostrar logo`, `Nota al pie`
+
+Además, la pantalla incluye un diagnóstico con checklist (config general, OpenSSL, CAF, LibreDTE) y prueba de autenticación SII.
 
 ## Configuración de tipos de documento para el checkout
 
@@ -58,9 +84,15 @@ Desde la página de ajustes del plugin es posible definir qué tipos de document
 
 Active o desactive cada opción según las necesidades de su negocio.
 
-## Envío de correos con Amazon SES
+## SMTP / FluentSMTP (Perfiles)
 
-El plugin permite configurar el envío de correos a través de Amazon SES. En la página de ajustes se pueden definir el host y puerto SMTP junto con las credenciales proporcionadas por Amazon. Los mensajes enviados al cliente incluyen un agradecimiento por la compra y el logo configurado en los ajustes del plugin.
+- Selector de perfiles SMTP: Ajustes → Envío de Correos → Perfil SMTP.
+- Auto‑detección de conexiones de FluentSMTP; se muestra “Nombre <email>” por cada perfil.
+- Envío: el plugin establece From/Return‑Path del perfil elegido; FluentSMTP enruta por remitente.
+
+Hooks:
+- `sii_boleta_available_smtp_profiles` (filter): retorna lista de perfiles.
+- `sii_boleta_setup_mailer` (action): recibe `$phpmailer` y `$profile` para configurar el mailer si no usas FluentSMTP.
 
 ## Generación automática del token
 
@@ -123,7 +155,135 @@ Todos los comandos WP‑CLI requieren que el sitio tenga acceso a los archivos g
 En el administrador navega a **SII Boletas → Ayuda Boleta SII** para abrir la página de ayuda incluida en el plugin. Allí encontrarás la configuración inicial, flujos de operación, preguntas frecuentes y un detalle paso a paso del proceso de certificación del SII, además de enlaces a este README y a los archivos XSD oficiales.
 
 
-## Pruebas
+## CLI de emisión y estado
+
+Emisión con envío:
+
+```bash
+wp sii dte emitir \
+  --type=39 \
+  --rut=66666666-6 --name="Consumidor Final" --addr="Calle 123" --comuna="Santiago" \
+  --desc="Servicio" --qty=1 --price=1000 --send
+```
+
+Referencias múltiples (JSON):
+
+```bash
+wp sii dte emitir --type=61 --rut=76000000-0 --name="Cliente SA" --addr="Av. Uno 100" --comuna="Providencia" \
+  --desc="NC varias ref" --qty=1 --price=-1000 \
+  --refs='[{"TpoDocRef":33,"FolioRef":12345,"FchRef":"2025-01-01","RazonRef":"Descuento"},{"TpoDocRef":33,"FolioRef":12346,"RazonRef":"Ajuste"}]' \
+  --send
+```
+
+Campos adicionales:
+- Encabezado: `--fmapago`, `--fchvenc`, `--mediopago`, `--tpotrancompra`, `--tpotranventa`
+- Receptor: `--girorecep`, `--correorecep`, `--telefonorecep`
+- Guía (52): `--indtraslado`, `--patente`, `--ruttrans`, `--rutchofer`, `--nombrechofer`, `--dirdest`, `--cmnadest`
+
+UI Admin – Generar DTE (diferenciado por tipo):
+- Facturas (33/34) y Guía (52): pide dirección/comuna receptor; medio de pago para 33/34.
+- Notas (56/61): referencia obligatoria (folio/tipo/razón).
+- Guía (52): datos de transporte (Patente, RUTTrans, RUTChofer, NombreChofer, DirDest, CmnaDest) según esquema del SII.
+- Soporta múltiples ítems; botón “Previsualizar” genera representación sin consumir folio.
+
+Estado por TrackID:
+
+```bash
+wp sii dte status --track=123456
+```
+
+## Panel de control (admin)
+
+- Pestaña “Log de Envíos”: filtros (Track/Estado/Fecha), paginación, modal de detalle, botón “Revisar estados ahora”.
+- Pestaña “Folios”: rangos de CAF, último usado, disponibles.
+- Pestaña “Jobs”: estado/proxima ejecución de cron (RVD/CDF).
+
+## Cron y verificación de estados
+
+- Envíos asíncronos con reintentos exponenciales (hasta 3)
+- Cron horario que consulta estados de TrackIDs “sent” y añade filas al log
+
+## Endpoint público
+
+- `/boleta/{folio}`: HTML con datos de DTE y enlace a PDF (si existe)
+
+## PDF / HTML
+
+- PDF con LibreDTE (renderer TCPDF). Si tu build usa Twig, el template está en `resources/templates/billing/document/renderer/estandar.html.twig` (se mantuvo el diseño original, con soporte de logo y detalle).
+- Clases de formato visual: `format-a4` / `format-80mm` (ancho controlado vía CSS). La 2ª página de detalle (inyectada por el engine si hace falta) respeta 80mm/A4 real (AddPage TCPDF) según Ajustes → PDF.
+- Logo: usa el configurado en Ajustes (debe estar en uploads para que TCPDF lo lea).
+
+## Política de folios
+
+- Admin y WooCommerce: NO se consume folio hasta que el SII devuelve TrackID exitoso.
+- Flujo: peek folio → firmar → guardar XML en `uploads/dte/tmp/` → enviar → si TrackID: consumir folio y mover a `uploads/dte/<RUT>/` → generar PDF.
+- Previsualización (admin): no consume folio, no guarda XML definitivo.
+
+## Almacenamiento por RUT
+
+- XML/PDF/HTML bajo `wp-content/uploads/dte/<RUT>/`.
+- Endpoint y métricas recorren recursivamente y siguen encontrando documentos.
+
+## Solución de problemas
+
+- Certificado PFX/P12 (OpenSSL 3): si aparece `invalid key length` o `Unsupported encryption algorithm`, re‑exporta tu PFX a AES‑256. El plugin intentará convertir al vuelo a PEM si `exec` y `openssl` están disponibles.
+- LibreDTE recursos: si ves errores tipo `resources/data/repository/tipos_documento.php`, copia recursos desde vendor a `sii-boleta-dte/resources/` manteniendo la misma estructura.
+- Uploads no escribible: ajusta permisos de `wp-content/uploads`.
+- PDF sin logo: asegúrate que el logo esté en la Biblioteca de Medios (uploads), no en una URL externa/CDN.
+
+## Seguridad
+
+- Certificados/CAF con permisos mínimos; contraseña cifrada en DB; evitar exponer rutas en UI.
+
+## Batería de pruebas – Certificación (CERT)
+
+Prerrequisitos:
+- Emisor y `acteco` configurados, certificado de pruebas y `caf_path[<tipo>]` por cada DTE; ambiente `test`.
+
+Casos de emisión (ejemplos):
+
+- Boleta afecta (39):
+```bash
+wp sii dte emitir --type=39 --rut=66666666-6 --name="CF" --addr="Calle 123" --comuna="Santiago" --desc="Servicio afecta" --qty=1 --price=1000 --send
+```
+
+- Boleta exenta (41):
+```bash
+wp sii dte emitir --type=41 --rut=66666666-6 --name="CF" --addr="Calle 123" --comuna="Santiago" --desc="Servicio exento" --qty=1 --price=1000 --correorecep=cf@correo.cl --telefonorecep=987654321 --send
+```
+
+- Factura afecta (33):
+```bash
+wp sii dte emitir --type=33 --rut=76000000-0 --name="Cliente SA" --addr="Av. Uno 100" --comuna="Providencia" --girorecep="Servicios" --desc="Asesoría" --qty=1 --price=1190 --fmapago=1 --mediopago="Transferencia" --send
+```
+
+- Guía de despacho (52):
+```bash
+wp sii dte emitir --type=52 --rut=96000000-0 --name="Destino" --addr="Ruta 5 Sur KM 100" --comuna="Chillán" --desc="Despacho de productos" --qty=10 --price=1000 --indtraslado=1 --patente=ABCD12 --ruttrans=76234567-8 --rutchofer=12345678-9 --nombrechofer="Juan Pérez" --dirdest="Bodega 2" --cmnadest="Chillán" --send
+```
+
+- Nota de crédito (61):
+```bash
+wp sii dte emitir --type=61 --rut=76000000-0 --name="Cliente SA" --addr="Av. Uno 100" --comuna="Providencia" --girorecep="Servicios" --desc="NC por ajustes" --qty=1 --price=-1000 --refs='[{"TpoDocRef":33,"FolioRef":12345,"FchRef":"2025-01-01","RazonRef":"Descuento"}]' --send
+```
+
+- Nota de débito (56):
+```bash
+wp sii dte emitir --type=56 --rut=76000000-0 --name="Cliente SA" --addr="Av. Uno 100" --comuna="Providencia" --desc="ND por intereses" --qty=1 --price=100 --tpodocref=33 --folioref=12345 --razonref="Intereses" --send
+```
+
+Validación de estados:
+- Panel → “Log de Envíos” → “Revisar estados ahora” y filtros de fecha/track/estado
+- CLI: `wp sii dte status --track=<ID>`
+- Estados esperables: `SOK`, `FOK`, `EPR` y posibles reparos/rechazos con glosa
+
+PDF/HTML:
+- Confirmar formato (A4/80mm), logo, pie de página; fallback HTML si no hay FPDF
+
+Troubleshooting:
+- Firma rechazada: revisar `.p12/.pfx`, contraseña, vigencia, hora servidor
+- CAF inválido: cargar `caf_path[<tipo>]`, revisar rangos/folios
+- Esquema/caratula: ver detalle en “Ver” (modal) y corregir campo
 
 El repositorio incluye un conjunto básico de pruebas unitarias con **PHPUnit** que cubren el cálculo de neto/IVA, la generación de TED y la validación de esquemas XML.
 
@@ -137,7 +297,7 @@ phpunit
 Asegúrate de tener instalado PHPUnit en el sistema (por ejemplo, `apt-get install phpunit` en distribuciones basadas en Debian).
 
 
-## Certificación y manejo de errores
+## Certificación (resumen) y manejo de errores
 
 El SII exige que el representante legal solicite un set de pruebas y envíe cinco envíos de boletas de prueba al correo indicado por el servicio. El plugin facilita este proceso en modo de pruebas.
 
@@ -159,6 +319,6 @@ Los archivos de log se guardan diariamente en `wp-content/uploads/sii-boleta-log
 Ante un rechazo del SII, revise el cuerpo de la respuesta y el archivo de log para identificar la causa exacta.
 
 
-## Notas sobre la licencia y originalidad
+## Licencias
 
 Todo el código dentro de este directorio, excepto la biblioteca `xmlseclibs.php`, ha sido escrito específicamente para este proyecto y sigue el patrón de diseño modular inspirado en el plugin de ejemplo. Se anima a los desarrolladores a revisar y adaptar el código a sus necesidades, respetando las licencias de terceros para cualquier biblioteca adicional que instalen (por ejemplo, FPDF y PDF417).

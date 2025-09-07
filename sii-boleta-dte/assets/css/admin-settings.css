@@ -17,6 +17,12 @@
     max-width: 400px;
 }
 
+/* Ensancha solo Razón Social y Giro Comercial sin afectar otros campos */
+.sii-dte-settings .sii-dte-form input.sii-input-wide[type="text"] {
+    width: clamp(22rem, 50vw, 32rem);
+    max-width: clamp(22rem, 50vw, 32rem);
+}
+
 .sii-dte-cert-row,
 .sii-dte-caf-row {
     display: flex;

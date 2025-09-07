@@ -32,8 +32,17 @@ class SII_Boleta_Metrics {
             'error_reasons' => [],
         ];
 
-        // Buscar archivos DTE generados.
-        $files = glob( $base_dir . 'DTE_*.xml' );
+        // Buscar archivos DTE generados (recursivo en subcarpetas)
+        $files = [];
+        $it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir, FilesystemIterator::SKIP_DOTS ) );
+        foreach ( $it as $file ) {
+            if ( $file->isFile() ) {
+                $name = $file->getFilename();
+                if ( preg_match( '/^(?:Woo_)?DTE_\d+_\d+_\d+\.xml$/', $name ) ) {
+                    $files[] = $file->getPathname();
+                }
+            }
+        }
         if ( $files ) {
             foreach ( $files as $file ) {
                 $metrics['total']++;

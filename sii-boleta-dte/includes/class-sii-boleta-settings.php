@@ -28,6 +28,7 @@ class SII_Boleta_Settings {
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_front_assets' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
         add_action( 'admin_notices', [ $this, 'maybe_show_cert_expiry_notice' ] );
+        add_action( 'admin_notices', [ $this, 'maybe_show_setup_notices' ] );
     }
 
     /**
@@ -122,6 +123,20 @@ class SII_Boleta_Settings {
             'sii-boleta-dte',
             'sii_boleta_dte_settings_section'
         );
+        add_settings_field(
+            'acteco',
+            __( 'Código Acteco', 'sii-boleta-dte' ),
+            [ $this, 'render_field_acteco' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_settings_section'
+        );
+        add_settings_field(
+            'cdg_sii_sucur',
+            __( 'Código Sucursal SII (opcional)', 'sii-boleta-dte' ),
+            [ $this, 'render_field_cdg_sii_sucur' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_settings_section'
+        );
 
         // Campos para certificado y CAF
         add_settings_field(
@@ -174,45 +189,52 @@ class SII_Boleta_Settings {
             'sii_boleta_dte_settings_section'
         );
 
+        // Opciones de PDF
         add_settings_section(
-            'sii_boleta_dte_ses_settings_section',
-            __( 'Configuración de Amazon SES', 'sii-boleta-dte' ),
+            'sii_boleta_dte_pdf_settings_section',
+            __( 'Opciones de PDF', 'sii-boleta-dte' ),
             function() {
-                echo '<p>' . esc_html__( 'Configure las credenciales SMTP de Amazon SES para el envío de correos.', 'sii-boleta-dte' ) . '</p>';
+                echo '<p>' . esc_html__( 'Personaliza el formato de impresión del DTE.', 'sii-boleta-dte' ) . '</p>';
             },
             'sii-boleta-dte'
         );
-
         add_settings_field(
-            'ses_host',
-            __( 'Host SMTP', 'sii-boleta-dte' ),
-            [ $this, 'render_field_ses_host' ],
+            'pdf_format',
+            __( 'Formato', 'sii-boleta-dte' ),
+            [ $this, 'render_field_pdf_format' ],
             'sii-boleta-dte',
-            'sii_boleta_dte_ses_settings_section'
+            'sii_boleta_dte_pdf_settings_section'
+        );
+        add_settings_field(
+            'pdf_show_logo',
+            __( 'Mostrar logo en PDF', 'sii-boleta-dte' ),
+            [ $this, 'render_field_pdf_show_logo' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_pdf_settings_section'
+        );
+        add_settings_field(
+            'pdf_footer',
+            __( 'Nota al pie', 'sii-boleta-dte' ),
+            [ $this, 'render_field_pdf_footer' ],
+            'sii-boleta-dte',
+            'sii_boleta_dte_pdf_settings_section'
         );
 
-        add_settings_field(
-            'ses_port',
-            __( 'Puerto SMTP', 'sii-boleta-dte' ),
-            [ $this, 'render_field_ses_port' ],
-            'sii-boleta-dte',
-            'sii_boleta_dte_ses_settings_section'
+        // Sección de correo: seleccionar perfil SMTP (definido en el servidor/otro plugin)
+        add_settings_section(
+            'sii_boleta_dte_mail_settings_section',
+            __( 'Envío de Correos', 'sii-boleta-dte' ),
+            function() {
+                echo '<p>' . esc_html__( 'Seleccione el perfil SMTP previamente configurado en el servidor para enviar los correos del DTE. Si no selecciona ninguno, se usará la configuración por defecto de WordPress.', 'sii-boleta-dte' ) . '</p>';
+            },
+            'sii-boleta-dte'
         );
-
         add_settings_field(
-            'ses_username',
-            __( 'Usuario SMTP', 'sii-boleta-dte' ),
-            [ $this, 'render_field_ses_username' ],
+            'smtp_profile',
+            __( 'Perfil SMTP', 'sii-boleta-dte' ),
+            [ $this, 'render_field_smtp_profile' ],
             'sii-boleta-dte',
-            'sii_boleta_dte_ses_settings_section'
-        );
-
-        add_settings_field(
-            'ses_password',
-            __( 'Contraseña SMTP', 'sii-boleta-dte' ),
-            [ $this, 'render_field_ses_password' ],
-            'sii-boleta-dte',
-            'sii_boleta_dte_ses_settings_section'
+            'sii_boleta_dte_mail_settings_section'
         );
     }
 
@@ -238,6 +260,8 @@ class SII_Boleta_Settings {
         $output['giro']         = sanitize_text_field( $input['giro'] ?? '' );
         $output['direccion']    = sanitize_text_field( $input['direccion'] ?? '' );
         $output['comuna']       = sanitize_text_field( $input['comuna'] ?? '' );
+        $output['acteco']       = sanitize_text_field( $input['acteco'] ?? '' );
+        $output['cdg_sii_sucur']= sanitize_text_field( $input['cdg_sii_sucur'] ?? '' );
         if ( ! empty( $input['cert_pass'] ) ) {
             $output['cert_pass'] = $this->encrypt_value( sanitize_text_field( $input['cert_pass'] ) );
         } else {
@@ -247,10 +271,9 @@ class SII_Boleta_Settings {
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
-        $output['ses_host']     = sanitize_text_field( $input['ses_host'] ?? '' );
-        $output['ses_port']     = isset( $input['ses_port'] ) ? intval( $input['ses_port'] ) : 587;
-        $output['ses_username'] = sanitize_text_field( $input['ses_username'] ?? '' );
-        $output['ses_password'] = sanitize_text_field( $input['ses_password'] ?? '' );
+        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ] );
+        $sel      = sanitize_text_field( $input['smtp_profile'] ?? '' );
+        $output['smtp_profile'] = array_key_exists( $sel, (array) $profiles ) ? $sel : '';
         $output['api_token_expires'] = isset( $existing_decrypted['api_token_expires'] ) ? intval( $existing_decrypted['api_token_expires'] ) : 0;
         $valid_types            = [ '39', '33', '34', '52', '56', '61' ];
         $requested_types        = isset( $input['enabled_dte_types'] ) ? (array) $input['enabled_dte_types'] : [];
@@ -261,9 +284,15 @@ class SII_Boleta_Settings {
 
         // Guardar ruta de certificado existente o la proporcionada manualmente.
         if ( ! empty( $input['cert_path'] ) ) {
-            $output['cert_path'] = sanitize_text_field( $input['cert_path'] );
+            $cert_path = trim( (string) $input['cert_path'] );
+            // Si vino como URL, convertir a ruta del sistema de archivos.
+            if ( preg_match( '#^https?://#i', $cert_path ) ) {
+                $upload = wp_upload_dir();
+                $cert_path = str_replace( $upload['baseurl'], $upload['basedir'], $cert_path );
+            }
+            $output['cert_path'] = wp_normalize_path( $cert_path );
         } else {
-            $output['cert_path'] = $existing_decrypted['cert_path'] ?? '';
+            $output['cert_path'] = isset( $existing_decrypted['cert_path'] ) ? wp_normalize_path( $existing_decrypted['cert_path'] ) : '';
         }
         $output['caf_path'] = is_array( $existing_decrypted['caf_path'] ?? null ) ? $existing_decrypted['caf_path'] : [];
 
@@ -276,7 +305,7 @@ class SII_Boleta_Settings {
             if ( in_array( $file_type['ext'], [ 'pfx', 'p12' ], true ) ) {
                 $upload = wp_handle_upload( $_FILES['cert_file'], [ 'test_form' => false ] );
                 if ( empty( $upload['error'] ) ) {
-                    $output['cert_path'] = $upload['file'];
+                    $output['cert_path'] = wp_normalize_path( $upload['file'] );
                 }
             }
         }
@@ -320,7 +349,12 @@ class SII_Boleta_Settings {
             }
 
             if ( ! empty( $path ) ) {
-                $output['caf_path'][ $tipo ] = $path;
+                // Convertir URL a ruta, normalizar separadores.
+                if ( preg_match( '#^https?://#i', $path ) ) {
+                    $upload = wp_upload_dir();
+                    $path = str_replace( $upload['baseurl'], $upload['basedir'], $path );
+                }
+                $output['caf_path'][ $tipo ] = wp_normalize_path( $path );
             }
         }
 
@@ -375,6 +409,8 @@ class SII_Boleta_Settings {
             'giro'          => '',
             'direccion'     => '',
             'comuna'        => '',
+            'acteco'        => '',
+            'cdg_sii_sucur' => '',
             'cert_path'     => '',
             'cert_pass'     => '',
             'caf_path'      => [],
@@ -384,10 +420,10 @@ class SII_Boleta_Settings {
             'enabled_dte_types' => [ '39', '33', '34', '52', '56', '61' ],
             'logo_id'       => 0,
             'enable_logging' => 0,
-            'ses_host'      => '',
-            'ses_port'      => 587,
-            'ses_username'  => '',
-            'ses_password'  => '',
+            'smtp_profile'  => '',
+            'pdf_format'    => 'A4',
+            'pdf_show_logo' => true,
+            'pdf_footer'    => '',
         ];
         $options = get_option( self::OPTION_NAME, [] );
 
@@ -447,10 +483,25 @@ class SII_Boleta_Settings {
     public function render_field_razon_social() {
         $options = $this->get_settings();
         printf(
-            '<input type="text" name="%s[razon_social]" value="%s" class="regular-text" />',
+            '<input type="text" name="%s[razon_social]" value="%s" class="regular-text sii-input-wide" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['razon_social'] )
         );
+    }
+
+    /**
+     * Renderiza el selector de perfil SMTP.
+     */
+    public function render_field_smtp_profile() {
+        $options  = $this->get_settings();
+        $current  = $options['smtp_profile'] ?? '';
+        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ] );
+        echo '<select name="' . esc_attr( self::OPTION_NAME ) . '[smtp_profile]">';
+        foreach ( (array) $profiles as $key => $label ) {
+            printf( '<option value="%s" %s>%s</option>', esc_attr( $key ), selected( $current, $key, false ), esc_html( $label ) );
+        }
+        echo '</select>';
+        echo '<p class="description">' . esc_html__( 'Perfiles provistos por el servidor/otros plugins (via filtro).', 'sii-boleta-dte' ) . '</p>';
     }
 
     /**
@@ -459,7 +510,7 @@ class SII_Boleta_Settings {
     public function render_field_giro() {
         $options = $this->get_settings();
         printf(
-            '<input type="text" name="%s[giro]" value="%s" class="regular-text" />',
+            '<input type="text" name="%s[giro]" value="%s" class="regular-text sii-input-wide" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['giro'] )
         );
@@ -486,6 +537,30 @@ class SII_Boleta_Settings {
             '<input type="text" name="%s[comuna]" value="%s" class="regular-text" />',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $options['comuna'] )
+        );
+    }
+
+    /**
+     * Renderiza el campo Acteco (código de actividad económica).
+     */
+    public function render_field_acteco() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[acteco]" value="%s" class="regular-text" placeholder="Ej: 726000" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['acteco'] )
+        );
+    }
+
+    /**
+     * Renderiza el campo CdgSIISucur (código de sucursal SII).
+     */
+    public function render_field_cdg_sii_sucur() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[cdg_sii_sucur]" value="%s" class="regular-text" placeholder="Opcional" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['cdg_sii_sucur'] )
         );
     }
 
@@ -765,6 +840,37 @@ class SII_Boleta_Settings {
         printf( '<div class="notice %s"><p>%s</p></div>', esc_attr( $class ), esc_html( $message ) );
     }
 
+    public function render_field_pdf_format() {
+        $options = $this->get_settings();
+        $val = $options['pdf_format'];
+        ?>
+        <select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[pdf_format]">
+            <option value="A4" <?php selected( $val, 'A4' ); ?>>A4</option>
+            <option value="80mm" <?php selected( $val, '80mm' ); ?>>80mm (boleta térmica)</option>
+        </select>
+        <?php
+    }
+
+    public function render_field_pdf_show_logo() {
+        $options = $this->get_settings();
+        ?>
+        <label>
+            <input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[pdf_show_logo]" value="1" <?php checked( ! empty( $options['pdf_show_logo'] ) ); ?> />
+            <?php esc_html_e( 'Incluir el logo configurado en el encabezado del PDF.', 'sii-boleta-dte' ); ?>
+        </label>
+        <?php
+    }
+
+    public function render_field_pdf_footer() {
+        $options = $this->get_settings();
+        printf(
+            '<input type="text" name="%s[pdf_footer]" value="%s" class="regular-text" placeholder="%s" />',
+            esc_attr( self::OPTION_NAME ),
+            esc_attr( $options['pdf_footer'] ),
+            esc_attr__( 'Gracias por su compra', 'sii-boleta-dte' )
+        );
+    }
+
     /**
      * Renderiza la página de configuración completa. Se engancha en el menú
      * principal desde la clase SII_Boleta_Core.
@@ -782,7 +888,208 @@ class SII_Boleta_Settings {
                     ?>
                 </form>
             </div>
+
+            <?php $diag = $this->get_diagnostics(); ?>
+            <div class="sii-dte-card">
+                <h2><?php esc_html_e( 'Diagnóstico de Integración', 'sii-boleta-dte' ); ?></h2>
+                <p><?php esc_html_e( 'Checklist rápido para validar que todo está listo para emitir.', 'sii-boleta-dte' ); ?></p>
+                <ul>
+                    <li><?php echo $this->render_check( ! empty( $this->get_settings()['rut_emisor'] ), __( 'RUT emisor configurado', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( ! empty( $this->get_settings()['razon_social'] ), __( 'Razón social configurada', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( ! empty( $this->get_settings()['giro'] ), __( 'Giro comercial configurado', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( ! empty( $this->get_settings()['direccion'] ) && ! empty( $this->get_settings()['comuna'] ), __( 'Dirección y Comuna de origen configuradas', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( $diag['acteco'], __( 'Código Acteco configurado', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( $diag['openssl'], __( 'Extensión OpenSSL disponible en PHP', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( $diag['cert_path'], __( 'Certificado digital (.p12/.pfx) accesible', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( $diag['cert_pass'], __( 'Contraseña del certificado configurada', 'sii-boleta-dte' ) ); ?></li>
+                    <li><?php echo $this->render_check( $diag['libredte_available'], __( 'Librería LibreDTE disponible', 'sii-boleta-dte' ) ); ?></li>
+                    <li>
+                        <?php
+                        $caf_ok = empty( $diag['caf_missing'] );
+                        $msg = $caf_ok
+                            ? __( 'CAF presentes para tipos habilitados', 'sii-boleta-dte' )
+                            : sprintf( __( 'CAF faltantes para tipos: %s', 'sii-boleta-dte' ), esc_html( implode( ', ', $diag['caf_missing'] ) ) );
+                        echo $this->render_check( $caf_ok, $msg );
+                        ?>
+                    </li>
+                    <li>
+                        <?php
+                        $authMsg = $diag['sii_auth'] === true
+                            ? __( 'Autenticación SII OK (token obtenido)', 'sii-boleta-dte' )
+                            : ( $diag['sii_auth'] === false
+                                ? sprintf( __( 'Autenticación SII falló: %s', 'sii-boleta-dte' ), esc_html( $diag['sii_auth_error'] ) )
+                                : __( 'Autenticación SII no ejecutada (revise certificado/LibreDTE).', 'sii-boleta-dte' )
+                            );
+                        echo $this->render_check( (bool) $diag['sii_auth'], $authMsg );
+                        ?>
+                    </li>
+                </ul>
+            </div>
         </div>
         <?php
+    }
+
+    /**
+     * Obtiene diagnóstico de configuración y conectividad.
+     * @return array
+     */
+    private function get_diagnostics() {
+        $o = $this->get_settings();
+        $res = [
+            'libredte_available' => class_exists( '\\libredte\\lib\\Core\\Application' ),
+            'openssl'            => function_exists( 'openssl_pkcs12_read' ),
+            'cert_path'          => ! empty( $o['cert_path'] ) && file_exists( $o['cert_path'] ),
+            'cert_pass'          => ! empty( $o['cert_pass'] ),
+            'acteco'             => ! empty( $o['acteco'] ),
+            'caf_missing'        => [],
+            'sii_auth'           => null,
+            'sii_auth_error'     => '',
+        ];
+
+        $enabled = isset( $o['enabled_dte_types'] ) && is_array( $o['enabled_dte_types'] )
+            ? array_map( 'strval', $o['enabled_dte_types'] )
+            : [];
+        $caf = isset( $o['caf_path'] ) && is_array( $o['caf_path'] ) ? $o['caf_path'] : [];
+        foreach ( $enabled as $t ) {
+            if ( empty( $caf[ $t ] ) || ! file_exists( $caf[ $t ] ) ) {
+                $res['caf_missing'][] = $t;
+            }
+        }
+
+        if ( $res['libredte_available'] && $res['openssl'] && $res['cert_path'] && $res['cert_pass'] ) {
+            try {
+                $app = \libredte\lib\Core\Application::getInstance( 'prod', false );
+                /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
+                $billing = $app->getPackageRegistry()->getPackage( 'billing' );
+                $loader = new \Derafu\Certificate\Service\CertificateLoader();
+                $cert   = $loader->loadFromFile( $o['cert_path'], $o['cert_pass'] );
+                $ambiente = ( 'production' === strtolower( (string) ( $o['environment'] ?? 'test' ) ) )
+                    ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION
+                    : \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION;
+                $request = new \libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest( $cert, [ 'ambiente' => $ambiente ] );
+                $token = $billing->getIntegrationComponent()->getSiiLazyWorker()->authenticate( $request );
+                $res['sii_auth'] = ! empty( $token );
+            } catch ( \Throwable $e ) {
+                $res['sii_auth'] = false;
+                $res['sii_auth_error'] = $e->getMessage();
+            }
+        }
+
+        return $res;
+    }
+
+    /**
+     * Render de un item de checklist con ✓ / ✗
+     * @param bool $ok
+     * @param string $label
+     * @return string HTML
+     */
+    private function render_check( $ok, $label ) {
+        $icon = $ok ? '✓' : '✗';
+        $color = $ok ? 'green' : 'red';
+        return sprintf( '<span style="color:%s;font-weight:bold;">%s</span> %s', esc_attr( $color ), esc_html( $icon ), esc_html( $label ) );
+    }
+
+    /**
+     * Muestra avisos cuando faltan datos críticos de configuración.
+     * Se muestra solo a administradores y preferentemente en la página del plugin.
+     */
+    public function maybe_show_setup_notices() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        // Mostrar preferentemente en la página del plugin para no saturar.
+        $screen_ok = true;
+        if ( function_exists( 'get_current_screen' ) ) {
+            $screen = get_current_screen();
+            if ( $screen && isset( $screen->id ) ) {
+                $screen_ok = ( false !== strpos( $screen->id, 'sii-boleta-dte' ) );
+            }
+        }
+        if ( ! $screen_ok ) {
+            return;
+        }
+
+        $o = $this->get_settings();
+        $errors   = [];
+        $warnings = [];
+
+        if ( empty( $o['rut_emisor'] ) ) {
+            $errors[] = __( 'Falta el RUT del emisor.', 'sii-boleta-dte' );
+        }
+        if ( empty( $o['razon_social'] ) ) {
+            $warnings[] = __( 'Falta la Razón Social del emisor.', 'sii-boleta-dte' );
+        }
+        if ( empty( $o['giro'] ) ) {
+            $warnings[] = __( 'Falta el Giro comercial del emisor.', 'sii-boleta-dte' );
+        }
+        if ( empty( $o['direccion'] ) || empty( $o['comuna'] ) ) {
+            $warnings[] = __( 'Faltan Dirección o Comuna de origen.', 'sii-boleta-dte' );
+        }
+        if ( empty( $o['acteco'] ) ) {
+            $warnings[] = __( 'Falta el código Acteco. Recomendado para emisión con LibreDTE.', 'sii-boleta-dte' );
+        }
+
+        // Certificado (normalizado)
+        $cert_path_chk = $o['cert_path'] ?? '';
+        if ( $cert_path_chk ) {
+            if ( preg_match( '#^https?://#i', $cert_path_chk ) ) {
+                $u = wp_upload_dir();
+                $cert_path_chk = str_replace( $u['baseurl'], $u['basedir'], $cert_path_chk );
+            }
+            $cert_path_chk = wp_normalize_path( $cert_path_chk );
+        }
+        if ( empty( $cert_path_chk ) || ! is_readable( $cert_path_chk ) ) {
+            $errors[] = sprintf(
+                /* translators: %s is the resolved cert path */
+                __( 'No se encontró el certificado digital (.p12/.pfx) en la ruta configurada. Ruta resuelta: %s', 'sii-boleta-dte' ),
+                esc_html( $cert_path_chk ?: '-' )
+            );
+        }
+        if ( empty( $o['cert_pass'] ) ) {
+            $errors[] = __( 'Falta la contraseña del certificado digital.', 'sii-boleta-dte' );
+        }
+        if ( ! function_exists( 'openssl_pkcs12_read' ) ) {
+            $errors[] = __( 'La extensión OpenSSL de PHP no está disponible. Es requerida para firmar.', 'sii-boleta-dte' );
+        }
+
+        // CAF por tipo habilitado
+        $enabled = isset( $o['enabled_dte_types'] ) && is_array( $o['enabled_dte_types'] ) ? array_map( 'strval', $o['enabled_dte_types'] ) : [];
+        $caf     = isset( $o['caf_path'] ) && is_array( $o['caf_path'] ) ? $o['caf_path'] : [];
+        foreach ( $enabled as $t ) {
+            $caf_path_chk = $caf[ $t ] ?? '';
+            if ( $caf_path_chk ) {
+                if ( preg_match( '#^https?://#i', $caf_path_chk ) ) {
+                    $u = wp_upload_dir();
+                    $caf_path_chk = str_replace( $u['baseurl'], $u['basedir'], $caf_path_chk );
+                }
+                $caf_path_chk = wp_normalize_path( $caf_path_chk );
+            }
+            if ( empty( $caf_path_chk ) || ! is_readable( $caf_path_chk ) ) {
+                $warnings[] = sprintf(
+                    /* translators: 1: DTE type, 2: resolved CAF path */
+                    __( 'Falta el CAF para el tipo de DTE %1$s en los ajustes. Ruta resuelta: %2$s', 'sii-boleta-dte' ),
+                    esc_html( $t ),
+                    esc_html( $caf_path_chk ?: '-' )
+                );
+            }
+        }
+
+        if ( $errors ) {
+            printf( '<div class="notice notice-error"><p><strong>%s</strong></p><ul>', esc_html__( 'SII Boleta DTE: configuración incompleta.', 'sii-boleta-dte' ) );
+            foreach ( $errors as $msg ) {
+                printf( '<li>%s</li>', esc_html( $msg ) );
+            }
+            echo '</ul></div>';
+        }
+
+        if ( $warnings ) {
+            printf( '<div class="notice notice-warning"><p><strong>%s</strong></p><ul>', esc_html__( 'SII Boleta DTE: recomendaciones de configuración.', 'sii-boleta-dte' ) );
+            foreach ( $warnings as $msg ) {
+                printf( '<li>%s</li>', esc_html( $msg ) );
+            }
+            echo '</ul></div>';
+        }
     }
 }

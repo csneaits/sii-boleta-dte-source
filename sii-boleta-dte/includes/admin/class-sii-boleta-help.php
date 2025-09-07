@@ -117,6 +117,38 @@ class SII_Boleta_Help {
                 <li><?php esc_html_e( 'Realizar backups periódicos.', 'sii-boleta-dte' ); ?></li>
             </ul>
 
+            <h2><?php esc_html_e( 'Guía rápida (CERT)', 'sii-boleta-dte' ); ?></h2>
+            <ol>
+                <li><strong><?php esc_html_e( 'Configurar Ajustes', 'sii-boleta-dte' ); ?></strong>
+                    <ul>
+                        <li><?php esc_html_e( 'Ambiente en test, RUT/Giro/Dirección/Comuna/Acteco, certificado (.p12/.pfx) y CAF por tipo.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php esc_html_e( 'Validar checklist y autenticación SII en la misma pantalla.', 'sii-boleta-dte' ); ?></li>
+                    </ul>
+                </li>
+                <li><strong><?php esc_html_e( 'Emitir y enviar DTE (WP-CLI)', 'sii-boleta-dte' ); ?></strong>
+                    <pre><code>wp sii dte emitir \
+  --type=39 \
+  --rut=66666666-6 --name="CF" --addr="Calle 123" --comuna="Santiago" \
+  --desc="Servicio" --qty=1 --price=1000 --send</code></pre>
+                    <p><?php esc_html_e( 'Para referencias múltiples (p. ej., NC):', 'sii-boleta-dte' ); ?></p>
+                    <pre><code>wp sii dte emitir --type=61 --rut=76000000-0 --name="Cliente SA" \
+  --addr="Av. Uno 100" --comuna="Providencia" --desc="NC varias ref" --qty=1 --price=-1000 \
+  --refs='[{"TpoDocRef":33,"FolioRef":12345,"FchRef":"2025-01-01","RazonRef":"Descuento"}]' --send</code></pre>
+                </li>
+                <li><strong><?php esc_html_e( 'Verificar estado', 'sii-boleta-dte' ); ?></strong>
+                    <ul>
+                        <li><?php echo sprintf( esc_html__( 'Panel → %s → pestaña %s → botón %s', 'sii-boleta-dte' ), '<a href="' . esc_url( admin_url( 'admin.php?page=sii-boleta-dte-panel' ) ) . '">SII Boletas → Panel de Control</a>', esc_html__( 'Log de Envíos', 'sii-boleta-dte' ), esc_html__( 'Revisar estados ahora', 'sii-boleta-dte' ) ); ?></li>
+                        <li><code>wp sii dte status --track=123456</code></li>
+                    </ul>
+                </li>
+                <li><strong><?php esc_html_e( 'PDF/HTML', 'sii-boleta-dte' ); ?></strong>
+                    <ul>
+                        <li><?php esc_html_e( 'Ajustar formato (A4/80mm), logo y pie en Ajustes. Ver PDF/HTML enlazado en el panel o endpoint público.', 'sii-boleta-dte' ); ?></li>
+                        <li><?php echo sprintf( esc_html__( 'URL pública: %s', 'sii-boleta-dte' ), esc_url( home_url( '/boleta/{folio}' ) ) ); ?></li>
+                    </ul>
+                </li>
+            </ol>
+
             <h2><?php esc_html_e( 'Preguntas frecuentes', 'sii-boleta-dte' ); ?></h2>
             <ul>
                 <li><?php esc_html_e( 'Rechazo de firma: verifique que el certificado y la clave sean correctos.', 'sii-boleta-dte' ); ?></li>

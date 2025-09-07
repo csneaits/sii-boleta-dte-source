@@ -28,6 +28,11 @@ class SII_Boleta_Cron {
     const CDF_CRON_HOOK = 'sii_boleta_dte_run_cdf';
 
     /**
+     * Evento cron para verificar el estado de envíos pendientes (Track IDs).
+     */
+    const CHECK_STATUS_CRON_HOOK = 'sii_boleta_dte_check_status';
+
+    /**
      * Gancho legado usado en versiones anteriores del plugin.
      * Se mantiene para eliminar eventos huérfanos.
      */
@@ -40,6 +45,7 @@ class SII_Boleta_Cron {
         $this->settings = $settings;
         add_action( self::CRON_HOOK, [ $this, 'generate_and_send_rvd' ] );
         add_action( self::CDF_CRON_HOOK, [ $this, 'generate_and_send_cdf' ] );
+        add_action( self::CHECK_STATUS_CRON_HOOK, [ $this, 'check_pending_statuses' ] );
     }
 
     /**
@@ -66,6 +72,7 @@ class SII_Boleta_Cron {
         // Limpiar eventos antiguos que podían causar errores.
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
         wp_clear_scheduled_hook( self::CRON_HOOK );
+        wp_clear_scheduled_hook( self::CHECK_STATUS_CRON_HOOK );
 
         if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
             $tz       = new DateTimeZone( 'America/Santiago' );
@@ -87,6 +94,11 @@ class SII_Boleta_Cron {
             wp_schedule_event( $timestamp, 'daily', self::CDF_CRON_HOOK );
         }
 
+        // Programar verificación de estados (cada hora)
+        if ( ! wp_next_scheduled( self::CHECK_STATUS_CRON_HOOK ) ) {
+            wp_schedule_event( time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::CHECK_STATUS_CRON_HOOK );
+        }
+
     }
 
     /**
@@ -97,6 +109,7 @@ class SII_Boleta_Cron {
         wp_clear_scheduled_hook( self::CDF_CRON_HOOK );
         wp_clear_scheduled_hook( 'sii_boleta_dte_daily_cdf' );
         wp_clear_scheduled_hook( self::LEGACY_CRON_HOOK );
+        wp_clear_scheduled_hook( self::CHECK_STATUS_CRON_HOOK );
     }
 
     /**
@@ -220,6 +233,47 @@ class SII_Boleta_Cron {
             wp_mail( $admin_email, 'Error al enviar CDF', 'Error al enviar el CDF para la fecha ' . $date );
         }
         return false;
+    }
+
+    /**
+     * Verifica el estado de Track IDs pendientes usando LibreDTE y guarda el resultado en la tabla de logs.
+     */
+    public function check_pending_statuses() {
+        if ( ! class_exists( '\\libredte\\lib\\Core\\Application' ) || ! class_exists( 'SII_Boleta_Log_DB' ) ) {
+            return;
+        }
+        $pending = SII_Boleta_Log_DB::get_pending_track_ids( 50 );
+        if ( empty( $pending ) ) {
+            return;
+        }
+
+        try {
+            $app = \libredte\lib\Core\Application::getInstance( 'prod', false );
+            /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
+            $billing = $app->getPackageRegistry()->getPackage( 'billing' );
+            $integration = $billing->getIntegrationComponent();
+            $loader = new \Derafu\Certificate\Service\CertificateLoader();
+            $opts   = $this->settings->get_settings();
+            $certificate = $loader->loadFromFile( $opts['cert_path'] ?? '', $opts['cert_pass'] ?? '' );
+            $ambiente = ( 'production' === strtolower( (string) ( $opts['environment'] ?? 'test' ) ) )
+                ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION
+                : \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION;
+            $request = new \libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest( $certificate, [ 'ambiente' => $ambiente ] );
+            $company = (string) ( $opts['rut_emisor'] ?? '' );
+
+            foreach ( $pending as $track_id ) {
+                try {
+                    $resp = $integration->getSiiLazyWorker()->checkXmlDocumentSentStatus( $request, intval( $track_id ), $company );
+                    $statusText = method_exists( $resp, 'getReviewStatus' ) ? $resp->getReviewStatus() : 'checked';
+                    $payload = json_encode( $resp, JSON_UNESCAPED_UNICODE );
+                    SII_Boleta_Log_DB::add_entry( (string) $track_id, $statusText, $payload ?: '' );
+                } catch ( \Throwable $e ) {
+                    SII_Boleta_Log_DB::add_entry( (string) $track_id, 'check_error', $e->getMessage() );
+                }
+            }
+        } catch ( \Throwable $e ) {
+            // Silencioso para no romper cron
+        }
     }
     /**
      * Comando WP-CLI: wp sii:rvd --date=YYYY-MM-DD.

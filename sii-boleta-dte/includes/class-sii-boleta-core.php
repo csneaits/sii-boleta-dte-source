@@ -116,6 +116,45 @@ class SII_Boleta_Core {
     }
 
     /**
+     * Normaliza un RUT a formato XXXXXXXX-DV (sin puntos) y en mayúsculas.
+     *
+     * @param string $rut
+     * @return string RUT normalizado o cadena vacía si no hay dígitos suficientes.
+     */
+    private function normalize_rut( $rut ) {
+        $c = strtoupper( preg_replace( '/[^0-9Kk]/', '', (string) $rut ) );
+        if ( strlen( $c ) < 2 ) {
+            return '';
+        }
+        $body = substr( $c, 0, -1 );
+        $dv   = substr( $c, -1 );
+        return ltrim( $body, '0' ) . '-' . $dv;
+    }
+
+    /**
+     * Valida el RUT chileno por dígito verificador.
+     *
+     * @param string $rut
+     * @return bool
+     */
+    private function is_valid_rut( $rut ) {
+        $c = strtoupper( preg_replace( '/[^0-9Kk]/', '', (string) $rut ) );
+        if ( strlen( $c ) < 2 ) {
+            return false;
+        }
+        $body = substr( $c, 0, -1 );
+        $dv   = substr( $c, -1 );
+        $sum = 0; $mul = 2;
+        for ( $i = strlen( $body ) - 1; $i >= 0; $i-- ) {
+            $sum += intval( $body[$i] ) * $mul;
+            $mul = ( $mul === 7 ) ? 2 : $mul + 1;
+        }
+        $rem = 11 - ( $sum % 11 );
+        $exp = ( $rem === 11 ) ? '0' : ( $rem === 10 ? 'K' : (string) $rem );
+        return $dv === $exp;
+    }
+
+    /**
      * Detecta perfiles de FluentSMTP y los expone para el selector de perfiles SMTP.
      *
      * @param array $profiles Perfiles actuales.
@@ -995,7 +1034,32 @@ class SII_Boleta_Core {
                 }
             });
 
+            // === Validador de RUT (admin Generar DTE) ===
+            function rutClean(v){ return (v||'').replace(/[^0-9kK]/g,'').toUpperCase(); }
+            function rutFormat(v){
+                var c = rutClean(v); if(c.length<2) return c;
+                var body=c.slice(0,-1), dv=c.slice(-1), out='';
+                while(body.length>3){ out='.'+body.slice(-3)+out; body=body.slice(0,-3); }
+                return body+out+'-'+dv;
+            }
+            function rutDV(body){ var s=0,m=2; for(var i=body.length-1;i>=0;i--){ s+=parseInt(body.charAt(i),10)*m; m=(m===7)?2:m+1; } var r=11-(s%11); return r===11?'0':(r===10?'K':String(r)); }
+            function rutValid(v){ var c=rutClean(v); if(c.length<2) return false; var body=c.slice(0,-1), dv=c.slice(-1); return rutDV(body)===dv; }
+            function attachRutValidation(sel){
+                var $i=$(sel); if(!$i.length) return;
+                function check(){ var raw=$i.val(); var c=rutClean(raw); if(!c){ $i.val(''); $i.get(0).setCustomValidity(''); return true; }
+                    $i.val(rutFormat(c)); if(!rutValid(c)){ $i.get(0).setCustomValidity('RUT inválido'); $i.get(0).reportValidity(); return false; }
+                    $i.get(0).setCustomValidity(''); return true; }
+                $i.on('input', check);
+                return check;
+            }
+            var checkRutRecep = attachRutValidation('#receptor_rut');
+            var checkRutTrans = attachRutValidation('#rut_trans');
+            var checkRutChofer= attachRutValidation('#rut_chofer');
+
             $('#sii-boleta-generate-form').on('submit', function(e){
+                if (checkRutRecep && !checkRutRecep()) { e.preventDefault(); return; }
+                if ($('#rut_trans').is(':visible') && checkRutTrans && !checkRutTrans()) { e.preventDefault(); return; }
+                if ($('#rut_chofer').is(':visible') && checkRutChofer && !checkRutChofer()) { e.preventDefault(); return; }
                 e.preventDefault();
                 var data = $(this).serialize();
                 $('#sii-generate-dte').prop('disabled', true);
@@ -1011,6 +1075,7 @@ class SII_Boleta_Core {
             });
 
             $('#sii-preview-dte').on('click', function(){
+                if (checkRutRecep && !checkRutRecep()) { return; }
                 var data = $('#sii-boleta-generate-form').serialize();
                 $('#sii-preview-dte').prop('disabled', true);
                 $('#sii-boleta-result').html('<p><?php echo esc_js( __( 'Generando previsualización...', 'sii-boleta-dte' ) ); ?></p>');
@@ -1065,6 +1130,14 @@ class SII_Boleta_Core {
 
         $type            = isset( $_POST['dte_type'] ) ? intval( $_POST['dte_type'] ) : 39;
         $rut_receptor    = sanitize_text_field( $_POST['receptor_rut'] );
+        if ( ! $this->is_valid_rut( $rut_receptor ) ) {
+            wp_send_json_error( [ 'message' => __( 'RUT del receptor inválido. Verifique el dígito verificador.', 'sii-boleta-dte' ) ] );
+        }
+        $rut_receptor = $this->normalize_rut( $rut_receptor );
+        if ( ! $this->is_valid_rut( $rut_receptor ) ) {
+            wp_send_json_error( [ 'message' => __( 'RUT del receptor inválido. Verifique el dígito verificador.', 'sii-boleta-dte' ) ] );
+        }
+        $rut_receptor = $this->normalize_rut( $rut_receptor );
         $nombre_receptor = sanitize_text_field( $_POST['receptor_nombre'] );
         $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
         $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
@@ -1079,6 +1152,14 @@ class SII_Boleta_Core {
         $patente         = isset( $_POST['patente'] ) ? sanitize_text_field( $_POST['patente'] ) : '';
         $rut_trans       = isset( $_POST['rut_trans'] ) ? sanitize_text_field( $_POST['rut_trans'] ) : '';
         $rut_chofer      = isset( $_POST['rut_chofer'] ) ? sanitize_text_field( $_POST['rut_chofer'] ) : '';
+        if ( ! empty( $rut_trans ) && ! $this->is_valid_rut( $rut_trans ) ) {
+            wp_send_json_error( [ 'message' => __( 'RUT del transportista inválido.', 'sii-boleta-dte' ) ] );
+        }
+        if ( ! empty( $rut_chofer ) && ! $this->is_valid_rut( $rut_chofer ) ) {
+            wp_send_json_error( [ 'message' => __( 'RUT del chofer inválido.', 'sii-boleta-dte' ) ] );
+        }
+        if ( ! empty( $rut_trans ) ) { $rut_trans = $this->normalize_rut( $rut_trans ); }
+        if ( ! empty( $rut_chofer ) ) { $rut_chofer = $this->normalize_rut( $rut_chofer ); }
         $nombre_chofer   = isset( $_POST['nombre_chofer'] ) ? sanitize_text_field( $_POST['nombre_chofer'] ) : '';
         $dir_dest        = isset( $_POST['dir_dest'] ) ? sanitize_text_field( $_POST['dir_dest'] ) : '';
         $cmna_dest       = isset( $_POST['cmna_dest'] ) ? sanitize_text_field( $_POST['cmna_dest'] ) : '';
@@ -1413,6 +1494,22 @@ class SII_Boleta_Core {
         if ( is_wp_error( $xml ) || ! $xml ) {
             wp_send_json_error( [ 'message' => __( 'Error al generar la previsualización del DTE.', 'sii-boleta-dte' ) ] );
         }
+
+        // Log de diagnóstico: totales y cantidad de líneas
+        try {
+            $sx = @simplexml_load_string( (string) $xml );
+            if ( $sx ) {
+                $doc_nodes = $sx->xpath('//*[local-name()="Documento"]');
+                if ( $doc_nodes && ! empty($doc_nodes[0]) ) {
+                    $d = $doc_nodes[0];
+                    $tot = $d->Encabezado->Totales ?? null;
+                    $lines = $d->xpath('./*[local-name()="Detalle"]');
+                    if ( class_exists('SII_Logger') ) {
+                        \SII_Logger::info('[Preview] Detalles=' . ( $lines ? count($lines) : 0 ) . ' MntNeto=' . (string)($tot->MntNeto ?? '') . ' IVA=' . (string)($tot->IVA ?? '') . ' MntExe=' . (string)($tot->MntExe ?? '') . ' MntTotal=' . (string)($tot->MntTotal ?? '') );
+                    }
+                }
+            }
+        } catch ( \Throwable $e ) {}
 
         $pdf_path = $this->engine->render_pdf( $xml, $settings );
         if ( ! $pdf_path ) {

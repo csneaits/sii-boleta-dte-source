@@ -393,25 +393,43 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             return false;
         }
         try {
+            $pdfContent = null;
             // Cargar LibreDTE y construir la bolsa desde el XML proporcionado
             $app = \libredte\lib\Core\Application::getInstance('prod', false);
             /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
             $billing  = $app->getPackageRegistry()->getPackage('billing');
             $document = $billing->getDocumentComponent();
 
-            if ( ! $pdfContent ) { $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml ); }
+            // Construir la bolsa desde el XML
+            $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml );
+
+            // Pasar logo a la plantilla sin modificarla
+            if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
+                $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
+                if ( $img && ! empty( $img[0] ) ) {
+                    $extra = method_exists( $bag, 'getLibredteData' ) ? (array) $bag->getLibredteData() : [];
+                    if ( ! isset( $extra['extra']['dte'] ) ) {
+                        $extra['extra']['dte'] = [];
+                    }
+                    $extra['extra']['dte']['logo'] = $img[0];
+                    if ( method_exists( $bag, 'setLibredteData' ) ) {
+                        $bag->setLibredteData( $extra );
+                    }
+                }
+            }
+
             // Al renderizar desde XML no se vuelve a normalizar: el renderer
             // Trabajar sobre el XML del bag con la normalización activa para
             // que las colecciones (Detalle, Referencia, etc.) sean iterables
             // al renderizar la plantilla PDF de LibreDTE.
-            if ( ! $pdfContent && method_exists( $bag, 'getOptions' ) ) {
+            if ( method_exists( $bag, 'getOptions' ) ) {
                 $opts = $bag->getOptions();
                 if ( $opts && method_exists( $opts, 'set' ) ) {
                     $opts->set( 'normalizer.normalize', true );
                 }
             }
 
-            if ( ! $pdfContent && method_exists( $document, 'getRendererWorker' ) ) {
+            if ( method_exists( $document, 'getRendererWorker' ) ) {
                 $renderer = $document->getRendererWorker();
                 if ( $renderer && method_exists( $renderer, 'render' ) ) {
                     $pdfContent = $renderer->render( $bag );

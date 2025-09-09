@@ -66,7 +66,9 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             $detalles = [];
             $sum_total = 0; // solo diagnóstico
             $is_boleta_exenta = ($tipo === 41);
-            foreach ( (array) ( $data['Detalles'] ?? [] ) as $i => $det ) {
+            // Normalizar los detalles para asegurar índices numéricos secuenciales
+            $input_detalles = array_values( (array) ( $data['Detalles'] ?? [] ) );
+            foreach ( $input_detalles as $i => $det ) {
                 $lin = [
                     'NroLinDet' => intval( $det['NroLinDet'] ?? ( $i + 1 ) ),
                     'NmbItem'   => (string) ( $det['NmbItem'] ?? '' ),

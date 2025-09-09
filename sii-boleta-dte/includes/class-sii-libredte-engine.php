@@ -64,7 +64,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             }
 
             $detalles = [];
-            $sum_total = 0;
+            $sum_total = 0; // solo diagnóstico
             $is_boleta_exenta = ($tipo === 41);
             foreach ( (array) ( $data['Detalles'] ?? [] ) as $i => $det ) {
                 $lin = [
@@ -73,6 +73,10 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                     'QtyItem'   => (float)  ( $det['QtyItem'] ?? 1 ),
                     'PrcItem'   => (float)  ( $det['PrcItem'] ?? 0 ),
                 ];
+                // En boletas (39/41) los precios vienen con IVA incluido
+                if ( in_array( $tipo, [39,41], true ) ) {
+                    $lin['MntBruto'] = 1;
+                }
                 if ( isset( $det['IndExe'] ) && $det['IndExe'] ) {
                     $lin['IndExe'] = 1;
                 }
@@ -86,12 +90,8 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 if ( isset( $det['RecargoMonto'] ) ) {
                     $lin['RecargoMonto'] = intval( $det['RecargoMonto'] );
                 }
-                if ( isset( $det['MontoItem'] ) ) {
-                    $lin['MontoItem'] = intval( $det['MontoItem'] );
-                } else {
-                    $lin['MontoItem'] = intval( round( $lin['QtyItem'] * $lin['PrcItem'] ) );
-                }
-                $sum_total += intval( $lin['MontoItem'] );
+                // No setear MontoItem; dejar que LibreDTE lo calcule
+                $sum_total += intval( round( $lin['QtyItem'] * $lin['PrcItem'] ) );
                 $detalles[] = $lin;
             }
 
@@ -110,9 +110,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                     ], function($v){ return $v !== null && $v !== ''; }),
                     'Emisor'   => $emisor,
                     'Receptor' => $receptor,
-                    'Totales'  => [
-                        'MntTotal' => $sum_total,
-                    ],
+                    // Totales los calculará LibreDTE a partir del detalle
                 ],
                 'Detalle' => $detalles,
             ];
@@ -168,6 +166,78 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
             $billing  = $app->getPackageRegistry()->getPackage('billing');
             $document = $billing->getDocumentComponent();
+
+            // Intento 1: construir y renderizar un bag desde datos normalizados
+            $pdfContent = null;
+            try {
+                $raw = (string) $xml_or_signed_xml;
+                // Sanear posibles BOM/controles
+                if ( substr($raw,0,3) === "\xEF\xBB\xBF" ) { $raw = substr($raw,3); }
+                $raw = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/','',$raw);
+                libxml_use_internal_errors(true);
+                $sx = simplexml_load_string($raw);
+                if ( $sx ) {
+                    $docNodes = $sx->xpath('//*[local-name()="Documento"]');
+                    if ( $docNodes && !empty($docNodes[0]) ) {
+                        $d    = $docNodes[0];
+                        $tipo = intval((string)$d->Encabezado->IdDoc->TipoDTE);
+                        $norm = [
+                            'Encabezado' => [
+                                'IdDoc' => [
+                                    'TipoDTE' => $tipo,
+                                    'Folio'   => intval((string)$d->Encabezado->IdDoc->Folio),
+                                    'FchEmis' => (string)$d->Encabezado->IdDoc->FchEmis ?: date('Y-m-d'),
+                                ],
+                                'Emisor' => [
+                                    'RUTEmisor' => (string)$d->Encabezado->Emisor->RUTEmisor,
+                                    'RznSoc'    => (string)$d->Encabezado->Emisor->RznSoc,
+                                    'GiroEmis'  => (string)$d->Encabezado->Emisor->GiroEmis,
+                                    'DirOrigen' => (string)$d->Encabezado->Emisor->DirOrigen,
+                                    'CmnaOrigen'=> (string)$d->Encabezado->Emisor->CmnaOrigen,
+                                ],
+                                'Receptor' => array_filter([
+                                    'RUTRecep'      => (string)$d->Encabezado->Receptor->RUTRecep,
+                                    'RznSocRecep'   => (string)$d->Encabezado->Receptor->RznSocRecep,
+                                    'DirRecep'      => (string)$d->Encabezado->Receptor->DirRecep,
+                                    'CmnaRecep'     => (string)$d->Encabezado->Receptor->CmnaRecep,
+                                    'CorreoRecep'   => (string)$d->Encabezado->Receptor->CorreoRecep,
+                                    'TelefonoRecep' => (string)$d->Encabezado->Receptor->TelefonoRecep,
+                                ], function($v){ return $v!=='' && $v!==null; }),
+                            ],
+                        ];
+                        $lines = $d->xpath('./*[local-name()="Detalle"]');
+                        $items = [];
+                        $i=1;
+                        foreach ( (array)$lines as $ln ) {
+                            $row = [
+                                'NroLinDet' => intval((string)$ln->NroLinDet ?: $i),
+                                'NmbItem'   => (string)$ln->NmbItem,
+                                'QtyItem'   => (float)((string)$ln->QtyItem ?: 1),
+                                'PrcItem'   => (float)((string)$ln->PrcItem ?: 0),
+                            ];
+                            if ( (string)$ln->IndExe === '1' ) { $row['IndExe'] = 1; }
+                            if ( (string)$ln->DescuentoMonto !== '' ) { $row['DescuentoMonto'] = intval((string)$ln->DescuentoMonto); }
+                            if ( (string)$ln->RecargoMonto   !== '' ) { $row['RecargoMonto']   = intval((string)$ln->RecargoMonto); }
+                            if ( in_array($tipo,[39,41],true) ) { $row['MntBruto'] = 1; }
+                            $items[] = $row; $i++;
+                        }
+                        $norm['Detalle'] = $items;
+                        if ( !empty($items) ) {
+                            $bagN = $document->bill($norm, null, null, []);
+                            $renderer = method_exists($document,'getRendererWorker') ? $document->getRendererWorker() : null;
+                            if ( $renderer && method_exists($renderer,'render') ) { $pdfContent = $renderer->render($bagN); }
+                            if ( !$pdfContent && method_exists($document,'getBuilderWorker') ) {
+                                $builder = $document->getBuilderWorker();
+                                if ( $builder && method_exists($builder,'renderPdf') ) { $pdfContent = $builder->renderPdf($bagN); }
+                            }
+                        }
+                    }
+                }
+            } catch ( \Throwable $e ) {
+                if ( function_exists('sii_boleta_write_log') ) { sii_boleta_write_log('LibreDTE render(normalized) error: '.$e->getMessage(), 'ERROR'); }
+            }
+
+            // (debug): se eliminó intento de render desde XML dentro de generate_dte_xml
 
             // Pasar CAF solo si no es previsualización (para generar TED).
             $cafForBuild = $preview ? null : $caf_path;
@@ -327,18 +397,17 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             $billing  = $app->getPackageRegistry()->getPackage('billing');
             $document = $billing->getDocumentComponent();
 
-            $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml );
-            // No normalizar nuevamente
-            if ( method_exists( $bag, 'getOptions' ) ) {
+            if ( ! $pdfContent ) { $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml ); }
+            // Al renderizar desde XML no se vuelve a normalizar: el renderer
+            // trabaja sobre el XML del bag. Evita el error de normalización.
+            if ( ! $pdfContent && method_exists( $bag, 'getOptions' ) ) {
                 $opts = $bag->getOptions();
                 if ( $opts && method_exists( $opts, 'set' ) ) {
                     $opts->set( 'normalizer.normalize', false );
                 }
             }
 
-            $pdfContent = null;
-            // Intentar con un renderer dedicado si existe
-            if ( method_exists( $document, 'getRendererWorker' ) ) {
+            if ( ! $pdfContent && method_exists( $document, 'getRendererWorker' ) ) {
                 $renderer = $document->getRendererWorker();
                 if ( $renderer && method_exists( $renderer, 'render' ) ) {
                     $pdfContent = $renderer->render( $bag );
@@ -377,9 +446,16 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
 
                 // Asegurar que el detalle sea visible: agregar una página con tabla basada en XML
                 try {
-                    $sx  = new \SimpleXMLElement( (string) $xml_or_signed_xml );
-                    $doc = $sx->Documento ?: $sx; // tolerancia
-                    if ( method_exists( $pdfContent, 'AddPage' ) && isset( $doc->Detalle ) ) {
+                    $raw = (string) $xml_or_signed_xml;
+                    if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) { $raw = substr( $raw, 3 ); }
+                    $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
+                    libxml_use_internal_errors( true );
+                    $sx  = simplexml_load_string( $raw );
+                    if ( ! $sx ) { throw new \Exception('XML parse error'); }
+                    $docNodes  = $sx->xpath('//*[local-name()="Documento"]');
+                    $doc       = ( $docNodes && ! empty( $docNodes[0] ) ) ? $docNodes[0] : $sx;
+                    $lineNodes = $doc->xpath('./*[local-name()="Detalle"]');
+                    if ( method_exists( $pdfContent, 'AddPage' ) && ! empty( $lineNodes ) ) {
                         $format = isset( $settings['pdf_format'] ) ? strtoupper( (string) $settings['pdf_format'] ) : 'A4';
                         if ( '80MM' === $format ) {
                             $pdfContent->AddPage( 'P', [80, 297] );
@@ -398,7 +474,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                             $pdfContent->Cell( 30, 6, 'Subtotal', 1, 1, 'R', true );
                             $pdfContent->SetFont( 'helvetica', '', 9 );
                             $line = 1;
-                            foreach ( $doc->Detalle as $det ) {
+                            foreach ( $lineNodes as $det ) {
                                 $pdfContent->Cell( 10, 6, (string) $line, 1, 0, 'C' );
                                 $pdfContent->Cell( 100, 6, (string) $det->NmbItem, 1, 0, 'L' );
                                 $pdfContent->Cell( 20, 6, number_format( (float) $det->QtyItem, 0, ',', '.' ), 1, 0, 'R' );

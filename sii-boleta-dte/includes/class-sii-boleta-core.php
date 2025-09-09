@@ -102,6 +102,7 @@ class SII_Boleta_Core {
         // Acciones AJAX para operaciones como generación de boletas desde el panel
         add_action( 'wp_ajax_sii_boleta_dte_generate_dte', [ $this, 'ajax_generate_dte' ] );
         add_action( 'wp_ajax_sii_boleta_dte_preview_dte', [ $this, 'ajax_preview_dte' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', [ $this, 'ajax_lookup_user_by_rut' ] );
         add_action( 'wp_ajax_sii_boleta_dte_list_dtes', [ $this, 'ajax_list_dtes' ] );
         add_action( 'wp_ajax_sii_boleta_dte_run_rvd', [ $this, 'ajax_run_rvd' ] );
         add_action( 'wp_ajax_sii_boleta_dte_job_log', [ $this, 'ajax_job_log' ] );
@@ -109,6 +110,9 @@ class SII_Boleta_Core {
         add_action( 'wp_ajax_sii_boleta_dte_run_cdf', [ $this, 'ajax_run_cdf' ] );
         add_action( 'wp_ajax_sii_boleta_dte_queue_status', [ $this, 'ajax_queue_status' ] );
         add_action( 'wp_ajax_sii_boleta_dte_check_status_now', [ $this, 'ajax_check_status_now' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_test_smtp', [ $this, 'ajax_test_smtp' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_search_customers', [ $this, 'ajax_search_customers' ] );
+        add_action( 'wp_ajax_sii_boleta_dte_search_products', [ $this, 'ajax_search_products' ] );
 
         // Integración automática con FluentSMTP (perfiles + selección de remitente)
         add_filter( 'sii_boleta_available_smtp_profiles', [ $this, 'fluent_smtp_profiles' ] );
@@ -155,24 +159,96 @@ class SII_Boleta_Core {
     }
 
     /**
+     * Devuelve datos de usuario por RUT si existe (nombre, email, dirección, comuna).
+     */
+    private function find_user_by_rut_data( $rut ) {
+        $rut_norm = $this->normalize_rut( $rut );
+        $rut_clean = strtoupper( preg_replace( '/[^0-9Kk]/', '', $rut_norm ) );
+        $meta_keys = [ 'billing_rut', '_billing_rut', 'rut', 'user_rut', 'customer_rut' ];
+        foreach ( $meta_keys as $mk ) {
+            // Búsqueda exacta
+            $users = get_users( [
+                'meta_key'   => $mk,
+                'meta_value' => $rut_clean,
+                'number'     => 1,
+                'count_total'=> false,
+                'fields'     => [ 'ID', 'display_name', 'user_email' ],
+            ] );
+            if ( ! empty( $users ) ) { $u = $users[0]; break; }
+            $users = get_users( [
+                'meta_key'   => $mk,
+                'meta_value' => $rut_norm,
+                'number'     => 1,
+                'count_total'=> false,
+                'fields'     => [ 'ID', 'display_name', 'user_email' ],
+            ] );
+            if ( ! empty( $users ) ) { $u = $users[0]; break; }
+            // Búsqueda laxa (LIKE) para valores con puntos/guiones variados
+            $q = new \WP_User_Query( [
+                'number'      => 1,
+                'count_total' => false,
+                'fields'      => [ 'ID', 'display_name', 'user_email' ],
+                'meta_query'  => [
+                    'relation' => 'OR',
+                    [ 'key' => $mk, 'value' => $rut_clean, 'compare' => 'LIKE' ],
+                    [ 'key' => $mk, 'value' => $rut_norm,  'compare' => 'LIKE' ],
+                ],
+            ] );
+            $found = $q->get_results();
+            if ( ! empty( $found ) ) { $u = $found[0]; break; }
+        }
+        if ( ! empty( $u ) ) {
+            $name  = $u->display_name ?: ( get_user_meta( $u->ID, 'billing_first_name', true ) . ' ' . get_user_meta( $u->ID, 'billing_last_name', true ) );
+            $email = $u->user_email ?: get_user_meta( $u->ID, 'billing_email', true );
+            $addr  = get_user_meta( $u->ID, 'billing_address_1', true );
+            $cmna  = get_user_meta( $u->ID, 'billing_city', true );
+            return [ 'name' => trim( $name ), 'email' => $email, 'address' => $addr, 'comuna' => $cmna ];
+        }
+        // Fallback: buscar última orden de WooCommerce con ese RUT en metadatos
+        if ( class_exists( '\\WC_Order_Query' ) ) {
+            $rut_candidates = [ $rut_clean, $rut_norm ];
+            $order_meta_keys = [ 'billing_rut', '_billing_rut', 'rut', 'billing_rut_number', 'customer_rut' ];
+            foreach ( $order_meta_keys as $okey ) {
+                foreach ( $rut_candidates as $rv ) {
+                    $q = new \WC_Order_Query( [
+                        'limit'      => 1,
+                        'orderby'    => 'date',
+                        'order'      => 'DESC',
+                        'return'     => 'ids',
+                        'meta_query' => [ [ 'key' => $okey, 'value' => $rv ] ],
+                    ] );
+                    $ids = $q->get_orders();
+                    if ( ! empty( $ids ) ) {
+                        $order = wc_get_order( $ids[0] );
+                        if ( $order ) {
+                            $name  = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+                            $email = $order->get_billing_email();
+                            $addr  = $order->get_billing_address_1();
+                            $cmna  = $order->get_billing_city();
+                            return [ 'name' => $name, 'email' => $email, 'address' => $addr, 'comuna' => $cmna ];
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Detecta perfiles de FluentSMTP y los expone para el selector de perfiles SMTP.
      *
      * @param array $profiles Perfiles actuales.
      * @return array
      */
     public function fluent_smtp_profiles( $profiles ) {
-        $out = [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ];
-        $settings = get_option( 'fluent_smtp_settings' );
-        $conns    = isset( $settings['connections'] ) && is_array( $settings['connections'] ) ? $settings['connections'] : [];
-        foreach ( $conns as $key => $conn ) {
-            $email = isset( $conn['sender_email'] ) ? (string) $conn['sender_email'] : '';
-            $name  = isset( $conn['sender_name'] ) ? (string) $conn['sender_name'] : '';
-            if ( $email ) {
-                $label = trim( $name . ' <' . $email . '>' );
-                $out[ (string) $key ] = $label ?: $email;
+        // Delegar en Settings::get_fluent_smtp_profiles si está disponible
+        if ( class_exists( 'SII_Boleta_Settings' ) ) {
+            $settings = new SII_Boleta_Settings();
+            if ( method_exists( $settings, 'get_fluent_smtp_profiles' ) ) {
+                return $settings->get_fluent_smtp_profiles();
             }
         }
-        return $out;
+        return $profiles;
     }
 
     /**
@@ -251,6 +327,232 @@ class SII_Boleta_Core {
      */
     public function get_pdf() {
         return $this->pdf;
+    }
+
+    /**
+     * Envía un correo de prueba usando perfil SMTP (FluentSMTP enruta por From).
+     */
+    public function ajax_test_smtp() {
+        check_ajax_referer( 'sii_boleta_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $to = isset($_POST['to']) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : get_option('admin_email');
+        if ( ! is_email( $to ) ) {
+            wp_send_json_error( [ 'message' => __( 'Dirección de destino inválida.', 'sii-boleta-dte' ) ] );
+        }
+        $profile = isset($_POST['profile']) ? sanitize_text_field( wp_unslash( $_POST['profile'] ) ) : '';
+
+        $settings = new SII_Boleta_Settings();
+        $conn = method_exists( $settings, 'get_fluent_smtp_connection' ) ? $settings->get_fluent_smtp_connection( $profile ) : null;
+        $from_email = is_array($conn) && ! empty( $conn['sender_email'] ) ? $conn['sender_email'] : get_option('admin_email');
+        $from_name  = is_array($conn) && ! empty( $conn['sender_name'] )  ? $conn['sender_name']  : get_bloginfo('name');
+
+        $headers = [ 'From: ' . sprintf( '%s <%s>', $from_name, $from_email ) ];
+        $ok = wp_mail( $to, 'Prueba SMTP – SII Boleta DTE', "Este es un correo de prueba enviado desde el perfil seleccionado.\nSitio: " . home_url() . "\nPerfil: " . $profile, $headers );
+        if ( ! $ok ) {
+            wp_send_json_error( [ 'message' => __( 'No se pudo enviar el correo de prueba. Revise la configuración del proveedor SMTP.', 'sii-boleta-dte' ) ] );
+        }
+        wp_send_json_success( [ 'message' => __( 'Correo de prueba enviado. Revise su bandeja.', 'sii-boleta-dte' ) ] );
+    }
+
+    /**
+     * Busca clientes por RUT (usuarios y últimas órdenes) devolviendo coincidencias.
+     */
+    public function ajax_search_customers() {
+        check_ajax_referer( 'sii_boleta_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $term = isset( $_POST['term'] ) ? sanitize_text_field( wp_unslash( $_POST['term'] ) ) : '';
+        if ( strlen( preg_replace( '/[^0-9Kk]/', '', $term ) ) < 3 ) {
+            wp_send_json_success( [ 'items' => [] ] );
+        }
+        $norm     = $this->normalize_rut( $term );
+        $compact  = strtoupper( str_replace( '-', '', $norm ) );
+        $clean    = strtoupper( preg_replace( '/[^0-9Kk]/', '', $norm ) );
+        $meta_keys = [ 'billing_rut', '_billing_rut', 'rut', 'user_rut', 'customer_rut', 'billing_rut_number' ];
+
+        $results = [];
+        $seen = [];
+
+        // Buscar usuarios
+        foreach ( $meta_keys as $mk ) {
+            $q = new \WP_User_Query( [
+                'number'      => 10,
+                'count_total' => false,
+                'fields'      => [ 'ID', 'display_name', 'user_email' ],
+                'meta_query'  => [ 'relation' => 'OR',
+                    [ 'key' => $mk, 'value' => $clean,   'compare' => 'LIKE' ],
+                    [ 'key' => $mk, 'value' => $norm,    'compare' => 'LIKE' ],
+                    [ 'key' => $mk, 'value' => $compact, 'compare' => 'LIKE' ],
+                ],
+            ] );
+            foreach ( (array) $q->get_results() as $u ) {
+                $rut_meta = '';
+                foreach ( $meta_keys as $mk2 ) {
+                    $v = get_user_meta( $u->ID, $mk2, true );
+                    if ( $v ) { $rut_meta = $v; break; }
+                }
+                $rut_show = $rut_meta ? $this->normalize_rut( $rut_meta ) : '';
+                $key = md5( 'u-' . $u->ID );
+                if ( isset( $seen[ $key ] ) ) { continue; }
+                $seen[ $key ] = 1;
+                $results[] = [
+                    'source'  => 'user',
+                    'rut'     => $rut_show,
+                    'name'    => $u->display_name,
+                    'email'   => $u->user_email,
+                    'address' => get_user_meta( $u->ID, 'billing_address_1', true ),
+                    'comuna'  => get_user_meta( $u->ID, 'billing_city', true ),
+                ];
+                if ( count( $results ) >= 10 ) { break 2; }
+            }
+        }
+
+        // Buscar órdenes si faltan resultados
+        if ( count( $results ) < 10 && class_exists( '\\WC_Order_Query' ) ) {
+            foreach ( $meta_keys as $okey ) {
+                foreach ( [ $clean, $norm, $compact ] as $rv ) {
+                    $oq = new \WC_Order_Query( [
+                        'limit'      => 10,
+                        'orderby'    => 'date',
+                        'order'      => 'DESC',
+                        'return'     => 'ids',
+                        'meta_query' => [ [ 'key' => $okey, 'value' => $rv, 'compare' => 'LIKE' ] ],
+                    ] );
+                    foreach ( (array) $oq->get_orders() as $oid ) {
+                        $o = wc_get_order( $oid ); if ( ! $o ) { continue; }
+                        $rut_meta=''; foreach ( $meta_keys as $mk3 ) { $mv=$o->get_meta($mk3); if($mv){ $rut_meta=$mv; break; } }
+                        $rut_show = $rut_meta ? $this->normalize_rut( $rut_meta ) : '';
+                        $key = md5( 'o-' . $oid ); if ( isset( $seen[ $key ] ) ) { continue; }
+                        $seen[ $key ] = 1;
+                        $results[] = [
+                            'source'  => 'order',
+                            'rut'     => $rut_show,
+                            'name'    => trim( $o->get_billing_first_name() . ' ' . $o->get_billing_last_name() ),
+                            'email'   => $o->get_billing_email(),
+                            'address' => $o->get_billing_address_1(),
+                            'comuna'  => $o->get_billing_city(),
+                        ];
+                        if ( count( $results ) >= 10 ) { break 3; }
+                    }
+                }
+            }
+        }
+
+        wp_send_json_success( [ 'items' => $results ] );
+    }
+
+    /**
+     * Busca productos de WooCommerce por término y devuelve id, nombre, precio, sku.
+     */
+    public function ajax_search_products() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $q = isset($_POST['q']) ? sanitize_text_field( wp_unslash( $_POST['q'] ) ) : '';
+        if ( ! class_exists( 'WC_Product' ) ) {
+            wp_send_json_error( [ 'message' => __( 'WooCommerce no está activo.', 'sii-boleta-dte' ) ] );
+        }
+        $args = [
+            'post_type'      => [ 'product', 'product_variation' ],
+            's'              => $q,
+            'posts_per_page' => 20,
+            'post_status'    => 'publish',
+            'fields'         => 'ids',
+        ];
+        $ids = get_posts( $args );
+        $out = [];
+        foreach ( $ids as $pid ) {
+            $product = wc_get_product( $pid );
+            if ( ! $product ) { continue; }
+            $out[] = [
+                'id'    => $product->get_id(),
+                'name'  => html_entity_decode( wp_strip_all_tags( $product->get_formatted_name() ), ENT_QUOTES, 'UTF-8' ),
+                'price' => (float) $product->get_price(),
+                'sku'   => (string) $product->get_sku(),
+            ];
+        }
+        wp_send_json_success( [ 'items' => $out ] );
+    }
+
+    /**
+     * Busca un usuario por RUT en metadatos comunes y retorna nombre/email.
+     */
+    public function ajax_lookup_user_by_rut() {
+        check_ajax_referer( 'sii_boleta_nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( [ 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
+        }
+        $rut_raw = isset( $_POST['rut'] ) ? sanitize_text_field( wp_unslash( $_POST['rut'] ) ) : '';
+        if ( ! $rut_raw ) { wp_send_json_error( [ 'message' => __( 'RUT vacío.', 'sii-boleta-dte' ) ] ); }
+        $rut_norm  = $this->normalize_rut( $rut_raw );
+        $rut_clean = strtoupper( preg_replace( '/[^0-9Kk]/', '', $rut_norm ) );
+        $rut_compact = strtoupper( str_replace( '-', '', $rut_norm ) );
+
+        // Claves meta frecuentes para RUT
+        $meta_keys = [ 'billing_rut', '_billing_rut', 'rut', 'user_rut', 'customer_rut', 'billing_rut_number' ];
+        $user = null;
+        foreach ( $meta_keys as $mk ) {
+            // Exactos
+            $users = get_users( [ 'meta_key'=>$mk, 'meta_value'=>$rut_clean, 'number'=>1, 'count_total'=>false, 'fields'=>['ID','display_name','user_email'] ] );
+            if ( ! empty( $users ) ) { $user = $users[0]; break; }
+            $users = get_users( [ 'meta_key'=>$mk, 'meta_value'=>$rut_norm,  'number'=>1, 'count_total'=>false, 'fields'=>['ID','display_name','user_email'] ] );
+            if ( ! empty( $users ) ) { $user = $users[0]; break; }
+            $users = get_users( [ 'meta_key'=>$mk, 'meta_value'=>$rut_compact, 'number'=>1, 'count_total'=>false, 'fields'=>['ID','display_name','user_email'] ] );
+            if ( ! empty( $users ) ) { $user = $users[0]; break; }
+            // LIKE
+            $q = new \WP_User_Query( [
+                'number'      => 1,
+                'count_total' => false,
+                'fields'      => [ 'ID', 'display_name', 'user_email' ],
+                'meta_query'  => [ 'relation' => 'OR',
+                    [ 'key'=>$mk, 'value'=>$rut_clean,   'compare'=>'LIKE' ],
+                    [ 'key'=>$mk, 'value'=>$rut_norm,    'compare'=>'LIKE' ],
+                    [ 'key'=>$mk, 'value'=>$rut_compact, 'compare'=>'LIKE' ],
+                ],
+            ] );
+            $found = $q->get_results();
+            if ( ! empty( $found ) ) { $user = $found[0]; break; }
+        }
+
+        if ( ! $user && class_exists( '\\WC_Order_Query' ) ) {
+            // Fallback a última orden con ese RUT en metadatos
+            $order_keys = [ 'billing_rut', '_billing_rut', 'rut', 'billing_rut_number', 'customer_rut' ];
+            foreach ( $order_keys as $okey ) {
+                foreach ( [ $rut_clean, $rut_norm, $rut_compact ] as $rv ) {
+                    $q = new \WC_Order_Query( [
+                        'limit'      => 1,
+                        'orderby'    => 'date',
+                        'order'      => 'DESC',
+                        'return'     => 'ids',
+                        'meta_query' => [ [ 'key' => $okey, 'value' => $rv, 'compare'=>'LIKE' ] ],
+                    ] );
+                    $ids = $q->get_orders();
+                    if ( ! empty( $ids ) ) {
+                        $order = wc_get_order( $ids[0] );
+                        if ( $order ) {
+                            $name  = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+                            $email = $order->get_billing_email();
+                            $addr  = $order->get_billing_address_1();
+                            $cmna  = $order->get_billing_city();
+                            wp_send_json_success( [ 'name'=>$name, 'email'=>$email, 'address'=>$addr, 'comuna'=>$cmna ] );
+                        }
+                    }
+                }
+            }
+        }
+
+        if ( ! $user ) {
+            wp_send_json_error( [ 'message' => __( 'Usuario no encontrado para el RUT dado.', 'sii-boleta-dte' ) ] );
+        }
+
+        $name  = $user->display_name ?: ( get_user_meta( $user->ID, 'billing_first_name', true ) . ' ' . get_user_meta( $user->ID, 'billing_last_name', true ) );
+        $email = $user->user_email ?: get_user_meta( $user->ID, 'billing_email', true );
+        $addr  = get_user_meta( $user->ID, 'billing_address_1', true );
+        $cmna  = get_user_meta( $user->ID, 'billing_city', true );
+        wp_send_json_success( [ 'name' => trim( $name ), 'email' => $email, 'address' => $addr, 'comuna' => $cmna ] );
     }
 
     /**
@@ -850,7 +1152,7 @@ class SII_Boleta_Core {
                 <table class="widefat striped" id="tabla-items">
                     <thead>
                         <tr>
-                            <th style="width:55%"><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
+                            <th style="width:55%"><?php esc_html_e( 'Producto (tienda)', 'sii-boleta-dte' ); ?></th>
                             <th style="width:15%"><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
                             <th style="width:20%"><?php esc_html_e( 'Precio Unitario', 'sii-boleta-dte' ); ?></th>
                             <th style="width:10%"></th>
@@ -858,7 +1160,12 @@ class SII_Boleta_Core {
                     </thead>
                     <tbody>
                         <tr>
-                            <td><input type="text" name="descripcion[]" class="regular-text" required></td>
+                            <td>
+                                <input type="hidden" name="product_id[]" class="sii-product-id" value="">
+                                <input type="text" class="regular-text sii-prod-input" placeholder="<?php esc_attr_e('Buscar producto…','sii-boleta-dte'); ?>">
+                                <div class="sii-suggest" style="position:relative;"></div>
+                                <input type="hidden" name="descripcion[]" class="sii-desc" value="">
+                            </td>
                             <td><input type="number" name="cantidad[]" class="small-text" step="1" min="1" value="1" required></td>
                             <td><input type="number" name="precio_unitario[]" class="small-text" step="0.01" min="0" value="0" required></td>
                             <td><button type="button" class="button remove-item" aria-label="Eliminar">&times;</button></td>
@@ -988,12 +1295,13 @@ class SII_Boleta_Core {
                     $('#referencia_fields').hide();
                     $('#folio_ref, #tipo_doc_ref, #razon_ref').prop('required', false);
                 }
-                // Detalles receptor obligatorios para factura/exenta/guía
+                // Campos de receptor: para 33/34/52 obligatorios dirección/comuna.
+                // Para boleta (39/41) los mostramos como opcionales (útil para email/teléfono).
                 if (type === '33' || type === '34' || type === '52') {
                     $('.recipient-details-fields').show();
                     $('#direccion_recep, #comuna_recep').prop('required', true);
                 } else {
-                    $('.recipient-details-fields').hide();
+                    $('.recipient-details-fields').show();
                     $('#direccion_recep, #comuna_recep').prop('required', false);
                 }
                 // Medio de pago solo para facturas (33/34)
@@ -1020,12 +1328,18 @@ class SII_Boleta_Core {
             // Manejo dinámico de ítems
             $('#agregar-item').on('click', function(){
                 var row = '<tr>'+
-                    '<td><input type="text" name="descripcion[]" class="regular-text" required></td>'+
+                    '<td>'+
+                    '<input type="hidden" name="product_id[]" class="sii-product-id" value="">'+
+                    '<input type="text" class="regular-text sii-prod-input" placeholder="<?php echo esc_js(__('Buscar producto…','sii-boleta-dte')); ?>">'+
+                    '<div class="sii-suggest" style="position:relative;"></div>'+
+                    '<input type="hidden" name="descripcion[]" class="sii-desc" value="">'+
+                    '</td>'+
                     '<td><input type="number" name="cantidad[]" class="small-text" step="1" min="1" value="1" required></td>'+
                     '<td><input type="number" name="precio_unitario[]" class="small-text" step="0.01" min="0" value="0" required></td>'+
                     '<td><button type="button" class="button remove-item" aria-label="Eliminar">&times;</button></td>'+
                 '</tr>';
                 $('#tabla-items tbody').append(row);
+                attachSearch($('#tabla-items tbody tr:last'));
             });
             $(document).on('click', '.remove-item', function(){
                 var $rows = $('#tabla-items tbody tr');
@@ -1033,6 +1347,39 @@ class SII_Boleta_Core {
                     $(this).closest('tr').remove();
                 }
             });
+
+            function attachSearch($row){
+                var $input = $row.find('.sii-prod-input');
+                var $list  = $row.find('.sii-suggest');
+                var $pid   = $row.find('.sii-product-id');
+                var $desc  = $row.find('.sii-desc');
+                var $price = $row.find('input[name="precio_unitario[]"]');
+                var timer; var cache=[];
+                function render(items){
+                    var html='<ul class="sii-suggest-list" style="position:absolute;z-index:10;background:#fff;border:1px solid #ccd0d4;margin:0;padding:0;max-height:180px;overflow:auto;width:100%">';
+                    items.forEach(function(it){
+                        var label = (it.sku?('['+it.sku+'] '):'') + it.name + ' — $' + (it.price||0);
+                        html+='<li data-id="'+it.id+'" data-name="'+$('<div>').text(it.name).html()+'" data-price="'+it.price+'" style="list-style:none;padding:4px 8px;cursor:pointer;">'+label+'</li>';
+                    });
+                    html+='</ul>'; $list.html(html);
+                }
+                $list.on('click','li',function(){
+                    var id=$(this).data('id'); var name=$(this).data('name'); var price=$(this).data('price');
+                    $pid.val(id); $desc.val(name); $input.val(name); $price.val(price);
+                    $list.empty();
+                });
+                $input.on('input focus', function(){
+                    clearTimeout(timer); var q=$.trim($input.val()); if(!q){ $list.empty(); return; }
+                    timer=setTimeout(function(){
+                        $.post(ajaxurl,{action:'sii_boleta_dte_search_products', q:q},function(resp){
+                            if(resp && resp.success){ cache=resp.data.items||[]; render(cache); }
+                        });
+                    }, 250);
+                });
+                // Si se edita manualmente borrar selección
+                $input.on('change', function(){ if($input.val()!==$desc.val()){ $pid.val(''); } });
+            }
+            attachSearch($('#tabla-items tbody tr:first'));
 
             // === Validador de RUT (admin Generar DTE) ===
             function rutClean(v){ return (v||'').replace(/[^0-9kK]/g,'').toUpperCase(); }
@@ -1056,11 +1403,69 @@ class SII_Boleta_Core {
             var checkRutTrans = attachRutValidation('#rut_trans');
             var checkRutChofer= attachRutValidation('#rut_chofer');
 
+            // Auto-completar datos del usuario por RUT (nombre/email/dirección)
+            var lookupTimer=null;
+            // Sugerencias de clientes por RUT
+            var $rut = $('#receptor_rut');
+            var $rutSuggest = $('<div id="sii-rut-suggest" style="position:relative;"></div>').insertAfter($rut);
+            function renderRutList(items){
+                if(!items || !items.length){ $rutSuggest.empty(); return; }
+                var html='<ul style="position:absolute;z-index:10;background:#fff;border:1px solid #ccd0d4;margin:4px 0 0;padding:0;max-height:220px;overflow:auto;width:360px">';
+                items.forEach(function(it){
+                    var label = (it.rut?it.rut+' — ':'') + (it.name||'') + (it.email?(' — '+it.email):'');
+                    html+='<li class="sii-rut-item" data-rut="'+(it.rut||'')+'" data-name="'+$('<div>').text(it.name||'').html()+'" data-email="'+(it.email||'')+'" data-addr="'+$('<div>').text(it.address||'').html()+'" data-cmna="'+$('<div>').text(it.comuna||'').html()+'" style="list-style:none;padding:6px 8px;cursor:pointer;">'+label+'</li>';
+                });
+                html+='</ul>'; $rutSuggest.html(html);
+            }
+            $(document).on('click','.sii-rut-item',function(){
+                var r=$(this).data('rut'); var n=$(this).data('name'); var e=$(this).data('email'); var a=$(this).data('addr'); var c=$(this).data('cmna');
+                if(r){ $('#receptor_rut').val(r); }
+                if(n){ $('#receptor_nombre').val(n); }
+                if(e){ if($('#correo_recep').length){ $('#correo_recep').val(e); } else { $('<input>').attr({type:'hidden',id:'correo_recep',name:'correo_recep'}).val(e).appendTo('#sii-boleta-generate-form'); } }
+                if(a && $('#direccion_recep').length){ $('#direccion_recep').val(a); }
+                if(c && $('#comuna_recep').length){ $('#comuna_recep').val(c); }
+                $rutSuggest.empty();
+            });
+            $(document).on('click', function(ev){ if(!$(ev.target).closest('#receptor_rut, #sii-rut-suggest').length){ $rutSuggest.empty(); } });
+
+            function doLookup(){
+                clearTimeout(lookupTimer);
+                var v = $('#receptor_rut').val();
+                if(!v){ return; }
+                lookupTimer = setTimeout(function(){
+                    // Autocompletar directo si calza exacto
+                    $.post(ajaxurl, {action:'sii_boleta_dte_lookup_user_by_rut', rut:v, _wpnonce:'<?php echo esc_js( wp_create_nonce('sii_boleta_nonce') ); ?>'}, function(resp){
+                        if(resp && resp.success && resp.data){
+                            if(resp.data.name){ $('#receptor_nombre').val(resp.data.name); }
+                            if(resp.data.email){
+                                if($('#correo_recep').length){ $('#correo_recep').val(resp.data.email); }
+                                else { $('<input>').attr({type:'hidden', id:'correo_recep', name:'correo_recep'}).val(resp.data.email).appendTo('#sii-boleta-generate-form'); }
+                            }
+                            if(resp.data.address && $('#direccion_recep').length){ $('#direccion_recep').val(resp.data.address); }
+                            if(resp.data.comuna  && $('#comuna_recep').length){ $('#comuna_recep').val(resp.data.comuna); }
+                        }
+                    });
+                    // Además, mostrar listado de coincidencias
+                    $.post(ajaxurl, {action:'sii_boleta_dte_search_customers', term:v, _wpnonce:'<?php echo esc_js( wp_create_nonce('sii_boleta_nonce') ); ?>'}, function(resp){
+                        if(resp && resp.success && resp.data){ renderRutList(resp.data.items||[]); }
+                    });
+                }, 250);
+            }
+            $('#receptor_rut').on('blur keyup change', doLookup);
+            if($('#receptor_rut').val()){ doLookup(); }
+            
+
             $('#sii-boleta-generate-form').on('submit', function(e){
                 if (checkRutRecep && !checkRutRecep()) { e.preventDefault(); return; }
                 if ($('#rut_trans').is(':visible') && checkRutTrans && !checkRutTrans()) { e.preventDefault(); return; }
                 if ($('#rut_chofer').is(':visible') && checkRutChofer && !checkRutChofer()) { e.preventDefault(); return; }
                 e.preventDefault();
+                // Validar que todos los ítems tengan producto seleccionado
+                var ok=true; $('#tabla-items tbody tr').each(function(){ if(!$(this).find('.sii-product-id').val()){ ok=false; } });
+                if(!ok){
+                    alert('<?php echo esc_js(__('Seleccione productos de la tienda para cada ítem.','sii-boleta-dte')); ?>');
+                    return;
+                }
                 var data = $(this).serialize();
                 $('#sii-generate-dte').prop('disabled', true);
                 $('#sii-boleta-result').html('<p><?php echo esc_js( __( 'Procesando...', 'sii-boleta-dte' ) ); ?></p>');
@@ -1184,6 +1589,16 @@ class SII_Boleta_Core {
 
         // Preparar datos comunes para el DTE
         $settings = $this->settings->get_settings();
+        // Autocompletar email/nombre desde usuario si no vienen y existe registro por RUT
+        if ( empty( $correo_recep ) || empty( $nombre_receptor ) || empty( $dir_recep ) || empty( $cmna_recep ) ) {
+            $user_data = $this->find_user_by_rut_data( $rut_receptor );
+            if ( $user_data ) {
+                if ( empty( $nombre_receptor ) && ! empty( $user_data['name'] ) ) { $nombre_receptor = $user_data['name']; }
+                if ( empty( $correo_recep ) && ! empty( $user_data['email'] ) ) { $correo_recep = $user_data['email']; }
+                if ( empty( $dir_recep ) && ! empty( $user_data['address'] ) ) { $dir_recep = $user_data['address']; }
+                if ( empty( $cmna_recep ) && ! empty( $user_data['comuna'] ) ) { $cmna_recep = $user_data['comuna']; }
+            }
+        }
         // Construir detalles desde arrays (con fallback a un solo ítem)
         $detalles = [];
         $line     = 1;
@@ -1394,6 +1809,15 @@ class SII_Boleta_Core {
         $precios         = isset( $_POST['precio_unitario'] ) ? (array) $_POST['precio_unitario'] : [];
 
         $settings   = $this->settings->get_settings();
+        if ( empty( $correo_recep ) || empty( $nombre_receptor ) || empty( $dir_recep ) || empty( $cmna_recep ) ) {
+            $user_data = $this->find_user_by_rut_data( $rut_receptor );
+            if ( $user_data ) {
+                if ( empty( $nombre_receptor ) && ! empty( $user_data['name'] ) ) { $nombre_receptor = $user_data['name']; }
+                if ( empty( $correo_recep ) && ! empty( $user_data['email'] ) ) { $correo_recep = $user_data['email']; }
+                if ( empty( $dir_recep ) && ! empty( $user_data['address'] ) ) { $dir_recep = $user_data['address']; }
+                if ( empty( $cmna_recep ) && ! empty( $user_data['comuna'] ) ) { $cmna_recep = $user_data['comuna']; }
+            }
+        }
         // Construir detalles desde arrays (con fallback a un solo ítem)
         $detalles = [];
         $line     = 1;
@@ -1497,7 +1921,9 @@ class SII_Boleta_Core {
 
         // Log de diagnóstico: totales y cantidad de líneas
         try {
-            $sx = @simplexml_load_string( (string) $xml );
+            $raw = (string) $xml; if ( substr($raw,0,3)==="\xEF\xBB\xBF" ) { $raw=substr($raw,3); }
+            $raw = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/','',$raw);
+            $sx = @simplexml_load_string( $raw );
             if ( $sx ) {
                 $doc_nodes = $sx->xpath('//*[local-name()="Documento"]');
                 if ( $doc_nodes && ! empty($doc_nodes[0]) ) {
@@ -1506,6 +1932,8 @@ class SII_Boleta_Core {
                     $lines = $d->xpath('./*[local-name()="Detalle"]');
                     if ( class_exists('SII_Logger') ) {
                         \SII_Logger::info('[Preview] Detalles=' . ( $lines ? count($lines) : 0 ) . ' MntNeto=' . (string)($tot->MntNeto ?? '') . ' IVA=' . (string)($tot->IVA ?? '') . ' MntExe=' . (string)($tot->MntExe ?? '') . ' MntTotal=' . (string)($tot->MntTotal ?? '') );
+                        $head = substr( trim($raw), 0, 80 );
+                        \SII_Logger::info('[Preview] XML head: ' . $head );
                     }
                 }
             }

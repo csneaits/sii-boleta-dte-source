@@ -1126,7 +1126,10 @@ class SII_Boleta_Core {
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="receptor_rut"><?php esc_html_e( 'RUT Receptor', 'sii-boleta-dte' ); ?></label></th>
-                        <td><input type="text" name="receptor_rut" id="receptor_rut" class="regular-text" required></td>
+                        <td>
+                            <input type="text" name="receptor_rut" id="receptor_rut" class="regular-text" required>
+                            <button type="button" class="button" id="sii-rut-completar"><?php esc_html_e( 'Completar', 'sii-boleta-dte' ); ?></button>
+                        </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="receptor_nombre"><?php esc_html_e( 'Nombre Receptor', 'sii-boleta-dte' ); ?></label></th>
@@ -1454,6 +1457,7 @@ class SII_Boleta_Core {
                 }, 250);
             }
             $('#receptor_rut').on('blur keyup change', doLookup);
+            $('#sii-rut-completar').on('click', function(e){ e.preventDefault(); doLookup(); });
             if($('#receptor_rut').val()){ doLookup(); }
             
 

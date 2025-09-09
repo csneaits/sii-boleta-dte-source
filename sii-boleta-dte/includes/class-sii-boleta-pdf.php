@@ -144,8 +144,8 @@ class SII_Boleta_PDF {
                     <h4><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></h4>
                     <?php
                     // Log all detail lines for debugging purposes.
-                    error_log( 'SII_Boleta_PDF detalles count: ' . count( $doc->Detalle ) );
-                    ?>
+                    SII_Logger::info( '[PDF] detalles count: ' . count( $doc->Detalle ) );
+     ?>
                     <table>
                         <thead><tr><th>#</th><th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Precio', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Subtotal', 'sii-boleta-dte' ); ?></th></tr></thead>
                         <tbody>
@@ -156,7 +156,7 @@ class SII_Boleta_PDF {
                                 'PrcItem'   => (string) $det->PrcItem,
                                 'MontoItem' => (string) $det->MontoItem,
                             ];
-                            error_log( 'SII_Boleta_PDF detalle: ' . ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $det_log ) : json_encode( $det_log ) ) );
+                            SII_Logger::info( '[PDF] detalle: ' . ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $det_log ) : json_encode( $det_log ) ) );
                             ?>
                             <tr>
                                 <td><?php echo $i++; ?></td>
@@ -287,7 +287,7 @@ class SII_Boleta_PDF {
             }
             $pdf->SetFont( 'Arial', '', 10 );
             $line_no = 1;
-            error_log( 'SII_Boleta_PDF::generate_pdf detalles count: ' . count( $documento->Detalle ) );
+            SII_Logger::info( '[PDF native] detalles count: ' . count( $documento->Detalle ) );
             foreach ( $documento->Detalle as $det ) {
                 $det_log = [
                     'NmbItem'   => (string) $det->NmbItem,
@@ -295,7 +295,7 @@ class SII_Boleta_PDF {
                     'PrcItem'   => (string) $det->PrcItem,
                     'MontoItem' => (string) $det->MontoItem,
                 ];
-                error_log( 'SII_Boleta_PDF::generate_pdf detalle: ' . ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $det_log ) : json_encode( $det_log ) ) );
+                SII_Logger::info( '[PDF native] detalle: ' . ( function_exists( 'wp_json_encode' ) ? wp_json_encode( $det_log ) : json_encode( $det_log ) ) );
                 if ( $format === '80mm' ) {
                     $pdf->Cell( 8, 5, strval( $line_no ), 1, 0, 'C' );
                     $pdf->Cell( 44, 5, strval( $det->NmbItem ), 1, 0, 'L' );

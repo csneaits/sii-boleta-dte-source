@@ -399,12 +399,15 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             $billing  = $app->getPackageRegistry()->getPackage('billing');
             $document = $billing->getDocumentComponent();
 
-            if ( ! $pdfContent ) { $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml ); }
-            // Al renderizar desde XML no se vuelve a normalizar: el renderer
-            // Trabajar sobre el XML del bag con la normalización activa para
-            // que las colecciones (Detalle, Referencia, etc.) sean iterables
-            // al renderizar la plantilla PDF de LibreDTE.
-            if ( ! $pdfContent && method_exists( $bag, 'getOptions' ) ) {
+            // Asegurar que el XML esté limpio y que la normalización esté activada
+            $pdfContent = null;
+            $raw = (string) $xml_or_signed_xml;
+            if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
+                $raw = substr( $raw, 3 );
+            }
+            $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
+            $bag = $document->getLoaderWorker()->loadXml( $raw );
+            if ( method_exists( $bag, 'getOptions' ) ) {
                 $opts = $bag->getOptions();
                 if ( $opts && method_exists( $opts, 'set' ) ) {
                     $opts->set( 'normalizer.normalize', true );

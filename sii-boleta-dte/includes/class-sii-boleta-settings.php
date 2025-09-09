@@ -271,7 +271,7 @@ class SII_Boleta_Settings {
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
-        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ] );
+        $profiles = $this->get_fluent_smtp_profiles();
         $sel      = sanitize_text_field( $input['smtp_profile'] ?? '' );
         $output['smtp_profile'] = array_key_exists( $sel, (array) $profiles ) ? $sel : '';
         $output['api_token_expires'] = isset( $existing_decrypted['api_token_expires'] ) ? intval( $existing_decrypted['api_token_expires'] ) : 0;
@@ -490,19 +490,48 @@ class SII_Boleta_Settings {
     }
 
     /**
-     * Renderiza el selector de perfil SMTP.
+     * Obtiene los perfiles de FluentSMTP, formateados como clave=>etiqueta.
      */
-    public function render_field_smtp_profile() {
-        $options  = $this->get_settings();
-        $current  = $options['smtp_profile'] ?? '';
-        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ] );
-        echo '<select name="' . esc_attr( self::OPTION_NAME ) . '[smtp_profile]">';
-        foreach ( (array) $profiles as $key => $label ) {
-            printf( '<option value="%s" %s>%s</option>', esc_attr( $key ), selected( $current, $key, false ), esc_html( $label ) );
+    public function get_fluent_smtp_profiles() {
+        $out = [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ];
+        $settings = get_option( 'fluent_smtp_settings' );
+        $conns    = isset( $settings['connections'] ) && is_array( $settings['connections'] ) ? $settings['connections'] : [];
+        foreach ( $conns as $key => $conn ) {
+            $email = isset( $conn['sender_email'] ) ? (string) $conn['sender_email'] : '';
+            $name  = isset( $conn['sender_name'] ) ? (string) $conn['sender_name'] : '';
+            $prov  = isset( $conn['provider'] ) ? (string) $conn['provider'] : ( isset( $conn['service'] ) ? (string) $conn['service'] : '' );
+            if ( $email ) {
+                $prov_map = [
+                    'ses' => 'Amazon SES',
+                    'smtp' => 'SMTP server',
+                    'gmail' => 'Gmail',
+                    'outlook' => 'Outlook',
+                    'sendgrid' => 'SendGrid',
+                    'mailgun' => 'Mailgun',
+                    'postmark' => 'Postmark',
+                ];
+                $prov_label = $prov_map[ strtolower( $prov ) ] ?? ( $prov ? ucfirst( $prov ) : '' );
+                $main = trim( $name ) ? ( $name . ' <' . $email . '>' ) : $email;
+                $label = $prov_label ? ( $prov_label . ' — ' . $main ) : $main;
+                $out[ (string) $key ] = $label;
+            }
         }
-        echo '</select>';
-        echo '<p class="description">' . esc_html__( 'Perfiles provistos por el servidor/otros plugins (via filtro).', 'sii-boleta-dte' ) . '</p>';
+        // Permitir filtros externos, pero partiendo de FluentSMTP si está
+        return apply_filters( 'sii_boleta_available_smtp_profiles', $out );
     }
+
+    /**
+     * Devuelve la conexión FluentSMTP completa por clave.
+     * @param string $key
+     * @return array|null
+     */
+    public function get_fluent_smtp_connection( $key ) {
+        $settings = get_option( 'fluent_smtp_settings' );
+        $conns    = isset( $settings['connections'] ) && is_array( $settings['connections'] ) ? $settings['connections'] : [];
+        return isset( $conns[ $key ] ) && is_array( $conns[ $key ] ) ? $conns[ $key ] : null;
+    }
+
+    
 
     /**
      * Renderiza el campo de texto para el giro comercial.
@@ -869,6 +898,50 @@ class SII_Boleta_Settings {
             esc_attr( $options['pdf_footer'] ),
             esc_attr__( 'Gracias por su compra', 'sii-boleta-dte' )
         );
+    }
+
+    /**
+     * Renderiza el selector de perfil SMTP consumiendo conexiones de FluentSMTP.
+     */
+    public function render_field_smtp_profile() {
+        $options  = $this->get_settings();
+        $selected = $options['smtp_profile'];
+        $profiles = $this->get_fluent_smtp_profiles();
+        ?>
+        <select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[smtp_profile]" id="sii-smtp-profile">
+            <?php foreach ( $profiles as $key => $label ) : ?>
+                <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $selected, $key ); ?>>
+                    <?php echo esc_html( $label ); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description">
+            <?php esc_html_e( 'Perfiles detectados de FluentSMTP. Se usará el remitente del perfil seleccionado para los emails del DTE.', 'sii-boleta-dte' ); ?>
+        </p>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+            <input type="email" id="sii-smtp-test-to" class="regular-text" placeholder="<?php echo esc_attr( get_option('admin_email') ); ?>" value="<?php echo esc_attr( get_option('admin_email') ); ?>" />
+            <button type="button" class="button" id="sii-smtp-test-btn"><?php esc_html_e( 'Probar envío', 'sii-boleta-dte' ); ?></button>
+            <span id="sii-smtp-test-msg" style="margin-left:6px;"></span>
+        </div>
+        <script>
+        jQuery(function($){
+            $('#sii-smtp-test-btn').on('click', function(){
+                var $btn=$(this); var $msg=$('#sii-smtp-test-msg');
+                $btn.prop('disabled',true); $msg.text('<?php echo esc_js(__('Enviando…','sii-boleta-dte')); ?>');
+                $.post(ajaxurl, {
+                    action: 'sii_boleta_dte_test_smtp',
+                    profile: $('#sii-smtp-profile').val(),
+                    to: $('#sii-smtp-test-to').val(),
+                    _wpnonce: '<?php echo esc_js( wp_create_nonce('sii_boleta_nonce') ); ?>'
+                }, function(resp){
+                    $btn.prop('disabled',false);
+                    if(resp && resp.success){ $msg.css('color','green').text(resp.data && resp.data.message ? resp.data.message : 'OK'); }
+                    else { $msg.css('color','red').text(resp && resp.data && resp.data.message ? resp.data.message : '<?php echo esc_js(__('Fallo en el envío','sii-boleta-dte')); ?>'); }
+                });
+            });
+        });
+        </script>
+        <?php
     }
 
     /**

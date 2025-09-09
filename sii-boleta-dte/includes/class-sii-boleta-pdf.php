@@ -24,7 +24,17 @@ class SII_Boleta_PDF {
             return false;
         }
         try {
-            $xml = new SimpleXMLElement( $signed_xml );
+            $xml_raw = (string) $signed_xml;
+            // Sanitizar posibles BOM y caracteres de control
+            if ( substr( $xml_raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
+                $xml_raw = substr( $xml_raw, 3 );
+            }
+            $xml_raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $xml_raw );
+            libxml_use_internal_errors( true );
+            $xml = simplexml_load_string( $xml_raw );
+            if ( ! $xml ) {
+                return false;
+            }
             // Extraer datos básicos (soporte con y sin namespace por defecto)
             $documento   = $xml->Documento;
             $ns_default  = null;

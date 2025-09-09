@@ -245,7 +245,9 @@ class SII_Boleta_Core {
         if ( class_exists( 'SII_Boleta_Settings' ) ) {
             $settings = new SII_Boleta_Settings();
             if ( method_exists( $settings, 'get_fluent_smtp_profiles' ) ) {
-                return $settings->get_fluent_smtp_profiles();
+                $fluent = $settings->get_fluent_smtp_profiles();
+                // Mantener los existentes y agregar los nuevos sin provocar recursión
+                return $profiles + $fluent;
             }
         }
         return $profiles;

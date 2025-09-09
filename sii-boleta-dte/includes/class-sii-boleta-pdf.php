@@ -145,7 +145,7 @@ class SII_Boleta_PDF {
                     <table>
                         <thead><tr><th>#</th><th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Precio', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Subtotal', 'sii-boleta-dte' ); ?></th></tr></thead>
                         <tbody>
-                        <?php $i = 1; foreach ( $documento->Detalle as $det ) : ?>
+                        <?php $i = 1; foreach ( $doc->Detalle as $det ) : ?>
                             <tr>
                                 <td><?php echo $i++; ?></td>
                                 <td><?php echo esc_html( $det->NmbItem ); ?></td>

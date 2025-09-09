@@ -401,11 +401,13 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
 
             if ( ! $pdfContent ) { $bag = $document->getLoaderWorker()->loadXml( (string) $xml_or_signed_xml ); }
             // Al renderizar desde XML no se vuelve a normalizar: el renderer
-            // trabaja sobre el XML del bag. Evita el error de normalización.
+            // Trabajar sobre el XML del bag con la normalización activa para
+            // que las colecciones (Detalle, Referencia, etc.) sean iterables
+            // al renderizar la plantilla PDF de LibreDTE.
             if ( ! $pdfContent && method_exists( $bag, 'getOptions' ) ) {
                 $opts = $bag->getOptions();
                 if ( $opts && method_exists( $opts, 'set' ) ) {
-                    $opts->set( 'normalizer.normalize', false );
+                    $opts->set( 'normalizer.normalize', true );
                 }
             }
 

@@ -47,4 +47,37 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertEquals( 'Uno', (string) $sx->Documento->Detalle[0]->NmbItem );
         $this->assertEquals( 'Dos', (string) $sx->Documento->Detalle[1]->NmbItem );
     }
+
+    public function test_pdf_is_generated_with_details() {
+        $settings = new Dummy_Settings( [] );
+        $engine   = new SII_LibreDTE_Engine( new Dummy_Native(), $settings );
+
+        $data = [
+            'Folio'     => 1,
+            'FchEmis'   => '2024-01-01',
+            'RutEmisor' => '11111111-1',
+            'RznSoc'    => 'Emisor',
+            'GiroEmisor'=> 'Giro',
+            'DirOrigen' => 'Dir',
+            'CmnaOrigen'=> 'Santiago',
+            'Receptor'  => [
+                'RUTRecep'    => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep'    => 'Dir',
+                'CmnaRecep'   => 'Santiago',
+            ],
+            'Detalles'  => [
+                'item1' => [ 'NmbItem' => 'Uno', 'QtyItem' => 1, 'PrcItem' => 1000 ],
+                'item2' => [ 'NmbItem' => 'Dos', 'QtyItem' => 2, 'PrcItem' => 500 ],
+            ],
+        ];
+
+        $xml     = $engine->generate_dte_xml( $data, 39, true );
+        $pdfPath = $engine->render_pdf( $xml, [] );
+
+        $this->assertIsString( $pdfPath );
+        $this->assertFileExists( $pdfPath );
+        $content = file_get_contents( $pdfPath );
+        $this->assertStringStartsWith( '%PDF', $content );
+    }
 }

@@ -414,6 +414,28 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 }
             }
 
+            // Ajustar el arreglo del documento para que la plantilla
+            // reciba las colecciones en un formato iterables y con el logo.
+            if ( isset( $bag ) && method_exists( $bag, 'get' ) && method_exists( $bag, 'set' ) ) {
+                $doc_data = $bag->get( 'document' );
+                if ( is_array( $doc_data ) ) {
+                    foreach ( [ 'Detalle', 'Referencia', 'DscRcgGlobal' ] as $key ) {
+                        if ( ! empty( $doc_data[ $key ] ) ) {
+                            // Asegurar índices numéricos consecutivos.
+                            $doc_data[ $key ] = array_values( (array) $doc_data[ $key ] );
+                        }
+                    }
+                    // Inyectar logo si se solicitó mostrarlo.
+                    if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
+                        $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
+                        if ( $img && ! empty( $img[0] ) ) {
+                            $doc_data['logo'] = $img[0];
+                        }
+                    }
+                    $bag->set( 'document', $doc_data );
+                }
+            }
+
             if ( ! $pdfContent && method_exists( $document, 'getRendererWorker' ) ) {
                 $renderer = $document->getRendererWorker();
                 if ( $renderer && method_exists( $renderer, 'render' ) ) {

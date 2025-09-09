@@ -145,7 +145,7 @@ class SII_Boleta_PDF {
                     <?php
                     // Log all detail lines for debugging purposes.
                     SII_Logger::info( '[PDF] detalles count: ' . count( $doc->Detalle ) );
-                    ?>
+     ?>
                     <table>
                         <thead><tr><th>#</th><th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Precio', 'sii-boleta-dte' ); ?></th><th><?php esc_html_e( 'Subtotal', 'sii-boleta-dte' ); ?></th></tr></thead>
                         <tbody>

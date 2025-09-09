@@ -216,6 +216,11 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                                 'NmbItem'   => (string)$ln->NmbItem,
                                 'QtyItem'   => (float)((string)$ln->QtyItem ?: 1),
                                 'PrcItem'   => (float)((string)$ln->PrcItem ?: 0),
+                                'MontoItem' => (float)(
+                                    (string)$ln->MontoItem !== ''
+                                        ? (string)$ln->MontoItem
+                                        : ((float)((string)$ln->QtyItem ?: 1) * (float)((string)$ln->PrcItem ?: 0))
+                                ),
                             ];
                             if ( (string)$ln->IndExe === '1' ) { $row['IndExe'] = 1; }
                             if ( (string)$ln->DescuentoMonto !== '' ) { $row['DescuentoMonto'] = intval((string)$ln->DescuentoMonto); }

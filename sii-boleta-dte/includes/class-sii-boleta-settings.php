@@ -271,7 +271,7 @@ class SII_Boleta_Settings {
         $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
-        $profiles = $this->get_fluent_smtp_profiles();
+        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', $this->get_fluent_smtp_profiles() );
         $sel      = sanitize_text_field( $input['smtp_profile'] ?? '' );
         $output['smtp_profile'] = array_key_exists( $sel, (array) $profiles ) ? $sel : '';
         $output['api_token_expires'] = isset( $existing_decrypted['api_token_expires'] ) ? intval( $existing_decrypted['api_token_expires'] ) : 0;
@@ -491,9 +491,13 @@ class SII_Boleta_Settings {
 
     /**
      * Obtiene los perfiles de FluentSMTP, formateados como clave=>etiqueta.
+     *
+     * Esta función solo recopila los perfiles disponibles desde la
+     * configuración de FluentSMTP. El filtrado externo se realiza en las
+     * llamadas que consumen este método para evitar recursiones.
      */
     public function get_fluent_smtp_profiles() {
-        $out = [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ];
+        $out      = [ '' => __( 'Predeterminado de WordPress', 'sii-boleta-dte' ) ];
         $settings = get_option( 'fluent_smtp_settings' );
         $conns    = isset( $settings['connections'] ) && is_array( $settings['connections'] ) ? $settings['connections'] : [];
         foreach ( $conns as $key => $conn ) {
@@ -502,22 +506,22 @@ class SII_Boleta_Settings {
             $prov  = isset( $conn['provider'] ) ? (string) $conn['provider'] : ( isset( $conn['service'] ) ? (string) $conn['service'] : '' );
             if ( $email ) {
                 $prov_map = [
-                    'ses' => 'Amazon SES',
-                    'smtp' => 'SMTP server',
-                    'gmail' => 'Gmail',
-                    'outlook' => 'Outlook',
+                    'ses'      => 'Amazon SES',
+                    'smtp'     => 'SMTP server',
+                    'gmail'    => 'Gmail',
+                    'outlook'  => 'Outlook',
                     'sendgrid' => 'SendGrid',
-                    'mailgun' => 'Mailgun',
+                    'mailgun'  => 'Mailgun',
                     'postmark' => 'Postmark',
                 ];
                 $prov_label = $prov_map[ strtolower( $prov ) ] ?? ( $prov ? ucfirst( $prov ) : '' );
-                $main = trim( $name ) ? ( $name . ' <' . $email . '>' ) : $email;
-                $label = $prov_label ? ( $prov_label . ' — ' . $main ) : $main;
+                $main       = trim( $name ) ? ( $name . ' <' . $email . '>' ) : $email;
+                $label      = $prov_label ? ( $prov_label . ' — ' . $main ) : $main;
                 $out[ (string) $key ] = $label;
             }
         }
-        // Permitir filtros externos, pero partiendo de FluentSMTP si está
-        return apply_filters( 'sii_boleta_available_smtp_profiles', $out );
+
+        return $out;
     }
 
     /**
@@ -906,7 +910,7 @@ class SII_Boleta_Settings {
     public function render_field_smtp_profile() {
         $options  = $this->get_settings();
         $selected = $options['smtp_profile'];
-        $profiles = $this->get_fluent_smtp_profiles();
+        $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', $this->get_fluent_smtp_profiles() );
         ?>
         <select name="<?php echo esc_attr( self::OPTION_NAME ); ?>[smtp_profile]" id="sii-smtp-profile">
             <?php foreach ( $profiles as $key => $label ) : ?>

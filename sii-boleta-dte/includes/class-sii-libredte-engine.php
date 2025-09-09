@@ -420,24 +420,31 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             }
 
             // Ajustar el arreglo del documento para que la plantilla
-            // reciba las colecciones en un formato iterables y con el logo.
+            // reciba las colecciones en un formato iterable y con el logo.
             if ( isset( $bag ) && method_exists( $bag, 'get' ) && method_exists( $bag, 'set' ) ) {
                 $doc_data = $bag->get( 'document' );
-                if ( is_array( $doc_data ) ) {
+                if ( $doc_data && ( is_array( $doc_data ) || is_object( $doc_data ) ) ) {
+                    $doc_array = is_array( $doc_data ) ? $doc_data : (array) $doc_data;
                     foreach ( [ 'Detalle', 'Referencia', 'DscRcgGlobal' ] as $key ) {
-                        if ( ! empty( $doc_data[ $key ] ) ) {
-                            // Asegurar índices numéricos consecutivos.
-                            $doc_data[ $key ] = array_values( (array) $doc_data[ $key ] );
+                        if ( ! empty( $doc_array[ $key ] ) ) {
+                            // Asegurar índices numéricos consecutivos y elementos como arreglo.
+                            $items = array_values( (array) $doc_array[ $key ] );
+                            $doc_array[ $key ] = array_map(
+                                function( $item ) {
+                                    return is_array( $item ) ? $item : (array) $item;
+                                },
+                                $items
+                            );
                         }
                     }
                     // Inyectar logo si se solicitó mostrarlo.
                     if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
                         $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
                         if ( $img && ! empty( $img[0] ) ) {
-                            $doc_data['logo'] = $img[0];
+                            $doc_array['logo'] = $img[0];
                         }
                     }
-                    $bag->set( 'document', $doc_data );
+                    $bag->set( 'document', $doc_array );
                 }
             }
 

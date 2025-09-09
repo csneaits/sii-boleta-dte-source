@@ -278,9 +278,15 @@ class SII_Boleta_XML_Generator {
         $it1        = mb_substr( $it1, 0, 40 );
         $dd->appendChild( $dom->createElement( 'IT1', $it1 ) );
 
-        // Importar el nodo <CAF> completo dentro de <DD>
+        // Importar el nodo <CAF> completo dentro de <DD> validando su estructura.
         $caf_dom = new DOMDocument();
-        $caf_dom->loadXML( $caf_content );
+        $prev    = libxml_use_internal_errors( true );
+        $caf_ok  = $caf_dom->loadXML( trim( $caf_content ) );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $prev );
+        if ( ! $caf_ok ) {
+            return false;
+        }
         $caf_node = $caf_dom->getElementsByTagName( 'CAF' )->item( 0 );
         if ( $caf_node ) {
             $dd->appendChild( $dom->importNode( $caf_node, true ) );

@@ -77,5 +77,32 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertFileExists( $pdfPath );
         $content = file_get_contents( $pdfPath );
         $this->assertStringStartsWith( '%PDF', $content );
+
+        $outDir = __DIR__ . '/output';
+        if ( ! is_dir( $outDir ) ) {
+            mkdir( $outDir, 0777, true );
+        }
+        copy( $pdfPath, $outDir . '/boleta_from_array.pdf' );
+    }
+
+    public function test_pdf_generated_from_xml_fixture() {
+        $settings = new Dummy_Settings( [] );
+        $engine   = new SII_LibreDTE_Engine( $settings );
+
+        $xml = file_get_contents( __DIR__ . '/fixtures/boleta_multidetalle.xml' );
+        $this->assertNotFalse( $xml );
+
+        $pdfPath = $engine->render_pdf( $xml, [] );
+
+        $this->assertIsString( $pdfPath );
+        $this->assertFileExists( $pdfPath );
+        $content = file_get_contents( $pdfPath );
+        $this->assertStringStartsWith( '%PDF', $content );
+
+        $outDir = __DIR__ . '/output';
+        if ( ! is_dir( $outDir ) ) {
+            mkdir( $outDir, 0777, true );
+        }
+        copy( $pdfPath, $outDir . '/boleta_from_xml_fixture.pdf' );
     }
 }

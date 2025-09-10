@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<DTE xmlns="http://www.sii.cl/SiiDte" version="1.0">
+  <Documento ID="LibreDTE_11111111-1_T039F000000001">
+    <Encabezado>
+      <IdDoc>
+        <TipoDTE>39</TipoDTE>
+        <Folio>1</Folio>
+        <FchEmis>2024-01-01</FchEmis>
+        <IndServicio>3</IndServicio>
+      </IdDoc>
+      <Emisor>
+        <RUTEmisor>11111111-1</RUTEmisor>
+        <RznSocEmisor>Emisor</RznSocEmisor>
+        <GiroEmisor>Giro</GiroEmisor>
+        <CdgSIISucur>123456</CdgSIISucur>
+        <DirOrigen>Dir</DirOrigen>
+        <CmnaOrigen>Santiago</CmnaOrigen>
+      </Emisor>
+      <Receptor>
+        <RUTRecep>22222222-2</RUTRecep>
+        <RznSocRecep>Cliente</RznSocRecep>
+        <Contacto>+56 2 32525575</Contacto>
+        <DirRecep>Dir</DirRecep>
+        <CmnaRecep>Santiago</CmnaRecep>
+      </Receptor>
+      <Totales>
+        <MntNeto>1681</MntNeto>
+        <IVA>319</IVA>
+        <MntTotal>2000</MntTotal>
+      </Totales>
+    </Encabezado>
+    <Detalle>
+      <NroLinDet>1</NroLinDet>
+      <NmbItem>Uno</NmbItem>
+      <QtyItem>1</QtyItem>
+      <PrcItem>1000</PrcItem>
+      <MontoItem>1000</MontoItem>
+      <MntBruto>1</MntBruto>
+    </Detalle>
+    <Detalle>
+      <NroLinDet>2</NroLinDet>
+      <NmbItem>Dos</NmbItem>
+      <QtyItem>2</QtyItem>
+      <PrcItem>500</PrcItem>
+      <MontoItem>1000</MontoItem>
+      <MntBruto>1</MntBruto>
+    </Detalle>
+    <Referencia>
+      <NroLinRef>1</NroLinRef>
+      <RazonRef>Email receptor: correo.sii@example.com</RazonRef>
+    </Referencia>
+  </Documento>
+</DTE>

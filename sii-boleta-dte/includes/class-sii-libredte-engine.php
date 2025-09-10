@@ -584,48 +584,76 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
         if ( ! $this->lib_available() ) {
             return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return false;
+        try {
+            $rvd = new SII_Boleta_RVD_Manager( $this->settings );
+            $xml = $rvd->generate_rvd_xml( $date );
+            return $xml ?: false;
+        } catch ( \Throwable $e ) {
+            if ( function_exists( 'sii_boleta_write_log' ) ) {
+                sii_boleta_write_log( 'LibreDTE build_rvd_xml error: ' . $e->getMessage(), 'ERROR' );
+            }
+            return false;
+        }
     }
 
     public function send_rvd( $xml_signed, $environment, $token ) {
         if ( ! $this->lib_available() ) {
             return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return false;
+        try {
+            $settings = $this->settings->get_settings();
+            $rvd      = new SII_Boleta_RVD_Manager( $this->settings );
+            return $rvd->send_rvd_to_sii(
+                $xml_signed,
+                $environment,
+                $token,
+                $settings['cert_path'] ?? '',
+                $settings['cert_pass'] ?? ''
+            );
+        } catch ( \Throwable $e ) {
+            if ( function_exists( 'sii_boleta_write_log' ) ) {
+                sii_boleta_write_log( 'LibreDTE send_rvd error: ' . $e->getMessage(), 'ERROR' );
+            }
+            return false;
+        }
     }
 
     public function generate_cdf_xml( $date ) {
         if ( ! $this->lib_available() ) {
             return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return false;
+        try {
+            $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+            $api           = new SII_Boleta_API();
+            $cdf           = new SII_Boleta_Consumo_Folios( $this->settings, $folio_manager, $api );
+            return $cdf->generate_cdf_xml( $date );
+        } catch ( \Throwable $e ) {
+            if ( function_exists( 'sii_boleta_write_log' ) ) {
+                sii_boleta_write_log( 'LibreDTE generate_cdf_xml error: ' . $e->getMessage(), 'ERROR' );
+            }
+            return false;
+        }
     }
 
     public function send_cdf( $xml_content, $environment, $token, $cert_path, $cert_pass ) {
         if ( ! $this->lib_available() ) {
             return false;
         }
-
         try {
-            // Crear el objeto ConsumoFolios desde el XML
-            $cdf = new \sasco\LibreDTE\Sii\ConsumoFolios();
-            $cdf->loadXML($xml_content);
-
-            // Firmar el XML
-            $signature = new \sasco\LibreDTE\FirmaElectronica($cert_path, $cert_pass);
-            $cdf->sign($signature);
-
-            // Enviar al SII
-            $track_id = $cdf->enviar($token, $environment === 'maullin.sii.cl');
-
-            return $track_id;
-        } catch (\Exception $e) {
-            error_log('Error al enviar CDF: ' . $e->getMessage());
+            $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+            $api           = new SII_Boleta_API();
+            $cdf           = new SII_Boleta_Consumo_Folios( $this->settings, $folio_manager, $api );
+            return $cdf->send_cdf_to_sii( $xml_content, $environment, $token, $cert_path, $cert_pass );
+        } catch ( \Throwable $e ) {
+            if ( function_exists( 'sii_boleta_write_log' ) ) {
+                sii_boleta_write_log( 'LibreDTE send_cdf error: ' . $e->getMessage(), 'ERROR' );
+            }
             return false;
         }
+    }
+
+    private function lib_available() {
+        return class_exists( '\\libredte\\lib\\Core\\Application' ) || class_exists( '\\libredte\\lib\\Core\\Kernel' );
     }
 
     public function generate_libro( $fecha_inicio, $fecha_fin ) {

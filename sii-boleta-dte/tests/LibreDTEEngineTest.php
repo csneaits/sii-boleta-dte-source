@@ -44,7 +44,7 @@ class LibreDTEEngineTest extends TestCase {
 
     public function test_pdf_is_generated_with_details() {
         $settings = new Dummy_Settings( [] );
-        $engine   = new SII_LibreDTE_Engine( new Dummy_Native(), $settings );
+        $engine   = new SII_LibreDTE_Engine( $settings );
 
         $data = [
             'Folio'     => 1,

@@ -9,16 +9,10 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
     }
 }
 
-if ( ! class_exists( 'Dummy_Native' ) ) {
-    class Dummy_Native extends SII_Native_Engine {
-        public function __construct() {}
-    }
-}
-
 class LibreDTEEngineTest extends TestCase {
     public function test_associative_detalles_are_reindexed() {
         $settings = new Dummy_Settings([]);
-        $engine   = new SII_LibreDTE_Engine( new Dummy_Native(), $settings );
+        $engine   = new SII_LibreDTE_Engine( $settings );
 
         $data = [
             'Folio' => 1,

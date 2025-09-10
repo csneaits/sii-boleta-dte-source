@@ -186,14 +186,7 @@ class SII_Boleta_CLI {
         }
 
         // Motor activo
-        $xml_generator = new SII_Boleta_XML_Generator( $settings_obj );
-        $signer        = new SII_Boleta_Signer();
-        $api           = new SII_Boleta_API();
-        $pdf           = new SII_Boleta_PDF();
-        $rvd           = new SII_Boleta_RVD_Manager( $settings_obj );
-        $consumo       = new SII_Boleta_Consumo_Folios( $settings_obj, $folio_manager, $api );
-        $native        = new SII_Native_Engine( $settings_obj, $xml_generator, $signer, $api, $pdf, $rvd, $consumo, new SII_Libro_Boletas( $settings_obj ) );
-        $engine        = new SII_LibreDTE_Engine( $native, $settings_obj );
+        $engine = new SII_LibreDTE_Engine( $settings_obj );
 
         // Generar y firmar
         $xml = $engine->generate_dte_xml( $dte_data, $type );

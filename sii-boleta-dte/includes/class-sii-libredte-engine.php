@@ -1,400 +1,308 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) exit;
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * Motor DTE que implementa la integración con LibreDTE.
- * Esta es la implementación principal y única del motor DTE.
+ *
+ * Esta clase está refactorizada para:
+ * - Respetar la estructura normalizada que LibreDTE espera en los constructores y renderers.
+ * - Eliminar reindexaciones de colecciones (especialmente de Detalle) que pueden romper las plantillas PDF.
+ * - Mantener montos como enteros (no cast a float) y calcular MontoItem sólo cuando falte.
+ * - Centralizar la carga y limpieza del XML y de los certificados para evitar duplicación.
+ * - Inyectar logos de manera segura sin tocar la estructura de datos del DTE.
+ *
+ * @see https://core.libredte.cl/docs/lib/funcionalidades#documentos-tributarios-electronicos-dte
  */
-class SII_LibreDTE_Engine implements SII_DTE_Engine {
+class SII_LibreDTE_Engine implements SII_DTE_Engine
+{
     /** @var SII_Boleta_Settings */
     private $settings;
 
-    public function __construct( SII_Boleta_Settings $settings ) {
+    public function __construct(SII_Boleta_Settings $settings)
+    {
         $this->settings = $settings;
+        // Verificar disponibilidad de LibreDTE
         if (!class_exists('\\libredte\\lib\\Core\\Application') && !class_exists('\\libredte\\lib\\Core\\Kernel')) {
             throw new \RuntimeException('LibreDTE no está disponible. Este plugin requiere LibreDTE para funcionar.');
         }
     }
 
-    public function generate_dte_xml( array $data, $tipo_dte, $preview = false ) {
-
+    /**
+     * Genera el XML de un DTE desde un arreglo de datos.
+     *
+     * Se apoya en los constructores de LibreDTE para normalizar los datos【519346395733974†L90-L97】.
+     * No reindexa las colecciones ni convierte montos a float.
+     *
+     * @param array $data    Datos de negocio del DTE.
+     * @param mixed $tipo_dte Tipo de DTE (string o int).
+     * @param bool $preview   Si es true, no se timbra (no se agrega TED).
+     * @return string|false|\WP_Error
+     */
+    public function generate_dte_xml(array $data, $tipo_dte, $preview = false)
+    {
         try {
-            $xml_or_signed_xml = '';
-            // Construir estructura normalizada esperada por LibreDTE a partir de los datos del plugin.
-            $tipo = intval( $tipo_dte );
-            $folio = isset( $data['Folio'] ) ? intval( $data['Folio'] ) : 0;
-            $fchEmis = isset( $data['FchEmis'] ) ? (string) $data['FchEmis'] : date( 'Y-m-d' );
+            $tipo    = (int) $tipo_dte;
+            $folio   = isset($data['Folio'])   ? (int) $data['Folio']   : 0;
+            $fchEmis = isset($data['FchEmis']) ? (string) $data['FchEmis'] : date('Y-m-d');
+            $is_boleta_exenta = ($tipo === 41);
 
+            // Construir Emisor con fallback a ajustes
             $emisor = [
-                'RUTEmisor' => (string) ( $data['RutEmisor'] ?? '' ),
-                'RznSoc'    => (string) ( $data['RznSoc'] ?? ( $data['RznSocEmisor'] ?? '' ) ),
-                'GiroEmis'  => (string) ( $data['GiroEmisor'] ?? ( $data['GiroEmis'] ?? '' ) ),
-                'DirOrigen' => (string) ( $data['DirOrigen'] ?? '' ),
-                'CmnaOrigen'=> (string) ( $data['CmnaOrigen'] ?? '' ),
+                'RUTEmisor' => (string)($data['RutEmisor'] ?? ''),
+                'RznSoc'    => (string)($data['RznSoc'] ?? ($data['RznSocEmisor'] ?? '')),
+                'GiroEmis'  => (string)($data['GiroEmisor'] ?? ($data['GiroEmis'] ?? '')),
+                'DirOrigen' => (string)($data['DirOrigen'] ?? ''),
+                'CmnaOrigen'=> (string)($data['CmnaOrigen'] ?? ''),
             ];
-            // Enriquecer con Ajustes (Acteco, CdgSIISucur) si no vienen en $data
             $opts_for_emisor = $this->settings->get_settings();
-            if ( ! empty( $opts_for_emisor['acteco'] ) && empty( $emisor['Acteco'] ) ) {
+            if (!empty($opts_for_emisor['acteco']) && empty($emisor['Acteco'])) {
                 $emisor['Acteco'] = $opts_for_emisor['acteco'];
             }
-            if ( ! empty( $opts_for_emisor['cdg_sii_sucur'] ) && empty( $emisor['CdgSIISucur'] ) ) {
+            if (!empty($opts_for_emisor['cdg_sii_sucur']) && empty($emisor['CdgSIISucur'])) {
                 $emisor['CdgSIISucur'] = $opts_for_emisor['cdg_sii_sucur'];
             }
-            $receptor_data = (array) ( $data['Receptor'] ?? [] );
-            $receptor = [
-                'RUTRecep'    => (string) ( $receptor_data['RUTRecep'] ?? '' ),
-                'RznSocRecep' => (string) ( $receptor_data['RznSocRecep'] ?? '' ),
-                'DirRecep'    => (string) ( $receptor_data['DirRecep'] ?? '' ),
-                'CmnaRecep'   => (string) ( $receptor_data['CmnaRecep'] ?? '' ),
-            ];
-            if ( ! empty( $receptor_data['GiroRecep'] ) ) {
-                $receptor['GiroRecep'] = (string) $receptor_data['GiroRecep'];
-            }
-            if ( ! empty( $receptor_data['CorreoRecep'] ) ) {
-                $receptor['CorreoRecep'] = (string) $receptor_data['CorreoRecep'];
-            }
-            if ( ! empty( $receptor_data['TelefonoRecep'] ) ) {
-                $receptor['TelefonoRecep'] = (string) $receptor_data['TelefonoRecep'];
-            }
 
-            $detalles       = [];
-            $is_boleta_exenta = ($tipo === 41);
-            $tot_neto      = 0;
-            $tot_iva       = 0;
-            $tot_exe       = 0;
-            $tot_total     = 0;
+            // Receptor
+            $receptor_data = (array)($data['Receptor'] ?? []);
+            $receptor = array_filter([
+                'RUTRecep'      => (string)($receptor_data['RUTRecep'] ?? ''),
+                'RznSocRecep'   => (string)($receptor_data['RznSocRecep'] ?? ''),
+                'DirRecep'      => (string)($receptor_data['DirRecep'] ?? ''),
+                'CmnaRecep'     => (string)($receptor_data['CmnaRecep'] ?? ''),
+                'GiroRecep'     => isset($receptor_data['GiroRecep']) ? (string)$receptor_data['GiroRecep'] : null,
+                'CorreoRecep'   => isset($receptor_data['CorreoRecep']) ? (string)$receptor_data['CorreoRecep'] : null,
+                'TelefonoRecep' => isset($receptor_data['TelefonoRecep']) ? (string)$receptor_data['TelefonoRecep'] : null,
+            ], static function ($v) { return $v !== null && $v !== ''; });
 
-            // Normalizar los detalles para asegurar índices numéricos secuenciales
-            $input_detalles = array_values( (array) ( $data['Detalles'] ?? [] ) );
-            foreach ( $input_detalles as $i => $det ) {
+            // Detalle(s). No se reindexa a 0; se usa NroLinDet o índice 1-based.
+            $detalles = [];
+            $input_detalles = array_values((array)($data['Detalles'] ?? []));
+            foreach ($input_detalles as $i => $det) {
+                $nro = isset($det['NroLinDet']) ? (int) $det['NroLinDet'] : ($i + 1);
+                $qty = isset($det['QtyItem'])   ? (float) $det['QtyItem'] : 1.0;
+                $prc = isset($det['PrcItem'])   ? (int)   round($det['PrcItem']) : 0;
+
                 $lin = [
-                    'NroLinDet' => intval( $det['NroLinDet'] ?? ( $i + 1 ) ),
-                    'NmbItem'   => (string) ( $det['NmbItem'] ?? '' ),
-                    'QtyItem'   => (float)  ( $det['QtyItem'] ?? 1 ),
-                    'PrcItem'   => (float)  ( $det['PrcItem'] ?? 0 ),
+                    'NroLinDet' => $nro,
+                    'NmbItem'   => (string)($det['NmbItem'] ?? ''),
+                    'QtyItem'   => $qty,
+                    'PrcItem'   => $prc,
                 ];
-                // En boletas (39/41) los precios vienen con IVA incluido
-                if ( in_array( $tipo, [39,41], true ) ) {
+                // Boletas (39/41) traen precios con IVA incluido
+                if (in_array($tipo, [39, 41], true)) {
                     $lin['MntBruto'] = 1;
                 }
-                if ( isset( $det['IndExe'] ) && $det['IndExe'] ) {
+                // Exento
+                if (!empty($det['IndExe']) || $is_boleta_exenta) {
                     $lin['IndExe'] = 1;
                 }
-                // Para boleta exenta (41), marcar exento por defecto
-                if ( $is_boleta_exenta && ! isset( $lin['IndExe'] ) ) {
-                    $lin['IndExe'] = 1;
+                // Descuento y recargo
+                if (isset($det['DescuentoMonto']) && $det['DescuentoMonto'] !== '') {
+                    $lin['DescuentoMonto'] = (int)$det['DescuentoMonto'];
                 }
-                if ( isset( $det['DescuentoMonto'] ) ) {
-                    $lin['DescuentoMonto'] = intval( $det['DescuentoMonto'] );
+                if (isset($det['RecargoMonto']) && $det['RecargoMonto'] !== '') {
+                    $lin['RecargoMonto'] = (int)$det['RecargoMonto'];
                 }
-                if ( isset( $det['RecargoMonto'] ) ) {
-                    $lin['RecargoMonto'] = intval( $det['RecargoMonto'] );
-                }
-
-                $monto_item = intval( round( $lin['QtyItem'] * $lin['PrcItem'] ) );
-                $lin['MontoItem'] = $monto_item;
-                $tot_total += $monto_item;
-                if ( isset( $lin['IndExe'] ) && $lin['IndExe'] ) {
-                    $tot_exe += $monto_item;
+                // MontoItem (entero)
+                if (isset($det['MontoItem']) && $det['MontoItem'] !== '') {
+                    $lin['MontoItem'] = (int) round($det['MontoItem']);
                 } else {
-                    $neto = intval( round( $monto_item / 1.19 ) );
-                    $iva  = $monto_item - $neto;
-                    $tot_neto += $neto;
-                    $tot_iva  += $iva;
+                    $lin['MontoItem'] = (int) round($qty * $prc);
                 }
 
-                $detalles[] = $lin;
+                // Guardar con índice = NroLinDet
+                $detalles[$nro] = $lin;
+            }
+            ksort($detalles, SORT_NUMERIC);
+
+            // Referencias
+            $referencias = [];
+            if (!empty($data['Referencias']) && is_array($data['Referencias'])) {
+                foreach ($data['Referencias'] as $ref) {
+                    $referencias[] = array_filter([
+                        'TpoDocRef' => $ref['TpoDocRef'] ?? '',
+                        'FolioRef'  => $ref['FolioRef']  ?? '',
+                        'FchRef'    => $ref['FchRef']    ?? $fchEmis,
+                        'RazonRef'  => $ref['RazonRef']  ?? null,
+                    ], static function ($v) { return $v !== null && $v !== ''; });
+                }
+            }
+
+            // Encabezado y normalización
+            $idDoc = array_filter([
+                'TipoDTE'       => $tipo,
+                'Folio'         => $folio,
+                'FchEmis'       => $fchEmis,
+                'FmaPago'       => $data['FmaPago']       ?? null,
+                'FchVenc'       => $data['FchVenc']       ?? null,
+                'MedioPago'     => $data['MedioPago']     ?? null,
+                'TpoTranCompra' => $data['TpoTranCompra'] ?? null,
+                'TpoTranVenta'  => $data['TpoTranVenta']  ?? null,
+            ], static function ($v) { return $v !== null && $v !== ''; });
+
+            $transporte = [];
+            if ($tipo === 52) {
+                if (!empty($data['IndTraslado'])) { $idDoc['IndTraslado'] = $data['IndTraslado']; }
+                if (!empty($data['Patente']))     { $transporte['Patente'] = $data['Patente']; }
+                if (!empty($data['RUTTrans']))    { $transporte['RUTTrans'] = $data['RUTTrans']; }
+                if (!empty($data['RUTChofer']) && !empty($data['NombreChofer'])) {
+                    $transporte['Chofer'] = [
+                        'RUTChofer'    => $data['RUTChofer'],
+                        'NombreChofer' => $data['NombreChofer'],
+                    ];
+                }
+                if (!empty($data['DirDest']))  { $transporte['DirDest']  = $data['DirDest']; }
+                if (!empty($data['CmnaDest'])) { $transporte['CmnaDest'] = $data['CmnaDest']; }
             }
 
             $normalized = [
                 'Encabezado' => [
-                    'IdDoc' => array_filter([
-                        'TipoDTE'       => $tipo,
-                        'Folio'         => $folio,
-                        'FchEmis'       => $fchEmis,
-                        // Campos opcionales si vienen en $data
-                        'FmaPago'       => $data['FmaPago']       ?? null,
-                        'FchVenc'       => $data['FchVenc']       ?? null,
-                        'MedioPago'     => $data['MedioPago']     ?? null,
-                        'TpoTranCompra' => $data['TpoTranCompra'] ?? null,
-                        'TpoTranVenta'  => $data['TpoTranVenta']  ?? null,
-                    ], function($v){ return $v !== null && $v !== ''; }),
+                    'IdDoc'    => $idDoc,
                     'Emisor'   => $emisor,
                     'Receptor' => $receptor,
                 ],
                 'Detalle' => $detalles,
             ];
-
-            // Datos de transporte para Guía (52).
-            if ( $tipo === 52 ) {
-                if ( ! empty( $data['IndTraslado'] ) ) {
-                    $normalized['Encabezado']['IdDoc']['IndTraslado'] = $data['IndTraslado'];
-                }
-                $trans = [];
-                if ( ! empty( $data['Patente'] ) ) { $trans['Patente'] = $data['Patente']; }
-                if ( ! empty( $data['RUTTrans'] ) ) { $trans['RUTTrans'] = $data['RUTTrans']; }
-                if ( ! empty( $data['RUTChofer'] ) && ! empty( $data['NombreChofer'] ) ) {
-                    $trans['Chofer'] = [
-                        'RUTChofer'    => $data['RUTChofer'],
-                        'NombreChofer' => $data['NombreChofer'],
-                    ];
-                }
-                if ( ! empty( $data['DirDest'] ) )  { $trans['DirDest']  = $data['DirDest']; }
-                if ( ! empty( $data['CmnaDest'] ) ) { $trans['CmnaDest'] = $data['CmnaDest']; }
-                if ( $trans ) {
-                    $normalized['Encabezado']['Transporte'] = $trans;
-                }
+            if (!empty($referencias)) {
+                $normalized['Referencia'] = $referencias;
+            }
+            if ($tipo === 52 && !empty($transporte)) {
+                $normalized['Encabezado']['Transporte'] = $transporte;
             }
 
-            // Referencias si se incluyen.
-            if ( ! empty( $data['Referencias'] ) && is_array( $data['Referencias'] ) ) {
-                $refs = [];
-                foreach ( $data['Referencias'] as $ref ) {
-                    $refs[] = [
-                        'TpoDocRef' => $ref['TpoDocRef'] ?? '',
-                        'FolioRef'  => $ref['FolioRef']  ?? '',
-                        'FchRef'    => $ref['FchRef']    ?? $fchEmis,
-                        'RazonRef'  => $ref['RazonRef']  ?? false,
-                    ];
-                }
-                $normalized['Referencia'] = $refs;
-            }
+            // Sanitizar campos de texto: convertir boolean false/null a string vacío donde corresponda
+            $normalized = $this->sanitize_string_fields_recursively($normalized);
 
-            // Determinar CAF para timbrado.
+            // Obtener CAF (solo si no es preview)
             $opts      = $this->settings->get_settings();
-            $caf_paths = isset( $opts['caf_path'] ) && is_array( $opts['caf_path'] ) ? $opts['caf_path'] : [];
-            $caf_path  = $caf_paths[ $tipo ] ?? '';
-            if ( ! $preview && ( empty( $caf_path ) || ! file_exists( $caf_path ) ) ) {
-                if ( class_exists( '\\WP_Error' ) ) {
-                    return new \WP_Error( 'sii_boleta_missing_caf', sprintf( __( 'No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte' ), $tipo ) );
+            $caf_paths = isset($opts['caf_path']) && is_array($opts['caf_path']) ? $opts['caf_path'] : [];
+            $caf_path  = $caf_paths[$tipo] ?? '';
+            if (!$preview && (empty($caf_path) || !file_exists($caf_path))) {
+                if (class_exists('\\WP_Error')) {
+                    return new \WP_Error('sii_boleta_missing_caf', sprintf(__('No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte'), $tipo));
                 }
                 return false;
             }
 
-            // Instanciar LibreDTE y construir el documento.
-            $app = \libredte\lib\Core\Application::getInstance('prod', false);
-            /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
-            $billing  = $app->getPackageRegistry()->getPackage('billing');
+            // Construir documento con LibreDTE
+            $billing  = $this->getBilling();
             $document = $billing->getDocumentComponent();
 
-            // Intento 1: construir y renderizar un bag desde datos normalizados
-            $pdfContent = null;
-            try {
-                $raw = (string) $xml_or_signed_xml;
-                // Sanear posibles BOM/controles
-                if ( substr($raw,0,3) === "\xEF\xBB\xBF" ) { $raw = substr($raw,3); }
-                $raw = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/','',$raw);
-                libxml_use_internal_errors(true);
-                $sx = simplexml_load_string($raw);
-                if ( $sx ) {
-                    $docNodes = $sx->xpath('//*[local-name()="Documento"]');
-                    if ( $docNodes && !empty($docNodes[0]) ) {
-                        $d    = $docNodes[0];
-                        $tipo = intval((string)$d->Encabezado->IdDoc->TipoDTE);
-                        $norm = [
-                            'Encabezado' => [
-                                'IdDoc' => [
-                                    'TipoDTE' => $tipo,
-                                    'Folio'   => intval((string)$d->Encabezado->IdDoc->Folio),
-                                    'FchEmis' => (string)$d->Encabezado->IdDoc->FchEmis ?: date('Y-m-d'),
-                                ],
-                                'Emisor' => [
-                                    'RUTEmisor' => (string)$d->Encabezado->Emisor->RUTEmisor,
-                                    'RznSoc'    => (string)$d->Encabezado->Emisor->RznSoc,
-                                    'GiroEmis'  => (string)$d->Encabezado->Emisor->GiroEmis,
-                                    'DirOrigen' => (string)$d->Encabezado->Emisor->DirOrigen,
-                                    'CmnaOrigen'=> (string)$d->Encabezado->Emisor->CmnaOrigen,
-                                ],
-                                'Receptor' => array_filter([
-                                    'RUTRecep'      => (string)$d->Encabezado->Receptor->RUTRecep,
-                                    'RznSocRecep'   => (string)$d->Encabezado->Receptor->RznSocRecep,
-                                    'DirRecep'      => (string)$d->Encabezado->Receptor->DirRecep,
-                                    'CmnaRecep'     => (string)$d->Encabezado->Receptor->CmnaRecep,
-                                    'CorreoRecep'   => (string)$d->Encabezado->Receptor->CorreoRecep,
-                                    'TelefonoRecep' => (string)$d->Encabezado->Receptor->TelefonoRecep,
-                                ], function($v){ return $v!=='' && $v!==null; }),
-                            ],
-                        ];
-                        $lines = $d->xpath('./*[local-name()="Detalle"]');
-                        $items = [];
-                        $i=1;
-                        foreach ( (array)$lines as $ln ) {
-                            $row = [
-                                'NroLinDet' => intval((string)$ln->NroLinDet ?: $i),
-                                'NmbItem'   => (string)$ln->NmbItem,
-                                'QtyItem'   => (float)((string)$ln->QtyItem ?: 1),
-                                'PrcItem'   => (float)((string)$ln->PrcItem ?: 0),
-                                'MontoItem' => (float)(
-                                    (string)$ln->MontoItem !== ''
-                                        ? (string)$ln->MontoItem
-                                        : ((float)((string)$ln->QtyItem ?: 1) * (float)((string)$ln->PrcItem ?: 0))
-                                ),
-                            ];
-                            if ( isset($ln->IndExe) && (string)$ln->IndExe === '1' ) { $row['IndExe'] = 1; }
-                            if ( isset($ln->DescuentoMonto) && (string)$ln->DescuentoMonto !== '' ) { $row['DescuentoMonto'] = intval((string)$ln->DescuentoMonto); }
-                            if ( isset($ln->RecargoMonto) && (string)$ln->RecargoMonto !== '' ) { $row['RecargoMonto'] = intval((string)$ln->RecargoMonto); }
-                            if ( in_array($tipo,[39,41],true) ) { $row['MntBruto'] = 1; }
-                            // Asegurarse que el MontoItem se calcule correctamente si no viene
-                            if ( !isset($row['MontoItem']) || $row['MontoItem'] === '' ) {
-                                $row['MontoItem'] = $row['QtyItem'] * $row['PrcItem'];
-                            }
-                            $items[] = $row; $i++;
-                        }
-                        $norm['Detalle'] = $items;
-                        if ( !empty($items) ) {
-                            $bagN = $document->bill($norm, null, null, []);
-                            $renderer = method_exists($document,'getRendererWorker') ? $document->getRendererWorker() : null;
-                            if ( $renderer && method_exists($renderer,'render') ) { $pdfContent = $renderer->render($bagN); }
-                            if ( !$pdfContent && method_exists($document,'getBuilderWorker') ) {
-                                $builder = $document->getBuilderWorker();
-                                if ( $builder && method_exists($builder,'renderPdf') ) { $pdfContent = $builder->renderPdf($bagN); }
-                            }
-                        }
-                    }
-                }
-            } catch ( \Throwable $e ) {
-                if ( function_exists('sii_boleta_write_log') ) { sii_boleta_write_log('LibreDTE render(normalized) error: '.$e->getMessage(), 'ERROR'); }
-            }
-
-            // (debug): se eliminó intento de render desde XML dentro de generate_dte_xml
-
-            // Pasar CAF solo si no es previsualización (para generar TED).
             $cafForBuild = $preview ? null : $caf_path;
-
-            $bag = $document->bill(
-                $normalized,
-                $cafForBuild,
-                null,
-                []
-            );
-
-            // Obtener XML (sin firma si no se pasó certificado).
+            $this->log_false_string_fields($normalized, 'normalized-pre-bill');
+            $bag = $document->bill($normalized, $cafForBuild, null, []);
             $xml = $bag->getXmlDocument()->saveXML();
-            if ( $xml && $tot_total > 0 ) {
-                $raw = (string) $xml;
-                if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
-                    $raw = substr( $raw, 3 );
-                }
-                $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
-                $sx  = @simplexml_load_string( $raw );
-                if ( $sx ) {
-                    $doc_nodes = $sx->xpath('//*[local-name()="Documento"]');
-                    if ( $doc_nodes && ! empty( $doc_nodes[0] ) ) {
-                        $t = $doc_nodes[0]->Encabezado->Totales;
-                        if ( $tot_neto > 0 ) { $t->MntNeto = $tot_neto; } else { unset( $t->MntNeto ); }
-                        if ( $tot_iva  > 0 ) { $t->IVA     = $tot_iva; }  else { unset( $t->IVA ); }
-                        if ( $tot_exe  > 0 ) { $t->MntExe  = $tot_exe; } else { unset( $t->MntExe ); }
-                        $t->MntTotal = $tot_total;
-                        $xml = $sx->asXML();
-                    }
-                }
-            }
+
             return $xml ?: false;
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE generate_dte_xml error: ' . $e->getMessage(), 'ERROR' );
+
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE generate_dte_xml error: ' . $e->getMessage(), 'ERROR');
             }
-            return class_exists('WP_Error') ? new \WP_Error('sii_libredte_error', $e->getMessage()) : false;
+            return class_exists('WP_Error')
+                ? new \WP_Error('sii_libredte_error', $e->getMessage())
+                : false;
         }
     }
 
-    public function sign_dte_xml( $xml ) {
-
+    /**
+     * Firma un XML de DTE ya generado.
+     *
+     * @param string $xml XML del DTE
+     * @return string|false
+     */
+    public function sign_dte_xml($xml)
+    {
         try {
-            // Cargar settings y certificado.
-            $opts      = $this->settings->get_settings();
-            $cert_path = $opts['cert_path'] ?? '';
-            $cert_pass = $opts['cert_pass'] ?? '';
-            if ( ! $cert_path || ! file_exists( $cert_path ) ) {
-                return false;
-            }
-
-            // Instanciar aplicación LibreDTE y obtener componentes.
-            $app = \libredte\lib\Core\Application::getInstance('prod', false);
-            /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
-            $billing = $app->getPackageRegistry()->getPackage('billing');
+            $billing  = $this->getBilling();
             $document = $billing->getDocumentComponent();
 
-            // Crear bolsa desde XML existente.
-            $bag = $document->getLoaderWorker()->loadXml( (string) $xml );
-
-            // No re-normalizar ni re-timbrar, solo firmar con el certificado.
+            // Limpiar XML
+            $clean = $this->cleanXmlString((string) $xml);
+            $bag   = $document->getLoaderWorker()->loadXml($clean);
+            // No normalizar ni re-timbrar, solo firmar
             $bag->getOptions()->set('normalizer.normalize', false);
 
-            // Cargar certificado PFX/P12.
-            $loader = new \Derafu\Certificate\Service\CertificateLoader();
-            $certificate = $loader->loadFromFile( $cert_path, $cert_pass );
-            $bag = $bag->withCertificate( $certificate );
+            // Cargar certificado
+            $opts = $this->settings->get_settings();
+            $certificate = $this->loadCertificate($opts['cert_path'] ?? '', $opts['cert_pass'] ?? '');
+            if (!$certificate) {
+                return false;
+            }
+            $bag = $bag->withCertificate($certificate);
 
-            // Firmar el DTE y obtener XML firmado.
-            $document->getBuilderWorker()->build( $bag );
+            // Firmar
+            $document->getBuilderWorker()->build($bag);
             $signed = $bag->getXmlDocument()->saveXML();
+
             return $signed ?: false;
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE sign_dte_xml error: ' . $e->getMessage(), 'ERROR' );
+
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE sign_dte_xml error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    public function send_dte_file( $file_path, $environment, $token, $cert_path, $cert_pass ) {
-
+    /**
+     * Envía un archivo DTE al SII y devuelve el TrackID.
+     *
+     * @param string $file_path Ruta al archivo XML del DTE
+     * @param mixed  $environment 'production' o 'certification'
+     * @param string $token       Token de autenticación
+     * @param string $cert_path   Ruta al certificado PFX/P12 (opcional)
+     * @param string $cert_pass   Clave del certificado (opcional)
+     * @return string|false|\WP_Error
+     */
+    public function send_dte_file($file_path, $environment, $token, $cert_path, $cert_pass)
+    {
         try {
-            if ( ! is_readable( $file_path ) ) {
+            if (!is_readable($file_path)) {
+                return false;
+            }
+            $xml_dte = file_get_contents($file_path);
+            if (!$xml_dte) {
                 return false;
             }
 
-            $xml_dte = file_get_contents( $file_path );
-            if ( ! $xml_dte ) {
-                return false;
-            }
-
-            // Instanciar aplicación y componentes de LibreDTE.
-            $app = \libredte\lib\Core\Application::getInstance('prod', false);
-            /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
-            $billing = $app->getPackageRegistry()->getPackage('billing');
-
+            $billing    = $this->getBilling();
             $document   = $billing->getDocumentComponent();
-            $dispatcher = $billing->getDocumentComponent()->getDispatcherWorker();
-            $integration = $billing->getIntegrationComponent();
+            $dispatcher = $document->getDispatcherWorker();
+            $integration= $billing->getIntegrationComponent();
 
-            // Cargar bolsa desde el XML del DTE.
-            $bag = $document->getLoaderWorker()->loadXml( $xml_dte );
+            // Limpiar y cargar XML en bolsa
+            $cleanXml = $this->cleanXmlString((string) $xml_dte);
+            $bag = $document->getLoaderWorker()->loadXml($cleanXml);
 
-            // Cargar certificado (usar parámetros si vienen, sino settings).
-            if ( empty( $cert_path ) || ! file_exists( $cert_path ) ) {
-                $opts = $this->settings->get_settings();
-                $cert_path = $opts['cert_path'] ?? '';
-                $cert_pass = $opts['cert_pass'] ?? '';
+            // Cargar certificado
+            $certificate = $this->loadCertificate($cert_path, $cert_pass);
+            if (!$certificate) {
+                return false;
             }
-            $loader = new \Derafu\Certificate\Service\CertificateLoader();
-            $certificate = $loader->loadFromFile( $cert_path, $cert_pass );
+            $bag = $bag->withCertificate($certificate);
+            $envelope = $dispatcher->create($bag);
 
-            // Asegurar que el sobre de envío se cree con firma (agregando certificado a la bolsa/envelope).
-            $bag = $bag->withCertificate( $certificate );
-            $envelope = $dispatcher->create( $bag );
-
-            // Preparar solicitud al SII con ambiente.
+            // RUT del emisor
             $opts = $this->settings->get_settings();
             $rutEmisor = $opts['rut_emisor'] ?? '';
-            if ( empty( $rutEmisor ) ) {
+            if (empty($rutEmisor)) {
                 return false;
             }
 
-            $ambiente = ( 'production' === strtolower( (string) $opts['environment'] ) || 'production' === strtolower( (string) $environment ) )
-                ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION
-                : \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION;
-
+            // Ambiente (production/certification)
+            $ambiente = $this->getSiiAmbiente($environment);
             $request = new \libredte\lib\Core\Package\Billing\Component\Integration\Support\SiiRequest(
                 $certificate,
-                [ 'ambiente' => $ambiente ]
+                ['ambiente' => $ambiente]
             );
 
-            // Validar sobre antes de enviar.
-            $dispatcher->validate( $envelope );
-
-            // Enviar y obtener TrackID.
+            // Validar y enviar
+            $dispatcher->validate($envelope);
             $trackId = $integration->getSiiLazyWorker()->sendXmlDocument(
                 $request,
                 $envelope->getXmlDocument(),
@@ -403,246 +311,179 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 null
             );
 
-            if ( ! $trackId ) {
-                // Respuesta inesperada: registrar y devolver error para reintento.
-                if ( function_exists( 'sii_boleta_write_log' ) ) {
-                    sii_boleta_write_log( 'LibreDTE envío DTE sin TrackID recibido', 'ERROR' );
+            if (!$trackId) {
+                if (function_exists('sii_boleta_write_log')) {
+                    sii_boleta_write_log('LibreDTE envío DTE sin TrackID recibido', 'ERROR');
                 }
-                if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
-                    SII_Boleta_Log_DB::add_entry( '', 'error', 'Missing TrackID' );
+                if (class_exists('SII_Boleta_Log_DB')) {
+                    SII_Boleta_Log_DB::add_entry('', 'error', 'Missing TrackID');
                 }
-                return new \WP_Error( 'sii_boleta_missing_trackid', __( 'No se obtuvo TrackID del SII.', 'sii-boleta-dte' ) );
+                return class_exists('WP_Error')
+                    ? new \WP_Error('sii_boleta_missing_trackid', __('No se obtuvo TrackID del SII.', 'sii-boleta-dte'))
+                    : false;
             }
 
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE envío DTE OK. TrackID: ' . $trackId, 'INFO' );
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE envío DTE OK. TrackID: ' . $trackId, 'INFO');
             }
-            if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
-                SII_Boleta_Log_DB::add_entry( (string) $trackId, 'sent', '' );
+            if (class_exists('SII_Boleta_Log_DB')) {
+                SII_Boleta_Log_DB::add_entry((string) $trackId, 'sent', '');
             }
+
             return (string) $trackId;
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE send_dte_file error: ' . $e->getMessage(), 'ERROR' );
+
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE send_dte_file error: ' . $e->getMessage(), 'ERROR');
             }
-            if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
-                SII_Boleta_Log_DB::add_entry( '', 'error', $e->getMessage() );
+            if (class_exists('SII_Boleta_Log_DB')) {
+                SII_Boleta_Log_DB::add_entry('', 'error', $e->getMessage());
             }
-            return new \WP_Error( 'sii_boleta_libredte_send_failed', $e->getMessage() );
+            return class_exists('WP_Error')
+                ? new \WP_Error('sii_boleta_libredte_send_failed', $e->getMessage())
+                : false;
         }
     }
 
-    public function render_pdf( $xml_or_signed_xml, array $settings ) {
+    /**
+     * Renderiza un PDF desde un XML o XML firmado.
+     *
+     * Se carga el XML, se normaliza y se envía al renderer/builder. Sólo se
+     * inyecta el logo si se solicita; no se manipula la colección Detalle.
+     *
+     * @param string $xml_or_signed_xml
+     * @param array  $settings Ajustes: 'logo_id', 'pdf_show_logo', etc.
+     * @return string|false Ruta al archivo PDF generado o false si falla.
+     */
+    public function render_pdf($xml_or_signed_xml, array $settings)
+    {
         try {
-            // Cargar LibreDTE y construir la bolsa desde el XML proporcionado
-            $app = \libredte\lib\Core\Application::getInstance('prod', false);
-            /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
-            $billing  = $app->getPackageRegistry()->getPackage('billing');
+            $billing  = $this->getBilling();
             $document = $billing->getDocumentComponent();
 
-            // Asegurar que el XML esté limpio y que la normalización esté activada
-            $pdfContent = null;
-            $raw = (string) $xml_or_signed_xml;
-            if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
-                $raw = substr( $raw, 3 );
-            }
-            $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
-            $bag = $document->getLoaderWorker()->loadXml( $raw );
-            if ( method_exists( $bag, 'getOptions' ) ) {
+            // Limpiar y cargar XML en bolsa
+            $clean = $this->cleanXmlString((string) $xml_or_signed_xml);
+            $bag   = $document->getLoaderWorker()->loadXml($clean);
+
+            // Activar normalización
+            if (method_exists($bag, 'getOptions')) {
                 $opts = $bag->getOptions();
-                if ( $opts && method_exists( $opts, 'set' ) ) {
-                    $opts->set( 'normalizer.normalize', true );
+                if ($opts && method_exists($opts, 'set')) {
+                    $opts->set('normalizer.normalize', true);
                 }
             }
 
-            // Ajustar el arreglo del documento para que la plantilla
-            // reciba las colecciones en un formato iterable y con el logo.
-            if ( isset( $bag ) && method_exists( $bag, 'get' ) && method_exists( $bag, 'set' ) ) {
-                $doc_data = $bag->get( 'document' );
-                if ( $doc_data && ( is_array( $doc_data ) || is_object( $doc_data ) ) ) {
-                    $doc_array = is_array( $doc_data ) ? $doc_data : (array) $doc_data;
-                    foreach ( [ 'Detalle', 'Referencia', 'DscRcgGlobal' ] as $key ) {
-                        if ( ! empty( $doc_array[ $key ] ) ) {
-                            // Convertir cualquier colección iterable a un arreglo simple.
-                            $raw_items = $doc_array[ $key ];
-                            if ( $raw_items instanceof \Traversable ) {
-                                $items = iterator_to_array( $raw_items, false );
-                            } else {
-                                $items = (array) $raw_items;
-                            }
-                            $items = array_values( $items );
-                            // Asegurar índices numéricos consecutivos y elementos como arreglo.
-                            $doc_array[ $key ] = array_map(
-                                function( $item ) {
-                                    $itemArray = is_array( $item ) ? $item : (array) $item;
-                                    // Asegurarse que todos los campos numéricos sean float
-                                    if ( $itemArray && isset( $itemArray['QtyItem'] ) ) {
-                                        $itemArray['QtyItem'] = (float) $itemArray['QtyItem'];
-                                    }
-                                    if ( $itemArray && isset( $itemArray['PrcItem'] ) ) {
-                                        $itemArray['PrcItem'] = (float) $itemArray['PrcItem'];
-                                    }
-                                    if ( $itemArray && isset( $itemArray['MontoItem'] ) ) {
-                                        $itemArray['MontoItem'] = (float) $itemArray['MontoItem'];
-                                    } elseif ( $itemArray && isset( $itemArray['QtyItem'] ) && isset( $itemArray['PrcItem'] ) ) {
-                                        $itemArray['MontoItem'] = (float) $itemArray['QtyItem'] * (float) $itemArray['PrcItem'];
-                                    }
-                                    return $itemArray;
-                                },
-                                $items
-                            );
-                        }
-                    }
-                    // Inyectar logo si se solicitó mostrarlo.
-                    if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
-                        $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
-                        if ( $img && ! empty( $img[0] ) ) {
+            // Inyectar logo (sin tocar Detalle)
+            if (!empty($settings['logo_id']) && !empty($settings['pdf_show_logo']) && function_exists('wp_get_attachment_image_src')) {
+                $img = wp_get_attachment_image_src((int) $settings['logo_id'], 'medium');
+                if ($img && !empty($img[0])) {
+                    if (method_exists($bag, 'get') && method_exists($bag, 'set')) {
+                        $doc_data = $bag->get('document');
+                        if ($doc_data) {
+                            $doc_array = is_array($doc_data) ? $doc_data : (array) $doc_data;
                             $doc_array['logo'] = $img[0];
+                            $bag->set('document', $doc_array);
                         }
                     }
-                    $bag->set( 'document', $doc_array );
                 }
             }
 
-            if ( ! $pdfContent && method_exists( $document, 'getRendererWorker' ) ) {
+            // Render (preferir renderer)
+            $pdfContent = null;
+            if (method_exists($document, 'getRendererWorker')) {
                 $renderer = $document->getRendererWorker();
-                if ( $renderer && method_exists( $renderer, 'render' ) ) {
-                    $pdfContent = $renderer->render( $bag );
+                if ($renderer && method_exists($renderer, 'render')) {
+                    $pdfContent = $renderer->render($bag);
                 }
             }
-            // Alternativa: algunos builds exponen renderPDF en el builder
-            if ( ! $pdfContent && method_exists( $document, 'getBuilderWorker' ) ) {
+            if (!$pdfContent && method_exists($document, 'getBuilderWorker')) {
                 $builder = $document->getBuilderWorker();
-                if ( $builder && method_exists( $builder, 'renderPdf' ) ) {
-                    $pdfContent = $builder->renderPdf( $bag );
+                if ($builder && method_exists($builder, 'renderPdf')) {
+                    $pdfContent = $builder->renderPdf($bag);
                 }
             }
 
-            if ( ! $pdfContent ) {
+            if (!$pdfContent || !is_string($pdfContent)) {
                 return false;
             }
 
-            // Si devolvió un objeto TCPDF, inyectar logo y asegurar detalle visible
-            if ( is_object( $pdfContent ) && method_exists( $pdfContent, 'Output' ) ) {
-                // Inyectar logo si existe
-                try {
-                    if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
-                        $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
-                        if ( $img && ! empty( $img[0] ) && function_exists( 'wp_upload_dir' ) ) {
-                            $uploads = wp_upload_dir();
-                            $local   = str_replace( $uploads['baseurl'], $uploads['basedir'], $img[0] );
-                            if ( is_readable( $local ) && method_exists( $pdfContent, 'Image' ) ) {
-                                // Posicionar en esquina superior izquierda, ancho 40mm
-                                @$pdfContent->Image( $local, 10, 10, 40 );
-                            }
-                        }
-                    }
-                } catch ( \Throwable $e ) {
-                    // Ignorar fallos de imagen y continuar
-                }
-
-                // Asegurar que el detalle sea visible: agregar una página con tabla basada en XML
-                try {
-                    $raw = (string) $xml_or_signed_xml;
-                    if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) { $raw = substr( $raw, 3 ); }
-                    $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
-                    libxml_use_internal_errors( true );
-                    $sx  = simplexml_load_string( $raw );
-                    if ( ! $sx ) { throw new \Exception('XML parse error'); }
-                    $docNodes  = $sx->xpath('//*[local-name()="Documento"]');
-                    $doc       = ( $docNodes && ! empty( $docNodes[0] ) ) ? $docNodes[0] : $sx;
-                    $lineNodes = $doc->xpath('//*[local-name()="Detalle"]');  // Buscar Detalle en cualquier nivel
-                    if ( method_exists( $pdfContent, 'AddPage' ) && ! empty( $lineNodes ) ) {
-                        $format = isset( $settings['pdf_format'] ) ? strtoupper( (string) $settings['pdf_format'] ) : 'A4';
-                        if ( '80MM' === $format ) {
-                            $pdfContent->AddPage( 'P', [80, 297] );
-                        } else {
-                            $pdfContent->AddPage( 'P', 'A4' );
-                        }
-                        if ( method_exists( $pdfContent, 'SetFont' ) ) {
-                            $pdfContent->SetFont( 'helvetica', 'B', 12 );
-                            $pdfContent->Cell( 0, 8, 'Detalle del Documento', 0, 1, 'L' );
-                            $pdfContent->SetFont( 'helvetica', 'B', 9 );
-                            $pdfContent->SetFillColor( 230, 230, 230 );
-                            $pdfContent->Cell( 10, 6, '#', 1, 0, 'C', true );
-                            $pdfContent->Cell( 100, 6, 'Descripcion', 1, 0, 'L', true );
-                            $pdfContent->Cell( 20, 6, 'Cant.', 1, 0, 'R', true );
-                            $pdfContent->Cell( 30, 6, 'Precio', 1, 0, 'R', true );
-                            $pdfContent->Cell( 30, 6, 'Subtotal', 1, 1, 'R', true );
-                            $pdfContent->SetFont( 'helvetica', '', 9 );
-                            $line = 1;
-                            foreach ( $lineNodes as $det ) {
-                                $pdfContent->Cell( 10, 6, (string) $line, 1, 0, 'C' );
-                                $pdfContent->Cell( 100, 6, (string) $det->NmbItem, 1, 0, 'L' );
-                                $pdfContent->Cell( 20, 6, number_format( (float) $det->QtyItem, 0, ',', '.' ), 1, 0, 'R' );
-                                $pdfContent->Cell( 30, 6, number_format( (float) $det->PrcItem, 0, ',', '.' ), 1, 0, 'R' );
-                                $pdfContent->Cell( 30, 6, number_format( (float) $det->MontoItem, 0, ',', '.' ), 1, 1, 'R' );
-                                $line++;
-                            }
-                        }
-                    }
-                } catch ( \Throwable $e ) {
-                    // Si falla, continuamos sin la tabla adicional
-                }
-
-                // Obtener contenido binario del PDF
-                $pdfContent = $pdfContent->Output( '', 'S' );
-            }
-            if ( ! is_string( $pdfContent ) || '' === $pdfContent ) {
-                return false;
-            }
-
-            // Determinar nombre y guardar en uploads, en carpeta por RUT del receptor
+            // Determinar ubicación y nombre del archivo
             try {
-                $sx = new \SimpleXMLElement( (string) $xml_or_signed_xml );
-                $doc = $sx->Documento ?: $sx; // tolerancia
-                $tipo = (string) $doc->Encabezado->IdDoc->TipoDTE;
-                $folio = (string) $doc->Encabezado->IdDoc->Folio;
-                $rut  = (string) $doc->Encabezado->Receptor->RUTRecep;
-            } catch ( \Throwable $e ) {
-                $tipo = 'DTE';
+                $sx = new \SimpleXMLElement((string) $xml_or_signed_xml);
+                $doc = $sx->Documento ?: $sx;
+                $tipo  = (string)($doc->Encabezado->IdDoc->TipoDTE ?? 'DTE');
+                $folio = (string)($doc->Encabezado->IdDoc->Folio   ?? '0');
+                $rut   = (string)($doc->Encabezado->Receptor->RUTRecep ?? 'SIN-RUT');
+            } catch (\Throwable $e) {
+                $tipo  = 'DTE';
                 $folio = '0';
-                $rut  = 'SIN-RUT';
+                $rut   = 'SIN-RUT';
             }
-            $upload = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : [ 'basedir' => sys_get_temp_dir() ];
-            $rut_folder = strtoupper( preg_replace( '/[^0-9Kk-]/', '', $rut ?: 'SIN-RUT' ) );
-            $base_dir   = rtrim( $upload['basedir'], '/\\' ) . DIRECTORY_SEPARATOR . 'dte' . DIRECTORY_SEPARATOR . $rut_folder . DIRECTORY_SEPARATOR;
-            if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $base_dir ); } else { if ( ! is_dir( $base_dir ) ) { @mkdir( $base_dir, 0755, true ); } }
+
+            $upload     = function_exists('wp_upload_dir') ? wp_upload_dir() : ['basedir' => sys_get_temp_dir()];
+            $rut_folder = strtoupper(preg_replace('/[^0-9Kk-]/', '', $rut ?: 'SIN-RUT'));
+            $base_dir   = rtrim($upload['basedir'], '/\\') . DIRECTORY_SEPARATOR . 'dte' . DIRECTORY_SEPARATOR . $rut_folder . DIRECTORY_SEPARATOR;
+            if (function_exists('wp_mkdir_p')) {
+                wp_mkdir_p($base_dir);
+            } else {
+                if (!is_dir($base_dir)) {
+                    @mkdir($base_dir, 0755, true);
+                }
+            }
             $file = 'DTE_' . $tipo . '_' . $folio . '_' . time() . '.pdf';
             $path = $base_dir . $file;
-            file_put_contents( $path, $pdfContent );
+
+            file_put_contents($path, $pdfContent);
+
             return $path;
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE render_pdf error: ' . $e->getMessage(), 'ERROR' );
+
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE render_pdf error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    public function build_rvd_xml( $date = null ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Genera el Reporte de Ventas Diarias (RVD).
+     *
+     * @param string|null $date Fecha para el reporte
+     * @return string|false
+     */
+    public function build_rvd_xml($date = null)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
         try {
-            $rvd = new SII_Boleta_RVD_Manager( $this->settings );
-            $xml = $rvd->generate_rvd_xml( $date );
+            $rvd = new SII_Boleta_RVD_Manager($this->settings);
+            $xml = $rvd->generate_rvd_xml($date);
             return $xml ?: false;
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE build_rvd_xml error: ' . $e->getMessage(), 'ERROR' );
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE build_rvd_xml error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    public function send_rvd( $xml_signed, $environment, $token ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Envía el RVD firmado al SII.
+     *
+     * @param string $xml_signed XML firmado del RVD
+     * @param mixed  $environment Ambiente 'production' o 'certification'
+     * @param string $token Token de autenticación
+     * @return mixed
+     */
+    public function send_rvd($xml_signed, $environment, $token)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
         try {
             $settings = $this->settings->get_settings();
-            $rvd      = new SII_Boleta_RVD_Manager( $this->settings );
+            $rvd = new SII_Boleta_RVD_Manager($this->settings);
             return $rvd->send_rvd_to_sii(
                 $xml_signed,
                 $environment,
@@ -650,77 +491,93 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 $settings['cert_path'] ?? '',
                 $settings['cert_pass'] ?? ''
             );
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE send_rvd error: ' . $e->getMessage(), 'ERROR' );
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE send_rvd error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    public function generate_cdf_xml( $date ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Genera el reporte de consumo de folios (CDF).
+     *
+     * @param string $date Fecha del CDF
+     * @return mixed
+     */
+    public function generate_cdf_xml($date)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
         try {
-            $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+            $folio_manager = new SII_Boleta_Folio_Manager($this->settings);
             $api           = new SII_Boleta_API();
-            $cdf           = new SII_Boleta_Consumo_Folios( $this->settings, $folio_manager, $api );
-            return $cdf->generate_cdf_xml( $date );
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE generate_cdf_xml error: ' . $e->getMessage(), 'ERROR' );
+            $cdf           = new SII_Boleta_Consumo_Folios($this->settings, $folio_manager, $api);
+            return $cdf->generate_cdf_xml($date);
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE generate_cdf_xml error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    public function send_cdf( $xml_content, $environment, $token, $cert_path, $cert_pass ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Envía el CDF al SII.
+     *
+     * @param string $xml_content Contenido XML del CDF
+     * @param mixed  $environment Ambiente 'production' o 'certification'
+     * @param string $token Token
+     * @param string $cert_path Ruta al certificado
+     * @param string $cert_pass Contraseña del certificado
+     * @return mixed
+     */
+    public function send_cdf($xml_content, $environment, $token, $cert_path, $cert_pass)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
         try {
-            $folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
+            $folio_manager = new SII_Boleta_Folio_Manager($this->settings);
             $api           = new SII_Boleta_API();
-            $cdf           = new SII_Boleta_Consumo_Folios( $this->settings, $folio_manager, $api );
-            return $cdf->send_cdf_to_sii( $xml_content, $environment, $token, $cert_path, $cert_pass );
-        } catch ( \Throwable $e ) {
-            if ( function_exists( 'sii_boleta_write_log' ) ) {
-                sii_boleta_write_log( 'LibreDTE send_cdf error: ' . $e->getMessage(), 'ERROR' );
+            $cdf           = new SII_Boleta_Consumo_Folios($this->settings, $folio_manager, $api);
+            return $cdf->send_cdf_to_sii($xml_content, $environment, $token, $cert_path, $cert_pass);
+        } catch (\Throwable $e) {
+            if (function_exists('sii_boleta_write_log')) {
+                sii_boleta_write_log('LibreDTE send_cdf error: ' . $e->getMessage(), 'ERROR');
             }
             return false;
         }
     }
 
-    private function lib_available() {
-        return class_exists( '\\libredte\\lib\\Core\\Application' ) || class_exists( '\\libredte\\lib\\Core\\Kernel' );
-    }
-
-    public function generate_libro( $fecha_inicio, $fecha_fin ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Genera y envía libros de ventas utilizando la librería legacy sasco\LibreDTE.
+     *
+     * @param string $fecha_inicio Fecha de inicio (YYYY-mm-dd)
+     * @param string $fecha_fin    Fecha fin (YYYY-mm-dd)
+     * @return string|false XML del libro o false si falla.
+     */
+    public function generate_libro($fecha_inicio, $fecha_fin)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
-
         try {
-            // Obtener configuración
             $config = $this->settings->get_settings();
             if (empty($config['rut_emisor'])) {
                 throw new \Exception('RUT emisor no configurado');
             }
 
-            // Crear el libro
             $libro = new \sasco\LibreDTE\Sii\LibroCompraVenta();
-
-            // Agregar carátula
             $libro->setCaratula([
-                'RutEmisorLibro' => $config['rut_emisor'],
-                'PeriodoTributario' => date('Y-m', strtotime($fecha_inicio)),
-                'TipoOperacion' => 'VENTA',
-                'TipoLibro' => 'ESPECIAL',
-                'TipoEnvio' => 'TOTAL',
+                'RutEmisorLibro'   => $config['rut_emisor'],
+                'PeriodoTributario'=> date('Y-m', strtotime((string) $fecha_inicio)),
+                'TipoOperacion'    => 'VENTA',
+                'TipoLibro'        => 'ESPECIAL',
+                'TipoEnvio'        => 'TOTAL',
             ]);
 
-            // Obtener boletas en el rango de fechas
             global $wpdb;
             $table = $wpdb->prefix . 'sii_boleta_dtes';
             $boletas = $wpdb->get_results($wpdb->prepare(
@@ -729,55 +586,213 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 $fecha_fin
             ));
 
-            // Agregar cada boleta al libro
             foreach ($boletas as $boleta) {
+                $tipo  = (int)$boleta->tipo;
+                $total = (int)$boleta->total;
                 $detalle = [
-                    'TpoDoc' => $boleta->tipo,
-                    'NroDoc' => $boleta->folio,
-                    'FchDoc' => $boleta->fecha,
-                    'MntTotal' => $boleta->total,
+                    'TpoDoc'   => $tipo,
+                    'NroDoc'   => (int)$boleta->folio,
+                    'FchDoc'   => (string)$boleta->fecha,
+                    'MntTotal' => $total,
                 ];
-                if ($boleta->tipo == 39) { // Boleta afecta
-                    $detalle['MntNeto'] = round($boleta->total / 1.19);
-                    $detalle['MntIVA'] = $boleta->total - $detalle['MntNeto'];
+                if ($tipo === 39) { // Boleta afecta
+                    $neto = (int) round($total / 1.19);
+                    $iva  = (int) ($total - $neto);
+                    $detalle['MntNeto'] = $neto;
+                    $detalle['MntIVA']  = $iva;
                 }
                 $libro->agregar($detalle);
             }
 
-            // Generar XML
             $xml = $libro->generar();
             if (!$xml) {
                 throw new \Exception('Error al generar XML del libro');
             }
 
             return $xml;
+
         } catch (\Exception $e) {
             error_log('Error al generar libro: ' . $e->getMessage());
             return false;
         }
     }
 
-    public function send_libro( $xml, $environment, $token, $cert_path, $cert_pass ) {
-        if ( ! $this->lib_available() ) {
+    /**
+     * Envía un libro de compras/ventas.
+     *
+     * @param string $xml XML del libro
+     * @param mixed  $environment Ambiente (host)
+     * @param string $token Token de autenticación
+     * @param string $cert_path Certificado PFX/P12
+     * @param string $cert_pass Clave del certificado
+     * @return mixed
+     */
+    public function send_libro($xml, $environment, $token, $cert_path, $cert_pass)
+    {
+        if (!$this->lib_available()) {
             return false;
         }
-
         try {
-            // Cargar el libro desde el XML
             $libro = new \sasco\LibreDTE\Sii\LibroCompraVenta();
             $libro->loadXML($xml);
-
-            // Firmar el libro
             $signature = new \sasco\LibreDTE\FirmaElectronica($cert_path, $cert_pass);
             $libro->sign($signature);
-
-            // Enviar al SII
             $track_id = $libro->enviar($token, $environment === 'maullin.sii.cl');
-
             return $track_id;
         } catch (\Exception $e) {
             error_log('Error al enviar libro: ' . $e->getMessage());
             return false;
         }
     }
+
+    /**
+     * Comprueba si LibreDTE está disponible.
+     *
+     * @return bool
+     */
+    private function lib_available(): bool
+    {
+        return class_exists('\\libredte\\lib\\Core\\Application') || class_exists('\\libredte\\lib\\Core\\Kernel');
+    }
+
+    /**
+     * Limpia un string XML eliminando BOM y caracteres de control.
+     *
+     * @param string $xml
+     * @return string
+     */
+    private function cleanXmlString(string $xml): string
+    {
+        if (substr($xml, 0, 3) === "\xEF\xBB\xBF") {
+            $xml = substr($xml, 3);
+        }
+        $clean = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $xml);
+        return is_string($clean) ? $clean : '';
+    }
+
+    /**
+     * Carga un certificado desde archivo PFX/P12. Si la ruta no existe se intenta
+     * con las opciones de configuración del plugin.
+     *
+     * @param string|null $certPath Ruta al certificado
+     * @param string|null $certPass Clave del certificado
+     * @return \Derafu\Certificate\Entity\Certificate|null
+     */
+    private function loadCertificate(?string $certPath, ?string $certPass)
+    {
+        if (empty($certPath) || !file_exists($certPath)) {
+            $opts = $this->settings->get_settings();
+            $certPath = $opts['cert_path'] ?? '';
+            $certPass = $opts['cert_pass'] ?? '';
+        }
+        if (empty($certPath) || !file_exists($certPath)) {
+            return null;
+        }
+        $loader = new \Derafu\Certificate\Service\CertificateLoader();
+        return $loader->loadFromFile($certPath, (string) $certPass);
+    }
+
+    /**
+     * Obtiene el paquete de facturación de LibreDTE.
+     *
+     * @return \libredte\lib\Core\Package\Billing\BillingPackage
+     */
+    private function getBilling()
+    {
+        $app = \libredte\lib\Core\Application::getInstance('prod', false);
+        return $app->getPackageRegistry()->getPackage('billing');
+    }
+
+    /**
+     * Determina el ambiente del SII a partir del argumento o de la configuración.
+     *
+     * @param mixed $environment
+     * @return \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente
+     */
+    private function getSiiAmbiente($environment)
+    {
+        $opts = $this->settings->get_settings();
+        $env  = strtolower((string)($environment ?? $opts['environment'] ?? ''));
+        return ('production' === $env)
+            ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION
+            : \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION;
+    }
+
+// --- Helper: sanitiza campos string y evita false/null globalmente donde no sean numéricos/flags ---
+private function sanitize_string_fields_recursively(array $data): array
+{
+    // 1) Lista blanca de claves que la lib suele tratar como texto (se amplía)
+    static $stringKeys = [
+        // Encabezado / Emisor / Receptor
+        'RUTEmisor','RznSoc','GiroEmis','DirOrigen','CmnaOrigen',
+        'RUTRecep','RznSocRecep','DirRecep','CmnaRecep','GiroRecep','CorreoRecep','TelefonoRecep',
+        // IdDoc
+        'FchEmis','FmaPago','FchVenc','MedioPago','TpoTranCompra','TpoTranVenta',
+        // Transporte
+        'Patente','RUTTrans','RUTChofer','NombreChofer','DirDest','CmnaDest',
+        // Referencias
+        'TpoDocRef','FolioRef','FchRef','RazonRef',
+        // Detalle (posibles textos)
+        'NmbItem','DscItem','UnmdItem',
+        // Códigos de ítem (cuando vienen como arreglo)
+        'TpoCodigo','VlrCodigo',
+        // Otros posibles campos de plantillas
+        'CiudadOrigen','CiudadRecep','Sucursal','Contacto','CorreoEmisor',
+    ];
+
+    // 2) Lista de claves que NO debemos convertir (numéricas/flags/enteros)
+    static $numericOrFlagKeys = [
+        'TipoDTE','Folio','Acteco','CdgSIISucur',
+        'QtyItem','PrcItem','MontoItem','DescuentoMonto','RecargoMonto',
+        'IndExe','MntBruto',
+        'MntNeto','MntIVA','MntExe','MntTotal',
+    ];
+
+    // PASO A: Forzar string en claves de texto conocidas
+    $forceString = function (&$v, $k) use ($stringKeys) {
+        if (in_array($k, $stringKeys, true)) {
+            if ($v === false || $v === null) { $v = ''; }
+            elseif (is_scalar($v)) { $v = (string)$v; }
+            else { $v = ''; }
+        }
+    };
+    array_walk_recursive($data, $forceString);
+
+    // PASO B: Catch-all — convertir false/null a '' en todo el arreglo,
+    // excepto en claves que sabemos que son numéricas/flags
+    $catchAll = function (&$v, $k) use ($numericOrFlagKeys) {
+        if ($v === false || $v === null) {
+            if (!in_array($k, $numericOrFlagKeys, true)) {
+                // Si no es una clave numérica/flag conocida, convierte a string vacío
+                $v = '';
+            }
+            // si está en numericOrFlagKeys lo dejamos como está (o lo tratará el builder)
+        }
+    };
+    array_walk_recursive($data, $catchAll);
+
+    return $data;
+}
+
+// Añade a la clase:
+private function log_false_string_fields(array $data, string $context = 'normalized'): void
+{
+    if (!function_exists('sii_boleta_write_log')) { return; }
+    $paths = [];
+    $stack = function ($arr, $prefix = '') use (&$paths, &$stack) {
+        foreach ($arr as $k => $v) {
+            $p = $prefix === '' ? $k : $prefix.'.'.$k;
+            if (is_array($v)) {
+                $stack($v, $p);
+            } else {
+                if ($v === false) { $paths[] = $p; }
+            }
+        }
+    };
+    $stack($data);
+    if (!empty($paths)) {
+        sii_boleta_write_log("FALSE fields before bill() [$context]: ".implode(', ', $paths), 'DEBUG');
+    }
+}
+
 }

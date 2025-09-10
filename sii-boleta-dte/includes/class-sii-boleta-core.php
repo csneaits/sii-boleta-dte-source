@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * Clase núcleo encargada de inicializar los diferentes componentes del plugin.
  *
  * Esta clase encapsula la lógica común de arranque y se encarga de crear
- * instancias de las clases de configuración, folios, generador de XML, firma,
- * API del SII, generación de PDF y RVD, así como la integración con WooCommerce.
+ * instancias de las clases de configuración, folios, firma,
+ * API del SII, RVD y otros servicios, así como la integración con WooCommerce.
  */
 class SII_Boleta_Core {
 
@@ -17,10 +17,8 @@ class SII_Boleta_Core {
      *
      * @var SII_Boleta_Settings
      * @var SII_Boleta_Folio_Manager
-     * @var SII_Boleta_XML_Generator
      * @var SII_Boleta_Signer
      * @var SII_Boleta_API
-     * @var SII_Boleta_PDF
      * @var SII_Boleta_RVD_Manager
      * @var SII_Boleta_Endpoints
      * @var SII_Boleta_Woo
@@ -29,10 +27,8 @@ class SII_Boleta_Core {
      */
     private $settings;
     private $folio_manager;
-    private $xml_generator;
     private $signer;
     private $api;
-    private $pdf;
     private $rvd_manager;
     private $endpoints;
     private $woo;
@@ -50,10 +46,8 @@ class SII_Boleta_Core {
         // Instanciar componentes
         $this->settings      = new SII_Boleta_Settings();
         $this->folio_manager = new SII_Boleta_Folio_Manager( $this->settings );
-        $this->xml_generator = new SII_Boleta_XML_Generator( $this->settings );
         $this->signer        = new SII_Boleta_Signer();
         $this->api           = new SII_Boleta_API();
-        $this->pdf           = new SII_Boleta_PDF();
         $this->rvd_manager   = new SII_Boleta_RVD_Manager( $this->settings );
         $this->endpoints     = new SII_Boleta_Endpoints();
         $this->metrics       = new SII_Boleta_Metrics();
@@ -285,15 +279,6 @@ class SII_Boleta_Core {
     }
 
     /**
-     * Devuelve la instancia del generador de XML.
-     *
-     * @return SII_Boleta_XML_Generator
-     */
-    public function get_xml_generator() {
-        return $this->xml_generator;
-    }
-
-    /**
      * Devuelve la instancia del firmador de XML.
      *
      * @return SII_Boleta_Signer
@@ -309,15 +294,6 @@ class SII_Boleta_Core {
      */
     public function get_api() {
         return $this->api;
-    }
-
-    /**
-     * Devuelve la instancia del generador de PDF.
-     *
-     * @return SII_Boleta_PDF
-     */
-    public function get_pdf() {
-        return $this->pdf;
     }
 
     /**

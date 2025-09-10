@@ -370,6 +370,17 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 null
             );
 
+            if ( ! $trackId ) {
+                // Respuesta inesperada: registrar y devolver error para reintento.
+                if ( function_exists( 'sii_boleta_write_log' ) ) {
+                    sii_boleta_write_log( 'LibreDTE envío DTE sin TrackID recibido', 'ERROR' );
+                }
+                if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
+                    SII_Boleta_Log_DB::add_entry( '', 'error', 'Missing TrackID' );
+                }
+                return new \WP_Error( 'sii_boleta_missing_trackid', __( 'No se obtuvo TrackID del SII.', 'sii-boleta-dte' ) );
+            }
+
             if ( function_exists( 'sii_boleta_write_log' ) ) {
                 sii_boleta_write_log( 'LibreDTE envío DTE OK. TrackID: ' . $trackId, 'INFO' );
             }
@@ -381,7 +392,10 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             if ( function_exists( 'sii_boleta_write_log' ) ) {
                 sii_boleta_write_log( 'LibreDTE send_dte_file error: ' . $e->getMessage(), 'ERROR' );
             }
-            return false;
+            if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
+                SII_Boleta_Log_DB::add_entry( '', 'error', $e->getMessage() );
+            }
+            return new \WP_Error( 'sii_boleta_libredte_send_failed', $e->getMessage() );
         }
     }
 

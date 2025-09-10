@@ -460,32 +460,36 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
             if ( isset( $bag ) && method_exists( $bag, 'get' ) && method_exists( $bag, 'set' ) ) {
                 $doc_data = $bag->get( 'document' );
                 if ( $doc_data && ( is_array( $doc_data ) || is_object( $doc_data ) ) ) {
-                    $doc_array = is_array( $doc_data ) ? $doc_data : (array) $doc_data;
+                    if ( is_array( $doc_data ) ) {
+                        $doc_array = $doc_data;
+                    } elseif ( $doc_data instanceof \Traversable ) {
+                        $doc_array = iterator_to_array( $doc_data );
+                    } elseif ( method_exists( $doc_data, 'getArrayCopy' ) ) {
+                        $doc_array = $doc_data->getArrayCopy();
+                    } elseif ( method_exists( $doc_data, 'toArray' ) ) {
+                        $doc_array = $doc_data->toArray();
+                    } else {
+                        $doc_array = json_decode( json_encode( $doc_data ), true );
+                    }
+
                     foreach ( [ 'Detalle', 'Referencia', 'DscRcgGlobal' ] as $key ) {
                         if ( ! empty( $doc_array[ $key ] ) ) {
-                            // Asegurar índices numéricos consecutivos y elementos como arreglo.
-                            $items = array_values( (array) $doc_array[ $key ] );
-                            $doc_array[ $key ] = array_map(
-                                function( $item ) {
-                                    $itemArray = is_array( $item ) ? $item : (array) $item;
-                                    // Asegurarse que todos los campos numéricos sean float
-                                    if ($itemArray && isset($itemArray['QtyItem'])) {
-                                        $itemArray['QtyItem'] = (float)$itemArray['QtyItem'];
-                                    }
-                                    if ($itemArray && isset($itemArray['PrcItem'])) {
-                                        $itemArray['PrcItem'] = (float)$itemArray['PrcItem'];
-                                    }
-                                    if ($itemArray && isset($itemArray['MontoItem'])) {
-                                        $itemArray['MontoItem'] = (float)$itemArray['MontoItem'];
-                                    } else if ($itemArray && isset($itemArray['QtyItem']) && isset($itemArray['PrcItem'])) {
-                                        $itemArray['MontoItem'] = (float)$itemArray['QtyItem'] * (float)$itemArray['PrcItem'];
-                                    }
-                                    return $itemArray;
-                                },
-                                $items
-                            );
+                            $raw_items = $doc_array[ $key ];
+                            if ( $raw_items instanceof \Traversable ) {
+                                $items = iterator_to_array( $raw_items, false );
+                            } elseif ( is_object( $raw_items ) && method_exists( $raw_items, 'getArrayCopy' ) ) {
+                                $items = $raw_items->getArrayCopy();
+                            } elseif ( is_object( $raw_items ) && method_exists( $raw_items, 'toArray' ) ) {
+                                $items = $raw_items->toArray();
+                            } elseif ( is_object( $raw_items ) ) {
+                                $items = json_decode( json_encode( $raw_items ), true );
+                            } else {
+                                $items = (array) $raw_items;
+                            }
+                            $doc_array[ $key ] = array_values( $items );
                         }
                     }
+
                     // Inyectar logo si se solicitó mostrarlo.
                     if ( ! empty( $settings['logo_id'] ) && ! empty( $settings['pdf_show_logo'] ) && function_exists( 'wp_get_attachment_image_src' ) ) {
                         $img = wp_get_attachment_image_src( $settings['logo_id'], 'medium' );
@@ -493,6 +497,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                             $doc_array['logo'] = $img[0];
                         }
                     }
+
                     $bag->set( 'document', $doc_array );
                 }
             }

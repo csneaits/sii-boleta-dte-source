@@ -37,6 +37,7 @@ class SII_Boleta_Core {
     private $queue;
     private $help;
     private $engine;
+    private $libredte_missing = false;
 
     /**
      * Constructor. Inicializa todas las dependencias y registra las acciones
@@ -54,7 +55,12 @@ class SII_Boleta_Core {
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
 
         // Instanciar el motor LibreDTE
-        $default_engine = new SII_LibreDTE_Engine($this->settings);
+        try {
+            $default_engine = new SII_LibreDTE_Engine( $this->settings );
+        } catch ( \RuntimeException $e ) {
+            $this->libredte_missing = true;
+            $default_engine         = new SII_Null_Engine();
+        }
         /**
          * Permite reemplazar el motor DTE por otro (p.ej. LibreDTE) desde un addon.
          *
@@ -615,6 +621,11 @@ class SII_Boleta_Core {
      */
     public function maybe_show_admin_warnings() {
         if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        if ( $this->libredte_missing ) {
+            echo '<div class="notice notice-error"><p>' . esc_html__( 'LibreDTE no está disponible. Instala la librería requerida para generar DTE.', 'sii-boleta-dte' ) . '</p></div>';
             return;
         }
 

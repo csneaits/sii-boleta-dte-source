@@ -114,10 +114,9 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
                     $lin['MontoItem'] = (int) round($qty * $prc);
                 }
 
-                // Guardar con índice = NroLinDet
-                $detalles[$nro] = $lin;
+                // Guardar como arreglo secuencial
+                $detalles[] = $lin;
             }
-            ksort($detalles, SORT_NUMERIC);
 
             // Referencias
             $referencias = [];
@@ -177,25 +176,39 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
             // Sanitizar campos de texto: convertir boolean false/null a string vacío donde corresponda
             $normalized = $this->sanitize_string_fields_recursively($normalized);
 
-            // Obtener CAF (solo si no es preview)
+            // Obtener CAF solo cuando no es previsualización
             $opts      = $this->settings->get_settings();
             $caf_paths = isset($opts['caf_path']) && is_array($opts['caf_path']) ? $opts['caf_path'] : [];
             $caf_path  = $caf_paths[$tipo] ?? '';
-            if (!$preview && (empty($caf_path) || !file_exists($caf_path))) {
-                if (class_exists('\\WP_Error')) {
-                    return new \WP_Error('sii_boleta_missing_caf', sprintf(__('No se encontró CAF para el tipo de DTE %s.', 'sii-boleta-dte'), $tipo));
+            $caf_xml   = null;
+            if (!$preview) {
+                if (empty($caf_path) || !is_readable($caf_path)) {
+                    if (class_exists('\\WP_Error')) {
+                        return new \WP_Error('sii_boleta_missing_caf', sprintf(__('No se encontró CAF legible para el tipo de DTE %s.', 'sii-boleta-dte'), $tipo));
+                    }
+                    return false;
                 }
-                return false;
+                $caf_xml = file_get_contents($caf_path);
+                if ($caf_xml === false) {
+                    if (class_exists('\\WP_Error')) {
+                        return new \WP_Error('sii_boleta_caf_read_error', sprintf(__('No se pudo leer el CAF del tipo de DTE %s.', 'sii-boleta-dte'), $tipo));
+                    }
+                    return false;
+                }
             }
 
             // Construir documento con LibreDTE
             $billing  = $this->getBilling();
             $document = $billing->getDocumentComponent();
 
-            $cafForBuild = $preview ? null : $caf_path;
             $this->log_false_string_fields($normalized, 'normalized-pre-bill');
-            $bag = $document->bill($normalized, $cafForBuild, null, []);
+            $bag = $document->bill($normalized, $preview ? null : $caf_xml, null, []);
             $xml = $bag->getXmlDocument()->saveXML();
+            if ($preview && is_string($xml)) {
+                // Remover TED y marca de tiempo para previsualizaciones
+                $xml = preg_replace('~<TED>.*?</TED>~s', '', $xml);
+                $xml = preg_replace('~<TmstFirma>.*?</TmstFirma>~s', '', $xml);
+            }
 
             return $xml ?: false;
 

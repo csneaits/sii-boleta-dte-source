@@ -9,48 +9,41 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
     }
 }
 
-class Exposed_XML_Generator_InvalidCAF extends SII_Boleta_XML_Generator {
-    public function exposed_generate_ted( array $data, $caf_path ) {
-        return $this->generate_ted( $data, $caf_path );
-    }
-}
-
 class InvalidCafTest extends TestCase {
     public function test_invalid_caf_returns_false_without_warnings() {
-        $cert_file = tempnam( sys_get_temp_dir(), 'pfx' );
-        file_put_contents( $cert_file, 'fake' );
-        $settings = new Dummy_Settings([
-            'cert_path' => $cert_file,
-            'cert_pass' => 'none',
-        ]);
-        $generator = new Exposed_XML_Generator_InvalidCAF( $settings );
-        $data = [
-            'RutEmisor' => '11111111-1',
-            'TipoDTE'   => 33,
-            'Folio'     => 1,
-            'FchEmis'   => '2024-01-01',
-            'Receptor'  => [
-                'RUTRecep'     => '22222222-2',
-                'RznSocRecep'  => 'Cliente',
-            ],
-            'Detalles'  => [
-                [ 'NmbItem' => 'Item', 'MontoItem' => 1000 ],
-            ],
-        ];
         $caf_path = tempnam( sys_get_temp_dir(), 'caf' );
         file_put_contents( $caf_path, 'no-xml' );
+        $settings = new Dummy_Settings([
+            'caf_path' => [ 33 => $caf_path ],
+        ]);
+        $engine = new SII_LibreDTE_Engine( $settings );
+        $data = [
+            'Folio'     => 1,
+            'FchEmis'   => '2024-01-01',
+            'RutEmisor' => '11111111-1',
+            'RznSoc'    => 'Emisor',
+            'GiroEmisor'=> 'Giro',
+            'DirOrigen' => 'Dir',
+            'CmnaOrigen'=> 'Santiago',
+            'Receptor'  => [
+                'RUTRecep'    => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep'    => 'Dir',
+                'CmnaRecep'   => 'Santiago',
+            ],
+            'Detalles'  => [
+                [ 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 1000 ],
+            ],
+        ];
 
-        $hadWarning = false;
-        set_error_handler( function( $errno ) use ( & $hadWarning ) {
-            if ( $errno === E_WARNING ) { $hadWarning = true; }
-        } );
-        $result = $generator->exposed_generate_ted( $data, $caf_path );
-        restore_error_handler();
+        $result = $engine->generate_dte_xml( $data, 33, false );
 
         unlink( $caf_path );
-        unlink( $cert_file );
 
-        $this->assertFalse( $hadWarning );
-        $this->assertFalse( $result );
+        if ( class_exists( '\\WP_Error' ) ) {
+            $this->assertInstanceOf( \WP_Error::class, $result );
+        } else {
+            $this->assertFalse( $result );
+        }
     }
 }

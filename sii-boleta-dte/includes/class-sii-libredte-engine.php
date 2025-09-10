@@ -57,9 +57,13 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 $receptor['TelefonoRecep'] = (string) $receptor_data['TelefonoRecep'];
             }
 
-            $detalles = [];
-            $sum_total = 0; // solo diagnóstico
+            $detalles       = [];
             $is_boleta_exenta = ($tipo === 41);
+            $tot_neto      = 0;
+            $tot_iva       = 0;
+            $tot_exe       = 0;
+            $tot_total     = 0;
+
             // Normalizar los detalles para asegurar índices numéricos secuenciales
             $input_detalles = array_values( (array) ( $data['Detalles'] ?? [] ) );
             foreach ( $input_detalles as $i => $det ) {
@@ -86,8 +90,19 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                 if ( isset( $det['RecargoMonto'] ) ) {
                     $lin['RecargoMonto'] = intval( $det['RecargoMonto'] );
                 }
-                // No setear MontoItem; dejar que LibreDTE lo calcule
-                $sum_total += intval( round( $lin['QtyItem'] * $lin['PrcItem'] ) );
+
+                $monto_item = intval( round( $lin['QtyItem'] * $lin['PrcItem'] ) );
+                $lin['MontoItem'] = $monto_item;
+                $tot_total += $monto_item;
+                if ( isset( $lin['IndExe'] ) && $lin['IndExe'] ) {
+                    $tot_exe += $monto_item;
+                } else {
+                    $neto = intval( round( $monto_item / 1.19 ) );
+                    $iva  = $monto_item - $neto;
+                    $tot_neto += $neto;
+                    $tot_iva  += $iva;
+                }
+
                 $detalles[] = $lin;
             }
 
@@ -106,7 +121,6 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                     ], function($v){ return $v !== null && $v !== ''; }),
                     'Emisor'   => $emisor,
                     'Receptor' => $receptor,
-                    // Totales los calculará LibreDTE a partir del detalle
                 ],
                 'Detalle' => $detalles,
             ];
@@ -256,6 +270,25 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
 
             // Obtener XML (sin firma si no se pasó certificado).
             $xml = $bag->getXmlDocument()->saveXML();
+            if ( $xml && $tot_total > 0 ) {
+                $raw = (string) $xml;
+                if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
+                    $raw = substr( $raw, 3 );
+                }
+                $raw = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $raw );
+                $sx  = @simplexml_load_string( $raw );
+                if ( $sx ) {
+                    $doc_nodes = $sx->xpath('//*[local-name()="Documento"]');
+                    if ( $doc_nodes && ! empty( $doc_nodes[0] ) ) {
+                        $t = $doc_nodes[0]->Encabezado->Totales;
+                        if ( $tot_neto > 0 ) { $t->MntNeto = $tot_neto; } else { unset( $t->MntNeto ); }
+                        if ( $tot_iva  > 0 ) { $t->IVA     = $tot_iva; }  else { unset( $t->IVA ); }
+                        if ( $tot_exe  > 0 ) { $t->MntExe  = $tot_exe; } else { unset( $t->MntExe ); }
+                        $t->MntTotal = $tot_total;
+                        $xml = $sx->asXML();
+                    }
+                }
+            }
             return $xml ?: false;
         } catch ( \Throwable $e ) {
             if ( function_exists( 'sii_boleta_write_log' ) ) {

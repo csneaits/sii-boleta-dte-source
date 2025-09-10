@@ -59,19 +59,8 @@ class SII_Boleta_Core {
         $this->metrics       = new SII_Boleta_Metrics();
         $this->consumo_folios = new SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
 
-        // Construir motor nativo y permitir reemplazo vía filtro.
-        $native_engine = new SII_Native_Engine(
-            $this->settings,
-            $this->xml_generator,
-            $this->signer,
-            $this->api,
-            $this->pdf,
-            $this->rvd_manager,
-            $this->consumo_folios,
-            new SII_Libro_Boletas( $this->settings )
-        );
-        // Motor por defecto: LibreDTE (con fallback interno al nativo si no está disponible la lib).
-        $default_engine = new SII_LibreDTE_Engine( $native_engine, $this->settings );
+        // Instanciar el motor LibreDTE
+        $default_engine = new SII_LibreDTE_Engine($this->settings);
         /**
          * Permite reemplazar el motor DTE por otro (p.ej. LibreDTE) desde un addon.
          *

@@ -2,28 +2,21 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Motor DTE basado en LibreDTE. Si la librería no está disponible aún,
- * delega temporalmente en el motor nativo para mantener funcionalidad.
+ * Motor DTE que implementa la integración con LibreDTE.
+ * Esta es la implementación principal y única del motor DTE.
  */
 class SII_LibreDTE_Engine implements SII_DTE_Engine {
-    /** @var SII_Native_Engine */
-    private $fallback;
     /** @var SII_Boleta_Settings */
     private $settings;
 
-    public function __construct( SII_Native_Engine $fallback, SII_Boleta_Settings $settings ) {
-        $this->fallback = $fallback;
+    public function __construct( SII_Boleta_Settings $settings ) {
         $this->settings = $settings;
-    }
-
-    private function lib_available() {
-        return class_exists( '\\libredte\\lib\\Core\\Application' ) || class_exists( '\\libredte\\lib\\Core\\Kernel' );
+        if (!class_exists('\\libredte\\lib\\Core\\Application') && !class_exists('\\libredte\\lib\\Core\\Kernel')) {
+            throw new \RuntimeException('LibreDTE no está disponible. Este plugin requiere LibreDTE para funcionar.');
+        }
     }
 
     public function generate_dte_xml( array $data, $tipo_dte, $preview = false ) {
-        if ( ! $this->lib_available() ) {
-            return class_exists('WP_Error') ? new \WP_Error('sii_libredte_missing', __('LibreDTE no está disponible.', 'sii-boleta-dte')) : false;
-        }
 
         try {
             // Construir estructura normalizada esperada por LibreDTE a partir de los datos del plugin.
@@ -222,10 +215,14 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                                         : ((float)((string)$ln->QtyItem ?: 1) * (float)((string)$ln->PrcItem ?: 0))
                                 ),
                             ];
-                            if ( (string)$ln->IndExe === '1' ) { $row['IndExe'] = 1; }
-                            if ( (string)$ln->DescuentoMonto !== '' ) { $row['DescuentoMonto'] = intval((string)$ln->DescuentoMonto); }
-                            if ( (string)$ln->RecargoMonto   !== '' ) { $row['RecargoMonto']   = intval((string)$ln->RecargoMonto); }
+                            if ( isset($ln->IndExe) && (string)$ln->IndExe === '1' ) { $row['IndExe'] = 1; }
+                            if ( isset($ln->DescuentoMonto) && (string)$ln->DescuentoMonto !== '' ) { $row['DescuentoMonto'] = intval((string)$ln->DescuentoMonto); }
+                            if ( isset($ln->RecargoMonto) && (string)$ln->RecargoMonto !== '' ) { $row['RecargoMonto'] = intval((string)$ln->RecargoMonto); }
                             if ( in_array($tipo,[39,41],true) ) { $row['MntBruto'] = 1; }
+                            // Asegurarse que el MontoItem se calcule correctamente si no viene
+                            if ( !isset($row['MontoItem']) || $row['MontoItem'] === '' ) {
+                                $row['MontoItem'] = $row['QtyItem'] * $row['PrcItem'];
+                            }
                             $items[] = $row; $i++;
                         }
                         $norm['Detalle'] = $items;
@@ -268,9 +265,6 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
     }
 
     public function sign_dte_xml( $xml ) {
-        if ( ! $this->lib_available() ) {
-            return false;
-        }
 
         try {
             // Cargar settings y certificado.
@@ -311,9 +305,6 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
     }
 
     public function send_dte_file( $file_path, $environment, $token, $cert_path, $cert_pass ) {
-        if ( ! $this->lib_available() ) {
-            return $this->fallback->send_dte_file( $file_path, $environment, $token, $cert_path, $cert_pass );
-        }
 
         try {
             if ( ! is_readable( $file_path ) ) {
@@ -394,9 +385,6 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
     }
 
     public function render_pdf( $xml_or_signed_xml, array $settings ) {
-        if ( ! $this->lib_available() ) {
-            return false;
-        }
         try {
             // Cargar LibreDTE y construir la bolsa desde el XML proporcionado
             $app = \libredte\lib\Core\Application::getInstance('prod', false);
@@ -431,7 +419,20 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                             $items = array_values( (array) $doc_array[ $key ] );
                             $doc_array[ $key ] = array_map(
                                 function( $item ) {
-                                    return is_array( $item ) ? $item : (array) $item;
+                                    $itemArray = is_array( $item ) ? $item : (array) $item;
+                                    // Asegurarse que todos los campos numéricos sean float
+                                    if ($itemArray && isset($itemArray['QtyItem'])) {
+                                        $itemArray['QtyItem'] = (float)$itemArray['QtyItem'];
+                                    }
+                                    if ($itemArray && isset($itemArray['PrcItem'])) {
+                                        $itemArray['PrcItem'] = (float)$itemArray['PrcItem'];
+                                    }
+                                    if ($itemArray && isset($itemArray['MontoItem'])) {
+                                        $itemArray['MontoItem'] = (float)$itemArray['MontoItem'];
+                                    } else if ($itemArray && isset($itemArray['QtyItem']) && isset($itemArray['PrcItem'])) {
+                                        $itemArray['MontoItem'] = (float)$itemArray['QtyItem'] * (float)$itemArray['PrcItem'];
+                                    }
+                                    return $itemArray;
                                 },
                                 $items
                             );
@@ -495,7 +496,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                     if ( ! $sx ) { throw new \Exception('XML parse error'); }
                     $docNodes  = $sx->xpath('//*[local-name()="Documento"]');
                     $doc       = ( $docNodes && ! empty( $docNodes[0] ) ) ? $docNodes[0] : $sx;
-                    $lineNodes = $doc->xpath('./*[local-name()="Detalle"]');
+                    $lineNodes = $doc->xpath('//*[local-name()="Detalle"]');  // Buscar Detalle en cualquier nivel
                     if ( method_exists( $pdfContent, 'AddPage' ) && ! empty( $lineNodes ) ) {
                         $format = isset( $settings['pdf_format'] ) ? strtoupper( (string) $settings['pdf_format'] ) : 'A4';
                         if ( '80MM' === $format ) {
@@ -592,23 +593,108 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
         if ( ! $this->lib_available() ) {
             return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return false;
+
+        try {
+            // Crear el objeto ConsumoFolios desde el XML
+            $cdf = new \sasco\LibreDTE\Sii\ConsumoFolios();
+            $cdf->loadXML($xml_content);
+
+            // Firmar el XML
+            $signature = new \sasco\LibreDTE\FirmaElectronica($cert_path, $cert_pass);
+            $cdf->sign($signature);
+
+            // Enviar al SII
+            $track_id = $cdf->enviar($token, $environment === 'maullin.sii.cl');
+
+            return $track_id;
+        } catch (\Exception $e) {
+            error_log('Error al enviar CDF: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function generate_libro( $fecha_inicio, $fecha_fin ) {
         if ( ! $this->lib_available() ) {
-            return $this->fallback->generate_libro( $fecha_inicio, $fecha_fin );
+            return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return $this->fallback->generate_libro( $fecha_inicio, $fecha_fin );
+
+        try {
+            // Obtener configuración
+            $config = $this->settings->get_settings();
+            if (empty($config['rut_emisor'])) {
+                throw new \Exception('RUT emisor no configurado');
+            }
+
+            // Crear el libro
+            $libro = new \sasco\LibreDTE\Sii\LibroCompraVenta();
+
+            // Agregar carátula
+            $libro->setCaratula([
+                'RutEmisorLibro' => $config['rut_emisor'],
+                'PeriodoTributario' => date('Y-m', strtotime($fecha_inicio)),
+                'TipoOperacion' => 'VENTA',
+                'TipoLibro' => 'ESPECIAL',
+                'TipoEnvio' => 'TOTAL',
+            ]);
+
+            // Obtener boletas en el rango de fechas
+            global $wpdb;
+            $table = $wpdb->prefix . 'sii_boleta_dtes';
+            $boletas = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $table WHERE fecha >= %s AND fecha <= %s AND tipo IN (39, 41) ORDER BY folio ASC",
+                $fecha_inicio,
+                $fecha_fin
+            ));
+
+            // Agregar cada boleta al libro
+            foreach ($boletas as $boleta) {
+                $detalle = [
+                    'TpoDoc' => $boleta->tipo,
+                    'NroDoc' => $boleta->folio,
+                    'FchDoc' => $boleta->fecha,
+                    'MntTotal' => $boleta->total,
+                ];
+                if ($boleta->tipo == 39) { // Boleta afecta
+                    $detalle['MntNeto'] = round($boleta->total / 1.19);
+                    $detalle['MntIVA'] = $boleta->total - $detalle['MntNeto'];
+                }
+                $libro->agregar($detalle);
+            }
+
+            // Generar XML
+            $xml = $libro->generar();
+            if (!$xml) {
+                throw new \Exception('Error al generar XML del libro');
+            }
+
+            return $xml;
+        } catch (\Exception $e) {
+            error_log('Error al generar libro: ' . $e->getMessage());
+            return false;
+        }
     }
 
     public function send_libro( $xml, $environment, $token, $cert_path, $cert_pass ) {
         if ( ! $this->lib_available() ) {
-            return $this->fallback->send_libro( $xml, $environment, $token, $cert_path, $cert_pass );
+            return false;
         }
-        // TODO: Implementar con LibreDTE.
-        return $this->fallback->send_libro( $xml, $environment, $token, $cert_path, $cert_pass );
+
+        try {
+            // Cargar el libro desde el XML
+            $libro = new \sasco\LibreDTE\Sii\LibroCompraVenta();
+            $libro->loadXML($xml);
+
+            // Firmar el libro
+            $signature = new \sasco\LibreDTE\FirmaElectronica($cert_path, $cert_pass);
+            $libro->sign($signature);
+
+            // Enviar al SII
+            $track_id = $libro->enviar($token, $environment === 'maullin.sii.cl');
+
+            return $track_id;
+        } catch (\Exception $e) {
+            error_log('Error al enviar libro: ' . $e->getMessage());
+            return false;
+        }
     }
 }

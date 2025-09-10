@@ -115,9 +115,8 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
                 }
 
                 // Guardar como arreglo secuencial
-                $detalles[] = $lin;
+                 $detalles[] = $lin;
             }
-
             // Referencias
             $referencias = [];
             if (!empty($data['Referencias']) && is_array($data['Referencias'])) {
@@ -732,9 +731,9 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
     }
 
 // --- Helper: sanitiza campos string y evita false/null globalmente donde no sean numéricos/flags ---
+// --- Helper: sanitiza profundamente, eliminando false/null en numéricos/flags y evitando false en strings ---
 private function sanitize_string_fields_recursively(array $data): array
 {
-    // 1) Lista blanca de claves que la lib suele tratar como texto (se amplía)
     static $stringKeys = [
         // Encabezado / Emisor / Receptor
         'RUTEmisor','RznSoc','GiroEmis','DirOrigen','CmnaOrigen',
@@ -747,13 +746,12 @@ private function sanitize_string_fields_recursively(array $data): array
         'TpoDocRef','FolioRef','FchRef','RazonRef',
         // Detalle (posibles textos)
         'NmbItem','DscItem','UnmdItem',
-        // Códigos de ítem (cuando vienen como arreglo)
+        // Códigos de ítem
         'TpoCodigo','VlrCodigo',
         // Otros posibles campos de plantillas
         'CiudadOrigen','CiudadRecep','Sucursal','Contacto','CorreoEmisor',
     ];
 
-    // 2) Lista de claves que NO debemos convertir (numéricas/flags/enteros)
     static $numericOrFlagKeys = [
         'TipoDTE','Folio','Acteco','CdgSIISucur',
         'QtyItem','PrcItem','MontoItem','DescuentoMonto','RecargoMonto',
@@ -761,29 +759,74 @@ private function sanitize_string_fields_recursively(array $data): array
         'MntNeto','MntIVA','MntExe','MntTotal',
     ];
 
-    // PASO A: Forzar string en claves de texto conocidas
-    $forceString = function (&$v, $k) use ($stringKeys) {
-        if (in_array($k, $stringKeys, true)) {
-            if ($v === false || $v === null) { $v = ''; }
-            elseif (is_scalar($v)) { $v = (string)$v; }
-            else { $v = ''; }
+    $sanitize = function (&$node) use (&$sanitize, $stringKeys, $numericOrFlagKeys) {
+        if (!is_array($node)) {
+            return;
         }
-    };
-    array_walk_recursive($data, $forceString);
-
-    // PASO B: Catch-all — convertir false/null a '' en todo el arreglo,
-    // excepto en claves que sabemos que son numéricas/flags
-    $catchAll = function (&$v, $k) use ($numericOrFlagKeys) {
-        if ($v === false || $v === null) {
-            if (!in_array($k, $numericOrFlagKeys, true)) {
-                // Si no es una clave numérica/flag conocida, convierte a string vacío
-                $v = '';
+        foreach ($node as $k => &$v) {
+            // 1) Subárbol: bajar
+            if (is_array($v)) {
+                // Caso especial: CdgItem debe ser arreglo de códigos; si es array vacío -> eliminar
+                if ($k === 'CdgItem' && $v === []) {
+                    unset($node[$k]);
+                    continue;
+                }
+                $sanitize($v);
+                // Si tras sanitizar queda array vacío que debería ser string -> convertir a ''
+                if (in_array($k, $stringKeys, true) && $v === []) {
+                    $node[$k] = '';
+                }
+                // Si queda array vacío en otras claves, lo dejamos (LibreDTE puede ignorarlo)
+                continue;
             }
-            // si está en numericOrFlagKeys lo dejamos como está (o lo tratará el builder)
-        }
-    };
-    array_walk_recursive($data, $catchAll);
 
+            // 2) Valor escalar
+            // a) Claves de texto: SIEMPRE string, nunca false/null
+            if (in_array($k, $stringKeys, true)) {
+                if ($v === false || $v === null) {
+                    $node[$k] = '';
+                } elseif (is_scalar($v)) {
+                    $node[$k] = (string) $v;
+                } else {
+                    $node[$k] = '';
+                }
+                continue;
+            }
+
+            // b) Claves numéricas/flags: eliminar si false/null; si es numérico, castear a int; si no, eliminar
+            if (in_array($k, $numericOrFlagKeys, true)) {
+                if ($v === false || $v === null || $v === '') {
+                    unset($node[$k]); // <- clave inválida, la removemos
+                } elseif (is_bool($v)) {
+                    // true/false no es válido aquí -> eliminar
+                    unset($node[$k]);
+                } elseif (is_numeric($v)) {
+                    $node[$k] = (int) round((float) $v);
+                } else {
+                    // cualquier otra cosa rara -> eliminar
+                    unset($node[$k]);
+                }
+                continue;
+            }
+
+            // c) Resto de claves: convertir false/null a '' para evitar mb_substr(false)
+            if ($v === false || $v === null) {
+                $node[$k] = '';
+                continue;
+            }
+
+            // d) CdgItem caso no-arreglo (limpieza defensiva)
+            if ($k === 'CdgItem' && !is_array($v)) {
+                unset($node[$k]); // si no es array, eliminar
+                continue;
+            }
+
+            // e) Si es escalar y no está en listas, lo dejamos como está
+        }
+        unset($v);
+    };
+
+    $sanitize($data);
     return $data;
 }
 

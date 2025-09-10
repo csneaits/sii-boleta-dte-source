@@ -9,12 +9,6 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
     }
 }
 
-class Mock_XML_Generator_Boleta extends SII_Boleta_XML_Generator {
-    protected function generate_ted( array $data, $caf_path ) {
-        return '<TED><FRMT>mock</FRMT></TED>';
-    }
-}
-
 class BoletaTotalsTest extends TestCase {
 
     private function get_settings() {
@@ -32,7 +26,7 @@ class BoletaTotalsTest extends TestCase {
     }
 
     public function test_boleta_afecta_totals() {
-        $generator = new Mock_XML_Generator_Boleta( $this->get_settings() );
+        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
         $data = [
             'Folio' => 1,
             'FchEmis' => '2024-05-01',
@@ -52,7 +46,7 @@ class BoletaTotalsTest extends TestCase {
                 [ 'NroLinDet'=>2, 'NmbItem'=>'Exento', 'QtyItem'=>1, 'PrcItem'=>500, 'IndExe'=>1 ],
             ],
         ];
-        $xml = $generator->generate_dte_xml( $data, 39, false );
+        $xml = $engine->generate_dte_xml( $data, 39, true );
         $this->assertNotFalse( $xml );
         $sx = simplexml_load_string( $xml );
         $tot = $sx->Documento->Encabezado->Totales;
@@ -63,7 +57,7 @@ class BoletaTotalsTest extends TestCase {
     }
 
     public function test_boleta_exenta_totals() {
-        $generator = new Mock_XML_Generator_Boleta( $this->get_settings() );
+        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
         $data = [
             'Folio' => 2,
             'FchEmis' => '2024-05-01',
@@ -82,7 +76,7 @@ class BoletaTotalsTest extends TestCase {
                 [ 'NroLinDet'=>1, 'NmbItem'=>'Exento', 'QtyItem'=>1, 'PrcItem'=>500, 'IndExe'=>1 ],
             ],
         ];
-        $xml = $generator->generate_dte_xml( $data, 41, false );
+        $xml = $engine->generate_dte_xml( $data, 41, true );
         $this->assertNotFalse( $xml );
         $sx = simplexml_load_string( $xml );
         $tot = $sx->Documento->Encabezado->Totales;

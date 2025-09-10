@@ -19,6 +19,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
     public function generate_dte_xml( array $data, $tipo_dte, $preview = false ) {
 
         try {
+            $xml_or_signed_xml = '';
             // Construir estructura normalizada esperada por LibreDTE a partir de los datos del plugin.
             $tipo = intval( $tipo_dte );
             $folio = isset( $data['Folio'] ) ? intval( $data['Folio'] ) : 0;

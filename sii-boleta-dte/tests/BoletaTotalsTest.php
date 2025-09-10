@@ -14,8 +14,8 @@ class BoletaTotalsTest extends TestCase {
     private function get_settings() {
         return new Dummy_Settings([
             'caf_path'  => [
-                39 => __DIR__ . '/fixtures/caf.xml',
-                41 => __DIR__ . '/fixtures/caf.xml',
+                39 => __DIR__ . '/fixtures/caf39.xml',
+                41 => __DIR__ . '/fixtures/caf41.xml',
             ],
             'rut_emisor' => '11111111-1',
             'razon_social' => 'Test',
@@ -111,8 +111,8 @@ class BoletaTotalsTest extends TestCase {
         $this->assertNotFalse( $xml );
         $sx = simplexml_load_string( $xml );
         $tot = $sx->Documento->Encabezado->Totales;
-        $this->assertEquals( 2016, intval( $tot->MntNeto ) );
-        $this->assertEquals( 384, intval( $tot->IVA ) );
+        $this->assertEquals( 2017, intval( $tot->MntNeto ) );
+        $this->assertEquals( 383, intval( $tot->IVA ) );
         $this->assertEquals( 2400, intval( $tot->MntTotal ) );
     }
 }

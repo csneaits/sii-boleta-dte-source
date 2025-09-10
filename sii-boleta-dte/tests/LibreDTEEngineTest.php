@@ -11,7 +11,9 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
 
 class LibreDTEEngineTest extends TestCase {
     public function test_associative_detalles_are_reindexed() {
-        $settings = new Dummy_Settings([]);
+        $settings = new Dummy_Settings([
+            'caf_path' => [39 => __DIR__ . '/fixtures/caf39.xml']
+        ]);
         $engine   = new SII_LibreDTE_Engine( $settings );
 
         $data = [
@@ -43,7 +45,9 @@ class LibreDTEEngineTest extends TestCase {
     }
 
     public function test_pdf_is_generated_with_details() {
-        $settings = new Dummy_Settings( [] );
+        $settings = new Dummy_Settings([
+            'caf_path' => [39 => __DIR__ . '/fixtures/caf39.xml']
+        ]);
         $engine   = new SII_LibreDTE_Engine( $settings );
 
         $data = [

@@ -70,8 +70,12 @@ class SII_Boleta_Queue {
             $settings['cert_pass'] ?? ''
         );
 
-        if ( is_wp_error( $track_id ) ) {
-            sii_boleta_write_log( 'Fallo envío DTE: ' . $track_id->get_error_message(), 'ERROR' );
+        if ( is_wp_error( $track_id ) || ! $track_id ) {
+            $message = is_wp_error( $track_id ) ? $track_id->get_error_message() : __( 'No se obtuvo TrackID del SII.', 'sii-boleta-dte' );
+            sii_boleta_write_log( 'Fallo envío DTE: ' . $message, 'ERROR' );
+            if ( class_exists( 'SII_Boleta_Log_DB' ) ) {
+                SII_Boleta_Log_DB::add_entry( '', 'error', $message );
+            }
             if ( $attempt < 3 ) {
                 $delay = min( $attempt * 600, HOUR_IN_SECONDS );
                 if ( function_exists( 'as_enqueue_async_action' ) ) {

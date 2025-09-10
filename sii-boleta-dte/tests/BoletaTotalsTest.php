@@ -85,5 +85,35 @@ class BoletaTotalsTest extends TestCase {
         $this->assertEquals( 0, count( $tot->MntNeto ) );
         $this->assertEquals( 0, count( $tot->IVA ) );
     }
+
+    public function test_boleta_rounding_totals_multiple_items() {
+        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
+        $data = [
+            'Folio' => 3,
+            'FchEmis' => '2024-05-01',
+            'RutEmisor' => '11111111-1',
+            'RznSoc' => 'Test',
+            'GiroEmisor' => 'Giro',
+            'DirOrigen' => 'Calle 1',
+            'CmnaOrigen' => 'Santiago',
+            'Receptor' => [
+                'RUTRecep' => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep' => 'Dir',
+                'CmnaRecep' => 'Comuna',
+            ],
+            'Detalles' => [
+                [ 'NroLinDet'=>1, 'NmbItem'=>'A', 'QtyItem'=>1, 'PrcItem'=>1200 ],
+                [ 'NroLinDet'=>2, 'NmbItem'=>'B', 'QtyItem'=>1, 'PrcItem'=>1200 ],
+            ],
+        ];
+        $xml = $engine->generate_dte_xml( $data, 39, true );
+        $this->assertNotFalse( $xml );
+        $sx = simplexml_load_string( $xml );
+        $tot = $sx->Documento->Encabezado->Totales;
+        $this->assertEquals( 2016, intval( $tot->MntNeto ) );
+        $this->assertEquals( 384, intval( $tot->IVA ) );
+        $this->assertEquals( 2400, intval( $tot->MntTotal ) );
+    }
 }
 

@@ -463,22 +463,29 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine {
                     $doc_array = is_array( $doc_data ) ? $doc_data : (array) $doc_data;
                     foreach ( [ 'Detalle', 'Referencia', 'DscRcgGlobal' ] as $key ) {
                         if ( ! empty( $doc_array[ $key ] ) ) {
+                            // Convertir cualquier colección iterable a un arreglo simple.
+                            $raw_items = $doc_array[ $key ];
+                            if ( $raw_items instanceof \Traversable ) {
+                                $items = iterator_to_array( $raw_items, false );
+                            } else {
+                                $items = (array) $raw_items;
+                            }
+                            $items = array_values( $items );
                             // Asegurar índices numéricos consecutivos y elementos como arreglo.
-                            $items = array_values( (array) $doc_array[ $key ] );
                             $doc_array[ $key ] = array_map(
                                 function( $item ) {
                                     $itemArray = is_array( $item ) ? $item : (array) $item;
                                     // Asegurarse que todos los campos numéricos sean float
-                                    if ($itemArray && isset($itemArray['QtyItem'])) {
-                                        $itemArray['QtyItem'] = (float)$itemArray['QtyItem'];
+                                    if ( $itemArray && isset( $itemArray['QtyItem'] ) ) {
+                                        $itemArray['QtyItem'] = (float) $itemArray['QtyItem'];
                                     }
-                                    if ($itemArray && isset($itemArray['PrcItem'])) {
-                                        $itemArray['PrcItem'] = (float)$itemArray['PrcItem'];
+                                    if ( $itemArray && isset( $itemArray['PrcItem'] ) ) {
+                                        $itemArray['PrcItem'] = (float) $itemArray['PrcItem'];
                                     }
-                                    if ($itemArray && isset($itemArray['MontoItem'])) {
-                                        $itemArray['MontoItem'] = (float)$itemArray['MontoItem'];
-                                    } else if ($itemArray && isset($itemArray['QtyItem']) && isset($itemArray['PrcItem'])) {
-                                        $itemArray['MontoItem'] = (float)$itemArray['QtyItem'] * (float)$itemArray['PrcItem'];
+                                    if ( $itemArray && isset( $itemArray['MontoItem'] ) ) {
+                                        $itemArray['MontoItem'] = (float) $itemArray['MontoItem'];
+                                    } elseif ( $itemArray && isset( $itemArray['QtyItem'] ) && isset( $itemArray['PrcItem'] ) ) {
+                                        $itemArray['MontoItem'] = (float) $itemArray['QtyItem'] * (float) $itemArray['PrcItem'];
                                     }
                                     return $itemArray;
                                 },

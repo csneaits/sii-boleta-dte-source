@@ -1035,7 +1035,8 @@ class SII_Boleta_Settings {
 
         if ( $res['libredte_available'] && $res['openssl'] && $res['cert_path'] && $res['cert_pass'] ) {
             try {
-                $app = \libredte\lib\Core\Application::getInstance( 'prod', false );
+                $app_env = ( 'production' === strtolower( (string) ( $o['environment'] ?? 'test' ) ) ) ? 'prod' : 'cert';
+                $app = \libredte\lib\Core\Application::getInstance( $app_env, false );
                 /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
                 $billing = $app->getPackageRegistry()->getPackage( 'billing' );
                 $loader = new \Derafu\Certificate\Service\CertificateLoader();

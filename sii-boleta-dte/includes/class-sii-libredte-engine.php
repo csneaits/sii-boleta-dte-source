@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use libredte\lib\Core\Application;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -370,47 +372,23 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
     public function render_pdf($xml_or_signed_xml, array $settings)
     {
         try {
-            $billing  = $this->getBilling();
+            $app = Application::getInstance('prod', true);
+
+            $xml = mb_convert_encoding($xml_or_signed_xml, 'UTF-8', 'ISO-8859-1');
+            $xml = str_replace('encoding="ISO-8859-1"', 'encoding="UTF-8"', $xml);
+
+            $xml = $this->cleanXml($xml);
+            $billing = $app->getPackageRegistry()->getPackage('billing');
             $document = $billing->getDocumentComponent();
 
-            if ($xml_or_signed_xml instanceof \DOMDocument) {
-                $rawXml = $xml_or_signed_xml->saveXML();
-            } elseif ($xml_or_signed_xml instanceof \SimpleXMLElement) {
-                $rawXml = $xml_or_signed_xml->asXML();
-            } elseif (is_string($xml_or_signed_xml)) {
-                $rawXml = $xml_or_signed_xml;
-            } else {
-                throw new \InvalidArgumentException('El XML no tiene un formato reconocido');
-            }
-             libxml_use_internal_errors(true);
-            $dom = new \DOMDocument();
-            if (!$dom->loadXML($rawXml)) {
-                throw new \RuntimeException("XML inválido: " . print_r(libxml_get_errors(), true));
-            }
+            $loader = $document->getLoaderWorker();
+            $bag = $loader->loadXml($xml);
 
-            // Cargar en bolsa
-            $bag = $document->getLoaderWorker()->loadXml($xml_or_signed_xml);
-
-            // Render (preferir renderer)
-            $pdfContent = null;
-            if (method_exists($document, 'getRendererWorker')) {
-                $renderer = $document->getRendererWorker();
-                if ($renderer && method_exists($renderer, 'render')) {
-                    $pdfContent = $renderer->render($bag);
-                }
-            }
-
-            if (!$pdfContent && method_exists($document, 'getBuilderWorker')) {
-                $builder = $document->getBuilderWorker();
-                if ($builder && method_exists($builder, 'renderPdf')) {
-                    $pdfContent = $builder->renderPdf($bag);
-                }
-            }
-
+            $renderer = $document->getRendererWorker();
+            $pdfContent = $renderer->render($bag);
             if (!$pdfContent || !is_string($pdfContent)) {
                 return false;
             }
-
             // Determinar ubicación y nombre del archivo
             try {
                 $sx = new \SimpleXMLElement((string) $xml_or_signed_xml);
@@ -720,6 +698,26 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
         return ('production' === $env)
             ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION
             : \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::CERTIFICACION;
+    }
+    function cleanXml(string $xml): string {
+        // Eliminar BOM si existe
+        if (substr($xml, 0, 3) === "\xEF\xBB\xBF") {
+            $xml = substr($xml, 3);
+        }
+
+        // Convertir a UTF-8 si es ISO-8859-1
+        if (stripos($xml, 'encoding="ISO-8859-1"') !== false) {
+            $xml = mb_convert_encoding($xml, 'UTF-8', 'ISO-8859-1');
+            $xml = str_replace('encoding="ISO-8859-1"', 'encoding="UTF-8"', $xml);
+        }
+
+        // Eliminar caracteres invisibles no válidos
+        $xml = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $xml);
+
+        // Reescribir cabecera a UTF-8 por seguridad
+        $xml = preg_replace('/<\?xml.*encoding=["\'].*?["\'].*?\?>/i', '<?xml version="1.0" encoding="UTF-8"?>', $xml);
+
+        return $xml;
     }
 
 // --- Helper: sanitiza campos string y evita false/null globalmente donde no sean numéricos/flags ---

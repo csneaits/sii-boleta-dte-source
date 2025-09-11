@@ -248,12 +248,13 @@ class SII_Boleta_Cron {
         }
 
         try {
-            $app = \libredte\lib\Core\Application::getInstance( 'prod', false );
+            $opts   = $this->settings->get_settings();
+            $appEnv = ( 'production' === strtolower( (string) ( $opts['environment'] ?? 'test' ) ) ) ? 'prod' : 'cert';
+            $app    = \libredte\lib\Core\Application::getInstance( $appEnv, false );
             /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
             $billing = $app->getPackageRegistry()->getPackage( 'billing' );
             $integration = $billing->getIntegrationComponent();
             $loader = new \Derafu\Certificate\Service\CertificateLoader();
-            $opts   = $this->settings->get_settings();
             $certificate = $loader->loadFromFile( $opts['cert_path'] ?? '', $opts['cert_pass'] ?? '' );
             $ambiente = ( 'production' === strtolower( (string) ( $opts['environment'] ?? 'test' ) ) )
                 ? \libredte\lib\Core\Package\Billing\Component\Integration\Enum\SiiAmbiente::PRODUCCION

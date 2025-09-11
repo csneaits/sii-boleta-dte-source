@@ -246,7 +246,8 @@ class SII_Boleta_CLI {
         // Si LibreDTE está disponible, usar su integración para consultar estado.
         if ( class_exists( '\\libredte\\lib\\Core\\Application' ) ) {
             try {
-                $app = \libredte\lib\Core\Application::getInstance('prod', false);
+                $app_env = ( 'production' === strtolower( (string) ( $settings['environment'] ?? 'test' ) ) ) ? 'prod' : 'cert';
+                $app = \libredte\lib\Core\Application::getInstance( $app_env, false );
                 /** @var \libredte\lib\Core\Package\Billing\BillingPackage $billing */
                 $billing = $app->getPackageRegistry()->getPackage('billing');
                 $integration = $billing->getIntegrationComponent();

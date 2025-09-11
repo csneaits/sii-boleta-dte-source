@@ -45,6 +45,17 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
     public function generate_dte_xml(array $data, $tipo_dte, $preview = false)
     {
         try {
+            $repo_file = SII_BOLETA_DTE_PATH . 'resources/data/repository/tipos_documento.php';
+            if (!file_exists($repo_file)) {
+                return new \WP_Error(
+                    'sii_boleta_missing_repo',
+                    sprintf(
+                        /* translators: %s: ruta del archivo faltante */
+                        __('No se encontró el archivo requerido %s.', 'sii-boleta-dte'),
+                        $repo_file
+                    )
+                );
+            }
             $tipo    = (int) $tipo_dte;
             $folio   = isset($data['Folio'])   ? (int) $data['Folio']   : 0;
             $fchEmis = isset($data['FchEmis']) ? (string) $data['FchEmis'] : date('Y-m-d');

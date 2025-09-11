@@ -1123,10 +1123,6 @@ class SII_Boleta_Core {
                         <th scope="row"><label for="correo_recep"><?php esc_html_e( 'Correo Receptor', 'sii-boleta-dte' ); ?></label></th>
                         <td><input type="email" name="correo_recep" id="correo_recep" class="regular-text"></td>
                     </tr>
-                    <tr class="recipient-details-fields" style="display:none;">
-                        <th scope="row"><label for="telefono_recep"><?php esc_html_e( 'Teléfono Receptor', 'sii-boleta-dte' ); ?></label></th>
-                        <td><input type="text" name="telefono_recep" id="telefono_recep" class="regular-text"></td>
-                    </tr>
                 </table>
 
                 <h2><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></h2>
@@ -1529,7 +1525,6 @@ class SII_Boleta_Core {
         $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
         $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
         $correo_recep    = sanitize_text_field( $_POST['correo_recep'] ?? '' );
-        $telefono_recep  = sanitize_text_field( $_POST['telefono_recep'] ?? '' );
         // Ítems múltiples
         $descripciones   = isset( $_POST['descripcion'] ) ? (array) $_POST['descripcion'] : [];
         $cantidades      = isset( $_POST['cantidad'] ) ? (array) $_POST['cantidad'] : [];
@@ -1629,7 +1624,6 @@ class SII_Boleta_Core {
                 'DirRecep'       => $dir_recep,
                 'CmnaRecep'      => $cmna_recep,
                 'CorreoRecep'    => $correo_recep,
-                'TelefonoRecep'  => $telefono_recep,
             ],
             'Detalles' => $detalles,
         ];
@@ -1783,7 +1777,6 @@ class SII_Boleta_Core {
         $dir_recep       = sanitize_text_field( $_POST['direccion_recep'] ?? '' );
         $cmna_recep      = sanitize_text_field( $_POST['comuna_recep'] ?? '' );
         $correo_recep    = sanitize_text_field( $_POST['correo_recep'] ?? '' );
-        $telefono_recep  = sanitize_text_field( $_POST['telefono_recep'] ?? '' );
         $medio_pago      = isset( $_POST['medio_pago'] ) ? sanitize_text_field( $_POST['medio_pago'] ) : '';
         // Ítems múltiples
         $descripciones   = isset( $_POST['descripcion'] ) ? (array) $_POST['descripcion'] : [];
@@ -1848,7 +1841,6 @@ class SII_Boleta_Core {
                 'DirRecep'       => $dir_recep,
                 'CmnaRecep'      => $cmna_recep,
                 'CorreoRecep'    => $correo_recep,
-                'TelefonoRecep'  => $telefono_recep,
             ],
             'Detalles' => $detalles,
         ];

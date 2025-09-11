@@ -11,7 +11,7 @@
   },
     "require": {
         "php": ">=8.4",
-        "libredte/libredte-lib-core": "dev-master#56f4bb194aecd6eb559c3e34e0011af9400f851e@dev",
+        "libredte/libredte-lib-core": "dev-master#a3f578fc91bc625830e0fb86b5b27026bbbd9dc5@dev",
         "robrichards/xmlseclibs": "^3.0",
         "twig/twig": "^3.8",
         "tecnickcom/tcpdf": "^6.6"

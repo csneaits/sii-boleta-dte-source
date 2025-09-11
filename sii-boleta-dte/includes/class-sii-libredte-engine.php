@@ -373,32 +373,23 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
             $billing  = $this->getBilling();
             $document = $billing->getDocumentComponent();
 
-            // Limpiar y cargar XML en bolsa
-            $clean = $this->cleanXmlString((string) $xml_or_signed_xml);
-            $bag   = $document->getLoaderWorker()->loadXml($clean);
-
-            // Activar normalización
-            if (method_exists($bag, 'getOptions')) {
-                $opts = $bag->getOptions();
-                if ($opts && method_exists($opts, 'set')) {
-                    $opts->set('normalizer.normalize', true);
-                }
+            if ($xml_or_signed_xml instanceof \DOMDocument) {
+                $rawXml = $xml_or_signed_xml->saveXML();
+            } elseif ($xml_or_signed_xml instanceof \SimpleXMLElement) {
+                $rawXml = $xml_or_signed_xml->asXML();
+            } elseif (is_string($xml_or_signed_xml)) {
+                $rawXml = $xml_or_signed_xml;
+            } else {
+                throw new \InvalidArgumentException('El XML no tiene un formato reconocido');
+            }
+             libxml_use_internal_errors(true);
+            $dom = new \DOMDocument();
+            if (!$dom->loadXML($rawXml)) {
+                throw new \RuntimeException("XML inválido: " . print_r(libxml_get_errors(), true));
             }
 
-            // Inyectar logo (sin tocar Detalle)
-            if (!empty($settings['logo_id']) && !empty($settings['pdf_show_logo']) && function_exists('wp_get_attachment_image_src')) {
-                $img = wp_get_attachment_image_src((int) $settings['logo_id'], 'medium');
-                if ($img && !empty($img[0])) {
-                    if (method_exists($bag, 'get') && method_exists($bag, 'set')) {
-                        $doc_data = $bag->get('document');
-                        if ($doc_data) {
-                            $doc_array = is_array($doc_data) ? $doc_data : (array) $doc_data;
-                            $doc_array['logo'] = $img[0];
-                            $bag->set('document', $doc_array);
-                        }
-                    }
-                }
-            }
+            // Cargar en bolsa
+            $bag = $document->getLoaderWorker()->loadXml($xml_or_signed_xml);
 
             // Render (preferir renderer)
             $pdfContent = null;
@@ -408,6 +399,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
                     $pdfContent = $renderer->render($bag);
                 }
             }
+
             if (!$pdfContent && method_exists($document, 'getBuilderWorker')) {
                 $builder = $document->getBuilderWorker();
                 if ($builder && method_exists($builder, 'renderPdf')) {

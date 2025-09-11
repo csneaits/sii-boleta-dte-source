@@ -295,7 +295,7 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
                 return false;
             }
 
-            $billing    = $this->getBilling();
+            $billing    = $this->getBilling($environment);
             $document   = $billing->getDocumentComponent();
             $dispatcher = $document->getDispatcherWorker();
             $integration= $billing->getIntegrationComponent();
@@ -383,7 +383,8 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
     public function render_pdf($xml_or_signed_xml, array $settings)
     {
         try {
-            $app = Application::getInstance('prod', true);
+            $env = $this->getAppEnvironment($settings['environment'] ?? null);
+            $app = Application::getInstance($env, true);
 
             $xml = mb_convert_encoding($xml_or_signed_xml, 'UTF-8', 'ISO-8859-1');
             $xml = str_replace('encoding="ISO-8859-1"', 'encoding="UTF-8"', $xml);
@@ -686,13 +687,27 @@ class SII_LibreDTE_Engine implements SII_DTE_Engine
     }
 
     /**
+     * Convierte el ambiente configurado a la cadena requerida por LibreDTE.
+     *
+     * @param string|null $environment
+     * @return string 'prod' o 'cert'
+     */
+    private function getAppEnvironment(?string $environment): string
+    {
+        return ('production' === strtolower((string) ($environment ?? ''))) ? 'prod' : 'cert';
+    }
+
+    /**
      * Obtiene el paquete de facturación de LibreDTE.
      *
+     * @param mixed $environment
      * @return \libredte\lib\Core\Package\Billing\BillingPackage
      */
-    private function getBilling()
+    private function getBilling($environment = null)
     {
-        $app = \libredte\lib\Core\Application::getInstance('prod', false);
+        $opts = $this->settings->get_settings();
+        $env  = $this->getAppEnvironment($environment ?? ($opts['environment'] ?? null));
+        $app  = \libredte\lib\Core\Application::getInstance($env, false);
         return $app->getPackageRegistry()->getPackage('billing');
     }
 

@@ -6,7 +6,7 @@
     "repositories": {
     "libredte": {
         "type": "vcs",
-        "url": "https://github.com/LibreDTE/libredte-lib-core"
+        "url": "https://github.com/eduard1859/libredte-lib-core"
     }
   },
     "require": {

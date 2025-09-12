@@ -326,10 +326,162 @@ class SII_Boleta_CLI {
             WP_CLI::error( 'Error al enviar el Libro.' );
         }
     }
+
+    /**
+     * Sincroniza los recursos de LibreDTE desde vendor hacia la carpeta del plugin.
+     *
+     * ## EXAMPLES
+     *
+     *     wp sii resources sync
+     *
+     * @param array $args       Argumentos posicionales (no usados).
+     * @param array $assoc_args Argumentos asociativos (no usados).
+     */
+    public static function resources_sync( $args, $assoc_args ) {
+        $src  = wp_normalize_path( SII_BOLETA_DTE_PATH . 'vendor/libredte/libredte-lib-core/resources' );
+        $dest = wp_normalize_path( SII_BOLETA_DTE_PATH . 'resources' );
+
+        if ( ! is_dir( $src ) ) {
+            WP_CLI::error( 'No se encontró la carpeta de recursos de LibreDTE. Ejecuta composer install.' );
+        }
+
+        self::recursive_copy( $src, $dest );
+        WP_CLI::success( 'Recursos de LibreDTE sincronizados.' );
+    }
+
+    /**
+     * Importa un certificado PFX/P12 y lo guarda en los ajustes.
+     *
+     * ## OPTIONS
+     *
+     * [--file=<ruta>]
+     * : Ruta al archivo del certificado.
+     *
+     * [--pass=<clave>]
+     * : Contraseña del certificado.
+     *
+     * ## EXAMPLE
+     *
+     *     wp sii cert import --file=mi-cert.p12 --pass=secreto
+     *
+     * @param array $args       Argumentos posicionales (no usados).
+     * @param array $assoc_args Argumentos asociativos.
+     */
+    public static function cert_import( $args, $assoc_args ) {
+        $file = $assoc_args['file'] ?? '';
+        $pass = $assoc_args['pass'] ?? '';
+        if ( empty( $file ) || ! is_readable( $file ) ) {
+            WP_CLI::error( 'Debe indicar --file con la ruta al certificado (.p12/.pfx).' );
+        }
+        if ( empty( $pass ) ) {
+            WP_CLI::error( 'Debe indicar --pass con la contraseña del certificado.' );
+        }
+
+        $uploads  = wp_upload_dir();
+        $dest_dir = wp_normalize_path( trailingslashit( $uploads['basedir'] ) . 'sii-boleta-dte' );
+        wp_mkdir_p( $dest_dir );
+        $dest = wp_normalize_path( $dest_dir . '/' . basename( $file ) );
+        if ( ! @copy( $file, $dest ) ) {
+            WP_CLI::error( 'No se pudo copiar el certificado al directorio de uploads.' );
+        }
+
+        $opts = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
+        $opts['cert_path'] = $dest;
+        $opts['cert_pass'] = self::encrypt_value( $pass );
+        update_option( SII_Boleta_Settings::OPTION_NAME, $opts );
+
+        WP_CLI::success( 'Certificado importado correctamente.' );
+    }
+
+    /**
+     * Importa un archivo CAF para un tipo de DTE específico.
+     *
+     * ## OPTIONS
+     *
+     * [--type=<tipo>]
+     * : Tipo de DTE (39, 41, 33, etc.).
+     *
+     * [--file=<ruta>]
+     * : Ruta al archivo XML del CAF.
+     *
+     * ## EXAMPLE
+     *
+     *     wp sii caf import --type=39 --file=caf_boleta.xml
+     *
+     * @param array $args       Argumentos posicionales (no usados).
+     * @param array $assoc_args Argumentos asociativos.
+     */
+    public static function caf_import( $args, $assoc_args ) {
+        $type = isset( $assoc_args['type'] ) ? (string) $assoc_args['type'] : '';
+        $file = $assoc_args['file'] ?? '';
+        if ( empty( $type ) ) {
+            WP_CLI::error( 'Debe indicar --type con el tipo de DTE.' );
+        }
+        if ( empty( $file ) || ! is_readable( $file ) ) {
+            WP_CLI::error( 'Debe indicar --file con la ruta al CAF (.xml).' );
+        }
+
+        $uploads  = wp_upload_dir();
+        $dest_dir = wp_normalize_path( trailingslashit( $uploads['basedir'] ) . 'sii-boleta-dte' );
+        wp_mkdir_p( $dest_dir );
+        $dest = wp_normalize_path( $dest_dir . '/' . basename( $file ) );
+        if ( ! @copy( $file, $dest ) ) {
+            WP_CLI::error( 'No se pudo copiar el CAF al directorio de uploads.' );
+        }
+
+        $opts = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
+        if ( ! isset( $opts['caf_path'] ) || ! is_array( $opts['caf_path'] ) ) {
+            $opts['caf_path'] = [];
+        }
+        $opts['caf_path'][ $type ] = $dest;
+        update_option( SII_Boleta_Settings::OPTION_NAME, $opts );
+
+        WP_CLI::success( sprintf( 'CAF importado para el tipo %s.', $type ) );
+    }
+
+    /**
+     * Cifra un valor utilizando la misma estrategia que la clase de ajustes.
+     *
+     * @param string $value Valor a cifrar.
+     * @return string
+     */
+    private static function encrypt_value( $value ) {
+        $key = hash( 'sha256', wp_salt( 'sii_boleta_dte_cert' ) );
+        $iv  = substr( hash( 'sha256', 'sii_boleta_dte_iv' ), 0, 16 );
+        $enc = openssl_encrypt( $value, 'AES-256-CBC', $key, 0, $iv );
+        return $enc ? base64_encode( $enc ) : '';
+    }
+
+    /**
+     * Copia recursivamente el contenido de un directorio.
+     *
+     * @param string $src  Directorio de origen.
+     * @param string $dest Directorio de destino.
+     */
+    private static function recursive_copy( $src, $dest ) {
+        $dir = opendir( $src );
+        wp_mkdir_p( $dest );
+        while ( false !== ( $file = readdir( $dir ) ) ) {
+            if ( '.' === $file || '..' === $file ) {
+                continue;
+            }
+            $src_path  = $src . '/' . $file;
+            $dest_path = $dest . '/' . $file;
+            if ( is_dir( $src_path ) ) {
+                self::recursive_copy( $src_path, $dest_path );
+            } else {
+                copy( $src_path, $dest_path );
+            }
+        }
+        closedir( $dir );
+    }
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
     WP_CLI::add_command( 'sii dte status', [ 'SII_Boleta_CLI', 'dte_status' ] );
     WP_CLI::add_command( 'sii libro', [ 'SII_Boleta_CLI', 'libro' ] );
     WP_CLI::add_command( 'sii dte emitir', [ 'SII_Boleta_CLI', 'dte_emitir' ] );
+    WP_CLI::add_command( 'sii resources sync', [ 'SII_Boleta_CLI', 'resources_sync' ] );
+    WP_CLI::add_command( 'sii cert import', [ 'SII_Boleta_CLI', 'cert_import' ] );
+    WP_CLI::add_command( 'sii caf import', [ 'SII_Boleta_CLI', 'caf_import' ] );
 }

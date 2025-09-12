@@ -887,7 +887,7 @@ class SII_Boleta_Settings {
 
     /**
      * Renderiza la página de configuración completa. Se engancha en el menú
-     * principal desde la clase SII_Boleta_Core.
+     * principal desde la clase \Sii\BoletaDte\Core\Plugin.
      */
     public function render_settings_page() {
         ?>

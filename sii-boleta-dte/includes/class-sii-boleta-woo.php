@@ -13,16 +13,16 @@ class SII_Boleta_Woo {
     /**
      * Referencia a la clase núcleo del plugin para acceder a sus métodos.
      *
-     * @var SII_Boleta_Core
+     * @var \Sii\BoletaDte\Core\Plugin
      */
     private $core;
 
     /**
      * Constructor. Registra los hooks de WooCommerce.
      *
-     * @param SII_Boleta_Core $core Instancia del núcleo del plugin.
+     * @param \Sii\BoletaDte\Core\Plugin $core Instancia del núcleo del plugin.
      */
-    public function __construct( SII_Boleta_Core $core ) {
+    public function __construct( \Sii\BoletaDte\Core\Plugin $core ) {
         $this->core = $core;
         // Hook cuando un pedido se marca como completado. Se puede ajustar a otro evento.
         add_action( 'woocommerce_order_status_completed', [ $this, 'generate_dte_for_order' ], 10, 1 );

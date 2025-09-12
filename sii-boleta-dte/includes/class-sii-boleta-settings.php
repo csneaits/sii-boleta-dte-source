@@ -21,6 +21,23 @@ class SII_Boleta_Settings {
     const OPTION_NAME  = 'sii_boleta_dte_settings';
 
     /**
+     * Tipos de DTE disponibles para asociar archivos CAF.
+     *
+     * @return array
+     */
+    public static function get_caf_types() {
+        return [
+            '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
+            '41' => __( 'Boleta Exenta Electrónica', 'sii-boleta-dte' ),
+            '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
+            '34' => __( 'Factura Exenta Electrónica', 'sii-boleta-dte' ),
+            '52' => __( 'Guía de Despacho Electrónica', 'sii-boleta-dte' ),
+            '56' => __( 'Nota de Débito Electrónica', 'sii-boleta-dte' ),
+            '61' => __( 'Nota de Crédito Electrónica', 'sii-boleta-dte' ),
+        ];
+    }
+
+    /**
      * Constructor. Registra el menú y los campos de ajustes.
      */
     public function __construct() {
@@ -69,6 +86,23 @@ class SII_Boleta_Settings {
             [],
             SII_BOLETA_DTE_VERSION,
             true
+        );
+
+        wp_localize_script(
+            'sii-boleta-admin-settings',
+            'siiBoletaSettings',
+            [
+                'cafOptions'    => self::get_caf_types(),
+                'optionKey'     => self::OPTION_NAME,
+                'texts'         => [
+                    'selectDocument' => __( 'Seleccione documento', 'sii-boleta-dte' ),
+                    'selectLogo'     => __( 'Seleccionar logo', 'sii-boleta-dte' ),
+                    'useLogo'        => __( 'Usar este logo', 'sii-boleta-dte' ),
+                    'sending'        => __( 'Enviando…', 'sii-boleta-dte' ),
+                    'sendFail'       => __( 'Fallo en el envío', 'sii-boleta-dte' ),
+                ],
+                'nonce' => wp_create_nonce( 'sii_boleta_nonce' ),
+            ]
         );
     }
 
@@ -650,15 +684,7 @@ class SII_Boleta_Settings {
         $caf_paths  = is_array( $options['caf_path'] ) ? $options['caf_path'] : [];
         $option_key = esc_attr( self::OPTION_NAME );
 
-        $types      = [
-            '39' => __( 'Boleta Electrónica', 'sii-boleta-dte' ),
-            '41' => __( 'Boleta Exenta Electrónica', 'sii-boleta-dte' ),
-            '33' => __( 'Factura Electrónica', 'sii-boleta-dte' ),
-            '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
-            '52' => __( 'Guía de Despacho', 'sii-boleta-dte' ),
-            '56' => __( 'Nota de Débito Electrónica', 'sii-boleta-dte' ),
-            '61' => __( 'Nota de Crédito Electrónica', 'sii-boleta-dte' ),
-        ];
+        $types      = self::get_caf_types();
 
         echo '<div id="sii-dte-caf-container">';
         if ( empty( $caf_paths ) ) {
@@ -683,50 +709,6 @@ class SII_Boleta_Settings {
         ?>
         <button type="button" class="button" id="sii-dte-add-caf"><?php esc_html_e( 'Agregar CAF', 'sii-boleta-dte' ); ?></button>
         <p class="description"><?php esc_html_e( 'Cargue un archivo CAF para cada tipo de DTE necesario. Puede indicar la ruta manualmente o subir un archivo.', 'sii-boleta-dte' ); ?></p>
-        <script type="text/javascript">
-        jQuery(function($){
-            var cafOptions = <?php echo wp_json_encode( $types ); ?>;
-            var optionKey = '<?php echo $option_key; ?>';
-
-            function updateCafOptions() {
-                var selected = $('.sii-dte-caf-type').map(function(){ return $(this).val(); }).get();
-                $('.sii-dte-caf-type').each(function(){
-                    var current = $(this).val();
-                    $(this).find('option').each(function(){
-                        var val = $(this).val();
-                        if ( val && val !== current && selected.indexOf( val ) !== -1 ) {
-                            $(this).prop('disabled', true);
-                        } else {
-                            $(this).prop('disabled', false);
-                        }
-                    });
-                });
-            }
-
-            $('#sii-dte-add-caf').on('click', function(){
-                var select = '<select name="'+ optionKey +'[caf_type][]" class="sii-dte-caf-type">';
-                select += '<option value="">' + '<?php echo esc_js( __( 'Seleccione documento', 'sii-boleta-dte' ) ); ?>' + '</option>';
-                $.each(cafOptions, function(val, label){
-                    select += '<option value="'+ val +'">'+ label +'</option>';
-                });
-                select += '</select>';
-                var row = '<div class="sii-dte-caf-row">'
-                    + select
-                    + '<input type="file" name="caf_file[]" accept=".xml" />'
-                    + '<input type="text" name="'+ optionKey +'[caf_path][]" class="regular-text" placeholder="/ruta/CAF.xml" />'
-                    + '<button type="button" class="button sii-dte-remove-caf">&times;</button>'
-                    + '</div>';
-                $('#sii-dte-caf-container').append(row);
-                updateCafOptions();
-            });
-            $(document).on('click', '.sii-dte-remove-caf', function(){
-                $(this).closest('.sii-dte-caf-row').remove();
-                updateCafOptions();
-            });
-            $(document).on('change', '.sii-dte-caf-type', updateCafOptions);
-            updateCafOptions();
-        });
-        </script>
         <?php
     }
 
@@ -759,33 +741,6 @@ class SII_Boleta_Settings {
             <button type="button" class="button" id="sii-dte-select-logo"><?php esc_html_e( 'Seleccionar logo', 'sii-boleta-dte' ); ?></button>
             <button type="button" class="button" id="sii-dte-remove-logo"><?php esc_html_e( 'Quitar logo', 'sii-boleta-dte' ); ?></button>
         </div>
-        <script type="text/javascript">
-        jQuery(document).ready(function($){
-            var file_frame;
-            $('#sii-dte-select-logo').on('click', function(e){
-                e.preventDefault();
-                if (file_frame) {
-                    file_frame.open();
-                    return;
-                }
-                file_frame = wp.media.frames.file_frame = wp.media({
-                    title: '<?php echo esc_js( __( 'Seleccionar logo', 'sii-boleta-dte' ) ); ?>',
-                    button: { text: '<?php echo esc_js( __( 'Usar este logo', 'sii-boleta-dte' ) ); ?>' },
-                    multiple: false
-                });
-                file_frame.on('select', function(){
-                    var attachment = file_frame.state().get('selection').first().toJSON();
-                    $('#sii-dte-logo-preview').attr('src', attachment.url);
-                    $('#sii_dte_logo_id').val(attachment.id);
-                });
-                file_frame.open();
-            });
-            $('#sii-dte-remove-logo').on('click', function(){
-                $('#sii-dte-logo-preview').attr('src', '');
-                $('#sii_dte_logo_id').val('');
-            });
-        });
-        </script>
         <?php
     }
 
@@ -927,24 +882,6 @@ class SII_Boleta_Settings {
             <button type="button" class="button" id="sii-smtp-test-btn"><?php esc_html_e( 'Probar envío', 'sii-boleta-dte' ); ?></button>
             <span id="sii-smtp-test-msg" style="margin-left:6px;"></span>
         </div>
-        <script>
-        jQuery(function($){
-            $('#sii-smtp-test-btn').on('click', function(){
-                var $btn=$(this); var $msg=$('#sii-smtp-test-msg');
-                $btn.prop('disabled',true); $msg.text('<?php echo esc_js(__('Enviando…','sii-boleta-dte')); ?>');
-                $.post(ajaxurl, {
-                    action: 'sii_boleta_dte_test_smtp',
-                    profile: $('#sii-smtp-profile').val(),
-                    to: $('#sii-smtp-test-to').val(),
-                    _wpnonce: '<?php echo esc_js( wp_create_nonce('sii_boleta_nonce') ); ?>'
-                }, function(resp){
-                    $btn.prop('disabled',false);
-                    if(resp && resp.success){ $msg.css('color','green').text(resp.data && resp.data.message ? resp.data.message : 'OK'); }
-                    else { $msg.css('color','red').text(resp && resp.data && resp.data.message ? resp.data.message : '<?php echo esc_js(__('Fallo en el envío','sii-boleta-dte')); ?>'); }
-                });
-            });
-        });
-        </script>
         <?php
     }
 

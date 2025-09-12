@@ -15,7 +15,6 @@ class PDF417
     const MAX_SECURITY_LEVEL = 8;
     const DEFAULT_SECURITY_LEVEL = 2;
 
-    // TODO: Check barcode respects rows/codeword limits.
     const MIN_ROWS = 3;
     const MAX_ROWS = 90;
     const MAX_CODE_WORDS = 925;
@@ -130,6 +129,15 @@ class PDF417
         // Arrange codewords into a rows and columns
         $grid = array_chunk($codeWords, $columns);
         $rows = count($grid);
+
+        $codeWordCount = count($codeWords);
+        if ($rows < self::MIN_ROWS || $rows > self::MAX_ROWS) {
+            throw new \Exception("Row count $rows out of range (" . self::MIN_ROWS . "-" . self::MAX_ROWS . ").");
+        }
+
+        if ($codeWordCount > self::MAX_CODE_WORDS) {
+            throw new \Exception("Code word count $codeWordCount exceeds maximum " . self::MAX_CODE_WORDS . ".");
+        }
 
         // Iterate over rows
         $codes = [];

@@ -9,10 +9,8 @@ use BigFish\PDF417\EncoderInterface;
  *
  * Can encode: ASCII 9, 10, 13 and 32-126
  * Rate: 2 characters per code word.
- *
- * TODO: Currently doesn't support switching to a submode for just one
- * character (see T_PUN, T_UPP in
- * http://grandzebu.net/informatique/codbar-en/pdf417.htm).
+ * Supports full submode switching and temporary single-character shifts as
+ * described in the PDF417 specification.
  */
 class TextEncoder implements EncoderInterface
 {
@@ -134,6 +132,20 @@ class TextEncoder implements EncoderInterface
         self::SWITCH_MIXED => self::SUBMODE_MIXED,
     ];
 
+    /** Single character switches between submodes. */
+    private $singleSwitches = [
+        self::SUBMODE_UPPER => [
+            self::SUBMODE_PUNCT => self::SWITCH_PUNCT_SINGLE,
+        ],
+        self::SUBMODE_LOWER => [
+            self::SUBMODE_UPPER => self::SWITCH_UPPER_SINGLE,
+            self::SUBMODE_PUNCT => self::SWITCH_PUNCT_SINGLE,
+        ],
+        self::SUBMODE_MIXED => [
+            self::SUBMODE_PUNCT => self::SWITCH_PUNCT_SINGLE,
+        ],
+    ];
+
     /**
      * Reverse lookup array. Indexed by $charater, then by $submode, gives the
      * code (row) of the character in that submode.
@@ -188,15 +200,29 @@ class TextEncoder implements EncoderInterface
         // Iterate byte-by-byte, non-ascii encoding will be encoded in bytes
         // sub-mode.
         $len = strlen($text);
-        for ($i=0; $i < $len; $i++) {
+        for ($i = 0; $i < $len; $i++) {
             $char = $text[$i];
 
-            // TODO: detect when to use _SINGLE switches for encoding just one
-            // character
             if (!$this->existsInSubmode($char, $submode)) {
                 $prevSubmode = $submode;
-                $submode = $this->getSubmode($char);
+                $nextSubmode = $this->getSubmode($char);
 
+                $runLength = 1;
+                for ($j = $i + 1; $j < $len; $j++) {
+                    $nextChar = $text[$j];
+                    if (!$this->existsInSubmode($nextChar, $nextSubmode)) {
+                        break;
+                    }
+                    $runLength++;
+                }
+
+                if ($runLength === 1 && isset($this->singleSwitches[$prevSubmode][$nextSubmode])) {
+                    $codes[] = $this->singleSwitches[$prevSubmode][$nextSubmode];
+                    $codes[] = $this->getCharacterCode($char, $nextSubmode);
+                    continue;
+                }
+
+                $submode = $nextSubmode;
                 $switchCodes = $this->getSwitchCodes($prevSubmode, $submode);
                 foreach ($switchCodes as $sc) {
                     $codes[] = $sc;

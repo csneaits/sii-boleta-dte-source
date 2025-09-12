@@ -21,17 +21,31 @@ class SII_Boleta_Signer {
      * @return array|false Array con claves ['pkey' => string, 'cert' => string] o false si falla.
      */
     public static function load_pkcs12_creds( $cert_path, $cert_pass ) {
-        if ( ! $cert_path || ! file_exists( $cert_path ) ) {
+        if ( ! is_string( $cert_path ) ) {
             return false;
         }
+        $cert_path = realpath( $cert_path );
+        if ( false === $cert_path || ! is_file( $cert_path ) || ! is_readable( $cert_path ) ) {
+            return false;
+        }
+        if ( ! is_scalar( $cert_pass ) ) {
+            return false;
+        }
+        $cert_pass = (string) $cert_pass;
+
         $pkcs12 = @file_get_contents( $cert_path );
         $creds  = [];
-        if ( $pkcs12 && @openssl_pkcs12_read( $pkcs12, $creds, (string) $cert_pass ) ) {
+        if ( $pkcs12 && @openssl_pkcs12_read( $pkcs12, $creds, $cert_pass ) ) {
             return $creds;
         }
+
         // Fallback: usar binario openssl si está disponible y funciones no están deshabilitadas.
         $can_exec = function_exists( 'exec' ) && ! in_array( 'exec', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true );
         if ( ! $can_exec ) {
+            // Sin exec disponible no podemos convertir el PFX a PEM.
+            if ( class_exists( 'SII_Logger' ) ) {
+                SII_Logger::error( 'exec no disponible para convertir certificado PFX.' );
+            }
             return false;
         }
         // Convertir a PEM en un archivo temporal y extraer clave/cert.

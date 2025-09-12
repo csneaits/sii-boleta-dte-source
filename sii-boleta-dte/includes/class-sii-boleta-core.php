@@ -1262,6 +1262,33 @@ class SII_Boleta_Core {
         </div>
         <script>
         jQuery(document).ready(function($){
+            function openPdfModal(url){
+                if(!url){return;}
+                var modal = $('<div class="sii-modal-overlay"><div class="sii-modal"><button type="button" class="sii-close" aria-label="Cerrar">&times;</button><iframe src="'+url+'" style="width:100%;height:80vh;"></iframe></div></div>');
+                $('body').append(modal);
+                modal.on('click','.sii-close, .sii-modal-overlay',function(e){ if(e.target===this){ modal.remove(); }});
+            }
+
+            function openResultModal(pdfUrl, xmlUrl){
+                if(!pdfUrl && !xmlUrl){return;}
+                var tabs = '<div class="sii-tabs">';
+                if(pdfUrl){ tabs += '<button class="active" data-tab="pdf">PDF</button>'; }
+                if(xmlUrl){ tabs += '<button'+(pdfUrl?'':' class="active"')+' data-tab="xml">XML</button>'; }
+                tabs += '</div>';
+                var contents = '';
+                if(pdfUrl){ contents += '<div class="sii-tab-content active" id="sii-tab-pdf"><iframe src="'+pdfUrl+'" style="width:100%;height:80vh;"></iframe></div>'; }
+                if(xmlUrl){ contents += '<div class="sii-tab-content'+(pdfUrl?'':' active')+'" id="sii-tab-xml"><iframe src="'+xmlUrl+'" style="width:100%;height:80vh;"></iframe></div>'; }
+                var modal = $('<div class="sii-modal-overlay"><div class="sii-modal"><button type="button" class="sii-close" aria-label="Cerrar">&times;</button>'+tabs+contents+'</div></div>');
+                $('body').append(modal);
+                modal.on('click','.sii-tabs button',function(){
+                    var tab=$(this).data('tab');
+                    modal.find('.sii-tabs button').removeClass('active');
+                    $(this).addClass('active');
+                    modal.find('.sii-tab-content').removeClass('active');
+                    modal.find('#sii-tab-'+tab).addClass('active');
+                });
+                modal.on('click','.sii-close, .sii-modal-overlay',function(e){ if(e.target===this){ modal.remove(); }});
+            }
             function updateFormByType(){
                 var type = $('#dte_type').val();
                 // Mostrar/ocultar referencias (notas de crédito/débito)
@@ -1450,7 +1477,12 @@ class SII_Boleta_Core {
                 $.post(ajaxurl, data + '&action=sii_boleta_dte_generate_dte', function(response){
                     $('#sii-generate-dte').prop('disabled', false);
                     if (response.success) {
-                        $('#sii-boleta-result').html('<div class="notice notice-success"><p>' + response.data.message + '</p></div>');
+                        var msg = response.data.message || '';
+                        var note = response.data.sent ? '<?php echo esc_js( __( 'Documento enviado al SII.', 'sii-boleta-dte' ) ); ?>' : '<?php echo esc_js( __( 'Documento no enviado al SII.', 'sii-boleta-dte' ) ); ?>';
+                        $('#sii-boleta-result').html('<div class="notice notice-success"><p>' + msg + '<br>' + note + '</p></div>');
+                        if (response.data.pdf_url || response.data.xml_url) {
+                            openResultModal(response.data.pdf_url, response.data.xml_url);
+                        }
                     } else {
                         $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + (response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Error inesperado.', 'sii-boleta-dte' ) ); ?>') + '</p></div>');
                     }
@@ -1466,11 +1498,8 @@ class SII_Boleta_Core {
                     $('#sii-preview-dte').prop('disabled', false);
                     if (response.success) {
                         var url = response.data.preview_url;
-                        var html = '<div class="notice notice-success"><p><?php echo esc_js( __( 'Previsualización lista.', 'sii-boleta-dte' ) ); ?> ';
-                        if (url) { html += '<a href="'+url+'" target="_blank"><?php echo esc_js( __( 'Abrir en una nueva pestaña', 'sii-boleta-dte' ) ); ?></a>'; }
-                        html += '</p></div>';
-                        $('#sii-boleta-result').html(html);
-                        if (url) { try { window.open(url, '_blank'); } catch(e) {} }
+                        $('#sii-boleta-result').html('<div class="notice notice-success"><p><?php echo esc_js( __( 'Previsualización lista.', 'sii-boleta-dte' ) ); ?></p></div>');
+                        if (url) { openPdfModal(url); }
                     } else {
                         $('#sii-boleta-result').html('<div class="notice notice-error"><p>' + (response.data && response.data.message ? response.data.message : '<?php echo esc_js( __( 'Error al previsualizar.', 'sii-boleta-dte' ) ); ?>') + '</p></div>');
                     }
@@ -1712,6 +1741,9 @@ class SII_Boleta_Core {
             if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $tmp_dir ); } else { if ( ! is_dir( $tmp_dir ) ) { @mkdir( $tmp_dir, 0755, true ); } }
             $tmp_path = $tmp_dir . $file_name;
             file_put_contents( $tmp_path, $signed_xml );
+        } else {
+            // Guardar XML incluso si no se envía al SII para previsualización
+            file_put_contents( $file_path, $signed_xml ?: $xml );
         }
 
         // Lógica para enviar al SII si el usuario lo solicita
@@ -1734,7 +1766,7 @@ class SII_Boleta_Core {
         $upload_url = $upload_dir['baseurl'];
         $xml_url    = '';
         $pdf_url    = '';
-        if ( $enviar_sii && ! empty( $file_path ) && file_exists( $file_path ) ) {
+        if ( ! empty( $file_path ) && file_exists( $file_path ) ) {
             $xml_url = str_replace( $upload_dir['basedir'], $upload_url, $file_path );
         }
         if ( $pdf_path && file_exists( $pdf_path ) ) {
@@ -1753,13 +1785,22 @@ class SII_Boleta_Core {
         }
         if ( $track_id ) {
             $message .= ' | ' . sprintf( __( 'Enviado al SII. Track ID: %s', 'sii-boleta-dte' ), esc_html( $track_id ) );
+        } else {
+            $message .= ' | ' . __( 'No se envió al SII.', 'sii-boleta-dte' );
         }
 
         if ( $pdf_path ) {
             $message .= ' | ' . sprintf( __( 'PDF generado: %s', 'sii-boleta-dte' ), esc_html( basename( $pdf_path ) ) );
         }
 
-        wp_send_json_success( [ 'message' => $message ] );
+        wp_send_json_success(
+            [
+                'message' => $message,
+                'pdf_url' => $pdf_url,
+                'xml_url' => $xml_url,
+                'sent'    => (bool) $track_id,
+            ]
+        );
     }
 
     /**

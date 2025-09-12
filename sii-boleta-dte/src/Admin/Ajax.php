@@ -125,6 +125,7 @@ class Ajax {
     }
 
     public function search_products(): void {
+        \check_ajax_referer( 'sii_boleta_nonce' );
         if ( ! \current_user_can( 'manage_options' ) ) {
             \wp_send_json_error( [ 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ] );
         }

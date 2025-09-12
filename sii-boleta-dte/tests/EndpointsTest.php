@@ -34,7 +34,7 @@ if ( ! function_exists( 'esc_html__' ) ) {
     function esc_html__( $text ) { return $text; }
 }
 if ( ! function_exists( 'esc_html_e' ) ) {
-    function esc_html_e( $text ) { echo $text; }
+    function esc_html_e( $text ) { return $text; }
 }
 if ( ! function_exists( 'esc_html' ) ) {
     function esc_html( $text ) { return $text; }

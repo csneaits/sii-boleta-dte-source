@@ -30,12 +30,8 @@ class DataEncoder
      * Encodes given data into an array of PDF417 code words.
      *
      * Splits the input data into chains which can be encoded within the same
-     * encoder. Then encodes each chain.
-     *
-     * Uses a pretty dumb algorithm: switches to the best possible encoder for
-     * each separate character (the one that encodes it to the least bytes).
-     *
-     * TODO: create a better algorithm
+     * encoder. Then encodes each chain using an algorithm that avoids
+     * unnecessary encoder switches for single characters.
      *
      * @param string $data The data to encode.
      */
@@ -65,10 +61,7 @@ class DataEncoder
 
     /**
      * Splits a string into chains (sub-strings) which can be encoded with the
-     * same encoder.
-     *
-     * TODO: Currently always switches to the best encoder, even if it's just
-     * for one character, consider a better algorithm.
+     * same encoder while minimising unnecessary switching.
      *
      * @param  string $data String to split into chains.
      * @return array        An array of [$chain, $encoder] pairs.
@@ -82,16 +75,32 @@ class DataEncoder
         $length = strlen($data);
         for ($i = 0; $i < $length; $i++) {
             $char = $data[$i];
-
             $newEncoder = $this->getEncoder($char);
+
             if ($newEncoder !== $encoder) {
-                // Save & reset chain if not empty
-                if (!empty($chain)) {
-                    $chains[] = [$chain, $encoder];
-                    $chain = "";
+                $switch = true;
+
+                if ($encoder->canEncode($char)) {
+                    $runLength = 1;
+                    for ($j = $i + 1; $j < $length; $j++) {
+                        if ($this->getEncoder($data[$j]) !== $newEncoder) {
+                            break;
+                        }
+                        $runLength++;
+                    }
+
+                    if ($runLength === 1) {
+                        $switch = false;
+                    }
                 }
 
-                $encoder = $newEncoder;
+                if ($switch) {
+                    if (!empty($chain)) {
+                        $chains[] = [$chain, $encoder];
+                        $chain = "";
+                    }
+                    $encoder = $newEncoder;
+                }
             }
 
             $chain .= $char;

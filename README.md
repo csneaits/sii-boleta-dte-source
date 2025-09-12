@@ -157,6 +157,19 @@ En el administrador navega a **SII Boletas → Ayuda Boleta SII** para abrir la 
 
 ## CLI de emisión y estado
 
+Sin salir de la terminal puedes preparar el entorno y gestionar certificados/CAF:
+
+```bash
+# Copiar recursos de LibreDTE desde vendor/
+wp sii resources sync
+
+# Importar certificado y clave
+wp sii cert import --file=mi-cert.p12 --pass=secreto
+
+# Importar CAF para boleta (39)
+wp sii caf import --type=39 --file=caf_boleta.xml
+```
+
 Emisión con envío:
 
 ```bash

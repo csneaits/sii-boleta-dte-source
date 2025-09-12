@@ -9,6 +9,9 @@
         <exclude name="WordPress.NamingConventions.PrefixAllGlobals"/>
         <exclude name="WordPress.WP.I18n"/>
         <exclude name="WordPress.WhiteSpace.DisallowInlineTabs"/>
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
+        <exclude name="Generic.Functions.CallTimePassByReference"/>
+        <exclude name="Squiz.WhiteSpace.LanguageConstructSpacing"/>
     </rule>
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>tests/*</exclude-pattern>

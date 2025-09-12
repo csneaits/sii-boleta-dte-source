@@ -23,6 +23,11 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Sii\\BoletaDte\\": "src/"
+        }
+    },
     "scripts": {
         "test": "phpunit",
         "phpcs": "phpcs"

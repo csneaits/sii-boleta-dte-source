@@ -26,7 +26,21 @@ class SII_Logger {
         $file = trailingslashit( $log_dir ) . 'sii-boleta-' . date( 'Y-m-d' ) . '.log';
         $time = date( 'Y-m-d H:i:s' );
         $line = sprintf( '[%s] %s: %s%s', $time, $level, $message, PHP_EOL );
-        file_put_contents( $file, $line, FILE_APPEND );
+
+        $handle = @fopen( $file, 'ab' );
+        if ( false === $handle ) {
+            return;
+        }
+
+        try {
+            if ( @flock( $handle, LOCK_EX ) ) {
+                fwrite( $handle, $line );
+                fflush( $handle );
+                @flock( $handle, LOCK_UN );
+            }
+        } finally {
+            fclose( $handle );
+        }
     }
 
     /**

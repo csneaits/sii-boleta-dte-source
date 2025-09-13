@@ -11,6 +11,15 @@ interface DteEngine {
      * @return string|false
      */
     public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false );
+
+    /**
+     * Renders a PDF from a DTE XML string.
+     *
+     * @param string $xml     DTE document XML.
+     * @param array<string,mixed> $options Rendering options.
+     * @return string|false Path to generated PDF or false on failure.
+     */
+    public function render_pdf( string $xml, array $options = [] );
 }
 
 class_alias( DteEngine::class, 'SII_DTE_Engine' );

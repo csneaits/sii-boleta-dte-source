@@ -40,7 +40,7 @@ class Plugin {
         $this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
         $this->queue = new \SII_Boleta_Queue( $this->engine, $this->settings );
-        require_once SII_BOLETA_DTE_PATH . 'src/includes/admin/class-sii-boleta-help.php';
+        require_once SII_BOLETA_DTE_PATH . 'src/modules/admin/class-sii-boleta-help.php';
         $this->help = new \SII_Boleta_Help();
 
         if ( class_exists( 'WooCommerce' ) ) {

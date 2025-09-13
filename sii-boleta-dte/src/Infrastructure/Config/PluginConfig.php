@@ -1,6 +1,6 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Infrastructure\Config;
+namespace Sii\BoletaDte\Infrastructure\Config;
 
 /**
  * Gestiona la configuración del plugin utilizando Singleton.

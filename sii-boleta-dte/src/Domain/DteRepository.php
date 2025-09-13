@@ -1,6 +1,6 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Domain;
+namespace Sii\BoletaDte\Domain;
 
 /**
  * Puerto de persistencia para los DTE.

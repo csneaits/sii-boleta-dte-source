@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure\Admin;
+namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;

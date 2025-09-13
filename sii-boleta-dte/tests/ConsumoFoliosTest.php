@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Application\FolioManager;
-use Sii\BoletaDte\Infrastructure\Api;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Application\ConsumoFolios;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {

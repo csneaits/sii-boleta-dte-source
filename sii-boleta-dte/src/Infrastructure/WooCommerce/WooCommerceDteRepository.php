@@ -1,6 +1,6 @@
 <?php
 
-namespace Sii\BoletaDte\Infrastructure\Persistence;
+namespace Sii\BoletaDte\Infrastructure\WooCommerce;
 
 use Sii\BoletaDte\Domain\Dte;
 use Sii\BoletaDte\Domain\DteRepository;

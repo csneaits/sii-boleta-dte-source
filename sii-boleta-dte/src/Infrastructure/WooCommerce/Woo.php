@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\WooCommerce;
 
 class Woo {
     public function __construct( $plugin ) {}

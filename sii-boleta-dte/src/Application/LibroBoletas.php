@@ -2,7 +2,7 @@
 namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Infrastructure\Settings;
-use Sii\BoletaDte\Infrastructure\Api;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Signer;
 
 /**

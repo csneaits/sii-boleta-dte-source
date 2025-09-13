@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Logger;
+use Sii\BoletaDte\Shared\Logger;
 
 if ( ! function_exists( 'wp_upload_dir' ) ) {
 	function wp_upload_dir() {
@@ -31,10 +31,11 @@ class LoggerTest extends TestCase {
 		$GLOBALS['upload_dir'] = sys_get_temp_dir();
 	}
 
-	public function test_info_creates_log_file(): void {
-                Logger::info( 'testing log' );
-		$file = sys_get_temp_dir() . '/sii-boleta-logs/sii-boleta-' . date( 'Y-m-d' ) . '.log';
-		$this->assertFileExists( $file );
-	}
+        public function test_info_creates_log_file(): void {
+                $logger = new Logger();
+                $logger->info( 'testing log' );
+                $file = sys_get_temp_dir() . '/sii-boleta-logs/sii-boleta-' . date( 'Y-m-d' ) . '.log';
+                $this->assertFileExists( $file );
+        }
 }
 

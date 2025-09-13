@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Endpoints;
+use Sii\BoletaDte\Infrastructure\Rest\Endpoints;
 
 // Stub WordPress functions needed by endpoints.
 if ( ! function_exists( 'add_action' ) ) {

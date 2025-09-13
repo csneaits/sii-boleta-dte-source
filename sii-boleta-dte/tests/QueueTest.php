@@ -57,6 +57,10 @@ class DummyEngine implements DteEngine {
     public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
         return '<xml/>';
     }
+
+    public function render_pdf( string $xml, array $options = [] ) {
+        return '';
+    }
 }
 
 class QueueTest extends TestCase {

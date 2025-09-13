@@ -1,6 +1,10 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+use DOMDocument;
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
+
 /**
  * Encapsula las llamadas a la API del SII. Proporciona métodos para enviar
  * documentos electrónicos (boletas, notas de crédito/debito) y obtener

@@ -1,9 +1,12 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
+
 /**
  * Clase encargada de firmar el XML de los DTE utilizando la librería
- * xmlseclibs incluida en este plugin. Aunque la implementación se ha
+ * xmlseclibs distribuida vía Composer. Aunque la implementación se ha
  * simplificado, se adecua a la firma básica requerida por los servicios del
  * SII. Para firmar correctamente según las especificaciones completas, se
  * recomienda ampliar este código con los detalles de firma para cada nodo.

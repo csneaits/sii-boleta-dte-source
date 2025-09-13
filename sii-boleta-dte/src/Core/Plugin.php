@@ -1,8 +1,8 @@
 <?php
 namespace Sii\BoletaDte\Core;
 
-use Sii\BoletaDte\Admin\Ajax;
-use Sii\BoletaDte\Admin\Pages;
+use Sii\BoletaDte\Infrastructure\Admin\Ajax;
+use Sii\BoletaDte\Infrastructure\Admin\Pages;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Infrastructure\Signer;
@@ -12,7 +12,7 @@ use Sii\BoletaDte\Infrastructure\Endpoints;
 use Sii\BoletaDte\Infrastructure\Metrics;
 use Sii\BoletaDte\Application\ConsumoFolios;
 use Sii\BoletaDte\Application\Queue;
-use Sii\BoletaDte\Admin\Help;
+use Sii\BoletaDte\Infrastructure\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\Woo;

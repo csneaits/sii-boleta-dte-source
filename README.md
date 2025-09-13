@@ -9,9 +9,7 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
     - `Domain/` – entidades y reglas de negocio puras.
     - `Application/` – casos de uso que orquestan el dominio.
     - `Infrastructure/` – adaptadores concretos (WordPress, WooCommerce, APIs, persistencia).
-    - `Admin/` – interfaz de administración de WordPress, considerada un adaptador de presentación.
     - `Core/` – punto de arranque del plugin y registro de servicios.
-    - `modules/` – componentes heredados del plugin original que están en proceso de migración hacia las capas anteriores.
   - `resources/` – plantillas y recursos de LibreDTE. Copia aquí los `resources` de LibreDTE si tu build los busca fuera de vendor.
   - `resources/templates/billing/document/renderer/estandar.html.twig` – plantilla Twig adaptada del diseño original de LibreDTE, con soporte de logo y detalle y clases de formato A4/80mm.
 - `build.sh` – script de empaquetado para sistemas Linux/macOS. Genera un ZIP instalable bajo `dist/` con el número de versión que aparece en el encabezado del plugin.
@@ -19,11 +17,10 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
 
 ### Opciones de mejora
 
-Aunque la distribución actual permite trabajar con WordPress, aún mezcla módulos heredados con las capas hexagonales. Algunas ideas para consolidar el diseño:
+La estructura puede evolucionar con las siguientes ideas:
 
-- Migrar gradualmente los archivos de `src/modules/` a adaptadores dentro de `Infrastructure/` (por ejemplo `Infrastructure/WooCommerce`, `Infrastructure/Rest`, `Infrastructure/Cli`).
 - Definir interfaces en `Domain` y registrar sus implementaciones mediante fábricas o un contenedor de dependencias.
-- Extraer una capa de **presentación** separada (por ejemplo `UI/` o `Presentation/`) para desacoplar `Admin/` de WordPress y facilitar pruebas aisladas.
+- Extraer una capa de **presentación** separada (por ejemplo `UI/` o `Presentation/`) para desacoplar la administración de WordPress y facilitar pruebas aisladas.
 - Agrupar utilidades compartidas (logging, helpers) en un paquete `Shared/` para evitar dependencias circulares y reutilizar componentes.
 
 ## Cómo compilar el plugin
@@ -127,12 +124,12 @@ Cambia al ambiente de producción únicamente después de completar exitosamente
 
 ## Resumen de Ventas Diarias
 
-El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`src/modules/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
+El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. El archivo se construye siguiendo el esquema oficial del SII e integra la firma digital con el certificado configurado.
 
-Para validar un archivo generado se puede utilizar `xmllint`:
+Para validar un archivo generado se puede utilizar `xmllint` junto al esquema oficial:
 
 ```bash
-xmllint --noout --schema sii-boleta-dte/src/modules/schemas/ConsumoFolio_v10.xsd ejemplo_rvd.xml
+xmllint --noout --schema ConsumoFolio_v10.xsd ejemplo_rvd.xml
 ```
 
 El envío del RVD reutiliza el mismo token y certificado empleados para las boletas electrónicas.
@@ -341,9 +338,6 @@ Durante el proceso de certificación ante el SII se recomienda:
 2. Enviar los archivos utilizando el token de ensayo y revisar los **trackId** devueltos por la API.
 3. Consultar el estado de cada envío hasta que sea **ACEPTADO** o aparezca un motivo de rechazo.
 
-El plugin registra los eventos relevantes mediante la función `sii_boleta_write_log` que utiliza la clase `SII_Logger`.
-Los archivos de log se guardan diariamente en `wp-content/uploads/sii-boleta-logs/`, evitando exponer datos sensibles.
-Ante un rechazo del SII, revise el cuerpo de la respuesta y el archivo de log para identificar la causa exacta.
 
 
 ## Licencias

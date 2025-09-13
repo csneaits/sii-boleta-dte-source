@@ -12,6 +12,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Endpoints;
 use Sii\BoletaDte\Infrastructure\Metrics;
 use Sii\BoletaDte\Application\ConsumoFolios;
 use Sii\BoletaDte\Application\Queue;
+use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
@@ -55,6 +56,7 @@ class Plugin {
         $this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
         $this->queue = new Queue( $this->engine, $this->settings );
+        \add_action( Cron::HOOK, [ $this->queue, 'process' ] );
         $this->help  = new Help();
 
         if ( class_exists( 'WooCommerce' ) ) {

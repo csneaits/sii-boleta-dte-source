@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Sii\BoletaDte\Infrastructure\Rest;
 
 use WP_Error;
@@ -53,16 +55,19 @@ class Api {
 			if ( is_wp_error( $res ) ) {
 				continue;
 			}
-			$code = wp_remote_retrieve_response_code( $res );
-			$body = wp_remote_retrieve_body( $res );
+						$code = wp_remote_retrieve_response_code( $res );
+						$body = wp_remote_retrieve_body( $res );
 			if ( 200 !== $code ) {
-				continue;
+					continue;
 			}
-			if ( false !== ( $sx = @simplexml_load_string( $body ) ) && isset( $sx->trackId ) ) {
-				\Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry( (string) $sx->trackId, 'sent', $body );
-				return array( 'trackId' => (string) $sx->trackId );
+						\libxml_use_internal_errors( true );
+						$sx = simplexml_load_string( $body );
+						\libxml_clear_errors();
+			if ( false !== $sx && isset( $sx->trackId ) ) {
+					\Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry( (string) $sx->trackId, 'sent', $body );
+					return array( 'trackId' => (string) $sx->trackId );
 			}
-			return new WP_Error( 'sii_boleta_libro_http_error', $body );
+						return new WP_Error( 'sii_boleta_libro_http_error', $body );
 		}
 		return new WP_Error( 'sii_boleta_libro_http_error', 'HTTP error' );
 	}

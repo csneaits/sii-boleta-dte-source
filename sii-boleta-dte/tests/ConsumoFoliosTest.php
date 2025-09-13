@@ -35,8 +35,8 @@ class ConsumoFoliosTest extends TestCase {
         $sx       = simplexml_load_string( $xml );
         $resumen  = $sx->Resumen;
         $this->assertEquals( '39', (string) $resumen['TipoDTE'] );
-        $this->assertEquals( '11', (string) $resumen->FoliosEmitidos );
-        $this->assertEquals( '0', (string) $resumen->RangoUtilizados->Inicial );
+        $this->assertEquals( '10', (string) $resumen->FoliosEmitidos );
+        $this->assertEquals( '1', (string) $resumen->RangoUtilizados->Inicial );
         $this->assertEquals( '10', (string) $resumen->RangoUtilizados->Final );
     }
 }

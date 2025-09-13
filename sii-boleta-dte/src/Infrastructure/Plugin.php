@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Sii\BoletaDte\Infrastructure;
 
 use Sii\BoletaDte\Presentation\Admin\Ajax;
@@ -26,7 +28,7 @@ class Plugin {
 	private Api $api;
 	private RvdManager $rvd_manager;
 	private Endpoints $endpoints;
-	private Woo $woo;
+	private ?Woo $woo = null;
 	private Metrics $metrics;
 	private ConsumoFolios $consumo_folios;
 	private Queue $queue;
@@ -36,46 +38,46 @@ class Plugin {
 	private Ajax $ajax;
 	private Pages $pages;
 
-	public function __construct() {
-		Container::init();
-		$this->settings       = new Settings();
-		$this->folio_manager  = new FolioManager( $this->settings );
-		$this->signer         = new Signer();
-		$this->api            = new Api();
-		$this->rvd_manager    = new RvdManager( $this->settings );
-		$this->endpoints      = new Endpoints();
-		$this->metrics        = new Metrics();
-		$this->consumo_folios = new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
+	public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null ) {
+			Container::init();
+			$this->settings       = $settings ?? new Settings();
+			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
+			$this->signer         = $signer ?? new Signer();
+			$this->api            = $api ?? new Api();
+			$this->rvd_manager    = $rvd_manager ?? new RvdManager( $this->settings );
+			$this->endpoints      = $endpoints ?? new Endpoints();
+			$this->metrics        = $metrics ?? new Metrics();
+			$this->consumo_folios = $consumo_folios ?? new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
 
 		try {
-			$default_engine = new LibreDteEngine( $this->settings );
+				$default_engine = new LibreDteEngine( $this->settings );
 		} catch ( \RuntimeException $e ) {
-			$this->libredte_missing = true;
-			$default_engine         = new NullEngine();
+				$this->libredte_missing = true;
+				$default_engine         = new NullEngine();
 		}
-		$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
+			$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
-		$this->queue = new Queue( $this->engine, $this->settings );
-		\add_action( Cron::HOOK, array( $this->queue, 'process' ) );
-		$this->help = new Help();
+			$this->queue = $queue ?? new Queue( $this->engine, $this->settings, $this->api );
+			\add_action( Cron::HOOK, array( $this->queue, 'process' ) );
+			$this->help = $help ?? new Help();
 
 		if ( class_exists( 'WooCommerce' ) ) {
-			$this->woo = new Woo( $this );
+				$this->woo = new Woo( $this );
 		}
 
-		$this->pages = new Pages( $this );
-		$this->ajax  = new Ajax( $this );
+			$this->pages = $pages ?? new Pages( $this );
+			$this->ajax  = $ajax ?? new Ajax( $this );
 
-		\add_action( 'admin_menu', array( $this->pages, 'register' ) );
-		\add_action( 'admin_enqueue_scripts', array( $this->pages, 'enqueue_assets' ) );
+			\add_action( 'admin_menu', array( $this->pages, 'register' ) );
+			\add_action( 'admin_enqueue_scripts', array( $this->pages, 'enqueue_assets' ) );
 
-		\add_action( 'admin_bar_menu', array( $this, 'add_environment_indicator' ), 100 );
-		\add_action( 'admin_notices', array( $this, 'maybe_show_admin_warnings' ) );
+			\add_action( 'admin_bar_menu', array( $this, 'add_environment_indicator' ), 100 );
+			\add_action( 'admin_notices', array( $this, 'maybe_show_admin_warnings' ) );
 
-		$this->ajax->register();
+			$this->ajax->register();
 
-		\add_filter( 'sii_boleta_available_smtp_profiles', array( $this, 'fluent_smtp_profiles' ) );
-		\add_action( 'sii_boleta_setup_mailer', array( $this, 'fluent_smtp_setup_mailer' ), 10, 2 );
+			\add_filter( 'sii_boleta_available_smtp_profiles', array( $this, 'fluent_smtp_profiles' ) );
+			\add_action( 'sii_boleta_setup_mailer', array( $this, 'fluent_smtp_setup_mailer' ), 10, 2 );
 	}
 
 	public function get_settings() {

@@ -78,7 +78,7 @@ final class SII_Boleta_DTE {
         load_plugin_textdomain( 'sii-boleta-dte', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
         // Instanciar la clase núcleo que configura todas las funcionalidades
-        $core = new \Sii\BoletaDte\Core\Plugin();
+        $core = new \Sii\BoletaDte\Infrastructure\Plugin();
         // Instanciar el manejador de cron para registrar el callback del evento
         new \Sii\BoletaDte\Infrastructure\Cron( $core->get_settings() );
 

@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Admin;
+namespace Sii\BoletaDte\Infrastructure\Admin;
 
 use Sii\BoletaDte\Core\Plugin;
 
@@ -45,3 +45,5 @@ class Pages {
         echo '<div class="wrap"><h1>' . \esc_html__( 'Panel de Control', 'sii-boleta-dte' ) . '</h1></div>';
     }
 }
+
+class_alias( Pages::class, 'Sii\\BoletaDte\\Admin\\Pages' );

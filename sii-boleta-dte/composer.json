@@ -25,7 +25,8 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "Sii\\BoletaDte\\": "src/"
+            "Sii\\BoletaDte\\": "src/",
+            "Sii\\BoletaDte\\Admin\\": "src/Infrastructure/Admin/"
         }
     },
     "scripts": {

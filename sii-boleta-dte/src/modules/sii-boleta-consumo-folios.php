@@ -33,7 +33,7 @@ class SII_Boleta_Consumo_Folios {
 	/**
 	 * Instancia de la API para reutilizar generación de token.
 	 *
-	 * @var SII_Boleta_API
+	 * @var \Sii\BoletaDte\Infrastructure\Api\SiiBoletaApi
 	 */
 	private $api;
 
@@ -42,9 +42,9 @@ class SII_Boleta_Consumo_Folios {
 	 *
 	 * @param SII_Boleta_Settings     $settings      Instancia de configuraciones.
 	 * @param SII_Boleta_Folio_Manager $folio_manager Manejador de folios.
-	 * @param SII_Boleta_API          $api           Instancia de la API del SII.
+	 * @param \Sii\BoletaDte\Infrastructure\Api\SiiBoletaApi          $api           Instancia de la API del SII.
 	 */
-	public function __construct( SII_Boleta_Settings $settings, SII_Boleta_Folio_Manager $folio_manager, SII_Boleta_API $api ) {
+	public function __construct( SII_Boleta_Settings $settings, SII_Boleta_Folio_Manager $folio_manager, \Sii\BoletaDte\Infrastructure\Api\SiiBoletaApi $api ) {
 		$this->settings      = $settings;
 		$this->folio_manager = $folio_manager;
 		$this->api           = $api;

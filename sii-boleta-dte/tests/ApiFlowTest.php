@@ -1,5 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Api\SiiBoletaApi;
 
 // Stub WordPress functions and classes.
 if ( ! function_exists( 'apply_filters' ) ) {
@@ -75,7 +76,7 @@ class ApiFlowTest extends TestCase {
             [ 'response' => [ 'code' => 200 ], 'body' => '{"trackId":"123"}' ],
         ];
         $file = $this->create_temp_xml();
-        $api  = new SII_Boleta_API();
+        $api  = new SiiBoletaApi();
         $tid  = $api->send_dte_to_sii( $file, 'test', 'token' );
         unlink( $file );
         $this->assertSame( '123', $tid );
@@ -88,7 +89,7 @@ class ApiFlowTest extends TestCase {
             [ 'response' => [ 'code' => 200 ], 'body' => '{"codigo":1,"mensaje":"Rechazo"}' ],
         ];
         $file = $this->create_temp_xml();
-        $api  = new SII_Boleta_API();
+        $api  = new SiiBoletaApi();
         $res  = $api->send_dte_to_sii( $file, 'test', 'token' );
         unlink( $file );
         $this->assertTrue( is_wp_error( $res ) );
@@ -103,7 +104,7 @@ class ApiFlowTest extends TestCase {
             [ 'response' => [ 'code' => 200 ], 'body' => '{"trackId":"456"}' ],
         ];
         $file = $this->create_temp_xml();
-        $api  = new SII_Boleta_API();
+        $api  = new SiiBoletaApi();
         $tid  = $api->send_dte_to_sii( $file, 'test', 'token' );
         unlink( $file );
         $this->assertSame( '456', $tid );
@@ -115,7 +116,7 @@ class ApiFlowTest extends TestCase {
         $GLOBALS['wp_remote_post_queue'] = [
             [ 'response' => [ 'code' => 200 ], 'body' => '<resp><trackId>789</trackId></resp>' ],
         ];
-        $api  = new SII_Boleta_API();
+        $api  = new SiiBoletaApi();
         $res  = $api->send_libro_to_sii( '<xml/>', 'test', 'token' );
         $this->assertIsArray( $res );
         $this->assertSame( '789', $res['trackId'] );
@@ -129,7 +130,7 @@ class ApiFlowTest extends TestCase {
             [ 'response' => [ 'code' => 500 ], 'body' => 'err' ],
             [ 'response' => [ 'code' => 500 ], 'body' => 'err' ],
         ];
-        $api  = new SII_Boleta_API();
+        $api  = new SiiBoletaApi();
         $res  = $api->send_libro_to_sii( '<xml/>', 'test', 'token' );
         $this->assertTrue( is_wp_error( $res ) );
         $this->assertSame( 'sii_boleta_libro_http_error', $res->get_error_code() );

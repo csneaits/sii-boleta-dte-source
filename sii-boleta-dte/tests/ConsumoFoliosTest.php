@@ -1,5 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Api\SiiBoletaApi;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
     class Dummy_Settings extends SII_Boleta_Settings {
@@ -24,7 +25,7 @@ class ConsumoFoliosTest extends TestCase {
             'rut_emisor' => '11111111-1',
         ]);
         $folio_mgr = $this->createMock( SII_Boleta_Folio_Manager::class );
-        $api       = $this->createMock( SII_Boleta_API::class );
+        $api       = $this->createMock( SiiBoletaApi::class );
         $cdf       = new SII_Boleta_Consumo_Folios( $settings, $folio_mgr, $api );
         $xml       = $cdf->generate_cdf_xml( '2024-05-01' );
         $this->assertNotFalse( $xml );

@@ -5,8 +5,8 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
 ## Estructura
 
 - `sii-boleta-dte/` – carpeta del plugin con todos los archivos de código (PHP) que implementan la integración con el Servicio de Impuestos Internos de Chile, generación de XML, firma digital, manejo de folios, integración con WooCommerce, tareas cron para el Resumen de Ventas Diarias (RVD) y representación en PDF/HTML.
-  - `src/includes/` – contiene las clases que encapsulan cada responsabilidad (API, gestor de folios, generador de XML, firma, PDF, RVD, cron y WooCommerce).
-  - `src/includes/libs/xmlseclibs.php` – biblioteca de firma XML utilizada por el plugin. Se incluye la librería `xmlseclibs` en su versión autónoma para firmar digitalmente los DTE.
+   - `src/modules/` – contiene las clases que encapsulan cada responsabilidad (API, gestor de folios, generador de XML, firma, PDF, RVD, cron y WooCommerce).
+   - `src/modules/libs/xmlseclibs.php` – biblioteca de firma XML utilizada por el plugin. Se incluye la librería `xmlseclibs` en su versión autónoma para firmar digitalmente los DTE.
   - `resources/` – plantillas y recursos de LibreDTE. Copia aquí los `resources` de LibreDTE si tu build los busca fuera de vendor.
   - `resources/templates/billing/document/renderer/estandar.html.twig` – plantilla Twig adaptada del diseño original de LibreDTE, con soporte de logo y detalle y clases de formato A4/80mm.
 - `build.sh` – script de empaquetado para sistemas Linux/macOS. Genera un ZIP instalable bajo `dist/` con el número de versión que aparece en el encabezado del plugin.
@@ -113,12 +113,12 @@ Cambia al ambiente de producción únicamente después de completar exitosamente
 
 ## Resumen de Ventas Diarias
 
-El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`src/includes/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
+El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`src/modules/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
 
 Para validar un archivo generado se puede utilizar `xmllint`:
 
 ```bash
-xmllint --noout --schema sii-boleta-dte/src/includes/schemas/ConsumoFolio_v10.xsd ejemplo_rvd.xml
+xmllint --noout --schema sii-boleta-dte/src/modules/schemas/ConsumoFolio_v10.xsd ejemplo_rvd.xml
 ```
 
 El envío del RVD reutiliza el mismo token y certificado empleados para las boletas electrónicas.

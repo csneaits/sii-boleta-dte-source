@@ -1,11 +1,13 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Settings;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
-    class Dummy_Settings extends SII_Boleta_Settings {
+    class Dummy_Settings extends Settings {
         private $data;
         public function __construct( array $data ) { $this->data = $data; }
-        public function get_settings() { return $this->data; }
+        public function get_settings(): array { return $this->data; }
     }
 }
 
@@ -16,7 +18,7 @@ class InvalidCafTest extends TestCase {
         $settings = new Dummy_Settings([
             'caf_path' => [ 33 => $caf_path ],
         ]);
-        $engine = new SII_LibreDTE_Engine( $settings );
+        $engine = new LibreDteEngine( $settings );
         $data = [
             'Folio'     => 1,
             'FchEmis'   => '2024-01-01',

@@ -1,18 +1,20 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
-    class Dummy_Settings extends SII_Boleta_Settings {
+    class Dummy_Settings extends Settings {
         private $data;
         public function __construct( array $data ) { $this->data = $data; }
-        public function get_settings() { return $this->data; }
+        public function get_settings(): array { return $this->data; }
     }
 }
 
 class LibreDTEEngineTest extends TestCase {
     public function test_pdf_generated_from_xml_fixture() {
         $settings = new Dummy_Settings([]);
-        $engine   = new SII_LibreDTE_Engine($settings);
+        $engine   = new LibreDteEngine($settings);
 
         $xml = file_get_contents(__DIR__ . '/fixtures/boleta_multidetalle.xml');
         $this->assertNotFalse($xml);

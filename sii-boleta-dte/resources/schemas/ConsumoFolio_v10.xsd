@@ -38,22 +38,22 @@
 										</xs:element>
 										<xs:element name="FchResol" type="xs:date">
 											<xs:annotation>
-												<xs:documentation>Fecha de Resolución que Autoriza el Envío de DTE (AAAA-MM-DD)</xs:documentation>
+												<xs:documentation>Fecha de Resolucin que Autoriza el Envo de DTE (AAAA-MM-DD)</xs:documentation>
 											</xs:annotation>
 										</xs:element>
 										<xs:element name="NroResol" type="SiiDte:NroResolType">
 											<xs:annotation>
-												<xs:documentation>Numero de Resolución que Autoriza el Envio de DTE</xs:documentation>
+												<xs:documentation>Numero de Resolucin que Autoriza el Envio de DTE</xs:documentation>
 											</xs:annotation>
 										</xs:element>
 										<xs:element name="FchInicio" type="xs:date">
 											<xs:annotation>
-												<xs:documentation>Fecha primer día del Resumen(AAAA-MM-DD)</xs:documentation>
+												<xs:documentation>Fecha primer da del Resumen(AAAA-MM-DD)</xs:documentation>
 											</xs:annotation>
 										</xs:element>
 										<xs:element name="FchFinal" type="xs:date">
 											<xs:annotation>
-												<xs:documentation>Fecha último día del Resumen (AAAA-MM-DD)</xs:documentation>
+												<xs:documentation>Fecha ltimo da del Resumen (AAAA-MM-DD)</xs:documentation>
 											</xs:annotation>
 										</xs:element>
 										<xs:element name="Correlativo" minOccurs="0">
@@ -68,7 +68,7 @@
 										</xs:element>
 										<xs:element name="SecEnvio">
 											<xs:annotation>
-												<xs:documentation>Secuencia de Envio. La primera vez que se envia debe traer el numero 1. Si se desea corregir información se debe enviar el archivo completo, pero "SecEnvio", debe aumentar en 1, es decir la segunda vez debe traer el valor 2, la tercera vez debe traer el valor 3, etc.</xs:documentation>
+												<xs:documentation>Secuencia de Envio. La primera vez que se envia debe traer el numero 1. Si se desea corregir informacin se debe enviar el archivo completo, pero "SecEnvio", debe aumentar en 1, es decir la segunda vez debe traer el valor 2, la tercera vez debe traer el valor 3, etc.</xs:documentation>
 											</xs:annotation>
 											<xs:simpleType>
 												<xs:restriction base="xs:nonNegativeInteger">
@@ -123,7 +123,7 @@
 										</xs:element>
 										<xs:element name="FoliosEmitidos">
 											<xs:annotation>
-												<xs:documentation>Se debe indicar la cantidad total de documentos emitidos en el día.</xs:documentation>
+												<xs:documentation>Se debe indicar la cantidad total de documentos emitidos en el da.</xs:documentation>
 											</xs:annotation>
 											<xs:simpleType>
 												<xs:restriction base="xs:nonNegativeInteger">
@@ -133,7 +133,7 @@
 										</xs:element>
 										<xs:element name="FoliosAnulados">
 											<xs:annotation>
-												<xs:documentation>SE REFIERE A LOS FOLIOS ANULADOS EN EL SISTEMA (Opción anulación de folios) y no a Documentos anulados mediante Notas de Crédito</xs:documentation>
+												<xs:documentation>SE REFIERE A LOS FOLIOS ANULADOS EN EL SISTEMA (Opcin anulacin de folios) y no a Documentos anulados mediante Notas de Crdito</xs:documentation>
 											</xs:annotation>
 											<xs:simpleType>
 												<xs:restriction base="xs:nonNegativeInteger">

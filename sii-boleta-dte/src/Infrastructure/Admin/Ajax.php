@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Admin;
+namespace Sii\BoletaDte\Infrastructure\Admin;
 
 use Sii\BoletaDte\Core\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;
@@ -194,3 +194,5 @@ class Ajax {
         return substr( $c, 0, -1 ) . '-' . substr( $c, -1 );
     }
 }
+
+class_alias( Ajax::class, 'Sii\\BoletaDte\\Admin\\Ajax' );

@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Admin;
+namespace Sii\BoletaDte\Infrastructure\Admin;
 
 /**
  * Minimal help page stub.
@@ -15,3 +15,4 @@ class Help {
 }
 
 class_alias( Help::class, 'SII_Boleta_Help' );
+class_alias( Help::class, 'Sii\\BoletaDte\\Admin\\Help' );

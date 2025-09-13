@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Admin;
 
-use Sii\BoletaDte\Core\Plugin;
+use Sii\BoletaDte\Infrastructure\Plugin;
 
 class Pages {
     private Plugin $core;

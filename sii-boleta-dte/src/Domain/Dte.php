@@ -1,6 +1,6 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Domain;
+namespace Sii\BoletaDte\Domain;
 
 /**
  * Entidad de ejemplo para representar un DTE.

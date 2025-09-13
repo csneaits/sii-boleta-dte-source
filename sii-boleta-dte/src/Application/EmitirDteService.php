@@ -1,9 +1,9 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Application;
+namespace Sii\BoletaDte\Application;
 
-use Sii\BoletaDte\Hexagonal\Domain\Dte;
-use Sii\BoletaDte\Hexagonal\Domain\DteRepository;
+use Sii\BoletaDte\Domain\Dte;
+use Sii\BoletaDte\Domain\DteRepository;
 
 /**
  * Caso de uso para emitir un DTE.

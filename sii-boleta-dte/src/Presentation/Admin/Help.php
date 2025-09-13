@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure\Admin;
+namespace Sii\BoletaDte\Presentation\Admin;
 
 /**
  * Minimal help page stub.

@@ -36,7 +36,7 @@ function sii_boleta_dte_uninstall() {
 
 // Registrar autoload para las clases del plugin.
 require_once SII_BOLETA_DTE_PATH . 'src/modules/autoload.php';
-require_once SII_BOLETA_DTE_PATH . 'src/modules/class-sii-logger.php';
+require_once SII_BOLETA_DTE_PATH . 'src/modules/sii-logger.php';
 
 // Cargar autoload de Composer desde ubicaciones comunes
 if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
@@ -48,13 +48,9 @@ if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-    require_once SII_BOLETA_DTE_PATH . 'src/modules/class-sii-boleta-cli.php';
+    require_once SII_BOLETA_DTE_PATH . 'src/modules/sii-boleta-cli.php';
 }
 
-// Incluir librerías externas necesarias si Composer no las cargó.
-if ( ! class_exists( '\RobRichards\XMLSecLibs\XMLSecurityDSig', false ) ) {
-    require_once SII_BOLETA_DTE_PATH . 'src/modules/libs/xmlseclibs.php';
-}
 // Eliminado soporte PDF nativo: se usa renderer LibreDTE
 
 /**

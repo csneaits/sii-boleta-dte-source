@@ -1,5 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Endpoints;
 
 // Stub WordPress functions needed by endpoints.
 if ( ! function_exists( 'add_action' ) ) {
@@ -53,7 +54,7 @@ class EndpointsTest extends TestCase {
         $GLOBALS['upload_dir'] = $temp;
         $xml = '<EnvioDTE><Documento><Encabezado><Emisor><RznSoc>Emit</RznSoc><RUTEmisor>111</RUTEmisor></Emisor><Receptor><RznSocRecep>Client</RznSocRecep><RUTRecep>222</RUTRecep></Receptor><IdDoc><FchEmis>2024-05-01</FchEmis></IdDoc><Totales><MntTotal>1000</MntTotal></Totales></Encabezado><Detalle><NmbItem>Item</NmbItem><QtyItem>1</QtyItem><PrcItem>1000</PrcItem><MontoItem>1000</MontoItem></Detalle></Documento></EnvioDTE>';
         file_put_contents( $temp . '/DTE_1_1_1.xml', $xml );
-        $ep   = new SII_Boleta_Endpoints();
+        $ep   = new Endpoints();
         $html = $ep->get_boleta_html( 1 );
         $this->assertIsString( $html );
         $this->assertStringContainsString( 'Emit', $html );
@@ -65,7 +66,7 @@ class EndpointsTest extends TestCase {
         mkdir( $temp );
         $GLOBALS['upload_dir'] = $temp;
         $GLOBALS['query_var']['sii_boleta_folio'] = 999;
-        $ep = new SII_Boleta_Endpoints();
+        $ep = new Endpoints();
         try {
             $ep->render_boleta();
         } catch ( Exception $e ) {

@@ -2,7 +2,6 @@
 <ruleset name="SII Boleta DTE">
     <config name="installed_paths" value="vendor/wp-coding-standards/wpcs"/>
     <arg name="extensions" value="php"/>
-    <file>src/modules/</file>
     <file>sii-boleta-dte.php</file>
     <rule ref="WordPress">
         <exclude name="WordPress.WhiteSpace.PrecisionAlignment"/>
@@ -14,5 +13,4 @@
         <exclude name="Squiz.WhiteSpace.LanguageConstructSpacing"/>
     </rule>
     <exclude-pattern>vendor/*</exclude-pattern>
-    <exclude-pattern>tests/*</exclude-pattern>
 </ruleset>

@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Api;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 
 // Stub WordPress functions and classes.
 if ( ! function_exists( 'apply_filters' ) ) {

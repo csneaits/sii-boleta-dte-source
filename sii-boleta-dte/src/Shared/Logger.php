@@ -1,10 +1,12 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Shared;
+
+use Sii\BoletaDte\Domain\Logger as LoggerContract;
 
 /**
  * Simple logger with severity levels and daily rotation.
  */
-class Logger {
+class Logger implements LoggerContract {
     public const INFO  = 'INFO';
     public const WARN  = 'WARN';
     public const ERROR = 'ERROR';
@@ -12,7 +14,7 @@ class Logger {
     /**
      * Logs a message to the daily log file.
      */
-    public static function log( string $level, string $message ): void {
+    public function log( string $level, string $message ): void {
         $upload_dir = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : [ 'basedir' => sys_get_temp_dir() ];
         $base_dir   = $upload_dir['basedir'] ?? sys_get_temp_dir();
         $log_dir    = function_exists( 'trailingslashit' ) ? trailingslashit( $base_dir ) . 'sii-boleta-logs' : $base_dir . '/sii-boleta-logs';
@@ -46,16 +48,16 @@ class Logger {
         }
     }
 
-    public static function info( string $message ): void {
-        self::log( self::INFO, $message );
+    public function info( string $message ): void {
+        $this->log( self::INFO, $message );
     }
 
-    public static function warn( string $message ): void {
-        self::log( self::WARN, $message );
+    public function warn( string $message ): void {
+        $this->log( self::WARN, $message );
     }
 
-    public static function error( string $message ): void {
-        self::log( self::ERROR, $message );
+    public function error( string $message ): void {
+        $this->log( self::ERROR, $message );
     }
 }
 

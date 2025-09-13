@@ -18,7 +18,7 @@ class SII_Boleta_Help {
 
     public function render_page() {
         $readme_url = SII_BOLETA_DTE_URL . '../README.md';
-        $consumo_xsd = SII_BOLETA_DTE_URL . 'includes/xml/schemas/consumo_folios.xsd';
+        $consumo_xsd = SII_BOLETA_DTE_URL . 'src/includes/xml/schemas/consumo_folios.xsd';
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Ayuda Boleta SII', 'sii-boleta-dte' ); ?></h1>

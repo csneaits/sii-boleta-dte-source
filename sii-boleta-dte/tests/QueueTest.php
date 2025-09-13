@@ -3,6 +3,7 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Domain\DteEngine;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 
 // WordPress stubs.
 if ( ! class_exists( 'WP_Error' ) ) {
@@ -78,7 +79,8 @@ class QueueTest extends TestCase {
 
     public function test_process_executes_all_jobs() {
         $settings = new Settings();
-        $queue    = new Queue( new DummyEngine(), $settings );
+        $api      = new Api();
+        $queue    = new Queue( new DummyEngine(), $settings, $api, null, null, static function(){} );
         $file     = $this->create_temp_xml();
         $queue->enqueue_dte( $file, 'test', 'token' );
         $queue->enqueue_libro( '<xml/>', 'test', 'token' );

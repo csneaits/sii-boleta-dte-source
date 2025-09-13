@@ -1,7 +1,10 @@
 <?php
+declare(strict_types=1);
+
 namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Domain\DteEngine;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Settings;
 
 /**
@@ -14,18 +17,27 @@ use Sii\BoletaDte\Infrastructure\Settings;
 class Queue {
 	private DteEngine $engine;
 	private Settings $settings;
-	/** @var array<int,array<string,mixed>> */
+	private Api $api;
+		/** @var callable */
+		private $get_option;
+		/** @var callable */
+		private $update_option;
+		/** @var callable */
+		private $sleep;
+		/** @var array<int,array<string,mixed>> */
 	private array $jobs = array();
 
-	public function __construct( DteEngine $engine, Settings $settings ) {
-		$this->engine   = $engine;
-		$this->settings = $settings;
+	public function __construct( DteEngine $engine, Settings $settings, Api $api, callable $get_option = null, callable $update_option = null, callable $sleep = null ) {
+			$this->engine        = $engine;
+			$this->settings      = $settings;
+			$this->api           = $api;
+			$this->get_option    = $get_option ?? ( \function_exists( 'get_option' ) ? 'get_option' : static fn( string $k, $d = null ) => $d );
+			$this->update_option = $update_option ?? ( \function_exists( 'update_option' ) ? 'update_option' : static fn( string $k, $v ): bool => true );
+			$this->sleep         = $sleep ?? 'sleep';
 
-		if ( \function_exists( 'get_option' ) ) {
-			$stored = get_option( 'sii_boleta_dte_queue', array() );
-			if ( \is_array( $stored ) ) {
+			$stored = \call_user_func( $this->get_option, 'sii_boleta_dte_queue', array() );
+		if ( \is_array( $stored ) ) {
 				$this->jobs = $stored;
-			}
 		}
 	}
 
@@ -53,21 +65,24 @@ class Queue {
 	 * Processes all queued jobs sequentially using the Api class.
 	 */
 	public function process(): void {
-		$api = new \Sii\BoletaDte\Infrastructure\Rest\Api();
+		if ( \call_user_func( $this->get_option, 'sii_boleta_dte_queue_lock', false ) ) {
+				return;
+		}
+			\call_user_func( $this->update_option, 'sii_boleta_dte_queue_lock', true );
 		while ( $job = \array_shift( $this->jobs ) ) {
 			if ( 'dte' === ( $job['type'] ?? '' ) ) {
-				$api->send_dte_to_sii( $job['file'], $job['environment'], $job['token'] );
+					$this->api->send_dte_to_sii( $job['file'], $job['environment'], $job['token'] );
 			} elseif ( 'libro' === ( $job['type'] ?? '' ) ) {
-				$api->send_libro_to_sii( $job['xml'], $job['environment'], $job['token'] );
+					$this->api->send_libro_to_sii( $job['xml'], $job['environment'], $job['token'] );
 			}
+				\call_user_func( $this->sleep, 1 );
 		}
-		$this->persist();
+			$this->persist();
+			\call_user_func( $this->update_option, 'sii_boleta_dte_queue_lock', false );
 	}
 
 	private function persist(): void {
-		if ( \function_exists( 'update_option' ) ) {
-			update_option( 'sii_boleta_dte_queue', $this->jobs );
-		}
+			\call_user_func( $this->update_option, 'sii_boleta_dte_queue', $this->jobs );
 	}
 }
 

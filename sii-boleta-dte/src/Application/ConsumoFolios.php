@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Infrastructure\Settings;
@@ -41,25 +43,25 @@ class ConsumoFolios {
 			if ( ! file_exists( $path ) ) {
 				continue;
 			}
-			$caf        = simplexml_load_file( $path );
-			$range      = array(
-				'D' => (int) $caf->DA->RNG->D,
-				'H' => (int) $caf->DA->RNG->H,
-			);
-			$option_key = 'sii_boleta_dte_last_folio_' . (int) $tipo;
-			$last       = function_exists( 'get_option' ) ? (int) get_option( $option_key, $range['D'] - 1 ) : $range['D'] - 1;
-			if ( $last < $range['D'] ) {
-				continue;
-			}
-			$emitidos = $last - $range['D'] + 1;
-			$res      = $xml->addChild( 'Resumen' );
-			$res->addAttribute( 'TipoDTE', (int) $tipo );
-			$res->addChild( 'FoliosEmitidos', (string) $emitidos );
-			$res->addChild( 'FoliosAnulados', '0' );
-			$res->addChild( 'FoliosUtilizados', (string) $emitidos );
-			$rango = $res->addChild( 'RangoUtilizados' );
-			$rango->addChild( 'Inicial', (string) $range['D'] );
-			$rango->addChild( 'Final', (string) $last );
+						$caf        = simplexml_load_file( $path );
+						$range      = array(
+							'D' => (int) ( $caf->CAF->DA->RNG->D ?? 0 ),
+							'H' => (int) ( $caf->CAF->DA->RNG->H ?? 0 ),
+						);
+						$option_key = 'sii_boleta_dte_last_folio_' . (int) $tipo;
+						$last       = function_exists( 'get_option' ) ? (int) get_option( $option_key, $range['D'] - 1 ) : $range['D'] - 1;
+						if ( $last < $range['D'] ) {
+							continue;
+						}
+						$emitidos = $last - $range['D'] + 1;
+						$res      = $xml->addChild( 'Resumen' );
+						$res->addAttribute( 'TipoDTE', (string) (int) $tipo );
+						$res->addChild( 'FoliosEmitidos', (string) $emitidos );
+						$res->addChild( 'FoliosAnulados', '0' );
+						$res->addChild( 'FoliosUtilizados', (string) $emitidos );
+						$rango = $res->addChild( 'RangoUtilizados' );
+						$rango->addChild( 'Inicial', (string) $range['D'] );
+						$rango->addChild( 'Final', (string) $last );
 		}
 		return $xml->asXML();
 	}

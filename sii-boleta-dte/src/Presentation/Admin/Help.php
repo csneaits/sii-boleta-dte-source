@@ -5,13 +5,13 @@ namespace Sii\BoletaDte\Presentation\Admin;
  * Minimal help page stub.
  */
 class Help {
-    public function register_page(): void {
-        // no-op for tests
-    }
+	public function register_page(): void {
+		// no-op for tests
+	}
 
-    public function render_page(): void {
-        echo '<div class="wrap"><h1>Ayuda Boleta SII</h1></div>';
-    }
+	public function render_page(): void {
+		echo '<div class="wrap"><h1>Ayuda Boleta SII</h1></div>';
+	}
 }
 
 class_alias( Help::class, 'SII_Boleta_Help' );

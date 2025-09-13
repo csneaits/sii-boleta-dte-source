@@ -9,10 +9,10 @@ use Sii\BoletaDte\Infrastructure\WooCommerce\WooCommerceDteRepository;
  * Factory para la creación de repositorios.
  */
 class RepositoryFactory {
-    /**
-     * Crea la instancia del repositorio de DTE.
-     */
-    public static function create_dte_repository(): DteRepository {
-        return new WooCommerceDteRepository();
-    }
+	/**
+	 * Crea la instancia del repositorio de DTE.
+	 */
+	public static function create_dte_repository(): DteRepository {
+		return new WooCommerceDteRepository();
+	}
 }

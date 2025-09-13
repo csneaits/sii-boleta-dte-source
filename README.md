@@ -5,11 +5,26 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
 ## Estructura
 
 - `sii-boleta-dte/` – carpeta del plugin con todos los archivos de código (PHP) que implementan la integración con el Servicio de Impuestos Internos de Chile, generación de XML, firma digital, manejo de folios, integración con WooCommerce, tareas cron para el Resumen de Ventas Diarias (RVD) y representación en PDF/HTML.
-   - `src/modules/` – contiene las clases que encapsulan cada responsabilidad (API, gestor de folios, generador de XML, firma, PDF, RVD, cron y WooCommerce).
+  - `src/` – código fuente organizado según una arquitectura **hexagonal** (ports & adapters) que separa la lógica de negocio de las dependencias externas.
+    - `Domain/` – entidades y reglas de negocio puras.
+    - `Application/` – casos de uso que orquestan el dominio.
+    - `Infrastructure/` – adaptadores concretos (WordPress, WooCommerce, APIs, persistencia).
+    - `Admin/` – interfaz de administración de WordPress, considerada un adaptador de presentación.
+    - `Core/` – punto de arranque del plugin y registro de servicios.
+    - `modules/` – componentes heredados del plugin original que están en proceso de migración hacia las capas anteriores.
   - `resources/` – plantillas y recursos de LibreDTE. Copia aquí los `resources` de LibreDTE si tu build los busca fuera de vendor.
   - `resources/templates/billing/document/renderer/estandar.html.twig` – plantilla Twig adaptada del diseño original de LibreDTE, con soporte de logo y detalle y clases de formato A4/80mm.
 - `build.sh` – script de empaquetado para sistemas Linux/macOS. Genera un ZIP instalable bajo `dist/` con el número de versión que aparece en el encabezado del plugin.
 - `build.ps1` – script de empaquetado para PowerShell (Windows). Cumple la misma función que `build.sh`, pero adaptado a entornos Windows.
+
+### Opciones de mejora
+
+Aunque la distribución actual permite trabajar con WordPress, aún mezcla módulos heredados con las capas hexagonales. Algunas ideas para consolidar el diseño:
+
+- Migrar gradualmente los archivos de `src/modules/` a adaptadores dentro de `Infrastructure/` (por ejemplo `Infrastructure/WooCommerce`, `Infrastructure/Rest`, `Infrastructure/Cli`).
+- Definir interfaces en `Domain` y registrar sus implementaciones mediante fábricas o un contenedor de dependencias.
+- Extraer una capa de **presentación** separada (por ejemplo `UI/` o `Presentation/`) para desacoplar `Admin/` de WordPress y facilitar pruebas aisladas.
+- Agrupar utilidades compartidas (logging, helpers) en un paquete `Shared/` para evitar dependencias circulares y reutilizar componentes.
 
 ## Cómo compilar el plugin
 

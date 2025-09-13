@@ -35,8 +35,8 @@ function sii_boleta_dte_uninstall() {
 }
 
 // Registrar autoload para las clases del plugin.
-require_once SII_BOLETA_DTE_PATH . 'src/includes/autoload.php';
-require_once SII_BOLETA_DTE_PATH . 'src/includes/class-sii-logger.php';
+require_once SII_BOLETA_DTE_PATH . 'src/modules/autoload.php';
+require_once SII_BOLETA_DTE_PATH . 'src/modules/class-sii-logger.php';
 
 // Cargar autoload de Composer desde ubicaciones comunes
 if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
@@ -48,12 +48,12 @@ if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-    require_once SII_BOLETA_DTE_PATH . 'src/includes/class-sii-boleta-cli.php';
+    require_once SII_BOLETA_DTE_PATH . 'src/modules/class-sii-boleta-cli.php';
 }
 
 // Incluir librerías externas necesarias si Composer no las cargó.
 if ( ! class_exists( '\RobRichards\XMLSecLibs\XMLSecurityDSig', false ) ) {
-    require_once SII_BOLETA_DTE_PATH . 'src/includes/libs/xmlseclibs.php';
+    require_once SII_BOLETA_DTE_PATH . 'src/modules/libs/xmlseclibs.php';
 }
 // Eliminado soporte PDF nativo: se usa renderer LibreDTE
 
@@ -63,7 +63,7 @@ if ( ! class_exists( '\RobRichards\XMLSecLibs\XMLSecurityDSig', false ) ) {
  * Siguiendo el patrón de diseño utilizado en el plugin de ejemplo proporcionado
  * (carpeta `csneaits-asistent-ia`), esta clase se limita a orquestar el registro
  * de dependencias y ganchos (hooks). La funcionalidad específica se delega a
- * clases especializadas ubicadas en el directorio `src/includes/`.
+ * clases especializadas ubicadas en el directorio `src/modules/`.
  */
 final class SII_Boleta_DTE {
 

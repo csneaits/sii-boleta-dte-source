@@ -34,11 +34,7 @@ function sii_boleta_dte_uninstall() {
     delete_option( 'sii_boleta_dte_rvd_sent_dates' );
 }
 
-// Registrar autoload para las clases del plugin.
-require_once SII_BOLETA_DTE_PATH . 'src/modules/autoload.php';
-require_once SII_BOLETA_DTE_PATH . 'src/modules/sii-logger.php';
-
-// Cargar autoload de Composer desde ubicaciones comunes
+// Autoload de Composer
 if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
     require_once SII_BOLETA_DTE_PATH . 'vendor/autoload.php';
 } elseif ( defined( 'ABSPATH') && file_exists( ABSPATH . 'vendor/autoload.php' ) ) {
@@ -47,8 +43,10 @@ if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
     require_once WP_CONTENT_DIR . '/vendor/autoload.php';
 }
 
+// Cargar autoload de Composer desde ubicaciones comunes
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-    require_once SII_BOLETA_DTE_PATH . 'src/modules/sii-boleta-cli.php';
+    // CLI commands autoloaded via Composer classes
+    class_exists( '\\Sii\\BoletaDte\\Infrastructure\\Cli' );
 }
 
 // Eliminado soporte PDF nativo: se usa renderer LibreDTE
@@ -59,7 +57,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
  * Siguiendo el patrón de diseño utilizado en el plugin de ejemplo proporcionado
  * (carpeta `csneaits-asistent-ia`), esta clase se limita a orquestar el registro
  * de dependencias y ganchos (hooks). La funcionalidad específica se delega a
- * clases especializadas ubicadas en el directorio `src/modules/`.
+ * clases especializadas ubicadas en el directorio `src/`.
  */
 final class SII_Boleta_DTE {
 
@@ -82,7 +80,7 @@ final class SII_Boleta_DTE {
         // Instanciar la clase núcleo que configura todas las funcionalidades
         $core = new \Sii\BoletaDte\Core\Plugin();
         // Instanciar el manejador de cron para registrar el callback del evento
-        new SII_Boleta_Cron( $core->get_settings() );
+        new \Sii\BoletaDte\Infrastructure\Cron( $core->get_settings() );
 
     }
 
@@ -95,10 +93,10 @@ new SII_Boleta_DTE();
 // los eventos cron cuando se active o desactive el plugin. Estos hooks no
 // pueden declararse dentro de un método porque necesitan ejecutarse en el
 // momento de activación del plugin.
-register_activation_hook( __FILE__, [ 'SII_Boleta_Cron', 'activate' ] );
-register_deactivation_hook( __FILE__, [ 'SII_Boleta_Cron', 'deactivate' ] );
+register_activation_hook( __FILE__, [ \Sii\BoletaDte\Infrastructure\Cron::class, 'activate' ] );
+register_deactivation_hook( __FILE__, [ \Sii\BoletaDte\Infrastructure\Cron::class, 'deactivate' ] );
 // Crear tabla de log consolidado al activar el plugin.
-register_activation_hook( __FILE__, [ 'SII_Boleta_Log_DB', 'install' ] );
+register_activation_hook( __FILE__, [ \Sii\BoletaDte\Infrastructure\Persistence\LogDb::class, 'install' ] );
 
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     /**
@@ -110,12 +108,12 @@ if ( ! function_exists( 'sii_boleta_write_log' ) ) {
      * @param string $level   Nivel del log (INFO, WARN, ERROR).
      */
     function sii_boleta_write_log( $message, $level = 'INFO' ) {
-        $settings        = get_option( SII_Boleta_Settings::OPTION_NAME, [] );
+        $settings        = get_option( \Sii\BoletaDte\Infrastructure\Settings::OPTION_NAME, [] );
         $logging_enabled = ! empty( $settings['enable_logging'] );
         if ( ! $logging_enabled && ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) ) {
             // Solo registrar si el modo debug está activo o si se habilitó explícitamente en los ajustes.
             return;
         }
-        SII_Logger::log( strtoupper( $level ), $message );
+        \Sii\BoletaDte\Infrastructure\Logger::log( strtoupper( $level ), $message );
     }
 }

@@ -2,6 +2,7 @@
 namespace Sii\BoletaDte\Admin;
 
 use Sii\BoletaDte\Core\Plugin;
+use Sii\BoletaDte\Infrastructure\Settings;
 
 class Ajax {
     private Plugin $core;
@@ -28,7 +29,7 @@ class Ajax {
         }
         $profile = isset($_POST['profile']) ? \sanitize_text_field( \wp_unslash( $_POST['profile'] ) ) : '';
 
-        $settings = new \SII_Boleta_Settings();
+        $settings = new Settings();
         $conn = method_exists( $settings, 'get_fluent_smtp_connection' ) ? $settings->get_fluent_smtp_connection( $profile ) : null;
         $from_email = is_array($conn) && ! empty( $conn['sender_email'] ) ? $conn['sender_email'] : \get_option('admin_email');
         $from_name  = is_array($conn) && ! empty( $conn['sender_name'] )  ? $conn['sender_name']  : \get_bloginfo('name');

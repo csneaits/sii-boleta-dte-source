@@ -1,11 +1,13 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Settings;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
-    class Dummy_Settings extends SII_Boleta_Settings {
+    class Dummy_Settings extends Settings {
         private $data;
         public function __construct( array $data ) { $this->data = $data; }
-        public function get_settings() { return $this->data; }
+        public function get_settings(): array { return $this->data; }
     }
 }
 
@@ -26,7 +28,7 @@ class BoletaTotalsTest extends TestCase {
     }
 
     public function test_boleta_afecta_totals() {
-        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
+        $engine = new LibreDteEngine( $this->get_settings() );
         $data = [
             'Folio' => 1,
             'FchEmis' => '2024-05-01',
@@ -57,7 +59,7 @@ class BoletaTotalsTest extends TestCase {
     }
 
     public function test_boleta_exenta_totals() {
-        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
+        $engine = new LibreDteEngine( $this->get_settings() );
         $data = [
             'Folio' => 2,
             'FchEmis' => '2024-05-01',
@@ -87,7 +89,7 @@ class BoletaTotalsTest extends TestCase {
     }
 
     public function test_boleta_rounding_totals_multiple_items() {
-        $engine = new SII_LibreDTE_Engine( $this->get_settings() );
+        $engine = new LibreDteEngine( $this->get_settings() );
         $data = [
             'Folio' => 3,
             'FchEmis' => '2024-05-01',

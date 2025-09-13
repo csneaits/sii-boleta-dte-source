@@ -11,7 +11,6 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
     - `Infrastructure/` – adaptadores concretos (WordPress, WooCommerce, APIs, persistencia).
     - `Admin/` – interfaz de administración de WordPress, considerada un adaptador de presentación.
     - `Core/` – punto de arranque del plugin y registro de servicios.
-    - `modules/` – componentes heredados del plugin original que están en proceso de migración hacia las capas anteriores.
   - `resources/` – plantillas y recursos de LibreDTE. Copia aquí los `resources` de LibreDTE si tu build los busca fuera de vendor.
   - `resources/templates/billing/document/renderer/estandar.html.twig` – plantilla Twig adaptada del diseño original de LibreDTE, con soporte de logo y detalle y clases de formato A4/80mm.
 - `build.sh` – script de empaquetado para sistemas Linux/macOS. Genera un ZIP instalable bajo `dist/` con el número de versión que aparece en el encabezado del plugin.
@@ -21,7 +20,7 @@ Plugin WordPress para emisión de DTE (boletas, facturas, guías, notas) con int
 
 Aunque la distribución actual permite trabajar con WordPress, aún mezcla módulos heredados con las capas hexagonales. Algunas ideas para consolidar el diseño:
 
-- Migrar gradualmente los archivos de `src/modules/` a adaptadores dentro de `Infrastructure/` (por ejemplo `Infrastructure/WooCommerce`, `Infrastructure/Rest`, `Infrastructure/Cli`).
+- Migrar gradualmente los componentes heredados a adaptadores dentro de `Infrastructure/` (por ejemplo `Infrastructure/WooCommerce`, `Infrastructure/Rest`, `Infrastructure/Cli`).
 - Definir interfaces en `Domain` y registrar sus implementaciones mediante fábricas o un contenedor de dependencias.
 - Extraer una capa de **presentación** separada (por ejemplo `UI/` o `Presentation/`) para desacoplar `Admin/` de WordPress y facilitar pruebas aisladas.
 - Agrupar utilidades compartidas (logging, helpers) en un paquete `Shared/` para evitar dependencias circulares y reutilizar componentes.
@@ -127,7 +126,7 @@ Cambia al ambiente de producción únicamente después de completar exitosamente
 
 ## Resumen de Ventas Diarias
 
-El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `SII_Boleta_RVD_Manager` crea el archivo según el esquema oficial (`src/modules/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
+El plugin puede generar el XML de **Consumo de Folios** (RVD) para reportar al SII los montos diarios y los rangos de folios utilizados. La clase `RvdManager` crea el archivo según el esquema oficial (`resources/schemas/ConsumoFolio_v10.xsd`) e integra la firma digital con el certificado configurado.
 
 Para validar un archivo generado se puede utilizar `xmllint`:
 

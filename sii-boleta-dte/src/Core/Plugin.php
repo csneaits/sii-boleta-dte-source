@@ -3,48 +3,60 @@ namespace Sii\BoletaDte\Core;
 
 use Sii\BoletaDte\Admin\Ajax;
 use Sii\BoletaDte\Admin\Pages;
+use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Infrastructure\Signer;
+use Sii\BoletaDte\Infrastructure\Api;
+use Sii\BoletaDte\Application\RvdManager;
+use Sii\BoletaDte\Infrastructure\Endpoints;
+use Sii\BoletaDte\Infrastructure\Metrics;
+use Sii\BoletaDte\Application\ConsumoFolios;
+use Sii\BoletaDte\Application\Queue;
+use Sii\BoletaDte\Admin\Help;
+use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
+use Sii\BoletaDte\Infrastructure\Woo;
 
 class Plugin {
-    private \SII_Boleta_Settings $settings;
-    private \SII_Boleta_Folio_Manager $folio_manager;
-    private \SII_Boleta_Signer $signer;
-    private \SII_Boleta_API $api;
-    private \SII_Boleta_RVD_Manager $rvd_manager;
-    private \SII_Boleta_Endpoints $endpoints;
-    private \SII_Boleta_Woo $woo;
-    private \SII_Boleta_Metrics $metrics;
-    private \SII_Boleta_Consumo_Folios $consumo_folios;
-    private \SII_Boleta_Queue $queue;
-    private \SII_Boleta_Help $help;
-    private \SII_DTE_Engine $engine;
+    private Settings $settings;
+    private FolioManager $folio_manager;
+    private Signer $signer;
+    private Api $api;
+    private RvdManager $rvd_manager;
+    private Endpoints $endpoints;
+    private Woo $woo;
+    private Metrics $metrics;
+    private ConsumoFolios $consumo_folios;
+    private Queue $queue;
+    private Help $help;
+    private \Sii\BoletaDte\Domain\DteEngine $engine;
     private bool $libredte_missing = false;
     private Ajax $ajax;
     private Pages $pages;
 
     public function __construct() {
-        $this->settings      = new \SII_Boleta_Settings();
-        $this->folio_manager = new \SII_Boleta_Folio_Manager( $this->settings );
-        $this->signer        = new \SII_Boleta_Signer();
-        $this->api           = new \SII_Boleta_API();
-        $this->rvd_manager   = new \SII_Boleta_RVD_Manager( $this->settings );
-        $this->endpoints     = new \SII_Boleta_Endpoints();
-        $this->metrics       = new \SII_Boleta_Metrics();
-        $this->consumo_folios = new \SII_Boleta_Consumo_Folios( $this->settings, $this->folio_manager, $this->api );
+        $this->settings      = new Settings();
+        $this->folio_manager = new FolioManager( $this->settings );
+        $this->signer        = new Signer();
+        $this->api           = new Api();
+        $this->rvd_manager   = new RvdManager( $this->settings );
+        $this->endpoints     = new Endpoints();
+        $this->metrics       = new Metrics();
+        $this->consumo_folios = new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
 
         try {
-            $default_engine = new \SII_LibreDTE_Engine( $this->settings );
+            $default_engine = new LibreDteEngine( $this->settings );
         } catch ( \RuntimeException $e ) {
             $this->libredte_missing = true;
-            $default_engine         = new \SII_Null_Engine();
+            $default_engine         = new NullEngine();
         }
         $this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
-        $this->queue = new \SII_Boleta_Queue( $this->engine, $this->settings );
-        require_once SII_BOLETA_DTE_PATH . 'src/modules/admin/sii-boleta-help.php';
-        $this->help = new \SII_Boleta_Help();
+        $this->queue = new Queue( $this->engine, $this->settings );
+        $this->help  = new Help();
 
         if ( class_exists( 'WooCommerce' ) ) {
-            $this->woo = new \SII_Boleta_Woo( $this );
+            $this->woo = new Woo( $this );
         }
 
         $this->pages = new Pages( $this );

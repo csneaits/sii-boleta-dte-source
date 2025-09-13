@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Core;
+namespace Sii\BoletaDte\Infrastructure;
 
 use Sii\BoletaDte\Infrastructure\Admin\Ajax;
 use Sii\BoletaDte\Infrastructure\Admin\Pages;
@@ -116,3 +116,5 @@ class Plugin {
         }
     }
 }
+
+class_alias(\Sii\BoletaDte\Infrastructure\Plugin::class, "Sii\\BoletaDte\\Core\\Plugin");

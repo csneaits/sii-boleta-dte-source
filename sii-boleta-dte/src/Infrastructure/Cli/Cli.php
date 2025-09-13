@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\Cli;
 
 class Cli {
     public static function dte_emitir( $args, $assoc_args ) {}

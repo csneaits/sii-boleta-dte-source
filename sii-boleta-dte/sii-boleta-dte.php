@@ -46,7 +46,7 @@ if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
 // Cargar autoload de Composer desde ubicaciones comunes
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
     // CLI commands autoloaded via Composer classes
-    class_exists( '\\Sii\\BoletaDte\\Infrastructure\\Cli' );
+    class_exists( '\\Sii\\BoletaDte\\Infrastructure\\Cli\\Cli' );
 }
 
 // Eliminado soporte PDF nativo: se usa renderer LibreDTE
@@ -114,6 +114,8 @@ if ( ! function_exists( 'sii_boleta_write_log' ) ) {
             // Solo registrar si el modo debug está activo o si se habilitó explícitamente en los ajustes.
             return;
         }
-        \Sii\BoletaDte\Infrastructure\Logger::log( strtoupper( $level ), $message );
+        \Sii\BoletaDte\Infrastructure\Factory\Container::init();
+        $logger = \Sii\BoletaDte\Infrastructure\Factory\Container::get( \Sii\BoletaDte\Domain\Logger::class );
+        $logger->log( strtoupper( $level ), $message );
     }
 }

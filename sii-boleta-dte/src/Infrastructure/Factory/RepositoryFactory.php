@@ -3,7 +3,7 @@
 namespace Sii\BoletaDte\Infrastructure\Factory;
 
 use Sii\BoletaDte\Domain\DteRepository;
-use Sii\BoletaDte\Infrastructure\Persistence\WooCommerceDteRepository;
+use Sii\BoletaDte\Infrastructure\WooCommerce\WooCommerceDteRepository;
 
 /**
  * Factory para la creación de repositorios.

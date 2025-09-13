@@ -10,11 +10,14 @@ use Sii\BoletaDte\Domain\DteRepository;
  */
 class WooCommerceDteRepository implements DteRepository {
     /**
-     * Guarda un DTE.
-     *
-     * En una implementación real se interactuaría con WooCommerce.
+     * Guarda un DTE como meta del pedido en WooCommerce.
      */
     public function save( Dte $dte ): void {
-        // Implementación de ejemplo; aquí se podría guardar como meta de pedido.
+        if ( ! function_exists( 'update_post_meta' ) ) {
+            return;
+        }
+
+        update_post_meta( (int) $dte->get_id(), '_sii_boleta_dte_data', $dte->get_data() );
     }
 }
+

@@ -1,9 +1,9 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Infrastructure\Factory;
+namespace Sii\BoletaDte\Infrastructure\Factory;
 
-use Sii\BoletaDte\Hexagonal\Domain\DteRepository;
-use Sii\BoletaDte\Hexagonal\Infrastructure\Persistence\WooCommerceDteRepository;
+use Sii\BoletaDte\Domain\DteRepository;
+use Sii\BoletaDte\Infrastructure\Persistence\WooCommerceDteRepository;
 
 /**
  * Factory para la creación de repositorios.

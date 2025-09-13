@@ -1,9 +1,9 @@
 <?php
 
-namespace Sii\BoletaDte\Hexagonal\Infrastructure\Persistence;
+namespace Sii\BoletaDte\Infrastructure\Persistence;
 
-use Sii\BoletaDte\Hexagonal\Domain\Dte;
-use Sii\BoletaDte\Hexagonal\Domain\DteRepository;
+use Sii\BoletaDte\Domain\Dte;
+use Sii\BoletaDte\Domain\DteRepository;
 
 /**
  * Adaptador de persistencia hacia WooCommerce.

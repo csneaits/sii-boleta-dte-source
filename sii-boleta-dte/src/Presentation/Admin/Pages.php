@@ -2,23 +2,29 @@
 namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Plugin;
+use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 
 class Pages {
-	private Plugin $core;
+        private Plugin $core;
+        private SettingsPage $settings_page;
 
-	public function __construct( Plugin $core ) {
-		$this->core = $core;
-	}
+        public function __construct( Plugin $core, SettingsPage $settings_page = null ) {
+                $this->core          = $core;
+                $this->settings_page = $settings_page ?? new SettingsPage( $core->get_settings() );
+        }
 
 	public function register(): void {
 		\add_menu_page(
 			\__( 'SII Boletas', 'sii-boleta-dte' ),
 			\__( 'SII Boletas', 'sii-boleta-dte' ),
-			'manage_options',
-			'sii-boleta-dte',
-			array( $this->core->get_settings(), 'render_settings_page' ),
-			'dashicons-media-document'
-		);
+                        'manage_options',
+                        'sii-boleta-dte',
+                        array( $this->settings_page, 'render_page' ),
+                        'dashicons-media-document'
+                );
+
+                // Register settings sections and fields.
+                $this->settings_page->register();
 
 		\add_submenu_page(
 			'sii-boleta-dte',

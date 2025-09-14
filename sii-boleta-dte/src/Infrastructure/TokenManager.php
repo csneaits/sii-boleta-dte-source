@@ -19,11 +19,13 @@ class TokenManager
 
     /**
      * Request a token from SII using stored certificate credentials.
+     *
+     * @param string|null $environment Optional environment override.
      */
-    public function get_token(): string
+    public function get_token(?string $environment = null): string
     {
         $opts     = (array) $this->settings->get_settings();
-        $env      = $opts['environment'] ?? 'test';
+        $env      = $environment ?? ($opts['environment'] ?? 'test');
         $certPath = $opts['cert_path'] ?? '';
         $certPass = $opts['cert_pass'] ?? '';
 

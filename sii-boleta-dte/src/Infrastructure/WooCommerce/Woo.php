@@ -18,39 +18,15 @@ class Woo {
 	/** Register hooks with WooCommerce. */
 	public function register(): void {
 		if ( ! function_exists( 'add_action' ) ) {
-			return;
+				return;
 		}
-		add_action( 'woocommerce_after_order_notes', array( $this, 'render_document_type_field' ) );
-		add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'save_document_type' ) );
-		add_action( 'woocommerce_order_status_completed', array( $this, 'handle_order_completed' ) );
+				// Checkout field handling is delegated to CheckoutFields class.
+				add_action( 'woocommerce_order_status_completed', array( $this, 'handle_order_completed' ) );
 	}
 
-	/**
-	 * Displays document type selector at checkout.
-	 */
-	public function render_document_type_field( $checkout ): void {
-		$types   = $this->get_enabled_document_types();
-		$options = '';
-		foreach ( $types as $code => $label ) {
-			$options .= '<option value="' . esc_attr( (string) $code ) . '">' . esc_html( $label ) . '</option>';
-		}
-		echo '<p class="form-row"><label>' . esc_html__( 'Document type', 'sii-boleta-dte' ) . '</label><select name="sii_boleta_doc_type">' . $options . '</select></p>';
-	}
-
-	/** Saves selected document type to order meta. */
-	public function save_document_type( int $order_id ): void {
-		if ( ! isset( $_POST['sii_boleta_doc_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			return;
-		}
-		$type = sanitize_text_field( (string) $_POST['sii_boleta_doc_type'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( function_exists( 'update_post_meta' ) ) {
-			update_post_meta( $order_id, '_sii_boleta_doc_type', $type );
-		}
-	}
-
-	/**
-	 * Generates and sends a DTE when an order is completed.
-	 */
+		/**
+		 * Generates and sends a DTE when an order is completed.
+		 */
 	public function handle_order_completed( int $order_id ): void {
 		if ( ! function_exists( 'get_post_meta' ) || ! function_exists( 'update_post_meta' ) ) {
 			return;
@@ -74,34 +50,17 @@ class Woo {
 		}
 		$file = tempnam( sys_get_temp_dir(), 'dte' );
 		file_put_contents( $file, $xml );
-		$token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
-		$token         = $token_manager->get_token( 'boleta' );
-		$track_id      = $this->plugin->get_api()->send_dte_to_sii( $file, 'boleta', $token );
+			$token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
+			$token         = $token_manager->get_token( 'boleta' );
+			$track_id      = $this->plugin->get_api()->send_dte_to_sii( $file, 'boleta', $token );
 		if ( ! is_wp_error( $track_id ) ) {
-			update_post_meta( $order_id, '_sii_boleta_track_id', $track_id );
+				update_post_meta( $order_id, '_sii_boleta_track_id', $track_id );
 		}
-		unlink( $file );
-	}
-
-	/**
-	 * Returns enabled document types from settings.
-	 *
-	 * @return array<int,string>
-	 */
-	private function get_enabled_document_types(): array {
-		$settings = $this->plugin->get_settings()->get_settings();
-		$enabled  = $settings['enabled_types'] ?? array( 39, 33 );
-		$labels   = array(
-			33 => __( 'Factura', 'sii-boleta-dte' ),
-			39 => __( 'Boleta', 'sii-boleta-dte' ),
-		);
-		$types    = array();
-		foreach ( $enabled as $code ) {
-			if ( isset( $labels[ $code ] ) ) {
-				$types[ $code ] = $labels[ $code ];
-			}
+			$pdf = $engine->render_pdf( $xml );
+		if ( is_string( $pdf ) ) {
+				update_post_meta( $order_id, '_sii_boleta_pdf', $pdf );
 		}
-		return $types;
+			unlink( $file );
 	}
 }
 

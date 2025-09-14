@@ -73,8 +73,11 @@ composer phpcs
 En **Ajustes → SII Boletas** define:
 
 - Datos del emisor (`RUT`, `Razón Social`, `Giro`, `Dirección`, `Comuna`, `Acteco` y opcional `CdgSIISucur`).
-- Rutas al certificado digital y a los CAF por tipo de DTE.
-- Ambiente de trabajo (`test` o `production`) y formato del PDF.
+- Ruta del certificado digital y su contraseña, más las rutas a los CAF por tipo de DTE (puedes ingresar múltiples rutas, una por línea).
+- Ambiente de trabajo (`test` o `production`).
+- Tipos de DTE habilitados para WooCommerce.
+- Opciones del PDF: formato (`carta` o `boleta`), mostrar u ocultar el logotipo, nota de pie de página y ruta del logotipo de la empresa.
+- Perfil SMTP a utilizar (por ejemplo FluentSMTP) y habilitar o deshabilitar el registro en archivos.
 
 ### Migración desde versiones anteriores
 
@@ -97,9 +100,16 @@ WordPress y permite filtrar por estado o track ID.
 El cliente `Api` maneja la generación de tokens, el envío de DTE y consulta de
 estado contra los servicios del SII.  Soporta un número configurable de reintentos
 ante fallos de red u otros errores HTTP.  La integración con WooCommerce añade un
-selector de tipo de documento en el checkout, genera el DTE al marcar el pedido
-como completado y guarda el track ID devuelto por el SII en los metadatos del
-pedido.
+selector de tipo de documento y campo RUT en el checkout, genera el DTE al marcar
+el pedido como completado, guarda el track ID devuelto por el SII y almacena el
+PDF generado para que pueda descargarse desde la pantalla de edición del pedido.
+
+### Diagnóstico y ayuda
+
+Desde el menú del plugin puedes acceder a un panel de **diagnóstico** que verifica
+requisitos básicos y permite probar la generación de tokens y la conectividad con
+los servicios del SII.  También se incluye una página de **ayuda** con enlaces a la
+documentación del proyecto y guías de uso.
 
 ## Contribuciones
 

@@ -14,6 +14,11 @@ use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
 use Sii\BoletaDte\Shared\SharedLogger;
+use Sii\BoletaDte\Presentation\Admin\SettingsPage;
+use Sii\BoletaDte\Presentation\Admin\LogsPage;
+use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
+use Sii\BoletaDte\Presentation\Admin\Help;
+use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 
 /**
  * Simple Dependency Injection container.
@@ -22,30 +27,35 @@ class Container {
 	/** @var array<class-string, callable> */
 	private static array $bindings = array();
 
-        public static function init(): void {
-                if ( self::$bindings ) {
-                        return;
-                }
+	public static function init(): void {
+		if ( self::$bindings ) {
+				return;
+		}
 
-                self::bind( Settings::class, fn() => new Settings() );
-                self::bind( Logger::class, fn() => new SharedLogger( self::get( Settings::class ) ) );
-                self::bind( DteRepository::class, fn() => new WooCommerceDteRepository() );
-                self::bind( DteEngine::class, fn() => new LibreDteEngine( self::get( Settings::class ) ) );
-                self::bind(
-                        Api::class,
-                        function () {
-                                $settings = self::get( Settings::class );
-                                $cfg      = $settings->get_settings();
-                                $retries  = isset( $cfg['api_retries'] ) ? (int) $cfg['api_retries'] : 3;
-                                return new Api( self::get( Logger::class ), $retries );
-                        }
-                );
-                self::bind( TokenManager::class, fn() => new TokenManager( self::get( Api::class ), self::get( Settings::class ) ) );
-                self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ) ) );
-                self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );
-                self::bind( RvdManager::class, fn() => new RvdManager( self::get( Settings::class ) ) );
-                self::bind( Woo::class, fn() => new Woo( null ) );
-        }
+			self::bind( Settings::class, fn() => new Settings() );
+			self::bind( Logger::class, fn() => new SharedLogger( self::get( Settings::class ) ) );
+			self::bind( DteRepository::class, fn() => new WooCommerceDteRepository() );
+			self::bind( DteEngine::class, fn() => new LibreDteEngine( self::get( Settings::class ) ) );
+			self::bind(
+				Api::class,
+				function () {
+						$settings = self::get( Settings::class );
+						$cfg      = $settings->get_settings();
+						$retries  = isset( $cfg['api_retries'] ) ? (int) $cfg['api_retries'] : 3;
+						return new Api( self::get( Logger::class ), $retries );
+				}
+			);
+			self::bind( TokenManager::class, fn() => new TokenManager( self::get( Api::class ), self::get( Settings::class ) ) );
+			self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ) ) );
+			self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );
+			self::bind( RvdManager::class, fn() => new RvdManager( self::get( Settings::class ) ) );
+			self::bind( Woo::class, fn() => new Woo( null ) );
+			self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
+			self::bind( LogsPage::class, fn() => new LogsPage() );
+			self::bind( DiagnosticsPage::class, fn() => new DiagnosticsPage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ) ) );
+			self::bind( Help::class, fn() => new Help() );
+			self::bind( CheckoutFields::class, fn() => new CheckoutFields( self::get( Settings::class ) ) );
+	}
 
 	/**
 	 * Registers a factory for a given identifier.

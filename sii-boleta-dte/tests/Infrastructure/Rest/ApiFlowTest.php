@@ -31,6 +31,19 @@ if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
         return $response['body'] ?? '';
     }
 }
+if ( ! function_exists( 'wp_remote_get' ) ) {
+    function wp_remote_get( $url, $args = array() ) {
+        $GLOBALS['wp_remote_get_calls']++;
+        if ( ! isset( $GLOBALS['wp_remote_get_queue'] ) ) {
+            $GLOBALS['wp_remote_get_queue'] = array();
+        }
+        $queue = &$GLOBALS['wp_remote_get_queue'];
+        if ( empty( $queue ) ) {
+            return new WP_Error( 'empty_queue', '' );
+        }
+        return array_shift( $queue );
+    }
+}
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     function sii_boleta_write_log( $msg ) {}
 }
@@ -135,5 +148,14 @@ class ApiFlowTest extends TestCase {
         $this->assertTrue( is_wp_error( $res ) );
         $this->assertSame( 'sii_boleta_libro_http_error', $res->get_error_code() );
         $this->assertSame( 3, $GLOBALS['wp_remote_post_calls'] );
+    }
+
+    public function test_get_dte_status_returns_status() {
+        $GLOBALS['wp_remote_get_calls'] = 0;
+        $GLOBALS['wp_remote_get_queue'] = [ [ 'response' => [ 'code' => 200 ], 'body' => '{"status":"accepted"}' ] ];
+        $api    = new Api();
+        $status = $api->get_dte_status( '123', 'test', 'token' );
+        $this->assertSame( 'accepted', $status );
+        $this->assertSame( 1, $GLOBALS['wp_remote_get_calls'] );
     }
 }

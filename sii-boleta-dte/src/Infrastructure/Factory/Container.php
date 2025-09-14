@@ -31,7 +31,7 @@ class Container {
                 self::bind( Logger::class, fn() => new SharedLogger( self::get( Settings::class ) ) );
                 self::bind( DteRepository::class, fn() => new WooCommerceDteRepository() );
                 self::bind( DteEngine::class, fn() => new LibreDteEngine( self::get( Settings::class ) ) );
-                self::bind( Api::class, fn() => new Api() );
+                self::bind( Api::class, fn() => new Api( self::get( Logger::class ) ) );
                 self::bind( TokenManager::class, fn() => new TokenManager( self::get( Api::class ), self::get( Settings::class ) ) );
                 self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ) ) );
                 self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );

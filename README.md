@@ -76,6 +76,20 @@ En **Ajustes → SII Boletas** define:
 - Rutas al certificado digital y a los CAF por tipo de DTE.
 - Ambiente de trabajo (`test` o `production`) y formato del PDF.
 
+### Migración desde versiones anteriores
+
+Al activar una versión nueva del plugin se migrarán automáticamente los ajustes
+antiguos (`sii_boleta_dte_settings`) y los archivos de registro existentes al
+nuevo esquema basado en base de datos. Esta migración se ejecuta una sola vez y
+no altera los datos originales.
+
+### Registro y visualización de logs
+
+Los mensajes se almacenan en la tabla personalizada `sii_boleta_dte_logs` y de
+forma opcional en archivos dentro de `wp-content/uploads/sii-boleta-logs/`. En
+la página de ajustes puedes habilitar o deshabilitar cada método de registro y
+consultar las últimas entradas desde el administrador de WordPress.
+
 ## Contribuciones
 
 1. Haz fork del repositorio y crea una rama descriptiva.

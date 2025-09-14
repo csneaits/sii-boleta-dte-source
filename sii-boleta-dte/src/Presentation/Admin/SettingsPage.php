@@ -20,7 +20,13 @@ class SettingsPage {
         if ( ! function_exists( 'register_setting' ) ) {
             return;
         }
-        register_setting( Settings::OPTION_GROUP, Settings::OPTION_NAME );
+        register_setting(
+            Settings::OPTION_GROUP,
+            Settings::OPTION_NAME,
+            array(
+                'sanitize_callback' => array( $this, 'sanitize_settings' ),
+            )
+        );
         add_settings_section( 'sii_boleta_main', __( 'General', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
         add_settings_field(
             'rut_emisor',
@@ -48,6 +54,58 @@ class SettingsPage {
         do_settings_sections( 'sii-boleta-dte' );
         submit_button();
         echo '</form></div>';
+    }
+
+    /**
+     * Sanitizes and validates settings before saving.
+     *
+     * @param array<string,mixed> $input Raw input data.
+     * @return array<string,mixed>
+     */
+    public function sanitize_settings( array $input ): array {
+        $output = array();
+
+        if ( isset( $input['rut_emisor'] ) ) {
+            $rut = sanitize_text_field( $input['rut_emisor'] );
+            if ( ! preg_match( '/^[0-9kK-]+$/', $rut ) ) {
+                add_settings_error( 'rut_emisor', 'invalid_rut', __( 'Invalid RUT format.', 'sii-boleta-dte' ) );
+            } else {
+                $output['rut_emisor'] = $rut;
+            }
+        }
+
+        if ( isset( $input['razon_social'] ) ) {
+            $output['razon_social'] = sanitize_text_field( $input['razon_social'] );
+        }
+
+        if ( isset( $input['giro'] ) ) {
+            $output['giro'] = sanitize_text_field( $input['giro'] );
+        }
+
+        if ( isset( $input['cert_path'] ) ) {
+            $output['cert_path'] = sanitize_file_name( $input['cert_path'] );
+        }
+
+        if ( isset( $input['caf_path'] ) ) {
+            if ( is_array( $input['caf_path'] ) ) {
+                $output['caf_path'] = array_map( 'sanitize_file_name', $input['caf_path'] );
+            } else {
+                $output['caf_path'] = sanitize_file_name( $input['caf_path'] );
+            }
+        }
+
+        if ( isset( $input['environment'] ) ) {
+            $output['environment'] = intval( $input['environment'] );
+        }
+
+        if ( isset( $input['cert_pass'] ) ) {
+            $pass = sanitize_text_field( $input['cert_pass'] );
+            if ( '' !== $pass ) {
+                $output['cert_pass'] = Settings::encrypt( $pass );
+            }
+        }
+
+        return $output;
     }
 }
 

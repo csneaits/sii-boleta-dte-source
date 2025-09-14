@@ -6,83 +6,76 @@ namespace Sii\BoletaDte\Application;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+use Sii\BoletaDte\Infrastructure\Cron;
 
 /**
- * Very small in-memory queue persisted via WordPress options.
+ * Persistent queue backed by a custom database table.
  *
  * Jobs are arrays with a 'type' key and additional data depending on the
  * operation. Supported types: `dte` and `libro` for sending DTE XML files or
- * Libro XML strings to SII through the Api class.
+ * Libro/RVD XML strings to SII through the Api class.
  */
 class Queue {
 	private DteEngine $engine;
 	private Settings $settings;
 	private Api $api;
-		/** @var callable */
-		private $get_option;
-		/** @var callable */
-		private $update_option;
-		/** @var callable */
-		private $sleep;
-		/** @var array<int,array<string,mixed>> */
-	private array $jobs = array();
+	/** @var callable */
+	private $sleep;
 
-	public function __construct( DteEngine $engine, Settings $settings, Api $api, callable $get_option = null, callable $update_option = null, callable $sleep = null ) {
-			$this->engine        = $engine;
-			$this->settings      = $settings;
-			$this->api           = $api;
-			$this->get_option    = $get_option ?? ( \function_exists( 'get_option' ) ? 'get_option' : static fn( string $k, $d = null ) => $d );
-			$this->update_option = $update_option ?? ( \function_exists( 'update_option' ) ? 'update_option' : static fn( string $k, $v ): bool => true );
-			$this->sleep         = $sleep ?? 'sleep';
-
-			$stored = \call_user_func( $this->get_option, 'sii_boleta_dte_queue', array() );
-		if ( \is_array( $stored ) ) {
-				$this->jobs = $stored;
+	public function __construct( DteEngine $engine, Settings $settings, Api $api, callable $sleep = null ) {
+		$this->engine   = $engine;
+		$this->settings = $settings;
+		$this->api      = $api;
+		$this->sleep    = $sleep ?? 'sleep';
+		QueueDb::install();
+		if ( function_exists( 'add_action' ) ) {
+			add_action( Cron::HOOK, array( $this, 'process' ) );
 		}
 	}
 
 	public function enqueue_dte( string $file, string $environment, string $token ): void {
-		$this->jobs[] = array(
-			'type'        => 'dte',
-			'file'        => $file,
-			'environment' => $environment,
-			'token'       => $token,
+		QueueDb::enqueue(
+			'dte',
+			array(
+				'file'        => $file,
+				'environment' => $environment,
+				'token'       => $token,
+			)
 		);
-		$this->persist();
 	}
 
 	public function enqueue_libro( string $xml, string $environment, string $token ): void {
-		$this->jobs[] = array(
-			'type'        => 'libro',
-			'xml'         => $xml,
-			'environment' => $environment,
-			'token'       => $token,
+		QueueDb::enqueue(
+			'libro',
+			array(
+				'xml'         => $xml,
+				'environment' => $environment,
+				'token'       => $token,
+			)
 		);
-		$this->persist();
 	}
 
 	/**
-	 * Processes all queued jobs sequentially using the Api class.
+	 * Processes queued jobs sequentially using the Api class.
+	 * Retries a maximum of three times before discarding the job.
 	 */
 	public function process(): void {
-		if ( \call_user_func( $this->get_option, 'sii_boleta_dte_queue_lock', false ) ) {
-				return;
-		}
-			\call_user_func( $this->update_option, 'sii_boleta_dte_queue_lock', true );
-		while ( $job = \array_shift( $this->jobs ) ) {
-			if ( 'dte' === ( $job['type'] ?? '' ) ) {
-					$this->api->send_dte_to_sii( $job['file'], $job['environment'], $job['token'] );
-			} elseif ( 'libro' === ( $job['type'] ?? '' ) ) {
-					$this->api->send_libro_to_sii( $job['xml'], $job['environment'], $job['token'] );
+		$jobs = QueueDb::get_pending_jobs();
+		foreach ( $jobs as $job ) {
+			$result = null;
+			if ( 'dte' === $job['type'] ) {
+				$result = $this->api->send_dte_to_sii( $job['payload']['file'], $job['payload']['environment'], $job['payload']['token'] );
+			} elseif ( 'libro' === $job['type'] ) {
+				$result = $this->api->send_libro_to_sii( $job['payload']['xml'], $job['payload']['environment'], $job['payload']['token'] );
 			}
-				\call_user_func( $this->sleep, 1 );
+			if ( is_wp_error( $result ) && $job['attempts'] < 3 ) {
+				QueueDb::increment_attempts( $job['id'] );
+			} else {
+				QueueDb::delete( $job['id'] );
+			}
+			\call_user_func( $this->sleep, 1 );
 		}
-			$this->persist();
-			\call_user_func( $this->update_option, 'sii_boleta_dte_queue_lock', false );
-	}
-
-	private function persist(): void {
-			\call_user_func( $this->update_option, 'sii_boleta_dte_queue', $this->jobs );
 	}
 }
 

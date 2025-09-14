@@ -16,8 +16,8 @@ class BoletaTotalsTest extends TestCase {
     private function get_settings() {
         return new Dummy_Settings([
             'caf_path'  => [
-                39 => __DIR__ . '/fixtures/caf39.xml',
-                41 => __DIR__ . '/fixtures/caf41.xml',
+                39 => __DIR__ . '/../../fixtures/caf39.xml',
+                41 => __DIR__ . '/../../fixtures/caf41.xml',
             ],
             'rut_emisor' => '11111111-1',
             'razon_social' => 'Test',

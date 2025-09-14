@@ -14,6 +14,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Endpoints;
 use Sii\BoletaDte\Infrastructure\Metrics;
 use Sii\BoletaDte\Application\ConsumoFolios;
 use Sii\BoletaDte\Application\Queue;
+use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
@@ -32,14 +33,15 @@ class Plugin {
 	private ?Woo $woo = null;
 	private Metrics $metrics;
 	private ConsumoFolios $consumo_folios;
-	private Queue $queue;
+        private Queue $queue;
+        private QueueProcessor $queue_processor;
 	private Help $help;
 	private \Sii\BoletaDte\Domain\DteEngine $engine;
 	private bool $libredte_missing = false;
 	private Ajax $ajax;
 	private Pages $pages;
 
-	public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null ) {
+        public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
 			Container::init();
 			$this->settings       = $settings ?? new Settings();
 			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
@@ -58,8 +60,9 @@ class Plugin {
 		}
 			$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
-			$this->queue = $queue ?? new Queue( $this->engine, $this->settings, $this->api );
-			\add_action( Cron::HOOK, array( $this->queue, 'process' ) );
+                        $this->queue           = $queue ?? new Queue();
+                        $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
+                        \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
 			$this->help = $help ?? new Help();
 
 		if ( class_exists( 'WooCommerce' ) ) {

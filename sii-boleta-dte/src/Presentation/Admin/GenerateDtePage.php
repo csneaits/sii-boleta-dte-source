@@ -49,27 +49,29 @@ class GenerateDtePage {
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 			$result = $this->process_post( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
-		echo '<div class="wrap">';
-		echo '<h1>' . \esc_html__( 'Generate DTE', 'sii-boleta-dte' ) . '</h1>';
+				echo '<div class="wrap">';
+				echo '<h1>' . \esc_html__( 'Generate DTE', 'sii-boleta-dte' ) . '</h1>';
 		if ( is_array( $result ) && empty( $result['error'] ) ) {
-			echo '<div class="updated notice"><p>' . \sprintf( \esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), \esc_html( (string) $result['track_id'] ) );
+				echo '<div class="updated notice"><p>' . \sprintf( \esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), \esc_html( (string) $result['track_id'] ) );
 			if ( ! empty( $result['pdf'] ) ) {
-				$url = esc_url( $result['pdf'] );
-				echo ' - <a href="' . $url . '">' . \esc_html__( 'Download PDF', 'sii-boleta-dte' ) . '</a>';
+						$url = esc_url( $result['pdf'] );
+						echo ' - <a href="' . $url . '">' . \esc_html__( 'Download PDF', 'sii-boleta-dte' ) . '</a>';
 			}
-			echo '</p></div>';
+				echo '</p></div>';
 		} elseif ( is_array( $result ) && ! empty( $result['error'] ) ) {
-			echo '<div class="error notice"><p>' . \esc_html( $result['error'] ) . '</p></div>';
+				echo '<div class="error notice"><p>' . \esc_html( $result['error'] ) . '</p></div>';
 		}
-		echo '<form method="post">';
-		\wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' );
-		echo '<p><label>' . \esc_html__( 'Customer RUT', 'sii-boleta-dte' ) . '<br/><input type="text" name="rut" required></label></p>';
-		echo '<p><label>' . \esc_html__( 'Razón Social', 'sii-boleta-dte' ) . '<br/><input type="text" name="razon" required></label></p>';
-		echo '<p><label>' . \esc_html__( 'Giro', 'sii-boleta-dte' ) . '<br/><input type="text" name="giro" required></label></p>';
-		echo '<p><label>' . \esc_html__( 'Items (one per line: qty|description|price|taxable)', 'sii-boleta-dte' ) . '<br/><textarea name="items" rows="5" cols="60"></textarea></label></p>';
-		echo '<p><label>' . \esc_html__( 'DTE Type', 'sii-boleta-dte' ) . '<br/><select name="tipo"><option value="39">Boleta</option><option value="33">Factura</option><option value="34">Factura Exenta</option><option value="52">Guía de Despacho</option></select></label></p>';
-		echo '<p><input type="submit" class="button button-primary" value="' . \esc_attr__( 'Generate', 'sii-boleta-dte' ) . '"/></p>';
-		echo '</form></div>';
+				echo '<form method="post">';
+				\wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' );
+				echo '<table class="form-table" role="presentation"><tbody>';
+				echo '<tr><th scope="row"><label for="sii-rut">' . \esc_html__( 'Customer RUT', 'sii-boleta-dte' ) . '</label></th><td><input type="text" id="sii-rut" name="rut" required class="regular-text" /></td></tr>';
+				echo '<tr><th scope="row"><label for="sii-razon">' . \esc_html__( 'Razón Social', 'sii-boleta-dte' ) . '</label></th><td><input type="text" id="sii-razon" name="razon" required class="regular-text" /></td></tr>';
+				echo '<tr><th scope="row"><label for="sii-giro">' . \esc_html__( 'Giro', 'sii-boleta-dte' ) . '</label></th><td><input type="text" id="sii-giro" name="giro" required class="regular-text" /></td></tr>';
+				echo '<tr><th scope="row"><label for="sii-items">' . \esc_html__( 'Items', 'sii-boleta-dte' ) . '</label></th><td><textarea id="sii-items" name="items" rows="5" cols="60" class="large-text code"></textarea><p class="description">' . \esc_html__( 'One per line: qty|description|price|taxable', 'sii-boleta-dte' ) . '</p></td></tr>';
+				echo '<tr><th scope="row"><label for="sii-tipo">' . \esc_html__( 'DTE Type', 'sii-boleta-dte' ) . '</label></th><td><select id="sii-tipo" name="tipo"><option value="39">' . \esc_html__( 'Boleta', 'sii-boleta-dte' ) . '</option><option value="33">' . \esc_html__( 'Factura', 'sii-boleta-dte' ) . '</option><option value="34">' . \esc_html__( 'Factura Exenta', 'sii-boleta-dte' ) . '</option><option value="52">' . \esc_html__( 'Guía de Despacho', 'sii-boleta-dte' ) . '</option></select></td></tr>';
+				echo '</tbody></table>';
+				\submit_button( \__( 'Generate', 'sii-boleta-dte' ) );
+				echo '</form></div>';
 	}
 
 	/**

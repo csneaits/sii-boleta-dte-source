@@ -19,6 +19,7 @@ use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
+use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Infrastructure\Factory\Container;
 
 class Plugin {
@@ -61,10 +62,12 @@ class Plugin {
 			\add_action( Cron::HOOK, array( $this->queue, 'process' ) );
 			$this->help = $help ?? new Help();
 
-                if ( class_exists( 'WooCommerce' ) ) {
-                                $this->woo = new Woo( $this );
-                                $this->woo->register();
-                }
+		if ( class_exists( 'WooCommerce' ) ) {
+						$this->woo = new Woo( $this );
+						$this->woo->register();
+						$checkout_fields = new CheckoutFields( $this->settings );
+						$checkout_fields->register();
+		}
 
 			$this->pages = $pages ?? new Pages( $this );
 			$this->ajax  = $ajax ?? new Ajax( $this );

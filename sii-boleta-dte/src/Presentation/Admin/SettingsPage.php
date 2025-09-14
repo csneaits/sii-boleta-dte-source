@@ -35,12 +35,28 @@ class SettingsPage {
             'sii-boleta-dte',
             'sii_boleta_main'
         );
+
+        add_settings_field(
+            'enabled_types',
+            __( 'Document types', 'sii-boleta-dte' ),
+            array( $this, 'field_enabled_types' ),
+            'sii-boleta-dte',
+            'sii_boleta_main'
+        );
     }
 
     public function field_rut_emisor(): void {
         $settings = $this->settings->get_settings();
         $value    = esc_attr( $settings['rut_emisor'] ?? '' );
         echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[rut_emisor]" value="' . $value . '" />';
+    }
+
+    public function field_enabled_types(): void {
+        $settings = $this->settings->get_settings();
+        $enabled  = $settings['enabled_types'] ?? array();
+        $name     = esc_attr( Settings::OPTION_NAME ) . '[enabled_types]';
+        echo '<label><input type="checkbox" name="' . $name . '[33]" value="1"' . ( in_array( 33, $enabled, true ) ? ' checked' : '' ) . '/>' . esc_html__( 'Factura', 'sii-boleta-dte' ) . '</label><br />';
+        echo '<label><input type="checkbox" name="' . $name . '[39]" value="1"' . ( in_array( 39, $enabled, true ) ? ' checked' : '' ) . '/>' . esc_html__( 'Boleta', 'sii-boleta-dte' ) . '</label>';
     }
 
     /**
@@ -96,6 +112,10 @@ class SettingsPage {
 
         if ( isset( $input['environment'] ) ) {
             $output['environment'] = intval( $input['environment'] );
+        }
+
+        if ( isset( $input['enabled_types'] ) && is_array( $input['enabled_types'] ) ) {
+            $output['enabled_types'] = array_map( 'intval', array_keys( $input['enabled_types'] ) );
         }
 
         if ( isset( $input['cert_pass'] ) ) {

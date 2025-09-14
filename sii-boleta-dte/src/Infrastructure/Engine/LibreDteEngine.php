@@ -20,7 +20,8 @@ class LibreDteEngine implements DteEngine {
 	private BuilderWorker $builder;
 	private RendererWorker $renderer;
 	private CafFakerWorker $cafFaker;
-	private CertificateFaker $certificateFaker;
+        private CertificateFaker $certificateFaker;
+        private CertificateLoader $certificateLoader;
 
 	public function __construct( Settings $settings ) {
 		$this->settings         = $settings;
@@ -29,8 +30,9 @@ class LibreDteEngine implements DteEngine {
 		$component              = $registry->getDocumentComponent();
 		$this->builder          = $component->getBuilderWorker();
 		$this->renderer         = $component->getRendererWorker();
-		$this->cafFaker         = $registry->getIdentifierComponent()->getCafFakerWorker();
-		$this->certificateFaker = new CertificateFaker( new CertificateLoader() );
+                $this->cafFaker         = $registry->getIdentifierComponent()->getCafFakerWorker();
+                $this->certificateLoader = new CertificateLoader();
+                $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
 	}
 
 	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
@@ -86,9 +88,20 @@ class LibreDteEngine implements DteEngine {
 			'Detalle'    => $detalle,
 		);
 
-		$emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
-		$cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
-		$certificate  = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
+                $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
+                $cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
+
+                $cert_file = $settings['cert_path'] ?? '';
+                $cert_pass = $settings['cert_pass'] ?? '';
+                try {
+                        if ( $cert_file && @file_exists( $cert_file ) ) {
+                                $certificate = $this->certificateLoader->load( $cert_file, (string) $cert_pass );
+                        } else {
+                                $certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
+                        }
+                } catch ( \Throwable $e ) {
+                        $certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
+                }
 
 		$bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
 		$this->builder->build( $bag );

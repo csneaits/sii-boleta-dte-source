@@ -11,8 +11,12 @@ use WP_Error;
 class Api {
     private SharedLogger $logger;
 
-    public function __construct( SharedLogger $logger = null ) {
-        $this->logger = $logger ?? new SharedLogger();
+    /** Number of times to retry failed HTTP requests. */
+    private int $retries;
+
+    public function __construct( SharedLogger $logger = null, int $retries = 3 ) {
+        $this->logger  = $logger ?? new SharedLogger();
+        $this->retries = max( 1, $retries );
     }
 
     /**
@@ -32,7 +36,7 @@ class Api {
             'headers' => array( 'Authorization' => $token ),
             'body'    => file_exists( $file ) ? file_get_contents( $file ) : '',
         );
-        for ( $i = 0; $i < 3; $i++ ) {
+        for ( $i = 0; $i < $this->retries; $i++ ) {
             $res = wp_remote_post( $url, $args );
             if ( is_wp_error( $res ) ) {
                 $this->logger->error( 'HTTP error: ' . $res->get_error_message() );
@@ -64,7 +68,7 @@ class Api {
             'headers' => array( 'Authorization' => $token ),
             'body'    => $xml,
         );
-        for ( $i = 0; $i < 3; $i++ ) {
+        for ( $i = 0; $i < $this->retries; $i++ ) {
             $res = wp_remote_post( $url, $args );
             if ( is_wp_error( $res ) ) {
                 $this->logger->error( 'HTTP error: ' . $res->get_error_message() );

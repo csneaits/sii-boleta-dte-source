@@ -113,17 +113,33 @@ documentación del proyecto y guías de uso.
 
 ### Panel de control y generación manual de DTE
 
-La nueva página de **Panel de Control** muestra el estado general del plugin:
+La nueva página de **Panel de Control** muestra el estado general del plugin y
+permite gestionar la cola persistente de trabajos:
 
-- Folios disponibles por tipo de documento.
-- Últimos DTE enviados y su estado.
-- Cola de procesos pendientes con opciones para procesar, reintentar o cancelar.
+- Folios disponibles por tipo de documento (se calculan a partir del último
+  folio usado y el límite del CAF).
+- Últimos DTE enviados con su `trackId` y estado.
+- Cola de procesos pendientes con acciones para **Procesar**, **Reintentar** o
+  **Cancelar** cada elemento.  "Procesar" envía inmediatamente el trabajo al
+  SII, "Reintentar" reinicia el contador de intentos y "Cancelar" elimina el
+  trabajo.
+
+El procesado automático de la cola se realiza mediante el evento cron
+`sii_boleta_dte_process_queue`, por lo que es recomendable tener las tareas
+programadas de WordPress o un *cron job* del sistema configurado.
 
 Además se incluye una página de **Generación manual** de DTE accesible sólo para
 administradores. Desde allí se pueden emitir boletas, facturas, facturas exentas
 o guías de despacho sin asociarlas a un pedido de WooCommerce.  Es necesario
-ingresar los datos del receptor y las líneas de detalle. Al enviarlo se muestra
-el track ID devuelto por el SII y un enlace para descargar el PDF.
+ingresar los datos del receptor y una lista de ítems utilizando el formato:
+
+```
+cantidad|descripción|precio|afecto
+```
+
+Cada ítem se ingresa en una línea independiente; `afecto` debe ser `1` para
+afecto a IVA u `0` para exento.  Al enviar el formulario se muestra el track ID
+devuelto por el SII y un enlace para descargar el PDF generado.
 
 ## Contribuciones
 

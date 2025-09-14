@@ -30,6 +30,19 @@ class SettingsMigration {
         $caf_paths = get_option( 'sii_boleta_dte_caf_paths', array() );
         if ( is_array( $caf_paths ) && ! empty( $caf_paths ) ) {
             $current['caf_path'] = $caf_paths;
+            delete_option( 'sii_boleta_dte_caf_paths' );
+        }
+
+        // Legacy per-DTE CAF options (e.g. sii_boleta_dte_caf_39).
+        foreach ( array( 33, 39, 41, 52 ) as $tipo ) {
+            $opt = get_option( 'sii_boleta_dte_caf_' . $tipo );
+            if ( $opt ) {
+                if ( ! isset( $current['caf_path'] ) || ! is_array( $current['caf_path'] ) ) {
+                    $current['caf_path'] = array();
+                }
+                $current['caf_path'][ $tipo ] = $opt;
+                delete_option( 'sii_boleta_dte_caf_' . $tipo );
+            }
         }
 
         // Encrypt certificate password if present.

@@ -1,8 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Application\Queue;
-use Sii\BoletaDte\Infrastructure\Settings;
-use Sii\BoletaDte\Domain\DteEngine;
+use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 
@@ -47,17 +46,7 @@ if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     function sii_boleta_write_log( $msg ) {}
 }
 
-class DummyEngine implements DteEngine {
-    public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
-        return '<xml/>';
-    }
-
-    public function render_pdf( string $xml, array $options = [] ) {
-        return '';
-    }
-}
-
-class QueueTest extends TestCase {
+class QueueProcessorTest extends TestCase {
     protected function setUp(): void {
         QueueDb::purge();
         $GLOBALS['wpdb'] = null;
@@ -72,9 +61,9 @@ class QueueTest extends TestCase {
     }
 
     public function test_process_executes_all_jobs() {
-        $settings = new Settings();
-        $api      = new Api();
-        $queue    = new Queue( new DummyEngine(), $settings, $api, static function(){} );
+        $api       = new Api();
+        $queue     = new Queue();
+        $processor = new QueueProcessor( $api, static function(){} );
         $file     = $this->create_temp_xml();
         $queue->enqueue_dte( $file, 'test', 'token' );
         $queue->enqueue_libro( '<xml/>', 'test', 'token' );
@@ -84,7 +73,7 @@ class QueueTest extends TestCase {
             [ 'response' => [ 'code' => 200 ], 'body' => '<resp><trackId>2</trackId></resp>' ],
         ];
 
-        $queue->process();
+        $processor->process();
         unlink( $file );
 
         $this->assertSame( 2, $GLOBALS['wp_remote_post_calls'] );

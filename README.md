@@ -111,6 +111,20 @@ requisitos básicos y permite probar la generación de tokens y la conectividad 
 los servicios del SII.  También se incluye una página de **ayuda** con enlaces a la
 documentación del proyecto y guías de uso.
 
+### Panel de control y generación manual de DTE
+
+La nueva página de **Panel de Control** muestra el estado general del plugin:
+
+- Folios disponibles por tipo de documento.
+- Últimos DTE enviados y su estado.
+- Cola de procesos pendientes con opciones para procesar, reintentar o cancelar.
+
+Además se incluye una página de **Generación manual** de DTE accesible sólo para
+administradores. Desde allí se pueden emitir boletas, facturas, facturas exentas
+o guías de despacho sin asociarlas a un pedido de WooCommerce.  Es necesario
+ingresar los datos del receptor y las líneas de detalle. Al enviarlo se muestra
+el track ID devuelto por el SII y un enlace para descargar el PDF.
+
 ## Contribuciones
 
 1. Haz fork del repositorio y crea una rama descriptiva.

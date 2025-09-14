@@ -95,7 +95,8 @@ WordPress y permite filtrar por estado o track ID.
 ### Cliente API y flujo de WooCommerce
 
 El cliente `Api` maneja la generación de tokens, el envío de DTE y consulta de
-estado contra los servicios del SII.  La integración con WooCommerce añade un
+estado contra los servicios del SII.  Soporta un número configurable de reintentos
+ante fallos de red u otros errores HTTP.  La integración con WooCommerce añade un
 selector de tipo de documento en el checkout, genera el DTE al marcar el pedido
 como completado y guarda el track ID devuelto por el SII en los metadatos del
 pedido.

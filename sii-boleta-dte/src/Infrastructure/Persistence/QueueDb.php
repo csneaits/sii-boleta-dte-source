@@ -1,6 +1,8 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Persistence;
 
+/* phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared */
+
 /**
  * Persistent queue storage used for pending DTE or RVD jobs.
  *
@@ -97,15 +99,16 @@ KEY type (type)
 		global $wpdb;
 		if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
 			$table = self::table();
-			$sql   = $wpdb->prepare( "SELECT id,type,payload,attempts FROM {$table} ORDER BY id ASC LIMIT %d", $limit );
+			$sql   = $wpdb->prepare( "SELECT id,type,payload,attempts FROM {$table} ORDER BY id ASC LIMIT %d", $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$rows  = $wpdb->get_results( $sql, 'ARRAY_A' );
 			if ( is_array( $rows ) ) {
 				$jobs = array();
 				foreach ( $rows as $row ) {
-					$jobs[] = array(
+					$payload = json_decode( (string) $row['payload'], true );
+					$jobs[]  = array(
 						'id'       => (int) $row['id'],
 						'type'     => (string) $row['type'],
-						'payload'  => json_decode( (string) $row['payload'], true ) ?: array(),
+						'payload'  => is_array( $payload ) ? $payload : array(),
 						'attempts' => (int) $row['attempts'],
 					);
 				}
@@ -115,15 +118,27 @@ KEY type (type)
 		return array_values( self::$jobs );
 	}
 
-	/** Increments the attempts counter for a job. */
+		/** Increments the attempts counter for a job. */
 	public static function increment_attempts( int $id ): void {
-		global $wpdb;
+			global $wpdb;
 		if ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) && method_exists( $wpdb, 'prepare' ) ) {
-			$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET attempts = attempts + 1 WHERE id = %d', $id ) );
-			return;
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET attempts = attempts + 1 WHERE id = %d', $id ) );
+				return;
 		}
 		if ( isset( self::$jobs[ $id ] ) ) {
-			++self::$jobs[ $id ]['attempts'];
+				++self::$jobs[ $id ]['attempts'];
+		}
+	}
+
+		/** Resets the attempts counter for a job. */
+	public static function reset_attempts( int $id ): void {
+			global $wpdb;
+		if ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) && method_exists( $wpdb, 'prepare' ) ) {
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET attempts = 0 WHERE id = %d', $id ) );
+				return;
+		}
+		if ( isset( self::$jobs[ $id ] ) ) {
+				self::$jobs[ $id ]['attempts'] = 0;
 		}
 	}
 
@@ -149,4 +164,5 @@ KEY type (type)
 	}
 }
 
+/* phpcs:enable */
 class_alias( QueueDb::class, 'SII_Boleta_Queue_DB' );

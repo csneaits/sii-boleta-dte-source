@@ -24,7 +24,7 @@ class ConsumoFoliosTest extends TestCase {
     public function test_generates_ranges() {
         $GLOBALS['test_options']['sii_boleta_dte_last_folio_39'] = 10;
         $settings = new Dummy_Settings([
-            'caf_path'   => [ 39 => __DIR__ . '/fixtures/caf39.xml' ],
+            'caf_path'   => [ 39 => __DIR__ . '/../fixtures/caf39.xml' ],
             'rut_emisor' => '11111111-1',
         ]);
         $folio_mgr = $this->createMock( FolioManager::class );

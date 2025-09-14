@@ -16,7 +16,7 @@ class LibreDTEEngineTest extends TestCase {
         $settings = new Dummy_Settings([]);
         $engine   = new LibreDteEngine($settings);
 
-        $xml = file_get_contents(__DIR__ . '/fixtures/boleta_multidetalle.xml');
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/boleta_multidetalle.xml');
         $this->assertNotFalse($xml);
 
         // Renderiza PDF
@@ -29,7 +29,7 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertStringStartsWith('%PDF', $content);
 
         // Copiar a /output/ si quieres conservarlo como archivo visible
-        $outputDir = __DIR__ . '/output/';
+        $outputDir = __DIR__ . '/../../output/';
         if (!is_dir($outputDir)) {
             mkdir($outputDir, 0755, true);
         }

@@ -268,7 +268,8 @@ class SII_Boleta_Settings {
             $output['cert_pass'] = $existing['cert_pass'] ?? '';
         }
         $output['api_token']    = $existing_decrypted['api_token'] ?? '';
-        $output['environment']  = in_array( $input['environment'] ?? 'test', [ 'test', 'production' ], true ) ? $input['environment'] : 'test';
+        $env = sanitize_text_field( $input['environment'] ?? '' );
+        $output['environment']  = in_array( $env, [ 'test', 'production' ], true ) ? $env : 'test';
         $output['logo_id']      = isset( $input['logo_id'] ) ? intval( $input['logo_id'] ) : 0;
         $output['enable_logging'] = ! empty( $input['enable_logging'] );
         $profiles = apply_filters( 'sii_boleta_available_smtp_profiles', $this->get_fluent_smtp_profiles() );

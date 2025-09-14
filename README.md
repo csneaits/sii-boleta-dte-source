@@ -88,7 +88,17 @@ no altera los datos originales.
 Los mensajes se almacenan en la tabla personalizada `sii_boleta_dte_logs` y de
 forma opcional en archivos dentro de `wp-content/uploads/sii-boleta-logs/`. En
 la página de ajustes puedes habilitar o deshabilitar cada método de registro y
-consultar las últimas entradas desde el administrador de WordPress.
+consultar las últimas entradas desde el administrador de WordPress mediante el
+visualizador de logs incluido.  La interfaz reutiliza la tabla estándar de
+WordPress y permite filtrar por estado o track ID.
+
+### Cliente API y flujo de WooCommerce
+
+El cliente `Api` maneja la generación de tokens, el envío de DTE y consulta de
+estado contra los servicios del SII.  La integración con WooCommerce añade un
+selector de tipo de documento en el checkout, genera el DTE al marcar el pedido
+como completado y guarda el track ID devuelto por el SII en los metadatos del
+pedido.
 
 ## Contribuciones
 

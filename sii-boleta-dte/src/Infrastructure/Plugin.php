@@ -61,9 +61,10 @@ class Plugin {
 			\add_action( Cron::HOOK, array( $this->queue, 'process' ) );
 			$this->help = $help ?? new Help();
 
-		if ( class_exists( 'WooCommerce' ) ) {
-				$this->woo = new Woo( $this );
-		}
+                if ( class_exists( 'WooCommerce' ) ) {
+                                $this->woo = new Woo( $this );
+                                $this->woo->register();
+                }
 
 			$this->pages = $pages ?? new Pages( $this );
 			$this->ajax  = $ajax ?? new Ajax( $this );

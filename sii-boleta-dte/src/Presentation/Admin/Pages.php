@@ -3,14 +3,17 @@ namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
+use Sii\BoletaDte\Presentation\Admin\LogsPage;
 
 class Pages {
         private Plugin $core;
         private SettingsPage $settings_page;
+        private LogsPage $logs_page;
 
-        public function __construct( Plugin $core, SettingsPage $settings_page = null ) {
+        public function __construct( Plugin $core, SettingsPage $settings_page = null, LogsPage $logs_page = null ) {
                 $this->core          = $core;
                 $this->settings_page = $settings_page ?? new SettingsPage( $core->get_settings() );
+                $this->logs_page     = $logs_page ?? new LogsPage();
         }
 
 	public function register(): void {
@@ -26,14 +29,17 @@ class Pages {
                 // Register settings sections and fields.
                 $this->settings_page->register();
 
-		\add_submenu_page(
-			'sii-boleta-dte',
-			\__( 'Panel de Control', 'sii-boleta-dte' ),
-			\__( 'Panel de Control', 'sii-boleta-dte' ),
-			'manage_options',
-			'sii-boleta-dte-panel',
-			array( $this, 'render_control_panel_page' )
-		);
+                \add_submenu_page(
+                        'sii-boleta-dte',
+                        \__( 'Panel de Control', 'sii-boleta-dte' ),
+                        \__( 'Panel de Control', 'sii-boleta-dte' ),
+                        'manage_options',
+                        'sii-boleta-dte-panel',
+                        array( $this, 'render_control_panel_page' )
+                );
+
+                // Logs page.
+                $this->logs_page->register();
 	}
 
 	public function enqueue_assets( string $hook ): void {

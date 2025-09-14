@@ -37,12 +37,14 @@ class SettingsPageTest extends TestCase {
             'cert_path'   => '../cert.pfx',
             'caf_path'    => array( '../caf.xml' ),
             'environment' => '2',
+            'enabled_types' => array( '33' => 1, '39' => 1 ),
         );
         $clean = $page->sanitize_settings( $input );
         $this->assertSame( '11-1', $clean['rut_emisor'] );
         $this->assertSame( 'cert.pfx', $clean['cert_path'] );
         $this->assertSame( array( 'caf.xml' ), $clean['caf_path'] );
         $this->assertSame( 2, $clean['environment'] );
+        $this->assertSame( array( 33, 39 ), $clean['enabled_types'] );
         $this->assertSame( 'secret', Settings::decrypt( $clean['cert_pass'] ) );
     }
 }

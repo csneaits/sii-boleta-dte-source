@@ -158,4 +158,15 @@ class ApiFlowTest extends TestCase {
         $this->assertSame( 'accepted', $status );
         $this->assertSame( 1, $GLOBALS['wp_remote_get_calls'] );
     }
+
+    public function test_custom_retry_limit() {
+        $GLOBALS['wp_remote_post_calls'] = 0;
+        $GLOBALS['wp_remote_post_queue'] = [ new WP_Error( 'timeout', '' ), new WP_Error( 'timeout', '' ) ];
+        $file = $this->create_temp_xml();
+        $api  = new Api( null, 2 );
+        $res  = $api->send_dte_to_sii( $file, 'test', 'token' );
+        unlink( $file );
+        $this->assertTrue( is_wp_error( $res ) );
+        $this->assertSame( 2, $GLOBALS['wp_remote_post_calls'] );
+    }
 }

@@ -76,7 +76,7 @@ class Pages {
 		if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
 				\wp_enqueue_style(
 					'sii-boleta-control-panel',
-					SII_BOLETA_DTE_URL . 'assets/css/control-panel.css',
+					SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
 					array(),
 					SII_BOLETA_DTE_VERSION
 				);

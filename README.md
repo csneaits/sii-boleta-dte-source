@@ -74,7 +74,7 @@ composer phpcs
 En **Ajustes → SII Boletas** define:
 
 - Datos del emisor (`RUT`, `Razón Social`, `Giro`, `Dirección`, `Comuna`, `Acteco` y opcional `CdgSIISucur`).
-- Ruta del certificado digital y su contraseña, más las rutas a los CAF por tipo de DTE (puedes ingresar múltiples rutas, una por línea).
+- Certificado digital y su contraseña.
 - Ambiente de trabajo (`test` o `production`).
 - Tipos de DTE habilitados para WooCommerce.
 - Opciones del PDF: formato (`carta` o `boleta`), mostrar u ocultar el logotipo, nota de pie de página y ruta del logotipo de la empresa.
@@ -95,6 +95,14 @@ la página de ajustes puedes habilitar o deshabilitar cada método de registro y
 consultar las últimas entradas desde el administrador de WordPress mediante el
 visualizador de logs incluido.  La interfaz reutiliza la tabla estándar de
 WordPress y permite filtrar por estado o track ID.
+
+### Gestión de CAFs
+
+Los CAF (archivos XML de folios autorizados) se administran desde el menú **SII Boletas → Folios / CAFs**. Allí puedes:
+
+1. Subir uno o varios archivos `.xml` entregados por el SII. Se almacenan en `wp-content/uploads/sii-boleta-dte/cafs/`.
+2. Ver una tabla con el tipo de documento, rango de folios, estado y fecha de carga de cada CAF.
+3. Eliminar o reemplazar CAFs antiguos. El motor de emisión selecciona automáticamente el CAF vigente según el tipo de DTE y mostrará un error si no existe uno disponible.
 
 ### Cliente API y flujo de WooCommerce
 

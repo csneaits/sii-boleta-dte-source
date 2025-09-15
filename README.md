@@ -30,6 +30,7 @@ flowchart LR
 
 - `sii-boleta-dte/`
   - `src/` – código fuente organizado según las capas anteriores.
+  - `src/Presentation/assets/` – hojas de estilo y scripts utilizados en la interfaz administrativa.
   - `resources/` – plantillas y datos requeridos por LibreDTE.
   - `tests/` – pruebas unitarias con PHPUnit.
 - `build.sh` / `build.ps1` – scripts de empaquetado que generan un ZIP instalable bajo `dist/`.
@@ -140,6 +141,8 @@ cantidad|descripción|precio|afecto
 Cada ítem se ingresa en una línea independiente; `afecto` debe ser `1` para
 afecto a IVA u `0` para exento.  Al enviar el formulario se muestra el track ID
 devuelto por el SII y un enlace para descargar el PDF generado.
+
+Los estilos y scripts utilizados por estas páginas se encuentran en `src/Presentation/assets` y se cargan mediante las funciones `wp_enqueue_style` y `wp_enqueue_script`.
 
 ## Contribuciones
 

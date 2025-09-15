@@ -27,61 +27,110 @@ class ControlPanelPage {
 			return;
 		}
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
-			$this->handle_queue_action( sanitize_text_field( (string) ( $_POST['queue_action'] ?? '' ) ), (int) ( $_POST['job_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$this->handle_queue_action( sanitize_text_field( (string) ( $_POST['queue_action'] ?? '' ) ), (int) ( $_POST['job_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
-				echo '<div class="wrap">';
-				echo '<h1>' . \esc_html__( 'Control Panel', 'sii-boleta-dte' ) . '</h1>';
-				$this->render_folios();
-				$this->render_recent_logs();
-				$this->render_queue();
-				echo '</div>';
+		?>
+				<div class="wrap">
+						<h1><?php esc_html_e( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
+						<?php $this->render_folios(); ?>
+						<?php $this->render_recent_logs(); ?>
+						<?php $this->render_queue(); ?>
+				</div>
+				<?php
 	}
 
 	/** Renders folio availability table. */
 	private function render_folios(): void {
-		$cfg   = $this->settings->get_settings();
-		$types = $cfg['enabled_types'] ?? array();
-				echo '<h2>' . \esc_html__( 'Folio availability', 'sii-boleta-dte' ) . '</h2>';
-				echo '<table class="widefat striped"><thead><tr><th>' . \esc_html__( 'Type', 'sii-boleta-dte' ) . '</th><th>' . \esc_html__( 'Available', 'sii-boleta-dte' ) . '</th></tr></thead><tbody>';
-		foreach ( $types as $type ) {
-			$caf       = $this->folio_manager->get_caf_info( (int) $type );
-			$last      = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $type, 0 ) : 0;
-			$available = isset( $caf['H'] ) ? (int) $caf['H'] - $last : 0;
-						echo '<tr><td>' . (int) $type . '</td><td>' . (int) $available . '</td></tr>';
-		}
-		echo '</tbody></table>';
+				$cfg   = $this->settings->get_settings();
+				$types = $cfg['enabled_types'] ?? array();
+		?>
+				<h2><?php esc_html_e( 'Folio availability', 'sii-boleta-dte' ); ?></h2>
+				<table class="widefat striped">
+						<thead>
+								<tr>
+										<th><?php esc_html_e( 'Type', 'sii-boleta-dte' ); ?></th>
+										<th><?php esc_html_e( 'Available', 'sii-boleta-dte' ); ?></th>
+								</tr>
+						</thead>
+						<tbody>
+								<?php
+								foreach ( $types as $type ) :
+										$caf       = $this->folio_manager->get_caf_info( (int) $type );
+										$last      = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $type, 0 ) : 0;
+										$available = isset( $caf['H'] ) ? (int) $caf['H'] - $last : 0;
+									?>
+										<tr>
+												<td><?php echo (int) $type; ?></td>
+												<td><?php echo (int) $available; ?></td>
+										</tr>
+								<?php endforeach; ?>
+						</tbody>
+				</table>
+				<?php
 	}
 
 	/** Shows latest log entries. */
 	private function render_recent_logs(): void {
-		$logs = LogDb::get_logs( array( 'limit' => 5 ) );
-				echo '<h2>' . \esc_html__( 'Recent DTEs', 'sii-boleta-dte' ) . '</h2>';
-				echo '<table class="widefat striped"><thead><tr><th>' . \esc_html__( 'Track ID', 'sii-boleta-dte' ) . '</th><th>' . \esc_html__( 'Status', 'sii-boleta-dte' ) . '</th></tr></thead><tbody>';
-		foreach ( $logs as $row ) {
-			echo '<tr><td>' . \esc_html( $row['track_id'] ) . '</td><td>' . \esc_html( $row['status'] ) . '</td></tr>';
-		}
-		echo '</tbody></table>';
+				$logs = LogDb::get_logs( array( 'limit' => 5 ) );
+		?>
+				<h2><?php esc_html_e( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
+				<table class="widefat striped">
+						<thead>
+								<tr>
+										<th><?php esc_html_e( 'Track ID', 'sii-boleta-dte' ); ?></th>
+										<th><?php esc_html_e( 'Status', 'sii-boleta-dte' ); ?></th>
+								</tr>
+						</thead>
+						<tbody>
+								<?php foreach ( $logs as $row ) : ?>
+										<tr>
+												<td><?php echo esc_html( $row['track_id'] ); ?></td>
+												<td><?php echo esc_html( $row['status'] ); ?></td>
+										</tr>
+								<?php endforeach; ?>
+						</tbody>
+				</table>
+				<?php
 	}
 
 	/** Lists queue items with controls. */
 	private function render_queue(): void {
 				$jobs = QueueDb::get_pending_jobs();
-				echo '<h2>' . \esc_html__( 'Queue', 'sii-boleta-dte' ) . '</h2>';
-		if ( empty( $jobs ) ) {
-				echo '<p>' . \esc_html__( 'No queued items.', 'sii-boleta-dte' ) . '</p>';
-				return;
-		}
-				echo '<table class="wp-list-table widefat fixed striped"><thead><tr><th>' . \esc_html__( 'ID', 'sii-boleta-dte' ) . '</th><th>' . \esc_html__( 'Type', 'sii-boleta-dte' ) . '</th><th>' . \esc_html__( 'Attempts', 'sii-boleta-dte' ) . '</th><th>' . \esc_html__( 'Actions', 'sii-boleta-dte' ) . '</th></tr></thead><tbody>';
-		foreach ( $jobs as $job ) {
-				echo '<tr><td>' . (int) $job['id'] . '</td><td>' . \esc_html( $job['type'] ) . '</td><td>' . (int) $job['attempts'] . '</td><td>';
-				echo '<form method="post" style="display:inline"><input type="hidden" name="job_id" value="' . (int) $job['id'] . '" />';
-				\wp_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' );
-				echo '<button class="button" name="queue_action" value="process">' . \esc_html__( 'Process', 'sii-boleta-dte' ) . '</button> ';
-				echo '<button class="button" name="queue_action" value="requeue">' . \esc_html__( 'Retry', 'sii-boleta-dte' ) . '</button> ';
-				echo '<button class="button" name="queue_action" value="cancel">' . \esc_html__( 'Cancel', 'sii-boleta-dte' ) . '</button>';
-				echo '</form></td></tr>';
-		}
-				echo '</tbody></table>';
+		?>
+				<h2><?php esc_html_e( 'Queue', 'sii-boleta-dte' ); ?></h2>
+				<?php if ( empty( $jobs ) ) : ?>
+						<p><?php esc_html_e( 'No queued items.', 'sii-boleta-dte' ); ?></p>
+				<?php else : ?>
+						<table class="wp-list-table widefat fixed striped">
+								<thead>
+										<tr>
+												<th><?php esc_html_e( 'ID', 'sii-boleta-dte' ); ?></th>
+												<th><?php esc_html_e( 'Type', 'sii-boleta-dte' ); ?></th>
+												<th><?php esc_html_e( 'Attempts', 'sii-boleta-dte' ); ?></th>
+												<th><?php esc_html_e( 'Actions', 'sii-boleta-dte' ); ?></th>
+										</tr>
+								</thead>
+								<tbody>
+										<?php foreach ( $jobs as $job ) : ?>
+												<tr>
+														<td><?php echo (int) $job['id']; ?></td>
+														<td><?php echo esc_html( $job['type'] ); ?></td>
+														<td><?php echo (int) $job['attempts']; ?></td>
+														<td>
+																<form method="post" style="display:inline">
+																		<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
+																		<?php wp_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
+																		<button class="button" name="queue_action" value="process"><?php esc_html_e( 'Process', 'sii-boleta-dte' ); ?></button>
+																		<button class="button" name="queue_action" value="requeue"><?php esc_html_e( 'Retry', 'sii-boleta-dte' ); ?></button>
+																		<button class="button" name="queue_action" value="cancel"><?php esc_html_e( 'Cancel', 'sii-boleta-dte' ); ?></button>
+																</form>
+														</td>
+												</tr>
+										<?php endforeach; ?>
+								</tbody>
+						</table>
+				<?php endif; ?>
+				<?php
 	}
 
 	/** Handles queue actions. */

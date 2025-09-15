@@ -3,7 +3,7 @@
 Plugin Name:       SII Boleta DTE
 Description:       Plugin modular para la emisión de boletas, facturas, guías de despacho y notas de crédito o débito electrónicas con integración al Servicio de Impuestos Internos (SII) de Chile. Permite configurar certificados, gestionar folios, generar el timbre electrónico (TED) y firmar digitalmente los documentos. Incluye integración con WooCommerce, generación del Resumen de Ventas Diarias (RVD) y soporte para distintos tipos de DTE. Incorpora una librería local para generar el código de barras PDF417 sin depender de servicios externos.
 Version:           1.0.0
-Requires PHP:      8.1
+Requires PHP:      8.4
 Author:            Tu Nombre
 Text Domain:       sii-boleta-dte
 Domain Path:       /languages
@@ -19,9 +19,9 @@ define( 'SII_BOLETA_DTE_URL', plugin_dir_url( __FILE__ ) );
 define( 'SII_BOLETA_DTE_VERSION', '1.0.0' );
 
 // Verificar versión mínima de PHP.
-if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
+if ( version_compare( PHP_VERSION, '8.4', '<' ) ) {
 	function sii_boleta_dte_php_version_error() {
-		wp_die( esc_html__( 'SII Boleta DTE requiere PHP 8.1 o superior.', 'sii-boleta-dte' ) );
+		wp_die( esc_html__( 'SII Boleta DTE requiere PHP 8.4 o superior.', 'sii-boleta-dte' ) );
 	}
 	register_activation_hook( __FILE__, 'sii_boleta_dte_php_version_error' );
 	return;

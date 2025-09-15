@@ -10,7 +10,7 @@
     }
   },
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.4",
         "libredte/libredte-lib-core": "dev-master#0e996e5b565bb23ca1310c3b6c4fa1a9bb2cb3ef@dev",
         "robrichards/xmlseclibs": "^3.0",
         "twig/twig": "^3.8",

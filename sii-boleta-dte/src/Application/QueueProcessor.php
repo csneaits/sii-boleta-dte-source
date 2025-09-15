@@ -34,19 +34,19 @@ class QueueProcessor {
 		}
 		foreach ( $jobs as $job ) {
 			$result = null;
-			if ( 'dte' === $job['type'] ) {
-				$result = $this->api->send_dte_to_sii(
-					$job['payload']['file'],
-					$job['payload']['environment'],
-					$job['payload']['token']
-				);
-			} elseif ( 'libro' === $job['type'] ) {
-				$result = $this->api->send_libro_to_sii(
-					$job['payload']['xml'],
-					$job['payload']['environment'],
-					$job['payload']['token']
-				);
-			}
+                        if ( 'dte' === $job['type'] ) {
+                                $result = $this->api->send_dte_to_sii(
+                                        $job['payload']['file'],
+                                        $job['payload']['environment'],
+                                        $job['payload']['token']
+                                );
+                        } elseif ( in_array( $job['type'], array( 'libro', 'rvd' ), true ) ) {
+                                $result = $this->api->send_libro_to_sii(
+                                        $job['payload']['xml'],
+                                        $job['payload']['environment'],
+                                        $job['payload']['token']
+                                );
+                        }
 			if ( is_wp_error( $result ) ) {
 				LogDb::add_entry( '', 'error', $result->get_error_message() );
 				if ( $job['attempts'] < 3 ) {

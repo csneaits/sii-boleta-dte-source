@@ -104,6 +104,8 @@ Los CAF (archivos XML de folios autorizados) se administran desde el menú **SII
 2. Ver una tabla con el tipo de documento, rango de folios, estado y fecha de carga de cada CAF.
 3. Eliminar o reemplazar CAFs antiguos. El motor de emisión selecciona automáticamente el CAF vigente según el tipo de DTE y mostrará un error si no existe uno disponible.
 
+Cada CAF puede vincularse a un tipo de documento específico desde la pantalla de ajustes. Al generar un DTE, `LibreDteEngine` toma el CAF asignado al tipo solicitado y verifica que el folio esté dentro del rango autorizado antes de firmar el XML.
+
 ### Cliente API y flujo de WooCommerce
 
 El cliente `Api` maneja la generación de tokens, el envío de DTE y consulta de
@@ -147,10 +149,24 @@ cantidad|descripción|precio|afecto
 ```
 
 Cada ítem se ingresa en una línea independiente; `afecto` debe ser `1` para
-afecto a IVA u `0` para exento.  Al enviar el formulario se muestra el track ID
-devuelto por el SII y un enlace para descargar el PDF generado.
+afecto a IVA u `0` para exento.  El formulario incorpora un botón de
+**Previsualizar** que genera el XML a partir de las plantillas YAML y muestra un
+PDF incrustado antes del envío. Tras presionar **Enviar al SII** se valida y
+firma el documento, se obtiene el `trackId` devuelto por el SII y se guarda una
+copia del XML y el PDF en una carpeta organizada por fecha y RUT.
 
-Los estilos y scripts utilizados por estas páginas se encuentran en `src/Presentation/assets` y se cargan mediante las funciones `wp_enqueue_style` y `wp_enqueue_script`.
+La cola de trabajos almacena envíos de DTE, libros o RVD. Cada elemento registra
+su tipo y cantidad de intentos. Un evento cron programado cada hora procesa la
+cola; los errores se reintentan hasta tres veces y pueden gestionarse desde el
+panel de control.
+
+Los libros electrónicos o RVD se generan seleccionando un rango de fechas y se
+guardan en `wp-content/uploads/sii-boleta-dte/libros/` junto al track ID
+devuelto por el SII.
+
+Los estilos y scripts utilizados por estas páginas se encuentran en
+`src/Presentation/assets` y se cargan mediante las funciones `wp_enqueue_style`
+y `wp_enqueue_script`.
 
 ## Contribuciones
 

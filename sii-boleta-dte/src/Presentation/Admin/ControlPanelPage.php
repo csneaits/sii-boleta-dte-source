@@ -29,14 +29,38 @@ class ControlPanelPage {
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
 				$this->handle_queue_action( sanitize_text_field( (string) ( $_POST['queue_action'] ?? '' ) ), (int) ( $_POST['job_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
+				$tab = 'folios';
+		if ( isset( $_GET['tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+						$tab = function_exists( 'sanitize_key' ) ? sanitize_key( (string) $_GET['tab'] ) : strtolower( (string) $_GET['tab'] );
+		}
 		?>
-				<div class="wrap">
-						<h1><?php esc_html_e( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
-						<?php $this->render_folios(); ?>
-						<?php $this->render_recent_logs(); ?>
-						<?php $this->render_queue(); ?>
-				</div>
-				<?php
+								<div class="wrap">
+												<h1><?php esc_html_e( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
+												<h2 class="nav-tab-wrapper">
+																<?php
+																$base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=sii-boleta-dte';
+																$tabs = array(
+																	'folios' => __( 'Folios', 'sii-boleta-dte' ),
+																	'logs'   => __( 'Recent DTEs', 'sii-boleta-dte' ),
+																	'queue'  => __( 'Queue', 'sii-boleta-dte' ),
+																);
+																foreach ( $tabs as $key => $label ) {
+																		$active = $tab === $key ? ' nav-tab-active' : '';
+																		echo '<a href="' . esc_url( $base . '&tab=' . $key ) . '" class="nav-tab' . $active . '">' . esc_html( $label ) . '</a>';
+																}
+																?>
+												</h2>
+												<?php
+												if ( 'logs' === $tab ) {
+																$this->render_recent_logs();
+												} elseif ( 'queue' === $tab ) {
+																$this->render_queue();
+												} else {
+																$this->render_folios();
+												}
+												?>
+								</div>
+								<?php
 	}
 
 	/** Renders folio availability table. */

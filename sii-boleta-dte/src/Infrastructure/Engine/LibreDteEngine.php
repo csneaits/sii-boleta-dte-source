@@ -20,32 +20,42 @@ class LibreDteEngine implements DteEngine {
 	private BuilderWorker $builder;
 	private RendererWorker $renderer;
 	private CafFakerWorker $cafFaker;
-        private CertificateFaker $certificateFaker;
-        private CertificateLoader $certificateLoader;
+	private CertificateFaker $certificateFaker;
+	private CertificateLoader $certificateLoader;
 
 	public function __construct( Settings $settings ) {
-		$this->settings         = $settings;
-		$app                    = Application::getInstance();
-		$registry               = $app->getPackageRegistry()->getBillingPackage();
-		$component              = $registry->getDocumentComponent();
-		$this->builder          = $component->getBuilderWorker();
-		$this->renderer         = $component->getRendererWorker();
-                $this->cafFaker         = $registry->getIdentifierComponent()->getCafFakerWorker();
-                $this->certificateLoader = new CertificateLoader();
-                $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
+		$this->settings                  = $settings;
+		$app                             = Application::getInstance();
+		$registry                        = $app->getPackageRegistry()->getBillingPackage();
+		$component                       = $registry->getDocumentComponent();
+		$this->builder                   = $component->getBuilderWorker();
+		$this->renderer                  = $component->getRendererWorker();
+				$this->cafFaker          = $registry->getIdentifierComponent()->getCafFakerWorker();
+				$this->certificateLoader = new CertificateLoader();
+				$this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
 	}
 
 	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
 		$tipo     = (int) $tipo_dte;
 		$settings = $this->settings->get_settings();
 
-		// Validar CAF proporcionado en la configuración.
-		$caf_paths = $settings['caf_path'] ?? array();
-		if ( isset( $caf_paths[ $tipo ] ) ) {
-			$caf_file = $caf_paths[ $tipo ];
-			if ( ! @simplexml_load_file( $caf_file ) ) {
-				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
+				// Validar CAF proporcionado en la configuración.
+				$caf_file = '';
+		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+			foreach ( $settings['cafs'] as $caf ) {
+				if ( (int) ( $caf['tipo'] ?? 0 ) === $tipo ) {
+					$caf_file = $caf['path'] ?? '';
+					break;
+				}
 			}
+		} elseif ( isset( $settings['caf_path'][ $tipo ] ) ) {
+				$caf_file = $settings['caf_path'][ $tipo ];
+		}
+		if ( ! $caf_file || ! @file_exists( $caf_file ) ) {
+				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing CAF' ) : false;
+		}
+		if ( ! @simplexml_load_file( $caf_file ) ) {
+				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
 		}
 
 		$detalles = $data['Detalles'] ?? array();
@@ -88,20 +98,20 @@ class LibreDteEngine implements DteEngine {
 			'Detalle'    => $detalle,
 		);
 
-                $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
-                $cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
+				$emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
+				$cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
 
-                $cert_file = $settings['cert_path'] ?? '';
-                $cert_pass = $settings['cert_pass'] ?? '';
-                try {
-                        if ( $cert_file && @file_exists( $cert_file ) ) {
-                                $certificate = $this->certificateLoader->load( $cert_file, (string) $cert_pass );
-                        } else {
-                                $certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
-                        }
-                } catch ( \Throwable $e ) {
-                        $certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
-                }
+				$cert_file = $settings['cert_path'] ?? '';
+				$cert_pass = $settings['cert_pass'] ?? '';
+		try {
+			if ( $cert_file && @file_exists( $cert_file ) ) {
+						$certificate = $this->certificateLoader->load( $cert_file, (string) $cert_pass );
+			} else {
+							$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
+			}
+		} catch ( \Throwable $e ) {
+				$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
+		}
 
 		$bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
 		$this->builder->build( $bag );

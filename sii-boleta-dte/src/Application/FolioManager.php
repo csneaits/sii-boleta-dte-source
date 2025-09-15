@@ -31,21 +31,31 @@ class FolioManager {
 	 * @return array<string,string>
 	 */
 	public function get_caf_info( int $type = 39 ): array {
-		$settings = $this->settings->get_settings();
-		$caf_path = $settings['caf_path'][ $type ] ?? '';
-		if ( ! $caf_path || ! file_exists( $caf_path ) ) {
-			return array();
+				$settings = $this->settings->get_settings();
+				$caf_file = '';
+		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+			foreach ( $settings['cafs'] as $caf ) {
+				if ( (int) ( $caf['tipo'] ?? 0 ) === $type ) {
+					$caf_file = $caf['path'] ?? '';
+					break;
+				}
+			}
+		} elseif ( isset( $settings['caf_path'][ $type ] ) ) {
+				$caf_file = $settings['caf_path'][ $type ];
 		}
-		$xml = simplexml_load_file( $caf_path );
+		if ( ! $caf_file || ! file_exists( $caf_file ) ) {
+				return array();
+		}
+				$xml = simplexml_load_file( $caf_file );
 		if ( ! $xml ) {
-			return array();
+				return array();
 		}
-		return array(
-			'FchResol' => (string) $xml->DA->RE->FchResol,
-			'NroResol' => (string) $xml->DA->RE->NroResol,
-			'D'        => (int) $xml->DA->RNG->D,
-			'H'        => (int) $xml->DA->RNG->H,
-		);
+				return array(
+					'FchResol' => (string) ( $xml->CAF->DA->FA ?? '' ),
+					'NroResol' => (string) ( $xml->CAF->DA->RE ?? '' ),
+					'D'        => (int) ( $xml->CAF->DA->RNG->D ?? 0 ),
+					'H'        => (int) ( $xml->CAF->DA->RNG->H ?? 0 ),
+				);
 	}
 }
 

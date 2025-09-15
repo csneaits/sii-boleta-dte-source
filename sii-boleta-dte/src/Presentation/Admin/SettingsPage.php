@@ -41,8 +41,7 @@ class SettingsPage {
 		// Certificate and CAF.
 		add_settings_section( 'sii_boleta_cert', __( 'Certificate and CAF', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'cert_path', __( 'Certificate Path', 'sii-boleta-dte' ), array( $this, 'field_cert_path' ), 'sii-boleta-dte', 'sii_boleta_cert' );
-		add_settings_field( 'cert_pass', __( 'Certificate Password', 'sii-boleta-dte' ), array( $this, 'field_cert_pass' ), 'sii-boleta-dte', 'sii_boleta_cert' );
-		add_settings_field( 'caf_paths', __( 'CAF Paths', 'sii-boleta-dte' ), array( $this, 'field_caf_paths' ), 'sii-boleta-dte', 'sii_boleta_cert' );
+				add_settings_field( 'cert_pass', __( 'Certificate Password', 'sii-boleta-dte' ), array( $this, 'field_cert_pass' ), 'sii-boleta-dte', 'sii_boleta_cert' );
 
 		// Environment and document types.
 		add_settings_section( 'sii_boleta_env', __( 'Environment', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
@@ -115,20 +114,6 @@ class SettingsPage {
 
 	public function field_cert_pass(): void {
 		echo '<input type="password" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_pass]" value="" autocomplete="off" />';
-	}
-
-	public function field_caf_paths(): void {
-		$settings = $this->settings->get_settings();
-		$paths    = $settings['caf_paths'] ?? array();
-		$name     = esc_attr( Settings::OPTION_NAME ) . '[caf_paths]';
-		$types    = array(
-			33 => __( 'Factura', 'sii-boleta-dte' ),
-			39 => __( 'Boleta', 'sii-boleta-dte' ),
-		);
-		foreach ( $types as $code => $label ) {
-			$value = isset( $paths[ $code ] ) ? esc_textarea( implode( "\n", (array) $paths[ $code ] ) ) : '';
-			echo '<p><label>' . esc_html( $label ) . '</label><br /><textarea name="' . $name . '[' . esc_attr( (string) $code ) . ']" rows="3" cols="40">' . $value . '</textarea></p>';
-		}
 	}
 
 	public function field_environment(): void {
@@ -219,26 +204,23 @@ class SettingsPage {
 
 		/** Displays a quick checklist to verify certification readiness. */
 	private function render_requirements_check(): void {
-			$cfg    = $this->settings->get_settings();
-			$checks = array(
-				'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
-				'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
-				'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
-				'caf_paths'    => __( 'CAF paths configured', 'sii-boleta-dte' ),
-			);
-			echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2><ul>';
-			foreach ( $checks as $key => $label ) {
-					$ok = false;
-				if ( 'cert_path' === $key ) {
-						$ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
-				} elseif ( 'caf_paths' === $key ) {
-						$ok = ! empty( $cfg['caf_paths'] );
-				} else {
-						$ok = ! empty( $cfg[ $key ] );
-				}
-					echo '<li>' . ( $ok ? '&#10003;' : '&#10007;' ) . ' ' . esc_html( $label ) . '</li>';
-			}
-			echo '</ul>';
+					$cfg    = $this->settings->get_settings();
+					$checks = array(
+						'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
+						'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
+						'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
+					);
+					echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2><ul>';
+					foreach ( $checks as $key => $label ) {
+									$ok = false;
+						if ( 'cert_path' === $key ) {
+										$ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
+						} else {
+											$ok = ! empty( $cfg[ $key ] );
+						}
+									echo '<li>' . ( $ok ? '&#10003;' : '&#10007;' ) . ' ' . esc_html( $label ) . '</li>';
+					}
+					echo '</ul>';
 	}
 
 	/**
@@ -248,7 +230,8 @@ class SettingsPage {
 	 * @return array<string,mixed>
 	 */
 	public function sanitize_settings( array $input ): array {
-		$output = array();
+			$current = function_exists( 'get_option' ) ? get_option( Settings::OPTION_NAME, array() ) : array();
+			$output  = is_array( $current ) ? $current : array();
 
 		if ( isset( $input['rut_emisor'] ) ) {
 			$rut = sanitize_text_field( $input['rut_emisor'] );
@@ -287,29 +270,8 @@ class SettingsPage {
 			$output['cert_path'] = sanitize_file_name( $input['cert_path'] );
 		}
 
-		if ( isset( $input['caf_paths'] ) && is_array( $input['caf_paths'] ) ) {
-				$output['caf_paths'] = array();
-				$loaded              = false;
-			foreach ( $input['caf_paths'] as $type => $paths ) {
-						$lines                              = array_filter( array_map( 'trim', explode( "\n", (string) $paths ) ) );
-						$files                              = array_map( 'sanitize_file_name', $lines );
-						$output['caf_paths'][ (int) $type ] = $files;
-				foreach ( $files as $f ) {
-					if ( file_exists( $f ) ) {
-								$loaded = true;
-								break 2;
-					}
-				}
-			}
-			if ( $loaded ) {
-							add_settings_error( 'caf_paths', 'caf_loaded', __( 'CAF files loaded.', 'sii-boleta-dte' ), 'updated' );
-			} else {
-				add_settings_error( 'caf_paths', 'caf_missing', __( 'CAF files missing.', 'sii-boleta-dte' ) );
-			}
-		}
-
 		if ( isset( $input['environment'] ) ) {
-			$output['environment'] = intval( $input['environment'] );
+				$output['environment'] = intval( $input['environment'] );
 		}
 
 		if ( isset( $input['enabled_types'] ) && is_array( $input['enabled_types'] ) ) {
@@ -331,7 +293,7 @@ class SettingsPage {
 			$output['pdf_logo'] = sanitize_file_name( $input['pdf_logo'] );
 		}
 
-		$output['pdf_show_logo'] = empty( $input['pdf_show_logo'] ) ? 0 : 1;
+			$output['pdf_show_logo'] = empty( $input['pdf_show_logo'] ) ? 0 : 1;
 
 		if ( isset( $input['pdf_footer'] ) ) {
 			$output['pdf_footer'] = sanitize_text_field( $input['pdf_footer'] );
@@ -341,9 +303,9 @@ class SettingsPage {
 			$output['smtp_profile'] = sanitize_text_field( $input['smtp_profile'] );
 		}
 
-		$output['enable_logging'] = empty( $input['enable_logging'] ) ? 0 : 1;
+			$output['enable_logging'] = empty( $input['enable_logging'] ) ? 0 : 1;
 
-		return $output;
+			return $output;
 	}
 }
 

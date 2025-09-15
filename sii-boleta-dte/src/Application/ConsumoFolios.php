@@ -26,11 +26,20 @@ class ConsumoFolios {
 	 * @return string|false
 	 */
 	public function generate_cdf_xml( string $fecha ) {
-		$settings  = $this->settings->get_settings();
-		$caf_paths = $settings['caf_path'] ?? array();
-		$rut       = $settings['rut_emisor'] ?? '';
+				$settings  = $this->settings->get_settings();
+				$caf_paths = array();
+		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+			foreach ( $settings['cafs'] as $caf ) {
+				if ( isset( $caf['tipo'], $caf['path'] ) ) {
+					$caf_paths[ (int) $caf['tipo'] ] = $caf['path'];
+				}
+			}
+		} elseif ( isset( $settings['caf_path'] ) && is_array( $settings['caf_path'] ) ) {
+				$caf_paths = $settings['caf_path'];
+		}
+				$rut = $settings['rut_emisor'] ?? '';
 		if ( empty( $caf_paths ) || empty( $rut ) ) {
-			return false;
+				return false;
 		}
 		$xml = new \SimpleXMLElement( '<ConsumoFolios xmlns="http://www.sii.cl/SiiDte"></ConsumoFolios>' );
 		$car = $xml->addChild( 'Caratula' );

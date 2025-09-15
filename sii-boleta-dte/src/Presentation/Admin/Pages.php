@@ -2,6 +2,7 @@
 namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Plugin;
+use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 use Sii\BoletaDte\Presentation\Admin\LogsPage;
 use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
@@ -95,17 +96,53 @@ class Pages {
 						);
 		}
 		if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
-										\wp_enqueue_script(
-											'sii-boleta-generate-dte',
-											SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
+																		\wp_enqueue_script(
+																			'sii-boleta-generate-dte',
+																			SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
+																			array(),
+																			SII_BOLETA_DTE_VERSION,
+																			true
+																		);
+																		\wp_localize_script(
+																			'sii-boleta-generate-dte',
+																			'siiBoletaGenerate',
+																			array(
+																				'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+																			)
+																		);
+		}
+
+		if ( 'sii-boleta-dte_page_sii-boleta-dte-settings' === $hook ) {
+										\wp_enqueue_media();
+										\wp_enqueue_style(
+											'sii-boleta-admin-settings',
+											SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/admin-settings.css',
 											array(),
+											SII_BOLETA_DTE_VERSION
+										);
+										\wp_enqueue_script(
+											'sii-boleta-admin-settings',
+											SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/admin-settings.js',
+											array( 'jquery' ),
 											SII_BOLETA_DTE_VERSION,
 											true
 										);
 										\wp_localize_script(
-											'sii-boleta-generate-dte',
-											'siiBoletaGenerate',
+											'sii-boleta-admin-settings',
+											'siiBoletaSettings',
 											array(
+												'optionKey' => Settings::OPTION_NAME,
+												'cafOptions' => array(
+													33 => \__( 'Factura', 'sii-boleta-dte' ),
+													39 => \__( 'Boleta', 'sii-boleta-dte' ),
+												),
+												'texts' => array(
+													'selectDocument' => \__( 'Select document type', 'sii-boleta-dte' ),
+													'selectLogo'     => \__( 'Select logo', 'sii-boleta-dte' ),
+													'useLogo'        => \__( 'Use logo', 'sii-boleta-dte' ),
+													'sending'        => \__( 'Sending…', 'sii-boleta-dte' ),
+													'sendFail'       => \__( 'Failed to send', 'sii-boleta-dte' ),
+												),
 												'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
 											)
 										);

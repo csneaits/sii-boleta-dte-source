@@ -39,7 +39,7 @@ class SettingsPageTest extends TestCase {
             'cert_path'     => '../cert.pfx',
             'environment'   => '2',
             'enabled_types' => array( '33' => 1, '39' => 1 ),
-            'pdf_logo'      => '../logo.png',
+            'pdf_logo'      => '123',
             'pdf_show_logo' => '1',
             'enable_logging'=> '1',
         );
@@ -49,7 +49,7 @@ class SettingsPageTest extends TestCase {
         $this->assertSame( 2, $clean['environment'] );
         $this->assertSame( array( 33, 39 ), $clean['enabled_types'] );
         $this->assertSame( 'secret', Settings::decrypt( $clean['cert_pass'] ) );
-        $this->assertSame( 'logo.png', $clean['pdf_logo'] );
+        $this->assertSame( 123, $clean['pdf_logo'] );
         $this->assertSame( 1, $clean['pdf_show_logo'] );
         $this->assertSame( 1, $clean['enable_logging'] );
     }

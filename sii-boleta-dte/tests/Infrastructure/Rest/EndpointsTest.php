@@ -19,7 +19,8 @@ if ( ! function_exists( 'get_query_var' ) ) {
 }
 if ( ! function_exists( 'wp_upload_dir' ) ) {
     function wp_upload_dir() {
-        return [ 'basedir' => $GLOBALS['upload_dir'], 'baseurl' => 'http://example.com/uploads' ];
+        $base = $GLOBALS['upload_dir'] ?? sys_get_temp_dir();
+        return [ 'basedir' => $base, 'baseurl' => 'http://example.com/uploads' ];
     }
 }
 if ( ! function_exists( 'status_header' ) ) {

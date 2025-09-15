@@ -55,10 +55,10 @@ class QueueProcessor {
 					QueueDb::delete( $job['id'] );
 				}
 			} else {
-				LogDb::add_entry( (string) $result, 'sent', '' );
+				$track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;
+				LogDb::add_entry( $track, 'sent', '' );
 				QueueDb::delete( $job['id'] );
 			}
-			\call_user_func( $this->sleep, 1 );
 		}
 	}
 

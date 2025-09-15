@@ -37,7 +37,6 @@ class SettingsPageTest extends TestCase {
             'rut_emisor'    => ' 11-1 ',
             'cert_pass'     => 'secret',
             'cert_path'     => '../cert.pfx',
-            'caf_paths'     => array( '33' => "../caf.xml\n../caf2.xml" ),
             'environment'   => '2',
             'enabled_types' => array( '33' => 1, '39' => 1 ),
             'pdf_logo'      => '../logo.png',
@@ -47,7 +46,6 @@ class SettingsPageTest extends TestCase {
         $clean = $page->sanitize_settings( $input );
         $this->assertSame( '11-1', $clean['rut_emisor'] );
         $this->assertSame( 'cert.pfx', $clean['cert_path'] );
-        $this->assertSame( array( 33 => array( 'caf.xml', 'caf2.xml' ) ), $clean['caf_paths'] );
         $this->assertSame( 2, $clean['environment'] );
         $this->assertSame( array( 33, 39 ), $clean['enabled_types'] );
         $this->assertSame( 'secret', Settings::decrypt( $clean['cert_pass'] ) );

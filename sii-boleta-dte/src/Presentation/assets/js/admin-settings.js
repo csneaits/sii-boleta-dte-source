@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+function initAdminSettings() {
     var fileInput = document.getElementById('sii-dte-cert-file');
     var textInput = document.getElementById('sii-dte-cert-path');
     if (fileInput && textInput) {
@@ -133,5 +133,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminSettings);
+} else {
+    initAdminSettings();
+}
 

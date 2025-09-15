@@ -78,9 +78,9 @@ class SettingsPage {
 	}
 
 	public function field_giro(): void {
-		$settings = $this->settings->get_settings();
-		$value    = esc_attr( $settings['giro'] ?? '' );
-		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[giro]" value="' . $value . '" />';
+				$settings = $this->settings->get_settings();
+				$value    = esc_attr( $settings['giro'] ?? '' );
+				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[giro]" value="' . $value . '" />';
 	}
 
 	public function field_direccion(): void {
@@ -184,11 +184,11 @@ class SettingsPage {
 	}
 
 	public function field_smtp_profile(): void {
-		$settings = $this->settings->get_settings();
-		$current  = $settings['smtp_profile'] ?? '';
-		$options  = apply_filters( 'sii_boleta_available_smtp_profiles', array() );
-		$name     = esc_attr( Settings::OPTION_NAME ) . '[smtp_profile]';
-		echo '<select name="' . $name . '"><option value="">' . esc_html__( 'Default', 'sii-boleta-dte' ) . '</option>';
+				$settings = $this->settings->get_settings();
+				$current  = $settings['smtp_profile'] ?? '';
+				$options  = apply_filters( 'sii_boleta_available_smtp_profiles', array() );
+				$name     = esc_attr( Settings::OPTION_NAME ) . '[smtp_profile]';
+				echo '<select id="sii-smtp-profile" name="' . $name . '"><option value="">' . esc_html__( 'Default', 'sii-boleta-dte' ) . '</option>';
 		foreach ( $options as $key => $label ) {
 			echo '<option value="' . esc_attr( (string) $key ) . '"' . selected( $current, $key, false ) . '>' . esc_html( (string) $label ) . '</option>';
 		}
@@ -288,10 +288,23 @@ class SettingsPage {
 		}
 
 		if ( isset( $input['caf_paths'] ) && is_array( $input['caf_paths'] ) ) {
-			$output['caf_paths'] = array();
+				$output['caf_paths'] = array();
+				$loaded              = false;
 			foreach ( $input['caf_paths'] as $type => $paths ) {
-				$lines                              = array_filter( array_map( 'trim', explode( "\n", (string) $paths ) ) );
-				$output['caf_paths'][ (int) $type ] = array_map( 'sanitize_file_name', $lines );
+						$lines                              = array_filter( array_map( 'trim', explode( "\n", (string) $paths ) ) );
+						$files                              = array_map( 'sanitize_file_name', $lines );
+						$output['caf_paths'][ (int) $type ] = $files;
+				foreach ( $files as $f ) {
+					if ( file_exists( $f ) ) {
+								$loaded = true;
+								break 2;
+					}
+				}
+			}
+			if ( $loaded ) {
+							add_settings_error( 'caf_paths', 'caf_loaded', __( 'CAF files loaded.', 'sii-boleta-dte' ), 'updated' );
+			} else {
+				add_settings_error( 'caf_paths', 'caf_missing', __( 'CAF files missing.', 'sii-boleta-dte' ) );
 			}
 		}
 

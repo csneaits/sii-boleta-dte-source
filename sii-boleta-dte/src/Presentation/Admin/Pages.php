@@ -81,16 +81,23 @@ class Pages {
 							SII_BOLETA_DTE_VERSION
 						);
 		}
-		if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
-						\wp_enqueue_script(
-							'sii-boleta-generate-dte',
-							SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
-							array(),
-							SII_BOLETA_DTE_VERSION,
-							true
-						);
-		}
-	}
+               if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
+                                               \wp_enqueue_script(
+                                                       'sii-boleta-generate-dte',
+                                                       SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
+                                                       array(),
+                                                       SII_BOLETA_DTE_VERSION,
+                                                       true
+                                               );
+                                               \wp_localize_script(
+                                                       'sii-boleta-generate-dte',
+                                                       'siiBoletaGenerate',
+                                                       array(
+                                                               'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+                                                       )
+                                               );
+               }
+       }
 }
 
 class_alias( Pages::class, 'Sii\\BoletaDte\\Admin\\Pages' );

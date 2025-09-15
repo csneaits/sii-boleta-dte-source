@@ -74,12 +74,21 @@ class Pages {
 
 	public function enqueue_assets( string $hook ): void {
 		if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
-				\wp_enqueue_style(
-					'sii-boleta-control-panel',
-					SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
-					array(),
-					SII_BOLETA_DTE_VERSION
-				);
+						\wp_enqueue_style(
+							'sii-boleta-control-panel',
+							SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
+							array(),
+							SII_BOLETA_DTE_VERSION
+						);
+		}
+		if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
+						\wp_enqueue_script(
+							'sii-boleta-generate-dte',
+							SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
+							array(),
+							SII_BOLETA_DTE_VERSION,
+							true
+						);
 		}
 	}
 }

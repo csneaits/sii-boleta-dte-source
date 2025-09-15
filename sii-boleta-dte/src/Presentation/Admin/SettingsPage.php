@@ -72,9 +72,9 @@ class SettingsPage {
 	}
 
 	public function field_razon_social(): void {
-		$settings = $this->settings->get_settings();
-		$value    = esc_attr( $settings['razon_social'] ?? '' );
-		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
+				$settings = $this->settings->get_settings();
+				$value    = esc_attr( $settings['razon_social'] ?? '' );
+				echo '<input type="text" class="regular-text" style="width:25em" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
 	}
 
 	public function field_giro(): void {
@@ -206,13 +206,39 @@ class SettingsPage {
 	 * Outputs the settings page markup.
 	 */
 	public function render_page(): void {
-		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
-		echo '<form method="post" action="options.php">';
-		settings_fields( Settings::OPTION_GROUP );
-		do_settings_sections( 'sii-boleta-dte' );
-		submit_button();
-		echo '</form></div>';
+			echo '<div class="wrap">';
+			echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
+			echo '<form method="post" action="options.php">';
+			settings_fields( Settings::OPTION_GROUP );
+			do_settings_sections( 'sii-boleta-dte' );
+			submit_button();
+			echo '</form>';
+			$this->render_requirements_check();
+			echo '</div>';
+	}
+
+		/** Displays a quick checklist to verify certification readiness. */
+	private function render_requirements_check(): void {
+			$cfg    = $this->settings->get_settings();
+			$checks = array(
+				'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
+				'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
+				'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
+				'caf_paths'    => __( 'CAF paths configured', 'sii-boleta-dte' ),
+			);
+			echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2><ul>';
+			foreach ( $checks as $key => $label ) {
+					$ok = false;
+				if ( 'cert_path' === $key ) {
+						$ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
+				} elseif ( 'caf_paths' === $key ) {
+						$ok = ! empty( $cfg['caf_paths'] );
+				} else {
+						$ok = ! empty( $cfg[ $key ] );
+				}
+					echo '<li>' . ( $ok ? '&#10003;' : '&#10007;' ) . ' ' . esc_html( $label ) . '</li>';
+			}
+			echo '</ul>';
 	}
 
 	/**

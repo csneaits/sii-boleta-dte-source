@@ -64,44 +64,61 @@ class GenerateDtePage {
 						<?php endif; ?>
 						<form method="post">
 								<?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
-								<table class="form-table" role="presentation">
-										<tbody>
-												<tr>
-														<th scope="row"><label for="sii-rut"><?php esc_html_e( 'Customer RUT', 'sii-boleta-dte' ); ?></label></th>
-														<td><input type="text" id="sii-rut" name="rut" required class="regular-text" /></td>
-												</tr>
-												<tr>
-														<th scope="row"><label for="sii-razon"><?php esc_html_e( 'Razón Social', 'sii-boleta-dte' ); ?></label></th>
-														<td><input type="text" id="sii-razon" name="razon" required class="regular-text" /></td>
-												</tr>
-												<tr>
-														<th scope="row"><label for="sii-giro"><?php esc_html_e( 'Giro', 'sii-boleta-dte' ); ?></label></th>
-														<td><input type="text" id="sii-giro" name="giro" required class="regular-text" /></td>
-												</tr>
-												<tr>
-														<th scope="row"><label for="sii-items"><?php esc_html_e( 'Items', 'sii-boleta-dte' ); ?></label></th>
-														<td>
-																<textarea id="sii-items" name="items" rows="5" cols="60" class="large-text code"></textarea>
-																<p class="description"><?php esc_html_e( 'One per line: qty|description|price|taxable', 'sii-boleta-dte' ); ?></p>
-														</td>
-												</tr>
-												<tr>
-														<th scope="row"><label for="sii-tipo"><?php esc_html_e( 'DTE Type', 'sii-boleta-dte' ); ?></label></th>
-														<td>
-																<select id="sii-tipo" name="tipo">
-																		<option value="39"><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
-																		<option value="33"><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
-																		<option value="34"><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
-																		<option value="52"><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
-																</select>
-														</td>
-												</tr>
-										</tbody>
-								</table>
-								<?php submit_button( __( 'Generate', 'sii-boleta-dte' ) ); ?>
-						</form>
-				</div>
-				<?php
+																<table class="form-table" role="presentation">
+																				<tbody>
+																								<tr>
+																												<th scope="row"><label for="sii-rut"><?php esc_html_e( 'Customer RUT', 'sii-boleta-dte' ); ?></label></th>
+																												<td><input type="text" id="sii-rut" name="rut" required class="regular-text" /></td>
+																								</tr>
+																								<tr>
+																												<th scope="row"><label for="sii-razon"><?php esc_html_e( 'Razón Social', 'sii-boleta-dte' ); ?></label></th>
+																												<td><input type="text" id="sii-razon" name="razon" required class="large-text" style="width:25em" /></td>
+																								</tr>
+																								<tr>
+																												<th scope="row"><label for="sii-giro"><?php esc_html_e( 'Giro', 'sii-boleta-dte' ); ?></label></th>
+																												<td><input type="text" id="sii-giro" name="giro" required class="regular-text" /></td>
+																								</tr>
+																								<tr>
+																												<th scope="row"><label for="sii-items"><?php esc_html_e( 'Items', 'sii-boleta-dte' ); ?></label></th>
+																												<td>
+																																<table id="sii-items-table" class="widefat">
+																																				<thead>
+																																								<tr>
+																																												<th><?php esc_html_e( 'Description', 'sii-boleta-dte' ); ?></th>
+																																												<th><?php esc_html_e( 'Quantity', 'sii-boleta-dte' ); ?></th>
+																																												<th><?php esc_html_e( 'Unit Price', 'sii-boleta-dte' ); ?></th>
+																																												<th></th>
+																																								</tr>
+																																				</thead>
+																																				<tbody>
+																																								<tr>
+																																												<td><input type="text" name="items[0][desc]" class="regular-text" /></td>
+																																												<td><input type="number" name="items[0][qty]" value="1" step="0.01" /></td>
+																																												<td><input type="number" name="items[0][price]" value="0" step="0.01" /></td>
+																																												<td><button type="button" class="button remove-item">×</button></td>
+																																								</tr>
+																																				</tbody>
+																																</table>
+																																<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>
+																												</td>
+																								</tr>
+																								<tr>
+																												<th scope="row"><label for="sii-tipo"><?php esc_html_e( 'DTE Type', 'sii-boleta-dte' ); ?></label></th>
+																												<td>
+																																<select id="sii-tipo" name="tipo">
+																																<option value="39"><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
+																																<option value="33"><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
+																																<option value="34"><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
+																																<option value="52"><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
+																																</select>
+																												</td>
+																								</tr>
+																				</tbody>
+																</table>
+																<?php submit_button( __( 'Generate', 'sii-boleta-dte' ) ); ?>
+												</form>
+								</div>
+								<?php
 	}
 
 	/**
@@ -114,30 +131,29 @@ class GenerateDtePage {
 		if ( empty( $post['sii_boleta_generate_dte_nonce'] ) || ! \wp_verify_nonce( $post['sii_boleta_generate_dte_nonce'], 'sii_boleta_generate_dte' ) ) {
 			return array( 'error' => \__( 'Invalid nonce.', 'sii-boleta-dte' ) );
 		}
-		$rut   = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
-		$razon = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
-		$giro  = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
-		$tipo  = (int) ( $post['tipo'] ?? 39 );
-		$items = array();
-		$lines = preg_split( '/\r?\n/', (string) ( $post['items'] ?? '' ) );
-		$n     = 1;
-		foreach ( $lines as $line ) {
-			$line = trim( $line );
-			if ( '' === $line ) {
-				continue;
+		$rut           = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
+		$razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
+		$giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
+		$tipo          = (int) ( $post['tipo'] ?? 39 );
+				$items = array();
+				$n     = 1;
+				$raw   = $post['items'] ?? array();
+		if ( is_array( $raw ) ) {
+			foreach ( $raw as $item ) {
+						$qty   = isset( $item['qty'] ) ? (float) $item['qty'] : 1.0;
+						$desc  = sanitize_text_field( (string) ( $item['desc'] ?? '' ) );
+						$price = isset( $item['price'] ) ? (int) round( (float) $item['price'] ) : 0;
+				if ( '' === $desc ) {
+					continue;
+				}
+						$items[] = array(
+							'NroLinDet' => $n++,
+							'NmbItem'   => $desc,
+							'QtyItem'   => $qty,
+							'PrcItem'   => $price,
+							'IndExe'    => 0,
+						);
 			}
-			$parts   = array_map( 'trim', explode( '|', $line ) );
-			$qty     = isset( $parts[0] ) ? (float) $parts[0] : 1.0;
-			$desc    = $parts[1] ?? '';
-			$price   = isset( $parts[2] ) ? (int) round( (float) $parts[2] ) : 0;
-			$tax     = ! empty( $parts[3] ) ? (int) $parts[3] : 1;
-			$items[] = array(
-				'NroLinDet' => $n++,
-				'NmbItem'   => $desc,
-				'QtyItem'   => $qty,
-				'PrcItem'   => $price,
-				'IndExe'    => $tax ? 0 : 1,
-			);
 		}
 		$data = array(
 			'Folio'    => $this->folio_manager->get_next_folio( $tipo ),

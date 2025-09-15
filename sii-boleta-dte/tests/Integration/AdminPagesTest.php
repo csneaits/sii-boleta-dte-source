@@ -49,7 +49,13 @@ class AdminPagesTest extends TestCase {
             'rut' => '1-9',
             'razon' => 'Cliente',
             'giro' => 'Giro',
-            'items' => "1|Item|1000|1",
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
             'tipo' => '39',
         );
         ob_start();

@@ -16,10 +16,13 @@ jobs:
           php-version: '8.4'
       - name: Install dependencies
         working-directory: sii-boleta-dte
-        run: composer install --no-dev --optimize-autoloader
+        run: composer install --prefer-dist --no-interaction
       - name: Run tests
         working-directory: sii-boleta-dte
         run: ./vendor/bin/phpunit
+      - name: Install production dependencies
+        working-directory: sii-boleta-dte
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
       - name: Package plugin
         run: |
           cd sii-boleta-dte

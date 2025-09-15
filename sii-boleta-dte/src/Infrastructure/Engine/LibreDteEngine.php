@@ -11,6 +11,7 @@ use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
 use Derafu\Certificate\Service\CertificateFaker;
 use Derafu\Certificate\Service\CertificateLoader;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * DTE engine backed by LibreDTE library.
@@ -58,45 +59,56 @@ class LibreDteEngine implements DteEngine {
 				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
 		}
 
-		$detalles = $data['Detalles'] ?? array();
-		$detalle  = array();
-		$i        = 1;
-		foreach ( $detalles as $d ) {
-			$qty  = (float) ( $d['QtyItem'] ?? 1 );
-			$prc  = (int) round( $d['PrcItem'] ?? 0 );
-			$line = array(
-				'NroLinDet' => $d['NroLinDet'] ?? $i,
-				'NmbItem'   => $d['NmbItem'] ?? '',
-				'QtyItem'   => $qty,
-				'PrcItem'   => $prc,
-			);
-			if ( ! empty( $d['IndExe'] ) || 41 === $tipo ) {
-				$line['IndExe'] = 1;
-			}
-			$detalle[] = $line;
-			++$i;
-		}
+                $template = $this->load_template( $tipo );
 
-		$emisor = array(
-			'RUTEmisor'    => $settings['rut_emisor'] ?? $data['RutEmisor'] ?? '',
-			'RznSocEmisor' => $settings['razon_social'] ?? $data['RznSoc'] ?? '',
-			'GiroEmisor'   => $settings['giro'] ?? $data['GiroEmisor'] ?? '',
-			'DirOrigen'    => $settings['direccion'] ?? $data['DirOrigen'] ?? '',
-			'CmnaOrigen'   => $settings['comuna'] ?? $data['CmnaOrigen'] ?? '',
-		);
+                $detalles = $data['Detalles'] ?? array();
+                $detalle  = array();
+                $i        = 1;
+                foreach ( $detalles as $d ) {
+                        $qty  = (float) ( $d['QtyItem'] ?? 1 );
+                        $prc  = (int) round( $d['PrcItem'] ?? 0 );
+                        $line = array(
+                                'NroLinDet' => $d['NroLinDet'] ?? $i,
+                                'NmbItem'   => $d['NmbItem'] ?? '',
+                                'QtyItem'   => $qty,
+                                'PrcItem'   => $prc,
+                        );
+                        if ( ! empty( $d['IndExe'] ) || 41 === $tipo ) {
+                                $line['IndExe'] = 1;
+                        }
+                        $detalle[] = $line;
+                        ++$i;
+                }
 
-		$documentData = array(
-			'Encabezado' => array(
-				'IdDoc'    => array(
-					'TipoDTE' => $tipo,
-					'Folio'   => $data['Folio'] ?? 0,
-					'FchEmis' => $data['FchEmis'] ?? '',
-				),
-				'Emisor'   => $emisor,
-				'Receptor' => $data['Receptor'] ?? array(),
-			),
-			'Detalle'    => $detalle,
-		);
+                $emisor = array(
+                        'RUTEmisor'    => $settings['rut_emisor'] ?? $data['RutEmisor'] ?? '',
+                        'RznSocEmisor' => $settings['razon_social'] ?? $data['RznSoc'] ?? '',
+                        'GiroEmisor'   => $settings['giro'] ?? $data['GiroEmisor'] ?? '',
+                        'DirOrigen'    => $settings['direccion'] ?? $data['DirOrigen'] ?? '',
+                        'CmnaOrigen'   => $settings['comuna'] ?? $data['CmnaOrigen'] ?? '',
+                );
+
+                $documentData = array_replace_recursive(
+                        $template,
+                        array(
+                                'Encabezado' => array(
+                                        'IdDoc'    => array(
+                                                'TipoDTE' => $tipo,
+                                                'Folio'   => $data['Folio'] ?? 0,
+                                                'FchEmis' => $data['FchEmis'] ?? '',
+                                        ),
+                                        'Emisor'   => $emisor,
+                                        'Receptor' => $data['Receptor'] ?? array(),
+                                ),
+                                'Detalle'    => $detalle,
+                        )
+                );
+
+
+
+                if ( ! empty( $data['Referencias'] ) ) {
+                        $documentData['Referencia'] = $data['Referencias'];
+                }
 
 				$emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
 				$cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
@@ -121,20 +133,35 @@ class LibreDteEngine implements DteEngine {
 	/**
 	 * Renders a PDF using LibreDTE templates.
 	 */
-	public function render_pdf( string $xml, array $options = array() ): string {
-		$xml  = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
-		$bag  = new DocumentBag(
-			$xml,
-			options: array(
+        public function render_pdf( string $xml, array $options = array() ): string {
+                $xml  = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
+                $bag  = new DocumentBag(
+                        $xml,
+                        options: array(
 				'parser'   => array( 'strategy' => 'default.xml' ),
 				'renderer' => array( 'format' => 'pdf' ),
 			)
 		);
 		$pdf  = $this->renderer->render( $bag );
 		$file = tempnam( sys_get_temp_dir(), 'pdf' );
-		file_put_contents( $file, $pdf );
-		return $file;
-	}
+                file_put_contents( $file, $pdf );
+                return $file;
+        }
+
+        /** Loads YAML template for a given DTE type. */
+        private function load_template( int $tipo ): array {
+                $base = dirname( __DIR__, 2 ) . '/resources/yaml/documentos_ok/';
+                $file = $base . $tipo . '.yml';
+                if ( ! file_exists( $file ) ) {
+                        return array();
+                }
+                try {
+                        $parsed = Yaml::parseFile( $file );
+                        return is_array( $parsed ) ? $parsed : array();
+                } catch ( \Throwable $e ) {
+                        return array();
+                }
+        }
 }
 
 class_alias( LibreDteEngine::class, 'SII_LibreDTE_Engine' );

@@ -45,25 +45,30 @@ class GenerateDtePage {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$result = null;
-		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
-				$result = $this->process_post( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		}
-		?>
-				<div class="wrap">
-						<h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
-						<?php if ( is_array( $result ) && empty( $result['error'] ) ) : ?>
-								<div class="updated notice"><p>
-										<?php printf( esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), esc_html( (string) $result['track_id'] ) ); ?>
-										<?php if ( ! empty( $result['pdf'] ) ) : ?>
-												- <a href="<?php echo esc_url( (string) $result['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'sii-boleta-dte' ); ?></a>
-										<?php endif; ?>
-								</p></div>
-						<?php elseif ( is_array( $result ) && ! empty( $result['error'] ) ) : ?>
-								<div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
-						<?php endif; ?>
-						<form method="post">
-								<?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
+                $result = null;
+                if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+                                $result = $this->process_post( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                ?>
+                                <div class="wrap">
+                                                <h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
+                                                <?php if ( is_array( $result ) && ! empty( $result['preview'] ) ) : ?>
+                                                                <div class="notice notice-info"><p><?php esc_html_e( 'Preview generated. Review the document below.', 'sii-boleta-dte' ); ?></p></div>
+                                                                <?php if ( ! empty( $result['pdf'] ) ) : ?>
+                                                                                <iframe src="<?php echo esc_url( (string) $result['pdf'] ); ?>" style="width:100%;height:600px"></iframe>
+                                                                <?php endif; ?>
+                                                <?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
+                                                                <div class="updated notice"><p>
+                                                                                <?php printf( esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), esc_html( (string) $result['track_id'] ) ); ?>
+                                                                                <?php if ( ! empty( $result['pdf'] ) ) : ?>
+                                                                                                - <a href="<?php echo esc_url( (string) $result['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'sii-boleta-dte' ); ?></a>
+                                                                                <?php endif; ?>
+                                                                </p></div>
+                                                <?php elseif ( is_array( $result ) && ! empty( $result['error'] ) ) : ?>
+                                                                <div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
+                                                <?php endif; ?>
+                                                <form method="post">
+                                                                <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
 																<table class="form-table" role="presentation">
 																				<tbody>
 																								<tr>
@@ -122,12 +127,13 @@ class GenerateDtePage {
                                                                </td>
                                                                </tr>
                                                                </tbody>
-																</table>
-																<?php submit_button( __( 'Generate', 'sii-boleta-dte' ) ); ?>
-												</form>
-								</div>
-								<?php
-	}
+                                                                                                                               </table>
+                                                                                                                               <?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
+                                                                                                                               <?php submit_button( __( 'Send to SII', 'sii-boleta-dte' ) ); ?>
+                                                                                                </form>
+                                                                </div>
+                                                                <?php
+        }
 
 	/**
 	 * Processes form submission and returns result data.
@@ -139,10 +145,11 @@ class GenerateDtePage {
 		if ( empty( $post['sii_boleta_generate_dte_nonce'] ) || ! \wp_verify_nonce( $post['sii_boleta_generate_dte_nonce'], 'sii_boleta_generate_dte' ) ) {
 			return array( 'error' => \__( 'Invalid nonce.', 'sii-boleta-dte' ) );
 		}
-		$rut           = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
-		$razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
-		$giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
-		$tipo          = (int) ( $post['tipo'] ?? 39 );
+                $preview       = isset( $post['preview'] );
+                $rut           = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
+                $razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
+                $giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
+                $tipo          = (int) ( $post['tipo'] ?? 39 );
 				$items = array();
 				$n     = 1;
 				$raw   = $post['items'] ?? array();
@@ -173,21 +180,27 @@ class GenerateDtePage {
 			),
 			'Detalles' => $items,
 		);
-		$xml  = $this->engine->generate_dte_xml( $data, $tipo );
-		if ( is_wp_error( $xml ) ) {
-			return array( 'error' => $xml->get_error_message() );
-		}
-		$file = tempnam( sys_get_temp_dir(), 'dte' );
-		file_put_contents( $file, (string) $xml );
-		$cfg   = $this->settings->get_settings();
-		$env   = (string) ( $cfg['environment'] ?? 'test' );
-		$token = $this->token_manager->get_token( $env );
-		$track = $this->api->send_dte_to_sii( $file, $env, $token );
-		$pdf   = $this->pdf->generate( (string) $xml );
-		return array(
-			'track_id' => $track,
-			'pdf'      => $pdf,
-		);
+                $xml  = $this->engine->generate_dte_xml( $data, $tipo, $preview );
+                if ( is_wp_error( $xml ) ) {
+                        return array( 'error' => $xml->get_error_message() );
+                }
+                $pdf = $this->pdf->generate( (string) $xml );
+                if ( $preview ) {
+                        return array(
+                                'preview' => true,
+                                'pdf'     => $pdf,
+                        );
+                }
+                $file = tempnam( sys_get_temp_dir(), 'dte' );
+                file_put_contents( $file, (string) $xml );
+                $cfg   = $this->settings->get_settings();
+                $env   = (string) ( $cfg['environment'] ?? 'test' );
+                $token = $this->token_manager->get_token( $env );
+                $track = $this->api->send_dte_to_sii( $file, $env, $token );
+                return array(
+                        'track_id' => $track,
+                        'pdf'      => $pdf,
+                );
 	}
 }
 

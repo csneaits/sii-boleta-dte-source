@@ -8,11 +8,11 @@ class Cron {
 	public function __construct( Settings $settings ) {}
 
 	public static function activate(): void {
-		if ( \function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::HOOK ) ) {
-			if ( \function_exists( 'wp_schedule_event' ) ) {
-				wp_schedule_event( time() + 60, 'daily', self::HOOK );
-			}
-		}
+                if ( \function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::HOOK ) ) {
+                        if ( \function_exists( 'wp_schedule_event' ) ) {
+                                wp_schedule_event( time() + 60, 'hourly', self::HOOK );
+                        }
+                }
 	}
 
 	public static function deactivate(): void {

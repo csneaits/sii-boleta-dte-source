@@ -1,0 +1,46 @@
+name: Deploy
+
+on:
+  push:
+    branches: [fullLibreDte]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      - name: Install dependencies
+        working-directory: sii-boleta-dte
+        run: composer install --no-dev --optimize-autoloader
+      - name: Run tests
+        working-directory: sii-boleta-dte
+        run: ./vendor/bin/phpunit
+      - name: Package plugin
+        run: |
+          cd sii-boleta-dte
+          zip -r ../sii-boleta-dte.zip . -x 'vendor/*' 'tests/*' '.git*'
+      - name: Upload via SFTP
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          password: ${{ secrets.HOSTINGER_PASS }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          source: "sii-boleta-dte.zip"
+          target: ${{ secrets.HOSTINGER_PATH }}/sii-boleta-dte.zip
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          password: ${{ secrets.HOSTINGER_PASS }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          script: |
+            cd ${{ secrets.HOSTINGER_PATH }}
+            unzip -o sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte
+            rm sii-boleta-dte.zip

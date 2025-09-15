@@ -100,25 +100,31 @@ class CafPage {
 					'error'    => $files['error'][ $i ],
 					'size'     => $files['size'][ $i ],
 				);
-				$uploaded = wp_handle_upload( $file, array( 'test_form' => false ) );
-				if ( isset( $uploaded['error'] ) ) {
-					echo '<div class="notice notice-error"><p>' . esc_html( $uploaded['error'] ) . '</p></div>';
-					continue;
-				}
+				$uploaded = wp_handle_upload(
+					$file,
+					array(
+						'test_form' => false,
+						'mimes'     => array( 'xml' => 'text/xml' ),
+					),
+				);
+			if ( isset( $uploaded['error'] ) ) {
+				echo '<div class="notice notice-error"><p>' . esc_html( $uploaded['error'] ) . '</p></div>';
+				continue;
+			}
 				$path = $uploaded['file'];
 				$xml  = @simplexml_load_file( $path );
-				if ( ! $xml || ! isset( $xml->CAF->DA->TD ) ) {
-					@unlink( $path );
-					echo '<div class="notice notice-error"><p>' . esc_html__( 'El archivo no corresponde a un CAF válido.', 'sii-boleta-dte' ) . '</p></div>';
-					continue;
-				}
+			if ( ! $xml || ! isset( $xml->CAF->DA->TD ) ) {
+				@unlink( $path );
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'El archivo no corresponde a un CAF válido.', 'sii-boleta-dte' ) . '</p></div>';
+				continue;
+			}
 				$types = $this->supported_types();
 				$tipo  = (int) $xml->CAF->DA->TD;
-				if ( ! isset( $types[ $tipo ] ) ) {
-					@unlink( $path );
-					echo '<div class="notice notice-error"><p>' . esc_html__( 'Tipo de documento no soportado.', 'sii-boleta-dte' ) . '</p></div>';
-					continue;
-				}
+			if ( ! isset( $types[ $tipo ] ) ) {
+				@unlink( $path );
+				echo '<div class="notice notice-error"><p>' . esc_html__( 'Tipo de documento no soportado.', 'sii-boleta-dte' ) . '</p></div>';
+				continue;
+			}
 				$d          = (int) ( $xml->CAF->DA->RNG->D ?? 0 );
 				$h          = (int) ( $xml->CAF->DA->RNG->H ?? 0 );
 				$fa         = (string) ( $xml->CAF->DA->FA ?? '' );
@@ -126,11 +132,11 @@ class CafPage {
 				$estado     = ( $fa && strtotime( $fa ) && strtotime( $fa ) < time() - $year ) ? 'expirado' : 'vigente';
 				$upload_dir = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
 				$dir        = ( function_exists( 'trailingslashit' ) ? trailingslashit( $upload_dir['basedir'] ) : $upload_dir['basedir'] . '/' ) . 'sii-boleta-dte/cafs/';
-				if ( function_exists( 'wp_mkdir_p' ) ) {
-					wp_mkdir_p( $dir );
-				} elseif ( ! is_dir( $dir ) ) {
-					@mkdir( $dir, 0777, true );
-				}
+			if ( function_exists( 'wp_mkdir_p' ) ) {
+				wp_mkdir_p( $dir );
+			} elseif ( ! is_dir( $dir ) ) {
+				@mkdir( $dir, 0777, true );
+			}
 				$dest = $dir . basename( $path );
 				@rename( $path, $dest );
 

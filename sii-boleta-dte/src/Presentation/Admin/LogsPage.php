@@ -1,43 +1,52 @@
 <?php
 // phpcs:ignoreFile
-namespace Sii\BoletaDte\Presentation\Admin;
+
+namespace {
+        if ( ! class_exists( 'WP_List_Table', false ) ) {
+                if ( defined( 'ABSPATH' ) && file_exists( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' ) ) {
+                        require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+                }
+                if ( ! class_exists( 'WP_List_Table', false ) ) {
+                        // Lightweight stub to avoid fatal errors during tests when WP_List_Table is absent.
+                        #[\AllowDynamicProperties]
+                        class WP_List_Table {
+                                protected array $items        = array();
+                                public array $_column_headers = array();
+                                public function prepare_items() {}
+                                public function display() {
+                                        echo '<table class="wp-list-table">';
+                                        if ( ! empty( $this->_column_headers[0] ) ) {
+                                                echo '<thead><tr>';
+                                                foreach ( $this->_column_headers[0] as $label ) {
+                                                        echo '<th>' . esc_html( (string) $label ) . '</th>';
+                                                }
+                                                echo '</tr></thead>';
+                                        }
+                                        echo '<tbody>';
+                                        foreach ( $this->items as $row ) {
+                                                echo '<tr>';
+                                                foreach ( $row as $col ) {
+                                                        echo '<td>' . esc_html( (string) $col ) . '</td>';
+                                                }
+                                                echo '</tr>';
+                                        }
+                                        echo '</tbody></table>';
+                                }
+                                protected function column_default( $item, $column_name ) {
+                                        return $item[ $column_name ] ?? '';
+                                }
+                                protected function get_columns() {
+                                        return array(); }
+                                protected function set_pagination_args( $args ) {}
+                        }
+                }
+        }
+}
+
+namespace Sii\BoletaDte\Presentation\Admin {
 
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
-
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	// Lightweight stub to avoid fatal errors during tests when WP_List_Table is absent.
-	#[\AllowDynamicProperties]
-	class WP_List_Table {
-		protected array $items        = array();
-		public array $_column_headers = array();
-		public function prepare_items() {}
-		public function display() {
-			echo '<table class="wp-list-table">';
-			if ( ! empty( $this->_column_headers[0] ) ) {
-				echo '<thead><tr>';
-				foreach ( $this->_column_headers[0] as $label ) {
-					echo '<th>' . esc_html( (string) $label ) . '</th>';
-				}
-				echo '</tr></thead>';
-			}
-			echo '<tbody>';
-			foreach ( $this->items as $row ) {
-				echo '<tr>';
-				foreach ( $row as $col ) {
-					echo '<td>' . esc_html( (string) $col ) . '</td>';
-				}
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
-		}
-		protected function column_default( $item, $column_name ) {
-			return $item[ $column_name ] ?? '';
-		}
-		protected function get_columns() {
-			return array(); }
-		protected function set_pagination_args( $args ) {}
-	}
-}
+use WP_List_Table;
 
 class LogsTable extends WP_List_Table {
 	private array $items_data = array();
@@ -111,3 +120,4 @@ class LogsPage {
 }
 
 class_alias( LogsPage::class, 'SII_Boleta_Logs_Page' );
+}

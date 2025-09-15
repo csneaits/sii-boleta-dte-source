@@ -105,15 +105,23 @@ class GenerateDtePage {
 																								<tr>
 																												<th scope="row"><label for="sii-tipo"><?php esc_html_e( 'DTE Type', 'sii-boleta-dte' ); ?></label></th>
 																												<td>
-																																<select id="sii-tipo" name="tipo">
-																																<option value="39"><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
-																																<option value="33"><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
-																																<option value="34"><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
-																																<option value="52"><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
-																																</select>
-																												</td>
-																								</tr>
-																				</tbody>
+                                                               <select id="sii-tipo" name="tipo">
+                                                               <option value="39"><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="41"><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="33"><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="34"><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="43"><?php esc_html_e( 'Liquidación de Factura', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="46"><?php esc_html_e( 'Factura de Compra', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="52"><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="56"><?php esc_html_e( 'Nota de Crédito', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="61"><?php esc_html_e( 'Nota de Débito', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="110"><?php esc_html_e( 'Factura de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="111"><?php esc_html_e( 'Nota de Débito de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                               <option value="112"><?php esc_html_e( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                               </select>
+                                                               </td>
+                                                               </tr>
+                                                               </tbody>
 																</table>
 																<?php submit_button( __( 'Generate', 'sii-boleta-dte' ) ); ?>
 												</form>

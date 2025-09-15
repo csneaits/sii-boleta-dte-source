@@ -8,6 +8,7 @@ use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
 use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
+use Sii\BoletaDte\Presentation\Admin\CafPage;
 
 class Pages {
 	private Plugin $core;
@@ -17,15 +18,17 @@ class Pages {
 	private Help $help_page;
 	private ControlPanelPage $control_panel_page;
 	private GenerateDtePage $generate_dte_page;
+	private CafPage $caf_page;
 
-	public function __construct( Plugin $core, SettingsPage $settings_page = null, LogsPage $logs_page = null, DiagnosticsPage $diagnostics_page = null, Help $help_page = null, ControlPanelPage $control_panel_page = null, GenerateDtePage $generate_dte_page = null ) {
-					$this->core               = $core;
-					$this->settings_page      = $settings_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( SettingsPage::class );
-					$this->logs_page          = $logs_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( LogsPage::class );
-					$this->diagnostics_page   = $diagnostics_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( DiagnosticsPage::class );
-					$this->help_page          = $help_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( Help::class );
-					$this->control_panel_page = $control_panel_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( ControlPanelPage::class );
-					$this->generate_dte_page  = $generate_dte_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( GenerateDtePage::class );
+	public function __construct( Plugin $core, SettingsPage $settings_page = null, LogsPage $logs_page = null, DiagnosticsPage $diagnostics_page = null, Help $help_page = null, ControlPanelPage $control_panel_page = null, GenerateDtePage $generate_dte_page = null, CafPage $caf_page = null ) {
+				$this->core                                  = $core;
+				$this->settings_page                         = $settings_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( SettingsPage::class );
+				$this->logs_page                             = $logs_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( LogsPage::class );
+				$this->diagnostics_page                      = $diagnostics_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( DiagnosticsPage::class );
+				$this->help_page                             = $help_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( Help::class );
+				$this->control_panel_page                    = $control_panel_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( ControlPanelPage::class );
+									$this->generate_dte_page = $generate_dte_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( GenerateDtePage::class );
+									$this->caf_page          = $caf_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( CafPage::class );
 	}
 
 	public function register(): void {
@@ -54,15 +57,25 @@ class Pages {
 								// Manual generator page.
 								$this->generate_dte_page->register();
 
-								// Settings page.
-								\add_submenu_page(
-									'sii-boleta-dte',
-									\__( 'Settings', 'sii-boleta-dte' ),
-									\__( 'Settings', 'sii-boleta-dte' ),
-									'manage_options',
-									'sii-boleta-dte-settings',
-									array( $this->settings_page, 'render_page' )
-								);
+																// Settings page.
+																\add_submenu_page(
+																	'sii-boleta-dte',
+																	\__( 'Settings', 'sii-boleta-dte' ),
+																	\__( 'Settings', 'sii-boleta-dte' ),
+																	'manage_options',
+																	'sii-boleta-dte-settings',
+																	array( $this->settings_page, 'render_page' )
+																);
+
+																// CAF management page.
+																\add_submenu_page(
+																	'sii-boleta-dte',
+																	\__( 'Folios / CAFs', 'sii-boleta-dte' ),
+																	\__( 'Folios / CAFs', 'sii-boleta-dte' ),
+																	'manage_options',
+																	'sii-boleta-dte-cafs',
+																	array( $this->caf_page, 'render_page' )
+																);
 
 								// Logs page.
 								$this->logs_page->register();
@@ -81,23 +94,23 @@ class Pages {
 							SII_BOLETA_DTE_VERSION
 						);
 		}
-               if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
-                                               \wp_enqueue_script(
-                                                       'sii-boleta-generate-dte',
-                                                       SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
-                                                       array(),
-                                                       SII_BOLETA_DTE_VERSION,
-                                                       true
-                                               );
-                                               \wp_localize_script(
-                                                       'sii-boleta-generate-dte',
-                                                       'siiBoletaGenerate',
-                                                       array(
-                                                               'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-                                                       )
-                                               );
-               }
-       }
+		if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
+										\wp_enqueue_script(
+											'sii-boleta-generate-dte',
+											SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
+											array(),
+											SII_BOLETA_DTE_VERSION,
+											true
+										);
+										\wp_localize_script(
+											'sii-boleta-generate-dte',
+											'siiBoletaGenerate',
+											array(
+												'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+											)
+										);
+		}
+	}
 }
 
 class_alias( Pages::class, 'Sii\\BoletaDte\\Admin\\Pages' );

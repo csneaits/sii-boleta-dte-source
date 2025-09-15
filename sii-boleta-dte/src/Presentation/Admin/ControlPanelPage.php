@@ -136,11 +136,11 @@ class ControlPanelPage {
 								</thead>
 								<tbody>
 										<?php foreach ( $jobs as $job ) : ?>
-												<tr>
-														<td><?php echo (int) $job['id']; ?></td>
-														<td><?php echo esc_html( $job['type'] ); ?></td>
-														<td><?php echo (int) $job['attempts']; ?></td>
-														<td>
+                                                                                <tr>
+                                                                                                <td><?php echo (int) $job['id']; ?></td>
+                                                                                                <td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
+                                                                                                <td><?php echo (int) $job['attempts']; ?></td>
+                                                                                                <td>
 																<form method="post" style="display:inline">
 																		<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
 																		<?php wp_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
@@ -169,10 +169,20 @@ class ControlPanelPage {
 				$this->processor->process( $id );
 		} elseif ( 'cancel' === $action ) {
 				$this->processor->cancel( $id );
-		} elseif ( 'requeue' === $action ) {
-				$this->processor->retry( $id );
-		}
-	}
+                } elseif ( 'requeue' === $action ) {
+                                $this->processor->retry( $id );
+                }
+        }
+
+        /** Returns a translated label for a queue job type. */
+        private function translate_type( string $type ): string {
+                $map = array(
+                        'dte'   => __( 'DTE', 'sii-boleta-dte' ),
+                        'libro' => __( 'Libro', 'sii-boleta-dte' ),
+                        'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
+                );
+                return $map[ $type ] ?? $type;
+        }
 }
 
 class_alias( ControlPanelPage::class, 'SII_Boleta_Control_Panel_Page' );

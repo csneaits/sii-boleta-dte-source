@@ -28,23 +28,25 @@ jobs:
         run: |
           cd sii-boleta-dte
           zip -r ../sii-boleta-dte.zip . -x 'vendor/*' 'tests/*' '.git*'
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Upload via SFTP
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USER }}
-          password: ${{ secrets.HOSTINGER_PASS }}
-          port: ${{ secrets.HOSTINGER_PORT }}
-          source: "sii-boleta-dte.zip"
-          target: ${{ secrets.HOSTINGER_PATH }}/sii-boleta-dte.zip
+        env:
+          HOST: ${{ secrets.HOSTINGER_HOST }}
+          USER: ${{ secrets.HOSTINGER_USER }}
+          PASS: ${{ secrets.HOSTINGER_PASS }}
+          PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+        run: |
+          sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P "$PORT" \
+            sii-boleta-dte.zip "$USER@$HOST:$TARGET_PATH/sii-boleta-dte.zip"
       - name: Deploy on server
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USER }}
-          password: ${{ secrets.HOSTINGER_PASS }}
-          port: ${{ secrets.HOSTINGER_PORT }}
-          script: |
-            cd ${{ secrets.HOSTINGER_PATH }}
-            unzip -o sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte
-            rm sii-boleta-dte.zip
+        env:
+          HOST: ${{ secrets.HOSTINGER_HOST }}
+          USER: ${{ secrets.HOSTINGER_USER }}
+          PASS: ${{ secrets.HOSTINGER_PASS }}
+          PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+        run: |
+          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" \
+            "$USER@$HOST" "cd '$TARGET_PATH' && mkdir -p wp-content/plugins/sii-boleta-dte && unzip -o sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte && rm sii-boleta-dte.zip"

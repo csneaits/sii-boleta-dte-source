@@ -35,7 +35,7 @@ class ControlPanelPage {
 		}
         ?>
                                 <div class="wrap">
-                                                            <h1><?php esc_html_e( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
+                                                            <h1><?php echo esc_html__( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
                                                             <h2 class="nav-tab-wrapper">
                                                                 <?php
                                                                 $base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=sii-boleta-dte';
@@ -70,12 +70,12 @@ class ControlPanelPage {
 				$cfg   = $this->settings->get_settings();
 				$types = $cfg['enabled_types'] ?? array();
 		?>
-				<h2><?php esc_html_e( 'Folio availability', 'sii-boleta-dte' ); ?></h2>
+				<h2><?php echo esc_html__( 'Folio availability', 'sii-boleta-dte' ); ?></h2>
 				<table class="widefat striped">
 						<thead>
 								<tr>
-										<th><?php esc_html_e( 'Type', 'sii-boleta-dte' ); ?></th>
-										<th><?php esc_html_e( 'Available', 'sii-boleta-dte' ); ?></th>
+										<th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
+										<th><?php echo esc_html__( 'Available', 'sii-boleta-dte' ); ?></th>
 								</tr>
 						</thead>
 						<tbody>
@@ -99,12 +99,12 @@ class ControlPanelPage {
 	private function render_recent_logs(): void {
 				$logs = LogDb::get_logs( array( 'limit' => 5 ) );
 		?>
-				<h2><?php esc_html_e( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
+				<h2><?php echo esc_html__( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
 				<table class="widefat striped">
 						<thead>
 								<tr>
-										<th><?php esc_html_e( 'Track ID', 'sii-boleta-dte' ); ?></th>
-										<th><?php esc_html_e( 'Status', 'sii-boleta-dte' ); ?></th>
+										<th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
+										<th><?php echo esc_html__( 'Status', 'sii-boleta-dte' ); ?></th>
 								</tr>
 						</thead>
 						<tbody>
@@ -123,17 +123,17 @@ class ControlPanelPage {
 	private function render_queue(): void {
 				$jobs = QueueDb::get_pending_jobs();
 		?>
-				<h2><?php esc_html_e( 'Queue', 'sii-boleta-dte' ); ?></h2>
+				<h2><?php echo esc_html__( 'Queue', 'sii-boleta-dte' ); ?></h2>
 				<?php if ( empty( $jobs ) ) : ?>
-						<p><?php esc_html_e( 'No queued items.', 'sii-boleta-dte' ); ?></p>
+						<p><?php echo esc_html__( 'No queued items.', 'sii-boleta-dte' ); ?></p>
 				<?php else : ?>
 						<table class="wp-list-table widefat fixed striped">
 								<thead>
 										<tr>
-												<th><?php esc_html_e( 'ID', 'sii-boleta-dte' ); ?></th>
-												<th><?php esc_html_e( 'Type', 'sii-boleta-dte' ); ?></th>
-												<th><?php esc_html_e( 'Attempts', 'sii-boleta-dte' ); ?></th>
-												<th><?php esc_html_e( 'Actions', 'sii-boleta-dte' ); ?></th>
+												<th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
+												<th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
+												<th><?php echo esc_html__( 'Attempts', 'sii-boleta-dte' ); ?></th>
+												<th><?php echo esc_html__( 'Actions', 'sii-boleta-dte' ); ?></th>
 										</tr>
 								</thead>
 								<tbody>
@@ -146,9 +146,9 @@ class ControlPanelPage {
 																<form method="post" style="display:inline">
 																		<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
 																		<?php wp_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
-																		<button class="button" name="queue_action" value="process"><?php esc_html_e( 'Process', 'sii-boleta-dte' ); ?></button>
-																		<button class="button" name="queue_action" value="requeue"><?php esc_html_e( 'Retry', 'sii-boleta-dte' ); ?></button>
-																		<button class="button" name="queue_action" value="cancel"><?php esc_html_e( 'Cancel', 'sii-boleta-dte' ); ?></button>
+																		<button class="button" name="queue_action" value="process"><?php echo esc_html__( 'Process', 'sii-boleta-dte' ); ?></button>
+																		<button class="button" name="queue_action" value="requeue"><?php echo esc_html__( 'Retry', 'sii-boleta-dte' ); ?></button>
+																		<button class="button" name="queue_action" value="cancel"><?php echo esc_html__( 'Cancel', 'sii-boleta-dte' ); ?></button>
 																</form>
 														</td>
 												</tr>

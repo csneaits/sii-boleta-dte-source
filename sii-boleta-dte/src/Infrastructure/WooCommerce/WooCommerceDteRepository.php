@@ -1,21 +1,22 @@
 <?php
 
-declare(strict_types=1);
+namespace Sii\BoletaDte\Infrastructure\WooCommerce;
 
-namespace SiiBoletaDte\Infrastructure\WooCommerce;
+use Sii\BoletaDte\Domain\Dte;
+use Sii\BoletaDte\Domain\DteRepository;
 
-class WooCommerceDteRepository {
+/**
+ * Adaptador de persistencia hacia WooCommerce.
+ */
+class WooCommerceDteRepository implements DteRepository {
 	/**
-	 * Persist DTE payload as order meta data.
-	 *
-	 * @param array $payload  DTE data to persist.
-	 * @param int	$order_id WooCommerce order identifier.
+	 * Guarda un DTE como meta del pedido en WooCommerce.
 	 */
-	public function save( array $payload, int $order_id ): void {
-		update_post_meta(
-			$order_id,
-			'_sii_boleta_dte_data',
-			json_encode( $payload )
-		);
+	public function save( Dte $dte ): void {
+		if ( ! function_exists( 'update_post_meta' ) ) {
+			return;
+		}
+
+		update_post_meta( (int) $dte->get_id(), '_sii_boleta_dte_data', $dte->get_data() );
 	}
 }

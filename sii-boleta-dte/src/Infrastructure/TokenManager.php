@@ -1,39 +1,36 @@
 <?php
-namespace SiiBoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure;
+
+use Sii\BoletaDte\Infrastructure\Rest\Api;
 
 /**
- * Handle authentication token retrieval using configured certificate credentials.
+ * Simple token manager that requests a new token from the SII API and caches it
+ * for the duration of the request.
  */
-class TokenManager
-{
-    /** @var \SII_Boleta_Settings */
-    private $settings;
-    /** @var \SII_Boleta_API */
-    private $api;
+class TokenManager {
+    private Api $api;
+    private Settings $settings;
+    private array $cache = array();
 
-    public function __construct($settings, $api)
-    {
-        $this->settings = $settings;
+    public function __construct( Api $api, Settings $settings ) {
         $this->api      = $api;
+        $this->settings = $settings;
     }
 
     /**
-     * Request a token from SII using stored certificate credentials.
+     * Obtains a token for the given environment.
      */
-    public function get_token(): string
-    {
-        $opts     = (array) $this->settings->get_settings();
-        $env      = $opts['environment'] ?? 'test';
-        $certPath = $opts['cert_path'] ?? '';
-        $certPass = $opts['cert_pass'] ?? '';
-
-        if ('' !== $certPass) {
-            $decoded = base64_decode((string) $certPass, true);
-            if (false !== $decoded) {
-                $certPass = $decoded;
-            }
+    public function get_token( string $environment ): string {
+        if ( isset( $this->cache[ $environment ] ) ) {
+            return $this->cache[ $environment ];
         }
-
-        return $this->api->generate_token($env, $certPath, $certPass);
+        $config    = $this->settings->get_settings();
+        $cert_path = $config['cert_path'] ?? '';
+        $cert_pass = $config['cert_pass'] ?? '';
+        $token     = $this->api->generate_token( $environment, $cert_path, $cert_pass );
+        $this->cache[ $environment ] = $token;
+        return $token;
     }
 }
+
+class_alias( TokenManager::class, 'SII_Boleta_Token_Manager' );

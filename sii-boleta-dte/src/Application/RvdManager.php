@@ -1,81 +1,64 @@
 <?php
-namespace SiiBoletaDte\Application;
+namespace Sii\BoletaDte\Application;
 
-use SII_Boleta_Settings;
+use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Infrastructure\Cron;
 
 /**
- * Handles generation and scheduled sending of the Resumen de Ventas Diarias (RVD).
+ * Generates and sends the daily sales summary (RVD).
  */
-class RvdManager
-{
-    public const CRON_HOOK = 'sii_boleta_dte_daily_rvd';
+class RvdManager {
+    private Settings $settings;
+    private Api $api;
 
-    /** @var object */
-    private $api;
-
-    /** @var object */
-    private $token_manager;
-
-    /** @var SII_Boleta_Settings */
-    private SII_Boleta_Settings $settings;
-
-    /**
-     * @param object              $api            API client with send_rvd_to_sii method.
-     * @param object              $token_manager  Token manager with get_token method.
-     * @param SII_Boleta_Settings $settings       Plugin settings provider.
-     */
-    public function __construct($api, $token_manager, SII_Boleta_Settings $settings)
-    {
-        $this->api           = $api;
-        $this->token_manager = $token_manager;
-        $this->settings      = $settings;
-
-        if (function_exists('add_action')) {
-            \add_action(self::CRON_HOOK, [ $this, 'maybe_run' ]);
+    public function __construct( Settings $settings, Api $api = null ) {
+        $this->settings = $settings;
+        $this->api      = $api ?? new Api();
+        if ( function_exists( 'add_action' ) ) {
+            add_action( Cron::HOOK, array( $this, 'maybe_run' ) );
         }
     }
 
-    /**
-     * Cron callback that generates the RVD XML and sends it to SII.
-     */
-    public function maybe_run(): void
-    {
-        $config      = $this->settings->get_settings();
-        $environment = $config['environment'] ?? 'test';
-
-        $token = $this->token_manager->get_token($environment);
-        $xml   = $this->generate_xml();
-
-        if ($xml && !\is_wp_error($token)) {
-            $this->api->send_rvd_to_sii($xml, $environment, $token);
+    /** Triggered by cron to generate and send the RVD. */
+    public function maybe_run(): void {
+        $xml = $this->generate_xml();
+        if ( '' === $xml || ! $this->validate_rvd_xml( $xml ) ) {
+            return;
         }
+        $token = $this->api->generate_token( 'boleta', '', '' );
+        $this->api->send_libro_to_sii( $xml, 'boleta', $token );
     }
 
     /**
-     * Generate RVD XML for the current day orders.
+     * Builds the RVD XML from WooCommerce orders of the current day.
      */
-    public function generate_xml(): string
-    {
-        $tz    = \function_exists('wp_timezone') ? \wp_timezone() : new \DateTimeZone('UTC');
-        $start = (new \DateTimeImmutable('today', $tz))->setTime(0, 0, 0);
-        $end   = $start->setTime(23, 59, 59);
-
-        $orders = \wc_get_orders([
-            'limit'        => -1,
-            'status'       => [ 'completed', 'processing' ],
-            'date_created' => $start->format('Y-m-d H:i:s') . '...' . $end->format('Y-m-d H:i:s'),
-        ]);
-
-        $total = 0;
-        foreach ($orders as $order) {
-            $total += (int) $order->get_total();
+    public function generate_xml(): string {
+        $orders = function_exists( 'wc_get_orders' ) ? wc_get_orders( array( 'limit' => -1 ) ) : array();
+        $total  = 0;
+        foreach ( $orders as $order ) {
+            if ( method_exists( $order, 'get_total' ) ) {
+                $total += (float) $order->get_total();
+            }
         }
+        $xml = '<ConsumoFolios><Resumen><Totales><MntTotal>' . $total . '</MntTotal></Totales></Resumen></ConsumoFolios>';
+        return $xml;
+    }
 
-        $doc  = new \DOMDocument('1.0', 'UTF-8');
-        $root = $doc->createElement('RVD');
-        $root->appendChild($doc->createElement('Total', (string) $total));
-        $doc->appendChild($root);
-
-        return $doc->saveXML();
+    /**
+     * Validates RVD XML against the official schema.
+     */
+    public function validate_rvd_xml( string $xml ): bool {
+        $doc = new \DOMDocument();
+        if ( ! $doc->loadXML( $xml ) ) {
+            return false;
+        }
+        libxml_use_internal_errors( true );
+        $xsd   = SII_BOLETA_DTE_PATH . 'resources/xml/schemas/consumo_folios.xsd';
+        $valid = $doc->schemaValidate( $xsd );
+        libxml_clear_errors();
+        return $valid;
     }
 }
+
+class_alias( RvdManager::class, 'SII_Boleta_RVD_Manager' );

@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  push:
+    branches: [fullLibreDte]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+      - name: Install dependencies
+        working-directory: sii-boleta-dte
+        run: composer install --prefer-dist --no-interaction
+      - name: Run tests
+        working-directory: sii-boleta-dte
+        run: ./vendor/bin/phpunit
+      - name: Install production dependencies
+        working-directory: sii-boleta-dte
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
+      - name: Package plugin
+        run: |
+          cd sii-boleta-dte
+          zip -r ../sii-boleta-dte.zip . -x 'vendor/*' 'tests/*' '.git*'
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Upload via SFTP
+        env:
+          HOST: ${{ secrets.HOSTINGER_HOST }}
+          USER: ${{ secrets.HOSTINGER_USER }}
+          PASS: ${{ secrets.HOSTINGER_PASS }}
+          PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+        run: |
+          sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P "$PORT" \
+            sii-boleta-dte.zip "$USER@$HOST:$TARGET_PATH/sii-boleta-dte.zip"
+      - name: Deploy on server
+        env:
+          HOST: ${{ secrets.HOSTINGER_HOST }}
+          USER: ${{ secrets.HOSTINGER_USER }}
+          PASS: ${{ secrets.HOSTINGER_PASS }}
+          PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+        run: |
+          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" \
+            "$USER@$HOST" "cd '$TARGET_PATH' && mkdir -p wp-content/plugins/sii-boleta-dte && unzip -o sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte && rm sii-boleta-dte.zip"

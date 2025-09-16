@@ -33,6 +33,27 @@ class CafPage {
 		}
 
         $cafs  = $this->get_cafs();
+        // Ordenar por tipo asc, luego por rango inicial asc, y por fecha desc
+        if ( is_array( $cafs ) && ! empty( $cafs ) ) {
+            usort(
+                $cafs,
+                function ( $a, $b ) {
+                    $ta = (int) ( $a['tipo'] ?? 0 );
+                    $tb = (int) ( $b['tipo'] ?? 0 );
+                    if ( $ta !== $tb ) {
+                        return $ta <=> $tb;
+                    }
+                    $da = (int) ( $a['desde'] ?? 0 );
+                    $db = (int) ( $b['desde'] ?? 0 );
+                    if ( $da !== $db ) {
+                        return $da <=> $db;
+                    }
+                    $fa = strtotime( (string) ( $a['fecha'] ?? '' ) ) ?: 0;
+                    $fb = strtotime( (string) ( $b['fecha'] ?? '' ) ) ?: 0;
+                    return $fb <=> $fa;
+                }
+            );
+        }
         $types = $this->supported_types();
 
 		echo '<div class="wrap">';
@@ -238,11 +259,49 @@ class CafPage {
 	/**
 	 * @return array<int,array<string,mixed>>
 	 */
-	private function get_cafs(): array {
-		$settings = $this->settings->get_settings();
-		$cafs     = $settings['cafs'] ?? array();
-		return is_array( $cafs ) ? $cafs : array();
-	}
+    private function get_cafs(): array {
+        $settings = $this->settings->get_settings();
+        $cafs     = $settings['cafs'] ?? array();
+        if ( is_array( $cafs ) && ! empty( $cafs ) ) {
+            return $cafs;
+        }
+
+        // Fallback: reconstruye desde rutas guardadas si la lista está vacía
+        $map = $settings['caf_path'] ?? array();
+        $rebuilt = array();
+        if ( is_array( $map ) ) {
+            foreach ( $map as $tipo => $path ) {
+                $tipo = (int) $tipo;
+                if ( ! $tipo || ! is_string( $path ) || ! file_exists( $path ) ) {
+                    continue;
+                }
+                $xml = @simplexml_load_file( $path );
+                if ( ! $xml || ! isset( $xml->CAF->DA->RNG->D, $xml->CAF->DA->RNG->H ) ) {
+                    continue;
+                }
+                $d      = (int) $xml->CAF->DA->RNG->D;
+                $h      = (int) $xml->CAF->DA->RNG->H;
+                $fa     = (string) ( $xml->CAF->DA->FA ?? '' );
+                $year   = defined( 'YEAR_IN_SECONDS' ) ? YEAR_IN_SECONDS : 31536000;
+                $estado = ( $fa && strtotime( $fa ) && strtotime( $fa ) < time() - $year ) ? 'expirado' : 'vigente';
+                $rebuilt[] = array(
+                    'tipo'   => $tipo,
+                    'path'   => $path,
+                    'desde'  => $d,
+                    'hasta'  => $h,
+                    'estado' => $estado,
+                    'fecha'  => '',
+                );
+            }
+        }
+        if ( ! empty( $rebuilt ) ) {
+            $settings['cafs'] = $rebuilt;
+            if ( function_exists( 'update_option' ) ) {
+                update_option( \Sii\BoletaDte\Infrastructure\Settings::OPTION_NAME, $settings );
+            }
+        }
+        return $rebuilt;
+    }
 }
 
 class_alias( CafPage::class, 'SII_Boleta_Caf_Page' );

@@ -9,3 +9,35 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 # Traductores: Añada sus traducciones aquí.
+
+#: src/Presentation/Admin/LogsPage.php
+msgid "Logs"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php
+msgid "Track ID"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php
+msgid "Status"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php
+msgid "Date"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php
+msgid "Document types"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php
+msgid "Document type"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php
+msgid "Factura"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php
+msgid "Boleta"
+msgstr ""

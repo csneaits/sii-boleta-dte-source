@@ -1,0 +1,20 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: 0
+    FchEmis: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+  Totales:
+    MntNeto: 0
+    IVA: 0
+    MntTotal: 0
+Detalle: []

@@ -8,11 +8,11 @@ El núcleo sigue una arquitectura **hexagonal** (ports & adapters) que mantiene 
 
 ```mermaid
 flowchart LR
-    UI[Presentation\n(WP/WooCommerce)] --> A[Application]
-    CLI[Infrastructure\nCLI] --> A
-    REST[Infrastructure\nREST] --> A
-    Persist[Infrastructure\nPersistence] --> A
-    Engine[Infrastructure\nEngine/Config] --> A
+    UI["Presentation<br/>(WP/WooCommerce)"] --> A[Application]
+    CLI["Infrastructure<br/>CLI"] --> A
+    REST["Infrastructure<br/>REST"] --> A
+    Persist["Infrastructure<br/>Persistence"] --> A
+    Engine["Infrastructure<br/>Engine/Config"] --> A
     A --> D[Domain]
     S[Shared] --- A
     S --- D

@@ -42,7 +42,7 @@ class CafPage {
 		if ( function_exists( 'wp_nonce_field' ) ) {
 			wp_nonce_field( 'sii_boleta_upload_caf' );
 		}
-		echo '<input type="file" name="caf_files[]" multiple />';
+        echo '<input type="file" name="caf_files[]" multiple accept=".xml" />';
 		if ( function_exists( 'submit_button' ) ) {
 			submit_button( __( 'Subir CAF', 'sii-boleta-dte' ), 'primary', 'upload_caf' );
 		}
@@ -100,13 +100,17 @@ class CafPage {
 					'error'    => $files['error'][ $i ],
 					'size'     => $files['size'][ $i ],
 				);
-				$uploaded = wp_handle_upload(
-					$file,
-					array(
-						'test_form' => false,
-						'mimes'     => array( 'xml' => 'text/xml' ),
-					),
-				);
+                $uploaded = wp_handle_upload(
+                    $file,
+                    array(
+                        // Permite subir XML aunque la detección MIME varíe entre servidores.
+                        'test_form' => false,
+                        'test_type' => false,
+                        'mimes'     => array(
+                            'xml' => 'application/xml', // fallback aceptado
+                        ),
+                    )
+                );
 			if ( isset( $uploaded['error'] ) ) {
 				echo '<div class="notice notice-error"><p>' . esc_html( $uploaded['error'] ) . '</p></div>';
 				continue;

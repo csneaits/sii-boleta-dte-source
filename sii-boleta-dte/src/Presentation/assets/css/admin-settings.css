@@ -18,9 +18,10 @@
 }
 
 /* Ensancha solo Razón Social y Giro Comercial sin afectar otros campos */
-.sii-dte-settings .sii-dte-form input.sii-input-wide[type="text"] {
-    width: clamp(22rem, 50vw, 32rem);
-    max-width: clamp(22rem, 50vw, 32rem);
+/* Wider inputs used for Razón Social and Giro */
+input.sii-input-wide[type="text"] {
+    width: clamp(28rem, 60vw, 40rem);
+    max-width: clamp(28rem, 60vw, 40rem);
 }
 
 .sii-dte-cert-row,

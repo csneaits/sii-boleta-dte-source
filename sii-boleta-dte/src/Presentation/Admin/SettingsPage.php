@@ -73,7 +73,7 @@ class SettingsPage {
 	public function field_razon_social(): void {
 				$settings = $this->settings->get_settings();
 				$value    = esc_attr( $settings['razon_social'] ?? '' );
-				echo '<input type="text" class="regular-text" style="width:25em" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
+				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
 	}
 
 	public function field_giro(): void {

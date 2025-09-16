@@ -1,6 +1,5 @@
 <?php
 declare(strict_types=1);
-
 namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;

@@ -49,4 +49,18 @@ jobs:
           TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
         run: |
           sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" \
-            "$USER@$HOST" "cd '$TARGET_PATH' && mkdir -p wp-content/plugins/sii-boleta-dte && unzip -o sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte && rm sii-boleta-dte.zip"
+            "$USER@$HOST" "
+              set -e
+              cd '$TARGET_PATH'
+              rm -rf wp-content/plugins/sii-boleta-dte
+              mkdir -p wp-content/plugins/sii-boleta-dte
+              unzip -q sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte
+              rm sii-boleta-dte.zip
+              cd '$TARGET_PATH/wp-content/plugins/sii-boleta-dte'
+              rm -rf composer.log
+              echo 'export PATH="$HOME/bin:$PATH"' >> \$HOME/.bashrc
+              source \$HOME/.bashrc
+              composer --version
+              composer install
+              composer update
+            "

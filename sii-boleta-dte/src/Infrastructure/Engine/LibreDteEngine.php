@@ -1,6 +1,10 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Engine;
 
+use Derafu\Certificate\Service\CertificateFaker;
+use Derafu\Certificate\Service\CertificateLoader;
+use JsonException;
+use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\Settings;
 use libredte\lib\Core\Application;
@@ -9,8 +13,6 @@ use libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\RendererWorker;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
-use Derafu\Certificate\Service\CertificateFaker;
-use Derafu\Certificate\Service\CertificateLoader;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -130,20 +132,23 @@ class LibreDteEngine implements DteEngine {
 		return $bag->getDocument()->saveXml();
 	}
 
-	/**
-	 * Renders a PDF using LibreDTE templates.
-	 */
+	
+        /**
+         * Renders a PDF using LibreDTE templates.
+         */
         public function render_pdf( string $xml, array $options = array() ): string {
-                $xml  = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
-                $bag  = new DocumentBag(
-                        $xml,
-                        options: array(
-				'parser'   => array( 'strategy' => 'default.xml' ),
-				'renderer' => array( 'format' => 'pdf' ),
-			)
-		);
-		$pdf  = $this->renderer->render( $bag );
-		$file = tempnam( sys_get_temp_dir(), 'pdf' );
+                $xml       = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
+                $options   = array(
+                        'parser'   => array( 'strategy' => 'default.xml' ),
+                        'renderer' => array( 'format' => 'pdf' ),
+                );
+                $parsedXml = $this->parse_document_data_from_xml( $xml );
+
+                $bag = $parsedXml === null
+                        ? new DocumentBag( $xml, options: $options )
+                        : new DocumentBag( parsedData: $parsedXml, options: $options );
+                $pdf  = $this->renderer->render( $bag );
+                $file = tempnam( sys_get_temp_dir(), 'pdf' );
                 file_put_contents( $file, $pdf );
                 return $file;
         }
@@ -161,6 +166,64 @@ class LibreDteEngine implements DteEngine {
                 } catch ( \Throwable $e ) {
                         return array();
                 }
+        }
+
+        /**
+         * Converts a DTE XML string into the array structure expected by LibreDTE.
+         */
+        private function parse_document_data_from_xml( string $xml ): ?array {
+                $previous = libxml_use_internal_errors( true );
+                $document = simplexml_load_string( $xml );
+
+                if ( ! $document instanceof SimpleXMLElement ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return null;
+                }
+
+                /** @var SimpleXMLElement|null $document_node */
+                $document_node = $document->Documento ?? $document->Exportaciones ?? $document->Liquidacion ?? null;
+                if ( ! $document_node instanceof SimpleXMLElement ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return null;
+                }
+
+                try {
+                        $encoded = json_encode( $document_node, JSON_THROW_ON_ERROR );
+                        $data    = json_decode( $encoded, true, 512, JSON_THROW_ON_ERROR );
+                } catch ( JsonException $e ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return null;
+                }
+
+                if ( ! is_array( $data ) ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return null;
+                }
+
+                unset( $data['@attributes'] );
+
+                if ( isset( $data['Detalle'] ) ) {
+                        $detalles = $data['Detalle'];
+                        if ( ! is_array( $detalles ) || ! array_is_list( $detalles ) ) {
+                                $detalles = array( $detalles );
+                        }
+
+                        $data['Detalle'] = array_values(
+                                array_map(
+                                        static fn( $detalle ) => is_array( $detalle ) ? $detalle : (array) $detalle,
+                                        $detalles
+                                )
+                        );
+                }
+
+                libxml_clear_errors();
+                libxml_use_internal_errors( $previous );
+
+                return $data;
         }
 }
 

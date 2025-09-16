@@ -32,8 +32,8 @@ class CafPage {
 			$this->handle_delete( (int) $_GET['delete_caf'] );
 		}
 
-		$cafs  = $this->get_cafs();
-		$types = $this->supported_types();
+        $cafs  = $this->get_cafs();
+        $types = $this->supported_types();
 
 		echo '<div class="wrap">';
 		echo '<h1>' . esc_html__( 'Folios / CAFs', 'sii-boleta-dte' ) . '</h1>';
@@ -48,35 +48,37 @@ class CafPage {
 		}
 		echo '</form>';
 
-		if ( ! empty( $cafs ) ) {
-			echo '<h2>' . esc_html__( 'CAF cargados', 'sii-boleta-dte' ) . '</h2>';
-			echo '<table class="wp-list-table widefat fixed striped">';
-			echo '<thead><tr>';
-			echo '<th>' . esc_html__( 'Tipo', 'sii-boleta-dte' ) . '</th>';
-			echo '<th>' . esc_html__( 'Rango', 'sii-boleta-dte' ) . '</th>';
-			echo '<th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th>';
-			echo '<th>' . esc_html__( 'Fecha de carga', 'sii-boleta-dte' ) . '</th>';
-			echo '<th>' . esc_html__( 'Acciones', 'sii-boleta-dte' ) . '</th>';
-			echo '</tr></thead><tbody>';
-			foreach ( $cafs as $index => $caf ) {
-				$type_label = $types[ (int) $caf['tipo'] ] ?? (string) $caf['tipo'];
-				$range      = (int) $caf['desde'] . ' - ' . (int) $caf['hasta'];
-				$estado     = esc_html( $caf['estado'] ?? 'vigente' );
-				$fecha      = esc_html( $caf['fecha'] ?? '' );
-				$url        = add_query_arg( 'delete_caf', (string) $index );
-				if ( function_exists( 'wp_nonce_url' ) ) {
-					$url = wp_nonce_url( $url, 'sii_boleta_delete_caf_' . $index );
-				}
-				echo '<tr>';
-				echo '<td>' . esc_html( $type_label ) . '</td>';
-				echo '<td>' . esc_html( $range ) . '</td>';
-				echo '<td>' . $estado . '</td>';
-				echo '<td>' . $fecha . '</td>';
-				echo '<td><a href="' . esc_url( $url ) . '">' . esc_html__( 'Eliminar', 'sii-boleta-dte' ) . '</a></td>';
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
-		}
+        echo '<h2>' . esc_html__( 'CAF cargados', 'sii-boleta-dte' ) . '</h2>';
+        echo '<table class="wp-list-table widefat fixed striped">';
+        echo '<thead><tr>';
+        echo '<th>' . esc_html__( 'Tipo', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Rango', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Fecha de carga', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Acciones', 'sii-boleta-dte' ) . '</th>';
+        echo '</tr></thead><tbody>';
+        if ( empty( $cafs ) ) {
+            echo '<tr><td colspan="5">' . esc_html__( 'No hay CAFs cargados.', 'sii-boleta-dte' ) . '</td></tr>';
+        } else {
+            foreach ( $cafs as $index => $caf ) {
+                $type_label = $types[ (int) $caf['tipo'] ] ?? (string) $caf['tipo'];
+                $range      = (int) $caf['desde'] . ' - ' . (int) $caf['hasta'];
+                $estado     = esc_html( $caf['estado'] ?? 'vigente' );
+                $fecha      = esc_html( $caf['fecha'] ?? '' );
+                $url        = add_query_arg( 'delete_caf', (string) $index );
+                if ( function_exists( 'wp_nonce_url' ) ) {
+                    $url = wp_nonce_url( $url, 'sii_boleta_delete_caf_' . $index );
+                }
+                echo '<tr>';
+                echo '<td>' . esc_html( $type_label ) . '</td>';
+                echo '<td>' . esc_html( $range ) . '</td>';
+                echo '<td>' . $estado . '</td>';
+                echo '<td>' . $fecha . '</td>';
+                echo '<td><a href="' . esc_url( $url ) . '">' . esc_html__( 'Eliminar', 'sii-boleta-dte' ) . '</a></td>';
+                echo '</tr>';
+            }
+        }
+        echo '</tbody></table>';
 		echo '</div>';
 	}
 
@@ -122,34 +124,56 @@ class CafPage {
 				echo '<div class="notice notice-error"><p>' . esc_html__( 'El archivo no corresponde a un CAF válido.', 'sii-boleta-dte' ) . '</p></div>';
 				continue;
 			}
-				$types = $this->supported_types();
-				$tipo  = (int) $xml->CAF->DA->TD;
-			if ( ! isset( $types[ $tipo ] ) ) {
-				@unlink( $path );
-				echo '<div class="notice notice-error"><p>' . esc_html__( 'Tipo de documento no soportado.', 'sii-boleta-dte' ) . '</p></div>';
-				continue;
-			}
-				$d          = (int) ( $xml->CAF->DA->RNG->D ?? 0 );
-				$h          = (int) ( $xml->CAF->DA->RNG->H ?? 0 );
-				$fa         = (string) ( $xml->CAF->DA->FA ?? '' );
-				$year       = defined( 'YEAR_IN_SECONDS' ) ? YEAR_IN_SECONDS : 31536000;
-				$estado     = ( $fa && strtotime( $fa ) && strtotime( $fa ) < time() - $year ) ? 'expirado' : 'vigente';
-				$upload_dir = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-				$dir        = ( function_exists( 'trailingslashit' ) ? trailingslashit( $upload_dir['basedir'] ) : $upload_dir['basedir'] . '/' ) . 'sii-boleta-dte/cafs/';
-			if ( function_exists( 'wp_mkdir_p' ) ) {
-				wp_mkdir_p( $dir );
-			} elseif ( ! is_dir( $dir ) ) {
-				@mkdir( $dir, 0777, true );
-			}
-				$dest = $dir . basename( $path );
-				@rename( $path, $dest );
+            $types = $this->supported_types();
+            $tipo  = (int) $xml->CAF->DA->TD;
+            if ( ! isset( $types[ $tipo ] ) ) {
+                @unlink( $path );
+                echo '<div class="notice notice-error"><p>' . esc_html__( 'Tipo de documento no soportado.', 'sii-boleta-dte' ) . '</p></div>';
+                continue;
+            }
+                $d          = (int) ( $xml->CAF->DA->RNG->D ?? 0 );
+                $h          = (int) ( $xml->CAF->DA->RNG->H ?? 0 );
+                $fa         = (string) ( $xml->CAF->DA->FA ?? '' );
+                $year       = defined( 'YEAR_IN_SECONDS' ) ? YEAR_IN_SECONDS : 31536000;
+                $estado     = ( $fa && strtotime( $fa ) && strtotime( $fa ) < time() - $year ) ? 'expirado' : 'vigente';
+                
+                // Evitar duplicados y rangos solapados
+                $settings   = $this->settings->get_settings();
+                $existing   = $settings['cafs'] ?? array();
+                $is_dup     = false;
+                foreach ( $existing as $ecaf ) {
+                    if ( (int) ( $ecaf['tipo'] ?? 0 ) !== $tipo ) {
+                        continue;
+                    }
+                    $ed = (int) ( $ecaf['desde'] ?? 0 );
+                    $eh = (int) ( $ecaf['hasta'] ?? 0 );
+                    if ( max( $ed, $d ) <= min( $eh, $h ) ) {
+                        $is_dup = true; // rango superpuesto o igual
+                        break;
+                    }
+                }
+                if ( $is_dup ) {
+                    @unlink( $path );
+                    echo '<div class="notice notice-error"><p>' . esc_html__( 'Ya existe un CAF cargado para este tipo con un rango que se solapa.', 'sii-boleta-dte' ) . '</p></div>';
+                    continue;
+                }
 
-				$settings             = $this->settings->get_settings();
-				$cafs                 = $settings['cafs'] ?? array();
-				$cafs[]               = array(
-					'tipo'   => $tipo,
-					'path'   => $dest,
-					'desde'  => $d,
+                $upload_dir = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+                $dir        = ( function_exists( 'trailingslashit' ) ? trailingslashit( $upload_dir['basedir'] ) : $upload_dir['basedir'] . '/' ) . 'sii-boleta-dte/cafs/';
+                if ( function_exists( 'wp_mkdir_p' ) ) {
+                    wp_mkdir_p( $dir );
+                } elseif ( ! is_dir( $dir ) ) {
+                    @mkdir( $dir, 0777, true );
+                }
+                $dest = $dir . basename( $path );
+                @rename( $path, $dest );
+                
+                $settings             = $this->settings->get_settings();
+                $cafs                 = $settings['cafs'] ?? array();
+                $cafs[]               = array(
+                    'tipo'   => $tipo,
+                    'path'   => $dest,
+                    'desde'  => $d,
 					'hasta'  => $h,
 					'estado' => $estado,
 					'fecha'  => function_exists( 'date_i18n' ) ? date_i18n( 'Y-m-d H:i:s' ) : date( 'Y-m-d H:i:s' ),

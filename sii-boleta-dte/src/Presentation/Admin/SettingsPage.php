@@ -106,11 +106,15 @@ class SettingsPage {
 		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[cdg_sii_sucur]" value="' . $value . '" />';
 	}
 
-	public function field_cert_path(): void {
-		$settings = $this->settings->get_settings();
-		$value    = esc_attr( $settings['cert_path'] ?? '' );
-		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_path]" value="' . $value . '" />';
-	}
+    public function field_cert_path(): void {
+        $settings = $this->settings->get_settings();
+        $value    = esc_attr( $settings['cert_path'] ?? '' );
+        echo '<div class="sii-dte-cert-row">';
+        echo '<input type="file" id="sii-dte-cert-file" name="cert_file" accept=".p12,.pfx" />';
+        echo '<input type="text" id="sii-dte-cert-path" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_path]" value="' . $value . '" placeholder="/ruta/al/certificado.p12" class="regular-text" />';
+        echo '</div>';
+        echo '<p class="description">' . esc_html__( 'Puedes subir un archivo .p12/.pfx o ingresar una ruta absoluta en el servidor.', 'sii-boleta-dte' ) . '</p>';
+    }
 
 	public function field_cert_pass(): void {
 		echo '<input type="password" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_pass]" value="" autocomplete="off" />';
@@ -200,17 +204,18 @@ class SettingsPage {
 	/**
 	 * Outputs the settings page markup.
 	 */
-	public function render_page(): void {
-			echo '<div class="wrap">';
-			echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
-			echo '<form method="post" action="options.php">';
-			settings_fields( Settings::OPTION_GROUP );
-			do_settings_sections( 'sii-boleta-dte' );
-			submit_button();
-			echo '</form>';
-			$this->render_requirements_check();
-			echo '</div>';
-	}
+    public function render_page(): void {
+            echo '<div class="wrap">';
+            echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
+            // Enable file uploads in settings form.
+            echo '<form method="post" action="options.php" enctype="multipart/form-data">';
+            settings_fields( Settings::OPTION_GROUP );
+            do_settings_sections( 'sii-boleta-dte' );
+            submit_button();
+            echo '</form>';
+            $this->render_requirements_check();
+            echo '</div>';
+    }
 
 		/** Displays a quick checklist to verify certification readiness. */
 	private function render_requirements_check(): void {
@@ -276,9 +281,51 @@ class SettingsPage {
 			$output['cdg_sii_sucur'] = sanitize_text_field( $input['cdg_sii_sucur'] );
 		}
 
-		if ( isset( $input['cert_path'] ) ) {
-			$output['cert_path'] = sanitize_file_name( $input['cert_path'] );
-		}
+        // Handle certificate upload if present.
+        if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {
+            $tmp  = (string) $_FILES['cert_file']['tmp_name'];
+            $name = sanitize_file_name( (string) ( $_FILES['cert_file']['name'] ?? 'cert.p12' ) );
+            $ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+            if ( ! in_array( $ext, array( 'p12', 'pfx' ), true ) ) {
+                add_settings_error( 'cert_file', 'invalid_ext', __( 'Certificate must be a .p12 or .pfx file.', 'sii-boleta-dte' ) );
+            } elseif ( ! file_exists( $tmp ) ) {
+                add_settings_error( 'cert_file', 'missing_tmp', __( 'Upload failed: temporary file not found.', 'sii-boleta-dte' ) );
+            } else {
+                $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => WP_CONTENT_DIR . '/uploads' );
+                $base    = rtrim( (string) ( $uploads['basedir'] ?? ( WP_CONTENT_DIR . '/uploads' ) ), '/\\' );
+                $dir     = $base . '/sii-boleta-dte';
+                if ( function_exists( 'wp_mkdir_p' ) ) {
+                    wp_mkdir_p( $dir );
+                } else {
+                    if ( ! is_dir( $dir ) ) {
+                        @mkdir( $dir, 0755, true );
+                    }
+                }
+                $dest = $dir . '/' . $name;
+                if ( file_exists( $dest ) ) {
+                    $filename = pathinfo( $name, PATHINFO_FILENAME );
+                    $dest     = $dir . '/' . $filename . '-' . time() . '.' . $ext;
+                }
+                if ( @move_uploaded_file( $tmp, $dest ) ) {
+                    $output['cert_path'] = $dest;
+                } else {
+                    add_settings_error( 'cert_file', 'move_failed', __( 'Could not save the uploaded certificate.', 'sii-boleta-dte' ) );
+                }
+            }
+        } elseif ( isset( $input['cert_path'] ) ) {
+            // Manual path entered by user; keep only file name if a path was provided for safety.
+            $path = trim( (string) $input['cert_path'] );
+            if ( '' !== $path ) {
+                // Allow absolute paths; otherwise, sanitize to filename.
+                if ( preg_match( '#^[a-zA-Z]:\\\\|^/|^\\\\#', $path ) ) {
+                    $output['cert_path'] = sanitize_text_field( $path );
+                } else {
+                    $output['cert_path'] = sanitize_file_name( $path );
+                }
+            } else {
+                $output['cert_path'] = '';
+            }
+        }
 
 		if ( isset( $input['environment'] ) ) {
 				$output['environment'] = intval( $input['environment'] );

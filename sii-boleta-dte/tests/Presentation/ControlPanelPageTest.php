@@ -34,18 +34,18 @@ class ControlPanelPageTest extends TestCase {
         $this->assertStringContainsString( (string) $id, $html );
     }
 
-    public function test_render_displays_folios_and_logs(): void {
+    public function test_render_displays_logs(): void {
         LogDb::add_entry( '1', 'sent', '' );
         $settings = $this->createMock( Settings::class );
-        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 33 ) ) );
+        // Folios tab was removed; settings content is no longer relevant to this view.
+        $settings->method( 'get_settings' )->willReturn( array() );
         $folio = $this->createMock( FolioManager::class );
-        $folio->method( 'get_caf_info' )->willReturn( array( 'H' => 10 ) );
         $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
         ob_start();
         $page = new ControlPanelPage( $settings, $folio, $processor );
         $page->render_page();
         $html = ob_get_clean();
-        $this->assertStringContainsString( '33', $html );
+        $this->assertStringContainsString( 'Track ID', $html );
         $this->assertStringContainsString( '1', $html );
     }
 

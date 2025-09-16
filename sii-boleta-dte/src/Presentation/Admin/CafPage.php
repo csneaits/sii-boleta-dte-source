@@ -28,9 +28,12 @@ class CafPage {
 			$this->handle_upload();
 		}
 
-		if ( isset( $_GET['delete_caf'] ) && function_exists( 'check_admin_referer' ) && check_admin_referer( 'sii_boleta_delete_caf_' . (int) $_GET['delete_caf'] ) ) {
-			$this->handle_delete( (int) $_GET['delete_caf'] );
-		}
+        if ( isset( $_GET['delete_caf'] ) ) {
+            $param = (string) $_GET['delete_caf'];
+            if ( function_exists( 'check_admin_referer' ) && check_admin_referer( 'sii_boleta_delete_caf_' . $param ) ) {
+                $this->handle_delete( $param );
+            }
+        }
 
         $cafs  = $this->get_cafs();
         // Ordenar por tipo asc, luego por rango inicial asc, y por fecha desc
@@ -86,9 +89,12 @@ class CafPage {
                 $range      = (int) $caf['desde'] . ' - ' . (int) $caf['hasta'];
                 $estado     = esc_html( $caf['estado'] ?? 'vigente' );
                 $fecha      = esc_html( $caf['fecha'] ?? '' );
-                $url        = add_query_arg( 'delete_caf', (string) $index );
+                // Build stable delete key based on the stored path (unique)
+                $key        = rawurlencode( base64_encode( (string) ( $caf['path'] ?? '' ) ) );
+                $base_url   = function_exists( 'menu_page_url' ) ? (string) menu_page_url( 'sii-boleta-dte-cafs', false ) : '?page=sii-boleta-dte-cafs';
+                $url        = add_query_arg( 'delete_caf', $key, $base_url );
                 if ( function_exists( 'wp_nonce_url' ) ) {
-                    $url = wp_nonce_url( $url, 'sii_boleta_delete_caf_' . $index );
+                    $url = wp_nonce_url( $url, 'sii_boleta_delete_caf_' . $key );
                 }
                 echo '<tr>';
                 echo '<td>' . esc_html( $type_label ) . '</td>';
@@ -213,33 +219,51 @@ class CafPage {
 	/**
 	 * Handles CAF deletion.
 	 */
-	private function handle_delete( int $index ): void {
-		$settings = $this->settings->get_settings();
-		$cafs     = $settings['cafs'] ?? array();
-		if ( ! isset( $cafs[ $index ] ) ) {
-			return;
-		}
-		$caf = $cafs[ $index ];
-		unset( $cafs[ $index ] );
-		$cafs             = array_values( $cafs );
-		$settings['cafs'] = $cafs;
-		$caf_path         = $settings['caf_path'] ?? array();
-		$tipo             = (int) ( $caf['tipo'] ?? 0 );
-		if ( isset( $caf_path[ $tipo ] ) && $caf_path[ $tipo ] === $caf['path'] ) {
-			unset( $caf_path[ $tipo ] );
-			foreach ( $cafs as $c ) {
-				if ( (int) $c['tipo'] === $tipo ) {
-					$caf_path[ $tipo ] = $c['path'];
-					break;
-				}
-			}
-			$settings['caf_path'] = $caf_path;
-		}
-		if ( function_exists( 'update_option' ) ) {
-			update_option( Settings::OPTION_NAME, $settings );
-		}
-		echo '<div class="notice notice-success"><p>' . esc_html__( 'CAF eliminado.', 'sii-boleta-dte' ) . '</p></div>';
-	}
+    private function handle_delete( string $param ): void {
+        $settings = $this->settings->get_settings();
+        $cafs     = $settings['cafs'] ?? array();
+
+        // Determine index either by numeric id or by matching encoded path
+        $index = null;
+        if ( ctype_digit( $param ) && isset( $cafs[ (int) $param ] ) ) {
+            $index = (int) $param;
+        } else {
+            $path = base64_decode( rawurldecode( $param ), true );
+            if ( is_string( $path ) && '' !== $path ) {
+                foreach ( $cafs as $i => $caf ) {
+                    if ( (string) ( $caf['path'] ?? '' ) === $path ) {
+                        $index = (int) $i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( null === $index || ! isset( $cafs[ $index ] ) ) {
+            return;
+        }
+
+        $caf = $cafs[ $index ];
+        unset( $cafs[ $index ] );
+        $cafs             = array_values( $cafs );
+        $settings['cafs'] = $cafs;
+        $caf_path         = $settings['caf_path'] ?? array();
+        $tipo             = (int) ( $caf['tipo'] ?? 0 );
+        if ( isset( $caf_path[ $tipo ] ) && $caf_path[ $tipo ] === $caf['path'] ) {
+            unset( $caf_path[ $tipo ] );
+            foreach ( $cafs as $c ) {
+                if ( (int) $c['tipo'] === $tipo ) {
+                    $caf_path[ $tipo ] = $c['path'];
+                    break;
+                }
+            }
+            $settings['caf_path'] = $caf_path;
+        }
+        if ( function_exists( 'update_option' ) ) {
+            update_option( Settings::OPTION_NAME, $settings );
+        }
+        echo '<div class="notice notice-success"><p>' . esc_html__( 'CAF eliminado.', 'sii-boleta-dte' ) . '</p></div>';
+    }
 
 	/**
 	 * @return array<int,string>

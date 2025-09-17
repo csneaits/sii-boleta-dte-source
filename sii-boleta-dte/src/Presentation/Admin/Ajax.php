@@ -11,12 +11,13 @@ class Ajax {
 		$this->core = $core;
 	}
 
-	public function register(): void {
-		\add_action( 'wp_ajax_sii_boleta_dte_test_smtp', array( $this, 'test_smtp' ) );
-		\add_action( 'wp_ajax_sii_boleta_dte_search_customers', array( $this, 'search_customers' ) );
-		\add_action( 'wp_ajax_sii_boleta_dte_search_products', array( $this, 'search_products' ) );
-		\add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', array( $this, 'lookup_user_by_rut' ) );
-	}
+    public function register(): void {
+        \add_action( 'wp_ajax_sii_boleta_dte_test_smtp', array( $this, 'test_smtp' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_search_customers', array( $this, 'search_customers' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_search_products', array( $this, 'search_products' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', array( $this, 'lookup_user_by_rut' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_view_pdf', array( $this, 'view_pdf' ) );
+    }
 
 	public function test_smtp(): void {
 		\check_ajax_referer( 'sii_boleta_nonce' );
@@ -214,7 +215,7 @@ class Ajax {
 		\wp_send_json_success( array( 'items' => $out ) );
 	}
 
-	public function lookup_user_by_rut(): void {
+    public function lookup_user_by_rut(): void {
 		\check_ajax_referer( 'sii_boleta_nonce' );
 		if ( ! \current_user_can( 'manage_options' ) ) {
 			\wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
@@ -252,15 +253,49 @@ class Ajax {
 			}
 		}
 		\wp_send_json_success( array( 'found' => false ) );
-	}
+    }
 
-	private function normalize_rut( string $rut ): string {
+    private function normalize_rut( string $rut ): string {
 		$c = strtoupper( preg_replace( '/[^0-9Kk]/', '', (string) $rut ) );
 		if ( strlen( $c ) < 2 ) {
 			return '';
 		}
 		return substr( $c, 0, -1 ) . '-' . substr( $c, -1 );
-	}
+    }
+
+    /**
+     * Streams a generated preview PDF stored in uploads so it can be embedded in an iframe.
+     * Accepts GET params: key (filename under uploads/sii-boleta-dte/previews), _wpnonce (sii_boleta_nonce).
+     */
+    public function view_pdf(): void {
+        if ( ! isset( $_GET['_wpnonce'] ) || ! \wp_verify_nonce( (string) $_GET['_wpnonce'], 'sii_boleta_nonce' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            \status_header( 403 );
+            exit;
+        }
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \status_header( 403 );
+            exit;
+        }
+        $key = isset( $_GET['key'] ) ? sanitize_file_name( (string) $_GET['key'] ) : '';
+        if ( '' === $key ) {
+            \status_header( 404 );
+            exit;
+        }
+        $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+        $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' ) . '/sii-boleta-dte/previews/';
+        $file    = realpath( $base . $key );
+        $realBase= realpath( $base ) ?: $base;
+        if ( false === $file || strncmp( $file, $realBase, strlen( $realBase ) ) !== 0 || ! file_exists( $file ) ) {
+            \status_header( 404 );
+            exit;
+        }
+        if ( function_exists( 'nocache_headers' ) ) { \nocache_headers(); }
+        header( 'Content-Type: application/pdf' );
+        header( 'Content-Disposition: inline; filename="' . basename( $file ) . '"' );
+        header( 'Content-Length: ' . filesize( $file ) );
+        @readfile( $file );
+        exit;
+    }
 }
 
 class_alias( Ajax::class, 'Sii\\BoletaDte\\Admin\\Ajax' );

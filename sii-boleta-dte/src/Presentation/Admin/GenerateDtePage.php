@@ -49,6 +49,15 @@ class GenerateDtePage {
                 if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
                                 $result = $this->process_post( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 }
+                // Persist selected type and basic fields on reload
+                $sel_tipo      = isset( $_POST['tipo'] ) ? (int) $_POST['tipo'] : 39; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $val = static function( string $k ): string {
+                        return isset( $_POST[ $k ] ) ? esc_attr( (string) $_POST[ $k ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                };
+                $item0 = isset( $_POST['items'][0] ) && is_array( $_POST['items'][0] ) ? (array) $_POST['items'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $i0d   = isset( $item0['desc'] ) ? esc_attr( (string) $item0['desc'] ) : '';
+                $i0q   = isset( $item0['qty'] ) ? esc_attr( (string) $item0['qty'] ) : '1';
+                $i0p   = isset( $item0['price'] ) ? esc_attr( (string) $item0['price'] ) : '0';
                 ?>
                                 <div class="wrap">
                                                 <h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
@@ -68,33 +77,52 @@ class GenerateDtePage {
                                                                 <div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
                                                 <?php endif; ?>
                                                 <form method="post">
-                                                                <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
-																<table class="form-table" role="presentation">
-																				<tbody>
+                                                    <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
+                                                    <table class="form-table" role="presentation">
+                                                        <tbody>
+                                                    <tr>
+                                                        <th scope="row"><label for="sii-tipo"><?php esc_html_e( 'Tipo de documento', 'sii-boleta-dte' ); ?></label></th>
+                                                        <td>
+                                                            <select id="sii-tipo" name="tipo">
+                                                                <option value="39"<?php echo selected( $sel_tipo, 39, false ); ?>><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="41"<?php echo selected( $sel_tipo, 41, false ); ?>><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="33"<?php echo selected( $sel_tipo, 33, false ); ?>><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="34"<?php echo selected( $sel_tipo, 34, false ); ?>><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="43"<?php echo selected( $sel_tipo, 43, false ); ?>><?php esc_html_e( 'Liquidación de Factura', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="46"<?php echo selected( $sel_tipo, 46, false ); ?>><?php esc_html_e( 'Factura de Compra', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="52"<?php echo selected( $sel_tipo, 52, false ); ?>><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="56"<?php echo selected( $sel_tipo, 56, false ); ?>><?php esc_html_e( 'Nota de Crédito', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="61"<?php echo selected( $sel_tipo, 61, false ); ?>><?php esc_html_e( 'Nota de Débito', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="110"<?php echo selected( $sel_tipo, 110, false ); ?>><?php esc_html_e( 'Factura de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="111"<?php echo selected( $sel_tipo, 111, false ); ?>><?php esc_html_e( 'Nota de Débito de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                                <option value="112"<?php echo selected( $sel_tipo, 112, false ); ?>><?php esc_html_e( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ); ?></option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
                                                     <tr>
                                                         <th scope="row"><label for="sii-rut"><?php esc_html_e( 'Customer RUT', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-rut" name="rut" required class="regular-text" /></td>
+                                                        <td><input type="text" id="sii-rut" name="rut" required class="regular-text" value="<?php echo $val('rut'); ?>" /></td>
                                                     </tr>
                                                     <tr>
                                                         <th scope="row"><label for="sii-razon"><?php esc_html_e( 'Razón Social', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-razon" name="razon" required class="large-text" style="width:25em" /></td>
+                                                        <td><input type="text" id="sii-razon" name="razon" required class="large-text" style="width:25em" value="<?php echo $val('razon'); ?>" /></td>
                                                     </tr>
                                                     <tr>
                                                         <th scope="row"><label for="sii-giro"><?php esc_html_e( 'Giro', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-giro" name="giro" required class="regular-text" /></td>
+                                                        <td><input type="text" id="sii-giro" name="giro" required class="regular-text" value="<?php echo $val('giro'); ?>" /></td>
                                                     </tr>
                                                     <!-- Receptor address for invoice/guide types -->
                                                     <tr class="dte-section" data-types="33,34,43,46,52,110">
                                                         <th scope="row"><label for="sii-dir-recep"><?php esc_html_e( 'Dirección Receptor', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-dir-recep" name="dir_recep" class="regular-text" /></td>
+                                                        <td><input type="text" id="sii-dir-recep" name="dir_recep" class="regular-text" value="<?php echo $val('dir_recep'); ?>" /></td>
                                                     </tr>
                                                     <tr class="dte-section" data-types="33,34,43,46,52,110">
                                                         <th scope="row"><label for="sii-cmna-recep"><?php esc_html_e( 'Comuna Receptor', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-cmna-recep" name="cmna_recep" class="regular-text" /></td>
+                                                        <td><input type="text" id="sii-cmna-recep" name="cmna_recep" class="regular-text" value="<?php echo $val('cmna_recep'); ?>" /></td>
                                                     </tr>
                                                     <tr class="dte-section" data-types="33,34,43,46,52,110">
                                                         <th scope="row"><label for="sii-ciudad-recep"><?php esc_html_e( 'Ciudad Receptor', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" /></td>
+                                                        <td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val('ciudad_recep'); ?>" /></td>
                                                     </tr>
                                                     <tr>
                                                         <th scope="row"><label for="sii-items"><?php esc_html_e( 'Items', 'sii-boleta-dte' ); ?></label></th>
@@ -108,18 +136,18 @@ class GenerateDtePage {
 																																												<th></th>
 																																								</tr>
 																																				</thead>
-																																				<tbody>
-																																								<tr>
-																																												<td><input type="text" name="items[0][desc]" class="regular-text" /></td>
-																																												<td><input type="number" name="items[0][qty]" value="1" step="0.01" /></td>
-																																												<td><input type="number" name="items[0][price]" value="0" step="0.01" /></td>
-																																												<td><button type="button" class="button remove-item">×</button></td>
-																																								</tr>
-																																				</tbody>
-																																</table>
-																																<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>
-																												</td>
-																								</tr>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td><input type="text" name="items[0][desc]" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                                        <td><input type="number" name="items[0][qty]" value="<?php echo $i0q; ?>" step="0.01" /></td>
+                                                                        <td><input type="number" name="items[0][price]" value="<?php echo $i0p; ?>" step="0.01" /></td>
+                                                                        <td><button type="button" class="button remove-item">×</button></td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                            <p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>
+                                                        </td>
+                                                    </tr>
                                                     <!-- Reference section for credit/debit notes -->
                                                     <tr class="dte-section" data-types="56,61,111,112">
                                                         <th scope="row"><label for="sii-ref-folio"><?php esc_html_e( 'Referencia', 'sii-boleta-dte' ); ?></label></th>
@@ -135,38 +163,18 @@ class GenerateDtePage {
                                                             </label>
                                                             &nbsp; 
                                                             <label><?php esc_html_e( 'Folio', 'sii-boleta-dte' ); ?>
-                                                                <input type="number" name="ref_folio" id="sii-ref-folio" min="1" step="1" />
+                                                                <input type="number" name="ref_folio" id="sii-ref-folio" min="1" step="1" value="<?php echo $val('ref_folio'); ?>" />
                                                             </label>
                                                             &nbsp; 
                                                             <label><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?>
-                                                                <input type="date" name="ref_fecha" />
+                                                                <input type="date" name="ref_fecha" value="<?php echo $val('ref_fecha'); ?>" />
                                                             </label>
                                                             &nbsp; 
                                                             <label><?php esc_html_e( 'Razón', 'sii-boleta-dte' ); ?>
-                                                                <input type="text" name="ref_razon" class="regular-text" placeholder="Anula/rebaja, etc." />
+                                                                <input type="text" name="ref_razon" class="regular-text" placeholder="Anula/rebaja, etc." value="<?php echo $val('ref_razon'); ?>" />
                                                             </label>
                                                         </td>
                                                     </tr>
-
-                                                    <tr>
-                                                        <th scope="row"><label for="sii-tipo"><?php esc_html_e( 'DTE Type', 'sii-boleta-dte' ); ?></label></th>
-                                                        <td>
-                                                               <select id="sii-tipo" name="tipo">
-                                                               <option value="39"><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="41"><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="33"><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="34"><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="43"><?php esc_html_e( 'Liquidación de Factura', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="46"><?php esc_html_e( 'Factura de Compra', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="52"><?php esc_html_e( 'Guía de Despacho', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="56"><?php esc_html_e( 'Nota de Crédito', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="61"><?php esc_html_e( 'Nota de Débito', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="110"><?php esc_html_e( 'Factura de Exportación', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="111"><?php esc_html_e( 'Nota de Débito de Exportación', 'sii-boleta-dte' ); ?></option>
-                                                               <option value="112"><?php esc_html_e( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ); ?></option>
-                                                               </select>
-                                                               </td>
-                                                               </tr>
                                                                </tbody>
                                                                                                                                </table>
                                                                                                                                <?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>

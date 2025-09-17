@@ -28,7 +28,8 @@ class CafPage {
 			$this->handle_upload();
 		}
 
-        if ( isset( $_GET['action'], $_GET['caf_key'] ) && 'delete_caf' === $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // Use namespaced query vars to avoid collisions with other plugins.
+        if ( isset( $_GET['caf_action'], $_GET['caf_key'] ) && 'delete' === $_GET['caf_action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             if ( function_exists( 'check_admin_referer' ) && check_admin_referer( 'sii_boleta_delete_caf' ) ) {
                 $this->handle_delete( (string) $_GET['caf_key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             }
@@ -87,7 +88,9 @@ class CafPage {
         } else {
             foreach ( $cafs as $index => $caf ) {
                 $type_label = $types[ (int) $caf['tipo'] ] ?? (string) $caf['tipo'];
-                $range      = (int) $caf['desde'] . ' - ' . (int) $caf['hasta'];
+                $d          = (int) ( $caf['desde'] ?? 0 );
+                $h          = (int) ( $caf['hasta'] ?? 0 );
+                $range      = $d . ' - ' . $h;
                 $estado     = esc_html( $caf['estado'] ?? 'vigente' );
                 $fecha      = esc_html( $caf['fecha'] ?? '' );
                 $last       = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $caf['tipo'], 0 ) : 0;
@@ -97,7 +100,7 @@ class CafPage {
                 // Build stable delete key based on the stored path (unique)
                 $key        = rawurlencode( base64_encode( (string) ( $caf['path'] ?? '' ) ) );
                 $base_url   = function_exists( 'menu_page_url' ) ? (string) menu_page_url( 'sii-boleta-dte-cafs', false ) : '?page=sii-boleta-dte-cafs';
-                $url        = add_query_arg( array( 'action' => 'delete_caf', 'caf_key' => $key ), $base_url );
+                $url        = add_query_arg( array( 'caf_action' => 'delete', 'caf_key' => $key ), $base_url );
                 if ( function_exists( 'wp_nonce_url' ) ) {
                     $url = wp_nonce_url( $url, 'sii_boleta_delete_caf' );
                 }

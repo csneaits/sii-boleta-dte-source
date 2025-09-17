@@ -76,6 +76,8 @@ class CafPage {
         echo '<thead><tr>';
         echo '<th>' . esc_html__( 'Tipo', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Rango', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Consumidos', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'Restantes', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Fecha de carga', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Acciones', 'sii-boleta-dte' ) . '</th>';
@@ -88,6 +90,10 @@ class CafPage {
                 $range      = (int) $caf['desde'] . ' - ' . (int) $caf['hasta'];
                 $estado     = esc_html( $caf['estado'] ?? 'vigente' );
                 $fecha      = esc_html( $caf['fecha'] ?? '' );
+                $last       = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $caf['tipo'], 0 ) : 0;
+                $consumidos = max( 0, min( $h, $last ) - $d + 1 );
+                $consumidos = $last < $d ? 0 : min( $consumidos, max( 0, $h - $d + 1 ) );
+                $restantes  = max( 0, ( $h - $d + 1 ) - $consumidos );
                 // Build stable delete key based on the stored path (unique)
                 $key        = rawurlencode( base64_encode( (string) ( $caf['path'] ?? '' ) ) );
                 $base_url   = function_exists( 'menu_page_url' ) ? (string) menu_page_url( 'sii-boleta-dte-cafs', false ) : '?page=sii-boleta-dte-cafs';
@@ -98,6 +104,8 @@ class CafPage {
                 echo '<tr>';
                 echo '<td>' . esc_html( $type_label ) . '</td>';
                 echo '<td>' . esc_html( $range ) . '</td>';
+                echo '<td>' . (int) $consumidos . '</td>';
+                echo '<td>' . (int) $restantes . '</td>';
                 echo '<td>' . $estado . '</td>';
                 echo '<td>' . $fecha . '</td>';
                 echo '<td><a href="' . esc_url( $url ) . '">' . esc_html__( 'Eliminar', 'sii-boleta-dte' ) . '</a></td>';
@@ -265,6 +273,12 @@ class CafPage {
         }
         if ( function_exists( 'update_option' ) ) {
             update_option( Settings::OPTION_NAME, $settings );
+        }
+        // Redirect back to avoid nonce reuse warnings and ensure UI refresh.
+        if ( function_exists( 'wp_safe_redirect' ) && function_exists( 'menu_page_url' ) ) {
+            $dest = (string) menu_page_url( 'sii-boleta-dte-cafs', false );
+            wp_safe_redirect( $dest );
+            exit;
         }
         echo '<div class="notice notice-success"><p>' . esc_html__( 'CAF eliminado.', 'sii-boleta-dte' ) . '</p></div>';
     }

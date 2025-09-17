@@ -55,27 +55,15 @@
             tableBody.appendChild(row);
             initRow(row);
         }
-        Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), initRow);
-        addBtn.addEventListener('click', function(e){
-            e.preventDefault();
-            addRow();
-        });
-        tableBody.addEventListener('click', function(e){
-            if (e.target.classList.contains('remove-item')){
-                e.preventDefault();
-                var tr = e.target.closest('tr');
-                if (tr){ tr.remove(); }
-            }
-        });
-
+        // Toggle sections first to ensure the form adapts immediately
         function toggleSections(){
             if (!tipoSelect) return;
             var t = parseInt(tipoSelect.value || '39', 10);
             document.querySelectorAll('.dte-section').forEach(function(sec){
-                var types = (sec.getAttribute('data-types') || '').split(',').map(function(s){return parseInt(s,10);});
+                var attr = sec.getAttribute('data-types') || '';
+                var types = attr ? attr.split(',').map(function(s){return parseInt(s,10);}) : [];
                 var show = !types.length || types.indexOf(t) !== -1;
                 sec.style.display = show ? '' : 'none';
-                // enable/disable inputs inside hidden sections to avoid accidental submit
                 sec.querySelectorAll('input,select,textarea,button').forEach(function(el){
                     if (show){ el.removeAttribute('disabled'); }
                     else { el.setAttribute('disabled','disabled'); }
@@ -85,7 +73,23 @@
 
         if (tipoSelect){
             tipoSelect.addEventListener('change', toggleSections);
+            // Run on load
             toggleSections();
+        }
+
+        if (addBtn && tableBody){
+            Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), initRow);
+            addBtn.addEventListener('click', function(e){
+                e.preventDefault();
+                addRow();
+            });
+            tableBody.addEventListener('click', function(e){
+                if (e.target.classList.contains('remove-item')){
+                    e.preventDefault();
+                    var tr = e.target.closest('tr');
+                    if (tr){ tr.remove(); }
+                }
+            });
         }
     });
 })();

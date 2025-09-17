@@ -1,7 +1,15 @@
 (function(){
     document.addEventListener('DOMContentLoaded', function(){
         var addBtn = document.getElementById('sii-add-item');
-        var tableBody = document.querySelector('#sii-items-table tbody');
+        var table = document.getElementById('sii-items-table');
+        var tableBody = null;
+        if (table){
+            tableBody = table.tBodies && table.tBodies.length ? table.tBodies[0] : null;
+            if (!tableBody){
+                tableBody = document.createElement('tbody');
+                table.appendChild(tableBody);
+            }
+        }
         var tipoSelect = document.getElementById('sii-tipo');
         if (!addBtn || !tableBody){return;}
         function initRow(row){
@@ -47,6 +55,7 @@
             });
         }
         function addRow(){
+            if (!tableBody) return;
             var row = document.createElement('tr');
             row.innerHTML = '<td><input type="text" name="items[][desc]" class="regular-text" /></td>'+
                             '<td><input type="number" name="items[][qty]" value="1" step="0.01" /></td>'+

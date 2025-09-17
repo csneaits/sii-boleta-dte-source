@@ -28,10 +28,9 @@ class CafPage {
 			$this->handle_upload();
 		}
 
-        if ( isset( $_GET['delete_caf'] ) ) {
-            $param = (string) $_GET['delete_caf'];
-            if ( function_exists( 'check_admin_referer' ) && check_admin_referer( 'sii_boleta_delete_caf_' . $param ) ) {
-                $this->handle_delete( $param );
+        if ( isset( $_GET['action'], $_GET['caf_key'] ) && 'delete_caf' === $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( function_exists( 'check_admin_referer' ) && check_admin_referer( 'sii_boleta_delete_caf' ) ) {
+                $this->handle_delete( (string) $_GET['caf_key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             }
         }
 
@@ -92,9 +91,9 @@ class CafPage {
                 // Build stable delete key based on the stored path (unique)
                 $key        = rawurlencode( base64_encode( (string) ( $caf['path'] ?? '' ) ) );
                 $base_url   = function_exists( 'menu_page_url' ) ? (string) menu_page_url( 'sii-boleta-dte-cafs', false ) : '?page=sii-boleta-dte-cafs';
-                $url        = add_query_arg( 'delete_caf', $key, $base_url );
+                $url        = add_query_arg( array( 'action' => 'delete_caf', 'caf_key' => $key ), $base_url );
                 if ( function_exists( 'wp_nonce_url' ) ) {
-                    $url = wp_nonce_url( $url, 'sii_boleta_delete_caf_' . $key );
+                    $url = wp_nonce_url( $url, 'sii_boleta_delete_caf' );
                 }
                 echo '<tr>';
                 echo '<td>' . esc_html( $type_label ) . '</td>';
@@ -258,6 +257,11 @@ class CafPage {
                 }
             }
             $settings['caf_path'] = $caf_path;
+        }
+        // Remove physical file from disk, ignore errors if missing.
+        $file = (string) ( $caf['path'] ?? '' );
+        if ( $file && file_exists( $file ) ) {
+            @unlink( $file );
         }
         if ( function_exists( 'update_option' ) ) {
             update_option( Settings::OPTION_NAME, $settings );

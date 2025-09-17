@@ -75,7 +75,7 @@ class LibreDteEngine implements DteEngine {
                                 'QtyItem'   => $qty,
                                 'PrcItem'   => $prc,
                         );
-                        if ( ! empty( $d['IndExe'] ) || 41 === $tipo ) {
+                        if ( ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo ) {
                                 $line['IndExe'] = 1;
                         }
                         $detalle[] = $line;
@@ -153,19 +153,32 @@ class LibreDteEngine implements DteEngine {
                 return $file;
         }
 
-        /** Loads YAML template for a given DTE type. */
+        /** Loads YAML template for a given DTE type exclusively from
+         * resources/yaml/documentos_ok copy/ (carpetas por tipo).
+         */
         private function load_template( int $tipo ): array {
-                $base = dirname( __DIR__, 2 ) . '/resources/yaml/documentos_ok/';
-                $file = $base . $tipo . '.yml';
-                if ( ! file_exists( $file ) ) {
-                        return array();
+                $root = dirname( __DIR__, 2 ) . '/resources/yaml/';
+
+                // Foldered layout copied from LibreDTE fixtures
+                $dir = $root . 'documentos_ok copy/' . sprintf( '%03d', $tipo ) . '*';
+                foreach ( glob( $dir ) as $typeDir ) {
+                        if ( ! is_dir( $typeDir ) ) {
+                                continue;
+                        }
+                        $candidates = array_merge( glob( $typeDir . '/*.yml' ) ?: array(), glob( $typeDir . '/*.yaml' ) ?: array() );
+                        if ( empty( $candidates ) ) {
+                                continue;
+                        }
+                        // Use the first candidate as a base template
+                        try {
+                                $parsed = Yaml::parseFile( $candidates[0] );
+                                return is_array( $parsed ) ? $parsed : array();
+                        } catch ( \Throwable $e ) {
+                                // try next
+                        }
                 }
-                try {
-                        $parsed = Yaml::parseFile( $file );
-                        return is_array( $parsed ) ? $parsed : array();
-                } catch ( \Throwable $e ) {
-                        return array();
-                }
+
+                return array();
         }
 
         /**

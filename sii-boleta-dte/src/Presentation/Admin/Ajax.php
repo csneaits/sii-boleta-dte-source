@@ -171,14 +171,34 @@ class Ajax {
 		if ( ! class_exists( 'WC_Product' ) ) {
 			\wp_send_json_error( array( 'message' => \__( 'WooCommerce no está activo.', 'sii-boleta-dte' ) ) );
 		}
-		$args = array(
+		$ids = array();
+		// Buscar por nombre/contenido
+		$args_name = array(
 			'post_type'      => array( 'product', 'product_variation' ),
 			's'              => $q,
 			'posts_per_page' => 20,
 			'post_status'    => 'publish',
 			'fields'         => 'ids',
 		);
-		$ids  = \get_posts( $args );
+		$ids  = array_merge( $ids, (array) \get_posts( $args_name ) );
+		// Buscar por SKU (meta _sku)
+		if ( '' !== $q ) {
+			$args_sku = array(
+				'post_type'      => array( 'product', 'product_variation' ),
+				'posts_per_page' => 20,
+				'post_status'    => 'publish',
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					array(
+						'key'     => '_sku',
+						'value'   => $q,
+						'compare' => 'LIKE',
+					),
+				),
+			);
+			$ids = array_merge( $ids, (array) \get_posts( $args_sku ) );
+		}
+		$ids = array_values( array_unique( array_map( 'intval', $ids ) ) );
 		$out  = array();
 		foreach ( $ids as $pid ) {
 			$product = \wc_get_product( $pid );

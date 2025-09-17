@@ -22,6 +22,7 @@
             desc.setAttribute('list', listId);
             desc.parentNode.appendChild(dl);
             var cache = {};
+            var adminAjax = (window.siiBoletaGenerate && window.siiBoletaGenerate.ajax) ? window.siiBoletaGenerate.ajax : (window.ajaxurl || '/wp-admin/admin-ajax.php');
             desc.addEventListener('input', function(){
                 var term = desc.value.trim();
                 if(term.length < 2){return;}
@@ -30,7 +31,7 @@
                     q: term,
                     _ajax_nonce: (window.siiBoletaGenerate && window.siiBoletaGenerate.nonce) ? window.siiBoletaGenerate.nonce : ''
                 });
-                fetch(ajaxurl, {
+                fetch(adminAjax, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: params
@@ -40,17 +41,23 @@
                     cache = {};
                     resp.data.items.forEach(function(p){
                         var opt = document.createElement('option');
-                        opt.value = p.name;
+                        var disp = p.sku ? (p.sku + ' — ' + p.name) : p.name;
+                        opt.value = disp;
                         opt.dataset.price = p.price;
+                        opt.dataset.name = p.name;
+                        opt.dataset.sku = p.sku || '';
                         dl.appendChild(opt);
-                        cache[p.name] = p;
+                        cache[disp] = p;
                     });
                 });
             });
             desc.addEventListener('change', function(){
                 var val = desc.value;
-                if(cache[val] && price){
-                    price.value = cache[val].price;
+                if(cache[val]){
+                    var p = cache[val];
+                    if(price){ price.value = p.price; }
+                    // Insert SKU into description for traceability
+                    if (p.sku){ desc.value = p.name + ' (' + p.sku + ')'; }
                 }
             });
         }

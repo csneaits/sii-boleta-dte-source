@@ -254,13 +254,22 @@ class GenerateDtePage {
         }
                 $xml  = $this->engine->generate_dte_xml( $data, $tipo, $preview );
                 if ( is_wp_error( $xml ) ) {
-                        return array( 'error' => $xml->get_error_message() );
+                        $code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
+                        $msg  = $xml->get_error_message();
+                        if ( 'sii_boleta_missing_caf' === $code ) {
+                                // Mensaje más claro para el usuario final
+                                $labels = $this->get_available_types();
+                                $tipo_label = $labels[ $tipo ] ?? (string) $tipo;
+                                $msg = sprintf( __( 'No hay un CAF configurado para el tipo %s. Sube un CAF en “Folios / CAFs”.', 'sii-boleta-dte' ), $tipo_label );
+                        }
+                        return array( 'error' => $msg );
                 }
                 $pdf = $this->pdf->generate( (string) $xml );
+                $pdf_url = $this->store_preview_pdf( $pdf );
                 if ( $preview ) {
                         return array(
                                 'preview' => true,
-                                'pdf'     => $pdf,
+                                'pdf'     => $pdf_url,
                         );
                 }
                 $file = tempnam( sys_get_temp_dir(), 'dte' );
@@ -271,8 +280,32 @@ class GenerateDtePage {
                 $track = $this->api->send_dte_to_sii( $file, $env, $token );
                 return array(
                         'track_id' => $track,
-                        'pdf'      => $pdf,
+                        'pdf'      => $pdf_url,
                 );
+        }
+
+        /**
+         * Moves the generated PDF to uploads so it can be displayed via URL.
+         * Returns a public URL or empty string on failure.
+         */
+        private function store_preview_pdf( string $path ): string {
+                if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
+                        return '';
+                }
+                $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir(), 'baseurl' => '' );
+                $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
+                $urlb    = rtrim( (string) ( $uploads['baseurl'] ?? '' ), '/\\' );
+                $dir     = $base . '/sii-boleta-dte/previews';
+                if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $dir ); } else { if ( ! is_dir( $dir ) ) { @mkdir( $dir, 0755, true ); } }
+                $dest = $dir . '/preview-' . time() . '-' . wp_generate_password( 6, false ) . '.pdf';
+                if ( ! @copy( $path, $dest ) ) {
+                        return '';
+                }
+                @chmod( $dest, 0644 );
+                if ( $urlb ) {
+                        return $urlb . '/sii-boleta-dte/previews/' . basename( $dest );
+                }
+                return '';
         }
 
         /**
@@ -309,10 +342,18 @@ class GenerateDtePage {
                         112 => __( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ),
                 );
                 $out = array();
+                // Filtrar además por existencia de CAF válido para el tipo
+                $settings = $this->settings->get_settings();
                 foreach ( $labels as $code => $name ) {
-                        if ( isset( $codes[ $code ] ) ) {
-                                $out[ $code ] = $name;
+                        if ( ! isset( $codes[ $code ] ) ) { continue; }
+                        $caf_ok = false;
+                        if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+                                foreach ( $settings['cafs'] as $caf ) {
+                                        if ( (int) ( $caf['tipo'] ?? 0 ) === (int) $code && ! empty( $caf['path'] ) && file_exists( (string) $caf['path'] ) ) { $caf_ok = true; break; }
+                                }
                         }
+                        if ( ! $caf_ok && isset( $settings['caf_path'][ $code ] ) && file_exists( (string) $settings['caf_path'][ $code ] ) ) { $caf_ok = true; }
+                        if ( $caf_ok ) { $out[ $code ] = $name; }
                 }
                 // Ensure deterministic order by code
                 ksort( $out );

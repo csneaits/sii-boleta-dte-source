@@ -69,7 +69,39 @@ class GenerateDtePage {
                                                                 <?php
                                                                 $pv_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
                                                                 if ( ! empty( $pv_url ) ) : ?>
-                                                                                <iframe src="<?php echo esc_url( $pv_url ); ?>" style="width:100%;height:600px"></iframe>
+                                                                                <div id="sii-dte-modal" class="sii-dte-modal" style="display:none">
+                                                                                        <div class="sii-dte-modal-backdrop"></div>
+                                                                                        <div class="sii-dte-modal-content">
+                                                                                                <button type="button" class="sii-dte-modal-close">&times;</button>
+                                                                                                <iframe id="sii-dte-modal-frame" src="" style="width:100%;height:100%;border:0"></iframe>
+                                                                                        </div>
+                                                                                </div>
+                                                                                <style>
+                                                                                .sii-dte-modal{position:fixed;inset:0;z-index:100000}
+                                                                                .sii-dte-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+                                                                                .sii-dte-modal-content{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:85%;height:85%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:6px;overflow:hidden}
+                                                                                .sii-dte-modal-close{position:absolute;top:6px;right:10px;border:0;background:#f0f0f1;border-radius:3px;padding:2px 8px;cursor:pointer;z-index:1}
+                                                                                </style>
+                                                                                <script>
+                                                                                (function(){
+                                                                                  var url = <?php echo json_encode( (string) $pv_url ); ?>;
+                                                                                  var modal = document.getElementById('sii-dte-modal');
+                                                                                  var frame = document.getElementById('sii-dte-modal-frame');
+                                                                                  if(!modal||!frame||!url){return;}
+                                                                                  function open(){ frame.src = url; modal.style.display='block'; }
+                                                                                  function close(){ modal.style.display='none'; frame.src=''; }
+                                                                                  var backdrop = modal.querySelector('.sii-dte-modal-backdrop');
+                                                                                  var closeBtn = modal.querySelector('.sii-dte-modal-close');
+                                                                                  if (backdrop) backdrop.addEventListener('click', close);
+                                                                                  if (closeBtn) closeBtn.addEventListener('click', close);
+                                                                                  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ close(); } });
+                                                                                  // auto-open after DOM is ready
+                                                                                  if (document.readyState === 'loading') {
+                                                                                    document.addEventListener('DOMContentLoaded', open);
+                                                                                  } else { open(); }
+                                                                                })();
+                                                                                </script>
+                                                                                <p><a target="_blank" rel="noopener" href="<?php echo esc_url( $pv_url ); ?>"><?php esc_html_e( 'Open preview in a new tab', 'sii-boleta-dte' ); ?></a></p>
                                                                 <?php endif; ?>
                                                 <?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
                                                                 <div class="updated notice"><p>

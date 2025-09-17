@@ -294,16 +294,26 @@ class GenerateDtePage {
                 }
                 $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir(), 'baseurl' => '' );
                 $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
-                $urlb    = rtrim( (string) ( $uploads['baseurl'] ?? '' ), '/\\' );
                 $dir     = $base . '/sii-boleta-dte/previews';
                 if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $dir ); } else { if ( ! is_dir( $dir ) ) { @mkdir( $dir, 0755, true ); } }
-                $dest = $dir . '/preview-' . time() . '-' . wp_generate_password( 6, false ) . '.pdf';
+                $suffix = function_exists( 'wp_generate_password' ) ? wp_generate_password( 6, false ) : substr( md5( microtime( true ) ), 0, 6 );
+                $dest = $dir . '/preview-' . time() . '-' . $suffix . '.pdf';
                 if ( ! @copy( $path, $dest ) ) {
                         return '';
                 }
                 @chmod( $dest, 0644 );
-                if ( $urlb ) {
-                        return $urlb . '/sii-boleta-dte/previews/' . basename( $dest );
+                // Build an admin-ajax powered viewer URL so proxies (Cloudflare) or theme routing don't interfere.
+                if ( function_exists( 'admin_url' ) ) {
+                        $nonce = function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '';
+                        $url   = add_query_arg(
+                                array(
+                                        'action'   => 'sii_boleta_dte_view_pdf',
+                                        'key'      => basename( $dest ),
+                                        '_wpnonce' => $nonce,
+                                ),
+                                admin_url( 'admin-ajax.php' )
+                        );
+                        return $url;
                 }
                 return '';
         }

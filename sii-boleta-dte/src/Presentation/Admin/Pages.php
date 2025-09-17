@@ -95,7 +95,7 @@ class Pages {
 							SII_BOLETA_DTE_VERSION
 						);
 		}
-		if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook ) {
+        if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
 																		\wp_enqueue_script(
 																			'sii-boleta-generate-dte',
 																			SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
@@ -103,14 +103,15 @@ class Pages {
 																			SII_BOLETA_DTE_VERSION,
 																			true
 																		);
-																		\wp_localize_script(
-																			'sii-boleta-generate-dte',
-																			'siiBoletaGenerate',
-																			array(
-																				'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-																			)
-																		);
-		}
+                    \wp_localize_script(
+                        'sii-boleta-generate-dte',
+                        'siiBoletaGenerate',
+                        array(
+                            'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+                            'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                        )
+                    );
+        }
 
 		if ( 'sii-boleta-dte_page_sii-boleta-dte-settings' === $hook ) {
 										\wp_enqueue_media();

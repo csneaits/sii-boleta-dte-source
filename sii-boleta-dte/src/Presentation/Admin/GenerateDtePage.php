@@ -66,14 +66,18 @@ class GenerateDtePage {
                                                 <h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
                                                 <?php if ( is_array( $result ) && ! empty( $result['preview'] ) ) : ?>
                                                                 <div class="notice notice-info"><p><?php esc_html_e( 'Preview generated. Review the document below.', 'sii-boleta-dte' ); ?></p></div>
-                                                                <?php if ( ! empty( $result['pdf'] ) ) : ?>
-                                                                                <iframe src="<?php echo esc_url( (string) $result['pdf'] ); ?>" style="width:100%;height:600px"></iframe>
+                                                                <?php
+                                                                $pv_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
+                                                                if ( ! empty( $pv_url ) ) : ?>
+                                                                                <iframe src="<?php echo esc_url( $pv_url ); ?>" style="width:100%;height:600px"></iframe>
                                                                 <?php endif; ?>
                                                 <?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
                                                                 <div class="updated notice"><p>
                                                                                 <?php printf( esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), esc_html( (string) $result['track_id'] ) ); ?>
-                                                                                <?php if ( ! empty( $result['pdf'] ) ) : ?>
-                                                                                                - <a href="<?php echo esc_url( (string) $result['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'sii-boleta-dte' ); ?></a>
+                                                                                <?php
+                                                                                $dl_url = (string) ( $result['pdf_url'] ?? '' );
+                                                                                if ( ! empty( $dl_url ) ) : ?>
+                                                                                                - <a href="<?php echo esc_url( $dl_url ); ?>"><?php esc_html_e( 'Download PDF', 'sii-boleta-dte' ); ?></a>
                                                                                 <?php endif; ?>
                                                                 </p></div>
                                                 <?php elseif ( is_array( $result ) && ! empty( $result['error'] ) ) : ?>
@@ -269,7 +273,8 @@ class GenerateDtePage {
                 if ( $preview ) {
                         return array(
                                 'preview' => true,
-                                'pdf'     => $pdf_url,
+                                'pdf'     => $pdf,      // keep raw for tests
+                                'pdf_url' => $pdf_url,  // public URL for iframe
                         );
                 }
                 $file = tempnam( sys_get_temp_dir(), 'dte' );
@@ -280,7 +285,8 @@ class GenerateDtePage {
                 $track = $this->api->send_dte_to_sii( $file, $env, $token );
                 return array(
                         'track_id' => $track,
-                        'pdf'      => $pdf_url,
+                        'pdf'      => $pdf,      // keep raw path for tests
+                        'pdf_url'  => $pdf_url,  // public URL for link
                 );
         }
 

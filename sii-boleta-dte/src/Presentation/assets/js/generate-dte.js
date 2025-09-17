@@ -2,6 +2,7 @@
     document.addEventListener('DOMContentLoaded', function(){
         var addBtn = document.getElementById('sii-add-item');
         var tableBody = document.querySelector('#sii-items-table tbody');
+        var tipoSelect = document.getElementById('sii-tipo');
         if (!addBtn || !tableBody){return;}
         function initRow(row){
             var desc = row.querySelector('input[name*="[desc]"]');
@@ -66,5 +67,25 @@
                 if (tr){ tr.remove(); }
             }
         });
+
+        function toggleSections(){
+            if (!tipoSelect) return;
+            var t = parseInt(tipoSelect.value || '39', 10);
+            document.querySelectorAll('.dte-section').forEach(function(sec){
+                var types = (sec.getAttribute('data-types') || '').split(',').map(function(s){return parseInt(s,10);});
+                var show = !types.length || types.indexOf(t) !== -1;
+                sec.style.display = show ? '' : 'none';
+                // enable/disable inputs inside hidden sections to avoid accidental submit
+                sec.querySelectorAll('input,select,textarea,button').forEach(function(el){
+                    if (show){ el.removeAttribute('disabled'); }
+                    else { el.setAttribute('disabled','disabled'); }
+                });
+            });
+        }
+
+        if (tipoSelect){
+            tipoSelect.addEventListener('change', toggleSections);
+            toggleSections();
+        }
     });
 })();

@@ -69,6 +69,24 @@
                     else { el.setAttribute('disabled','disabled'); }
                 });
             });
+
+            // Update labels/requireds for Boletas vs Facturas
+            var razonLabel = document.querySelector('label[for="sii-razon"]');
+            var rutInput   = document.getElementById('sii-rut');
+            var razonInput = document.getElementById('sii-razon');
+            var giroRow    = document.getElementById('label-giro') ? document.getElementById('label-giro').closest('tr') : null;
+            var isBoleta   = (t === 39 || t === 41);
+            if (razonLabel){ razonLabel.textContent = isBoleta ? 'Nombre' : 'Razón Social'; }
+            if (rutInput){ if (isBoleta) rutInput.removeAttribute('required'); else rutInput.setAttribute('required','required'); }
+            if (razonInput){ if (isBoleta) razonInput.removeAttribute('required'); else razonInput.setAttribute('required','required'); }
+            if (giroRow){
+                // Giro ya es dte-section para no boletas, pero aseguramos display acorde
+                giroRow.style.display = isBoleta ? 'none' : '';
+                giroRow.querySelectorAll('input').forEach(function(el){
+                    if (isBoleta) { el.setAttribute('disabled','disabled'); }
+                    else { el.removeAttribute('disabled'); }
+                });
+            }
         }
 
         if (tipoSelect){

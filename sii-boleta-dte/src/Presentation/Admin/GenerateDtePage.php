@@ -247,23 +247,25 @@ class GenerateDtePage {
 				$items = array();
 				$n     = 1;
 				$raw   = $post['items'] ?? array();
-		if ( is_array( $raw ) ) {
-			foreach ( $raw as $item ) {
-						$qty   = isset( $item['qty'] ) ? (float) $item['qty'] : 1.0;
-						$desc  = sanitize_text_field( (string) ( $item['desc'] ?? '' ) );
-						$price = isset( $item['price'] ) ? (int) round( (float) $item['price'] ) : 0;
-				if ( '' === $desc ) {
-					continue;
-				}
-						$items[] = array(
-							'NroLinDet' => $n++,
-							'NmbItem'   => $desc,
-							'QtyItem'   => $qty,
-							'PrcItem'   => $price,
-							'IndExe'    => 0,
-						);
-			}
-		}
+                if ( is_array( $raw ) ) {
+                        foreach ( $raw as $item ) {
+                                                $qty        = isset( $item['qty'] ) ? (float) $item['qty'] : 1.0;
+                                                $desc       = sanitize_text_field( (string) ( $item['desc'] ?? '' ) );
+                                                $price      = isset( $item['price'] ) ? (int) round( (float) $item['price'] ) : 0;
+                                                $line_total = (int) round( $qty * $price );
+                                if ( '' === $desc ) {
+                                        continue;
+                                }
+                                                $items[] = array(
+                                                        'NroLinDet' => $n++,
+                                                        'NmbItem'   => $desc,
+                                                        'QtyItem'   => $qty,
+                                                        'PrcItem'   => $price,
+                                                        'MontoItem' => $line_total,
+                                                        'IndExe'    => 0,
+                                                );
+                        }
+                }
         // If Boleta/Boleta Exenta without RUT, use generic SII rut
         if ( in_array( $tipo, array( 39, 41 ), true ) && '' === $rut ) {
                 $rut = '66666666-6';

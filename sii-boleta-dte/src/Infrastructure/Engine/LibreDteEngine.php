@@ -74,6 +74,7 @@ class LibreDteEngine implements DteEngine {
                                 'NmbItem'   => $d['NmbItem'] ?? '',
                                 'QtyItem'   => $qty,
                                 'PrcItem'   => $prc,
+                                'MontoItem' => (int) round( $qty * $prc ),
                         );
                         if ( ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo ) {
                                 $line['IndExe'] = 1;

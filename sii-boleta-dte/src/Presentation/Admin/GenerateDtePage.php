@@ -61,47 +61,54 @@ class GenerateDtePage {
                 $i0d   = isset( $item0['desc'] ) ? esc_attr( (string) $item0['desc'] ) : '';
                 $i0q   = isset( $item0['qty'] ) ? esc_attr( (string) $item0['qty'] ) : '1';
                 $i0p   = isset( $item0['price'] ) ? esc_attr( (string) $item0['price'] ) : '0';
+                $modal_preview_url = '';
+                if ( is_array( $result ) && ! empty( $result['preview'] ) ) {
+                        $modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
+                }
                 ?>
                                 <div class="wrap">
                                                 <h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
+                                                <div id="sii-dte-modal" class="sii-dte-modal" style="display:none"<?php if ( ! empty( $modal_preview_url ) ) { echo ' data-preview-url="' . esc_attr( $modal_preview_url ) . '"'; } ?>>
+                                                        <div class="sii-dte-modal-backdrop"></div>
+                                                        <div class="sii-dte-modal-content">
+                                                                <button type="button" class="sii-dte-modal-close">&times;</button>
+                                                                <iframe id="sii-dte-modal-frame" src="" style="width:100%;height:100%;border:0"></iframe>
+                                                        </div>
+                                                </div>
+                                                <style>
+                                                .sii-dte-modal{position:fixed;inset:0;z-index:100000}
+                                                .sii-dte-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+                                                .sii-dte-modal-content{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:85%;height:85%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:6px;overflow:hidden}
+                                                .sii-dte-modal-close{position:absolute;top:6px;right:10px;border:0;background:#f0f0f1;border-radius:3px;padding:2px 8px;cursor:pointer;z-index:1}
+                                                body.sii-dte-modal-open{overflow:hidden}
+                                                </style>
+                                                <div id="sii-generate-dte-notices">
                                                 <?php if ( is_array( $result ) && ! empty( $result['preview'] ) ) : ?>
-                                                                <div class="notice notice-info"><p><?php esc_html_e( 'Preview generated. Review the document below.', 'sii-boleta-dte' ); ?></p></div>
-                                                                <?php
-                                                                $pv_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
-                                                                if ( ! empty( $pv_url ) ) : ?>
-                                                                                <div id="sii-dte-modal" class="sii-dte-modal" style="display:none">
-                                                                                        <div class="sii-dte-modal-backdrop"></div>
-                                                                                        <div class="sii-dte-modal-content">
-                                                                                                <button type="button" class="sii-dte-modal-close">&times;</button>
-                                                                                                <iframe id="sii-dte-modal-frame" src="" style="width:100%;height:100%;border:0"></iframe>
-                                                                                        </div>
-                                                                                </div>
-                                                                                <style>
-                                                                                .sii-dte-modal{position:fixed;inset:0;z-index:100000}
-                                                                                .sii-dte-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-                                                                                .sii-dte-modal-content{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:85%;height:85%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:6px;overflow:hidden}
-                                                                                .sii-dte-modal-close{position:absolute;top:6px;right:10px;border:0;background:#f0f0f1;border-radius:3px;padding:2px 8px;cursor:pointer;z-index:1}
-                                                                                </style>
-                                                                                <script>
-                                                                                (function(){
-                                                                                  var url = <?php echo json_encode( (string) $pv_url ); ?>;
-                                                                                  var modal = document.getElementById('sii-dte-modal');
-                                                                                  var frame = document.getElementById('sii-dte-modal-frame');
-                                                                                  if(!modal||!frame||!url){return;}
-                                                                                  function open(){ frame.src = url; modal.style.display='block'; }
-                                                                                  function close(){ modal.style.display='none'; frame.src=''; }
-                                                                                  var backdrop = modal.querySelector('.sii-dte-modal-backdrop');
-                                                                                  var closeBtn = modal.querySelector('.sii-dte-modal-close');
-                                                                                  if (backdrop) backdrop.addEventListener('click', close);
-                                                                                  if (closeBtn) closeBtn.addEventListener('click', close);
-                                                                                  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ close(); } });
-                                                                                  // auto-open after DOM is ready
-                                                                                  if (document.readyState === 'loading') {
-                                                                                    document.addEventListener('DOMContentLoaded', open);
-                                                                                  } else { open(); }
-                                                                                })();
-                                                                                </script>
-                                                                                <p><a target="_blank" rel="noopener" href="<?php echo esc_url( $pv_url ); ?>"><?php esc_html_e( 'Open preview in a new tab', 'sii-boleta-dte' ); ?></a></p>
+                                                                <div class="notice notice-info"><p><?php esc_html_e( 'Preview generated. Review the document below.', 'sii-boleta-dte' ); ?>
+                                                                <?php if ( ! empty( $modal_preview_url ) ) : ?> - <a target="_blank" rel="noopener" href="<?php echo esc_url( $modal_preview_url ); ?>"><?php esc_html_e( 'Open preview in a new tab', 'sii-boleta-dte' ); ?></a><?php endif; ?></p></div>
+                                                                <?php if ( ! empty( $modal_preview_url ) ) : ?>
+                                                                        <script>
+                                                                        (function(){
+                                                                                var url = <?php echo json_encode( (string) $modal_preview_url ); ?>;
+                                                                                if(!url){return;}
+                                                                                function trigger(){
+                                                                                        if ( typeof window === 'undefined' ) { return; }
+                                                                                        var evt;
+                                                                                        try {
+                                                                                                evt = new CustomEvent('sii-boleta-open-preview', { detail: { url: url } });
+                                                                                        } catch (err) {
+                                                                                                evt = document.createEvent('CustomEvent');
+                                                                                                evt.initCustomEvent('sii-boleta-open-preview', false, false, { url: url });
+                                                                                        }
+                                                                                        window.dispatchEvent( evt );
+                                                                                }
+                                                                                if (document.readyState === 'loading') {
+                                                                                        document.addEventListener('DOMContentLoaded', trigger);
+                                                                                } else {
+                                                                                        trigger();
+                                                                                }
+                                                                        })();
+                                                                        </script>
                                                                 <?php endif; ?>
                                                 <?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
                                                                 <div class="updated notice"><p>
@@ -115,7 +122,8 @@ class GenerateDtePage {
                                                 <?php elseif ( is_array( $result ) && ! empty( $result['error'] ) ) : ?>
                                                                 <div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
                                                 <?php endif; ?>
-                                                <form method="post">
+                                                </div>
+                                                <form method="post" id="sii-generate-dte-form">
                                                     <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
                                                     <table class="form-table" role="presentation">
                                                         <tbody>

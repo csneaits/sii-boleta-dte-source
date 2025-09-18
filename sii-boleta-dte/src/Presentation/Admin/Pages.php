@@ -109,6 +109,13 @@ class Pages {
                         array(
                             'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
                             'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                            'previewAction' => 'sii_boleta_dte_generate_preview',
+                            'texts' => array(
+                                'previewReady' => __( 'Preview generated. Review the document below.', 'sii-boleta-dte' ),
+                                'previewError' => __( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ),
+                                'openNewTab'   => __( 'Open preview in a new tab', 'sii-boleta-dte' ),
+                                'loading'      => __( 'Generating preview…', 'sii-boleta-dte' ),
+                            ),
                         )
                     );
         }

@@ -1,8 +1,10 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
+use Sii\BoletaDte\Infrastructure\Factory\Container;
 use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 
 class Ajax {
 	private Plugin $core;
@@ -17,6 +19,7 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_search_products', array( $this, 'search_products' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', array( $this, 'lookup_user_by_rut' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_view_pdf', array( $this, 'view_pdf' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_generate_preview', array( $this, 'generate_preview' ) );
     }
 
 	public function test_smtp(): void {
@@ -163,11 +166,11 @@ class Ajax {
 		\wp_send_json_success( array( 'items' => $results ) );
 	}
 
-	public function search_products(): void {
-		\check_ajax_referer( 'sii_boleta_nonce' );
-		if ( ! \current_user_can( 'manage_options' ) ) {
-			\wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
-		}
+    public function search_products(): void {
+                \check_ajax_referer( 'sii_boleta_nonce' );
+                if ( ! \current_user_can( 'manage_options' ) ) {
+                        \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+                }
 		$q = isset( $_POST['q'] ) ? \sanitize_text_field( \wp_unslash( $_POST['q'] ) ) : '';
 		if ( ! class_exists( 'WC_Product' ) ) {
 			\wp_send_json_error( array( 'message' => \__( 'WooCommerce no está activo.', 'sii-boleta-dte' ) ) );
@@ -212,8 +215,37 @@ class Ajax {
 				'sku'   => (string) $product->get_sku(),
 			);
 		}
-		\wp_send_json_success( array( 'items' => $out ) );
-	}
+                \wp_send_json_success( array( 'items' => $out ) );
+        }
+
+        public function generate_preview(): void {
+                if ( ! function_exists( 'check_ajax_referer' ) ) {
+                        return;
+                }
+                \check_ajax_referer( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' );
+                if ( ! \current_user_can( 'manage_options' ) ) {
+                        \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+                }
+                $post = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $post['preview'] = '1';
+                /** @var GenerateDtePage $page */
+                $page = Container::get( GenerateDtePage::class );
+                $result = $page->process_post( $post );
+                if ( isset( $result['error'] ) && $result['error'] ) {
+                        $message = is_string( $result['error'] ) ? $result['error'] : \__( 'Could not generate preview. Please try again.', 'sii-boleta-dte' );
+                        \wp_send_json_error( array( 'message' => $message ) );
+                }
+                $url = (string) ( $result['pdf_url'] ?? '' );
+                if ( '' === $url ) {
+                        \wp_send_json_error( array( 'message' => \__( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ) ) );
+                }
+                \wp_send_json_success(
+                        array(
+                                'url'     => $url,
+                                'message' => \__( 'Preview generated. Review the document below.', 'sii-boleta-dte' ),
+                        )
+                );
+        }
 
     public function lookup_user_by_rut(): void {
 		\check_ajax_referer( 'sii_boleta_nonce' );

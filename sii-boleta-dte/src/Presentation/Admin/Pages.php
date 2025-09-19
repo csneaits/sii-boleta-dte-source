@@ -96,13 +96,19 @@ class Pages {
 						);
 		}
         if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
-																		\wp_enqueue_script(
-																			'sii-boleta-generate-dte',
-																			SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/generate-dte.js',
-																			array(),
-																			SII_BOLETA_DTE_VERSION,
-																			true
-																		);
+                        $script_relative = 'src/Presentation/assets/js/generate-dte.js';
+                        $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
+                        $script_version  = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $script_path ) ) {
+                                $script_version .= '-' . filemtime( $script_path );
+                        }
+																\wp_enqueue_script(
+																	'sii-boleta-generate-dte',
+																	SII_BOLETA_DTE_URL . $script_relative,
+																	array(),
+																	$script_version,
+																	true
+																);
                     \wp_localize_script(
                         'sii-boleta-generate-dte',
                         'siiBoletaGenerate',
@@ -115,6 +121,8 @@ class Pages {
                                 'previewError' => __( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ),
                                 'openNewTab'   => __( 'Open preview in a new tab', 'sii-boleta-dte' ),
                                 'loading'      => __( 'Generating preview…', 'sii-boleta-dte' ),
+                                'rutInvalid'   => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ),
+                                'rutRequired'  => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
                             ),
                         )
                     );

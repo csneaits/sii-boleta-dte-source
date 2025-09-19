@@ -31,7 +31,7 @@ class Api {
      * Sends a DTE XML file to SII and returns the track ID or WP_Error.
      */
     public function send_dte_to_sii( string $file, string $environment, string $token ) {
-        $url  = 'https://sii.example/' . $environment;
+        $url  = $this->build_url( $environment, 'boleta/' . rawurlencode( $environment ) );
         $args = array(
             'headers' => array( 'Authorization' => $token ),
             'body'    => file_exists( $file ) ? file_get_contents( $file ) : '',
@@ -63,7 +63,7 @@ class Api {
      * Sends a Libro or RVD XML and returns the response array or WP_Error.
      */
     public function send_libro_to_sii( string $xml, string $environment, string $token ) {
-        $url  = 'https://sii.example/libro/' . $environment;
+        $url  = $this->build_url( $environment, 'libro/' . rawurlencode( $environment ) );
         $args = array(
             'headers' => array( 'Authorization' => $token ),
             'body'    => $xml,
@@ -95,7 +95,7 @@ class Api {
      * Queries the status of a previously sent DTE.
      */
     public function get_dte_status( string $track_id, string $environment, string $token ) {
-        $url  = 'https://sii.example/status/' . rawurlencode( $track_id ) . '/' . $environment;
+        $url  = $this->build_url( $environment, 'status/' . rawurlencode( $track_id ) . '/' . rawurlencode( $environment ) );
         $args = array( 'headers' => array( 'Authorization' => $token ) );
         $res  = wp_remote_get( $url, $args );
         if ( is_wp_error( $res ) ) {
@@ -105,15 +105,53 @@ class Api {
         $code = wp_remote_retrieve_response_code( $res );
         $body = wp_remote_retrieve_body( $res );
         if ( 200 !== $code ) {
-            $this->logger->error( 'HTTP ' . $code );
-            return new WP_Error( 'sii_boleta_http_error', 'HTTP ' . $code );
+            $this->logger->error( 'HTTP ' . $code . ' ' . $body );
+            return new WP_Error(
+                'sii_boleta_http_error',
+                'HTTP ' . $code,
+                array(
+                    'body' => $body,
+                    'url'  => $url,
+                )
+            );
         }
         $data = json_decode( $body, true );
         if ( isset( $data['status'] ) ) {
             LogDb::add_entry( $track_id, (string) $data['status'], $body );
             return $data['status'];
         }
-        return new WP_Error( 'sii_boleta_http_error', 'Invalid response' );
+        return new WP_Error(
+            'sii_boleta_http_error',
+            'Invalid response',
+            array(
+                'body' => $body,
+                'url'  => $url,
+            )
+        );
+    }
+
+    private function build_url( string $environment, string $path = '' ): string {
+        $base = $this->get_base_host( $environment );
+        if ( '' === $path ) {
+            return $base;
+        }
+        return $base . '/' . ltrim( $path, '/' );
+    }
+
+    private function get_base_host( string $environment ): string {
+        $env = strtolower( trim( (string) $environment ) );
+        $hosts = array(
+            '1'            => 'https://maullin.sii.cl',
+            'prod'         => 'https://maullin.sii.cl',
+            'production'   => 'https://maullin.sii.cl',
+            '0'            => 'https://palena.sii.cl',
+            'test'         => 'https://palena.sii.cl',
+            'certificacion'=> 'https://palena.sii.cl',
+            'certification'=> 'https://palena.sii.cl',
+        );
+        $default = $hosts[$env] ?? 'https://palena.sii.cl';
+        $base = apply_filters( 'sii_boleta_api_base_host', $default, $environment );
+        return rtrim( (string) $base, '/' );
     }
 }
 

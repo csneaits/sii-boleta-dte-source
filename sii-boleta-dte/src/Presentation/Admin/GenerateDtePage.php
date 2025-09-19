@@ -81,6 +81,9 @@ class GenerateDtePage {
                                                 .sii-dte-modal-content{position:absolute;top:5%;left:50%;transform:translateX(-50%);width:85%;height:85%;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3);border-radius:6px;overflow:hidden}
                                                 .sii-dte-modal-close{position:absolute;top:6px;right:10px;border:0;background:#f0f0f1;border-radius:3px;padding:2px 8px;cursor:pointer;z-index:1}
                                                 body.sii-dte-modal-open{overflow:hidden}
+                                                .sii-generate-actions{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+                                                .sii-generate-actions .submit{margin:0}
+                                                .sii-rut-invalid{border-color:#d63638 !important; box-shadow:0 0 0 1px rgba(214,54,56,0.3);}
                                                 </style>
                                                 <div id="sii-generate-dte-notices">
                                                 <?php if ( is_array( $result ) && ! empty( $result['preview'] ) ) : ?>
@@ -176,9 +179,9 @@ class GenerateDtePage {
 																																				</thead>
                                                                 <tbody>
                                                                     <tr>
-                                                                        <td><input type="text" name="items[0][desc]" class="regular-text" value="<?php echo $i0d; ?>" /></td>
-                                                                        <td><input type="number" name="items[0][qty]" value="<?php echo $i0q; ?>" step="0.01" /></td>
-                                                                        <td><input type="number" name="items[0][price]" value="<?php echo $i0p; ?>" step="0.01" /></td>
+                                                                        <td><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                                        <td><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" /></td>
+                                                                        <td><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" /></td>
                                                                         <td><button type="button" class="button remove-item">×</button></td>
                                                                     </tr>
                                                                 </tbody>
@@ -214,9 +217,11 @@ class GenerateDtePage {
                                                         </td>
                                                     </tr>
                                                                </tbody>
-                                                                                                                               </table>
-                                                                                                                               <?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
-                                                                                                                               <?php submit_button( __( 'Send to SII', 'sii-boleta-dte' ) ); ?>
+                                                               </table>
+                                                               <div class="sii-generate-actions">
+                                                                       <?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
+                                                                       <?php submit_button( __( 'Send to SII', 'sii-boleta-dte' ) ); ?>
+                                                               </div>
                                                                                                 </form>
                                                                 </div>
                                                                 <?php
@@ -234,45 +239,78 @@ class GenerateDtePage {
 		}
                 $preview       = isset( $post['preview'] );
                 $available     = $this->get_available_types();
-                $rut           = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
+                $rut_raw       = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
                 $razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
                 $giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
                 $tipo          = (int) ( $post['tipo'] ?? ( array_key_first( $available ) ?? 39 ) );
                 if ( ! isset( $available[ $tipo ] ) ) {
                         $tipo = (int) ( array_key_first( $available ) ?? 39 );
                 }
+                $requires_rut = ! in_array( $tipo, array( 39, 41 ), true );
+                $rut          = '';
+                $has_rut      = '' !== trim( $rut_raw );
+                if ( $has_rut ) {
+                        $normalized = $this->normalize_rut( $rut_raw );
+                        if ( '' === $normalized || ! $this->is_valid_rut( $normalized ) ) {
+                                return array( 'error' => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ) );
+                        }
+                        $rut = $normalized;
+                        $_POST['rut'] = $rut; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                } elseif ( $requires_rut ) {
+                        return array( 'error' => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ) );
+                }
                 $dir_recep     = sanitize_text_field( (string) ( $post['dir_recep'] ?? '' ) );
                 $cmna_recep    = sanitize_text_field( (string) ( $post['cmna_recep'] ?? '' ) );
                 $ciudad_recep  = sanitize_text_field( (string) ( $post['ciudad_recep'] ?? '' ) );
 				$items = array();
 				$n     = 1;
-				$raw   = $post['items'] ?? array();
-                if ( is_array( $raw ) ) {
-                        foreach ( $raw as $item ) {
-                                                $qty        = isset( $item['qty'] ) ? (float) $item['qty'] : 1.0;
-                                                $desc       = sanitize_text_field( (string) ( $item['desc'] ?? '' ) );
-                                                $price      = isset( $item['price'] ) ? (int) round( (float) $item['price'] ) : 0;
-                                                $line_total = (int) round( $qty * $price );
-                                if ( '' === $desc ) {
-                                        continue;
+		$raw   = $post['items'] ?? array();
+		if ( $preview ) {
+			$this->debug_log( '[preview] raw items=' . print_r( $raw, true ) );
+		}
+		if ( is_array( $raw ) ) {
+			foreach ( $raw as $item ) {
+						$qty   = isset( $item['qty'] ) ? $this->parse_amount( $item['qty'] ) : 1.0;
+						$desc  = sanitize_text_field( (string) ( $item['desc'] ?? '' ) );
+						if ( $desc !== '' ) {
+							$desc = preg_replace( '/\s+\(([^()]+)\)\s+\(\1\)$/u', ' ($1)', $desc );
+							$desc = preg_replace( '/\s{2,}/', ' ', (string) $desc );
+							$desc = trim( (string) $desc );
+						}
+						$price = isset( $item['price'] ) ? (int) round( $this->parse_amount( $item['price'] ) ) : 0;
+				if ( '' === $desc ) {
+					continue;
+				}
+                                if ( $qty <= 0 ) {
+                                        $qty = 1.0;
                                 }
-                                                $items[] = array(
-                                                        'NroLinDet' => $n++,
-                                                        'NmbItem'   => $desc,
-                                                        'QtyItem'   => $qty,
-                                                        'PrcItem'   => $price,
-                                                        'MontoItem' => $line_total,
-                                                        'IndExe'    => 0,
-                                                );
-                        }
-                }
+                                if ( $price < 0 ) {
+                                        $price = 0;
+                                }
+                                $line_total = (int) round( $qty * $price );
+
+                                $items[] = array(
+                                        'NroLinDet' => $n++,
+                                        'NmbItem'   => $desc,
+                                        'QtyItem'   => $qty,
+                                        'PrcItem'   => $price,
+                                        'MontoItem' => $line_total,
+                                        'IndExe'    => 0,
+                                );
+			}
+		}
+		if ( $preview ) {
+			$this->debug_log( '[preview] parsed items=' . wp_json_encode( $items ) );
+		}
         // If Boleta/Boleta Exenta without RUT, use generic SII rut
         if ( in_array( $tipo, array( 39, 41 ), true ) && '' === $rut ) {
                 $rut = '66666666-6';
         }
 
+        $folio = $preview ? 0 : $this->folio_manager->get_next_folio( $tipo );
+
         $data = array(
-                'Folio'    => $this->folio_manager->get_next_folio( $tipo ),
+                'Folio'    => $folio,
                 'FchEmis'  => gmdate( 'Y-m-d' ),
                 'Receptor' => array(
                         'RUTRecep'    => $rut,
@@ -319,6 +357,7 @@ class GenerateDtePage {
                                 'pdf_url' => $pdf_url,  // public URL for iframe
                         );
                 }
+
                 $file = tempnam( sys_get_temp_dir(), 'dte' );
                 file_put_contents( $file, (string) $xml );
                 $cfg   = $this->settings->get_settings();
@@ -363,7 +402,119 @@ class GenerateDtePage {
                         );
                         return $url;
                 }
-                return '';
+		return '';
+	}
+
+	/**
+	 * Escribe mensajes de depuración en uploads/sii-boleta-logs/.
+	 */
+	private function debug_log( string $message ): void {
+		$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array();
+		$base    = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
+			? $uploads['basedir']
+			: ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
+		$dir = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
+		if ( function_exists( 'wp_mkdir_p' ) ) {
+			wp_mkdir_p( $dir );
+		} elseif ( ! is_dir( $dir ) ) {
+			@mkdir( $dir, 0755, true );
+		}
+		$file = $dir . '/debug.log';
+		$line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
+		@file_put_contents( $file, $line, FILE_APPEND );
+	}
+
+	/**
+	 * Normaliza números ingresados con separadores locales (puntos miles, comas decimales).
+	 */
+	private function parse_amount( $value ): float {
+                if ( is_string( $value ) ) {
+                        $value = str_replace( array( ' ', "\xC2\xA0" ), '', $value );
+                        if ( '' === $value ) {
+                                return 0.0;
+                        }
+
+                        if ( str_contains( $value, ',' ) ) {
+                                $value = str_replace( '.', '', $value );
+                                $value = str_replace( ',', '.', $value );
+                        } else {
+                                if ( substr_count( $value, '.' ) > 1 ) {
+                                        $value = str_replace( '.', '', $value );
+                                } elseif ( false !== ( $dot = strpos( $value, '.' ) ) ) {
+                                        $fraction = substr( $value, $dot + 1 );
+                                        if ( ctype_digit( $fraction ) && strlen( $fraction ) === 3 && $dot <= 3 ) {
+                                                $value = str_replace( '.', '', $value );
+                                        }
+                                }
+                        }
+                }
+
+                return is_numeric( $value ) ? (float) $value : 0.0;
+        }
+
+        /**
+         * Limpia y formatea un RUT, devolviendo la parte numérica y el dígito verificador separados por guion.
+         */
+        private function normalize_rut( string $rut ): string {
+                $rut = strtoupper( trim( $rut ) );
+                if ( '' === $rut ) {
+                        return '';
+                }
+
+                // Sólo permitir números, K, puntos y guion.
+                if ( preg_match( '/[^0-9K\.\-]/', $rut ) ) {
+                        return '';
+                }
+
+                $rut = str_replace( array( '.', '-' ), '', $rut );
+                if ( strlen( $rut ) < 2 ) {
+                        return '';
+                }
+
+                $body = substr( $rut, 0, -1 );
+                $dv   = substr( $rut, -1 );
+
+                if ( ! ctype_digit( $body ) ) {
+                        return '';
+                }
+
+                $body = ltrim( $body, '0' );
+                if ( '' === $body ) {
+                        $body = '0';
+                }
+
+                return $body . '-' . $dv;
+        }
+
+        /**
+         * Revisa el dígito verificador del RUT.
+         */
+        private function is_valid_rut( string $rut ): bool {
+                $rut = $this->normalize_rut( $rut );
+                if ( '' === $rut ) {
+                        return false;
+                }
+
+                list( $body, $dv ) = explode( '-', $rut );
+                $dv = strtoupper( $dv );
+
+                $sum    = 0;
+                $factor = 2;
+                for ( $i = strlen( $body ) - 1; $i >= 0; $i-- ) {
+                        $sum    += (int) $body[ $i ] * $factor;
+                        $factor  = ( $factor === 7 ) ? 2 : $factor + 1;
+                }
+
+                $mod = 11 - ( $sum % 11 );
+                if ( 11 === $mod ) {
+                        $expected = '0';
+                } elseif ( 10 === $mod ) {
+                        $expected = 'K';
+                } else {
+                        $expected = (string) $mod;
+                }
+
+                return $expected === $dv;
         }
 
         /**

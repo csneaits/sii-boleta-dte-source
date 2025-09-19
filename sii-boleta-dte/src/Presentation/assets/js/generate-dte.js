@@ -21,6 +21,81 @@
         var texts = (window.siiBoletaGenerate && window.siiBoletaGenerate.texts) ? window.siiBoletaGenerate.texts : {};
         var ajaxUrl = (window.siiBoletaGenerate && window.siiBoletaGenerate.ajax) ? window.siiBoletaGenerate.ajax : (window.ajaxurl || '/wp-admin/admin-ajax.php');
         var previewAction = (window.siiBoletaGenerate && window.siiBoletaGenerate.previewAction) ? window.siiBoletaGenerate.previewAction : 'sii_boleta_dte_generate_preview';
+        var rutInput = document.getElementById('sii-rut');
+
+        function normalizeRutValue(value){
+            if (typeof value !== 'string'){ return ''; }
+            var rut = value.trim().toUpperCase();
+            if (rut === ''){ return ''; }
+            if (/[^0-9K.\-]/.test(rut)){ return ''; }
+            rut = rut.replace(/[.\-]/g, '');
+            if (rut.length < 2){ return ''; }
+            var body = rut.slice(0, -1);
+            var dv = rut.slice(-1);
+            if (!/^[0-9]+$/.test(body)){ return ''; }
+            body = body.replace(/^0+/, '');
+            if (body === ''){ body = '0'; }
+            return body + '-' + dv;
+        }
+
+        function evaluateRut(value){
+            var normalized = normalizeRutValue(value);
+            if (!normalized){
+                return { valid: false, normalized: '' };
+            }
+            var parts = normalized.split('-');
+            var body = parts[0];
+            var dv = parts[1];
+            var sum = 0;
+            var factor = 2;
+            for (var i = body.length - 1; i >= 0; i--){
+                sum += parseInt(body.charAt(i), 10) * factor;
+                factor = (factor === 7) ? 2 : factor + 1;
+            }
+            var mod = 11 - (sum % 11);
+            var expected;
+            if (mod === 11){ expected = '0'; }
+            else if (mod === 10){ expected = 'K'; }
+            else { expected = String(mod); }
+            return { valid: expected === dv, normalized: normalized };
+        }
+
+        function validateRutField(showMessage){
+            if (showMessage === undefined){ showMessage = true; }
+            if (!rutInput){ return true; }
+            var value = rutInput.value || '';
+            var trimmed = value.trim();
+            var tipo = tipoSelect ? parseInt(tipoSelect.value || '39', 10) : 39;
+            var requiresRut = !(tipo === 39 || tipo === 41);
+
+            if (trimmed === ''){
+                if (requiresRut){
+                    var requiredMsg = (texts && texts.rutRequired) ? texts.rutRequired : 'El RUT del receptor es obligatorio para este tipo de documento.';
+                    rutInput.classList.add('sii-rut-invalid');
+                    rutInput.setCustomValidity(requiredMsg);
+                    if (showMessage){ rutInput.reportValidity(); }
+                    return false;
+                }
+                rutInput.value = '';
+                rutInput.classList.remove('sii-rut-invalid');
+                rutInput.setCustomValidity('');
+                return true;
+            }
+
+            var result = evaluateRut(trimmed);
+            if (!result.valid){
+                var invalidMsg = (texts && texts.rutInvalid) ? texts.rutInvalid : 'El RUT ingresado no es válido.';
+                rutInput.classList.add('sii-rut-invalid');
+                rutInput.setCustomValidity(invalidMsg);
+                if (showMessage){ rutInput.reportValidity(); }
+                return false;
+            }
+
+            rutInput.value = result.normalized;
+            rutInput.classList.remove('sii-rut-invalid');
+            rutInput.setCustomValidity('');
+            return true;
+        }
 
         function showNotice(type, message, link){
             if(!notices){return;}
@@ -74,9 +149,13 @@
         if (modalAttr){
             openModal(modalAttr);
         }
+        if (rutInput){
+            rutInput.addEventListener('blur', function(){ validateRutField(false); });
+            rutInput.addEventListener('input', function(){ if (rutInput.classList.contains('sii-rut-invalid')){ validateRutField(false); } });
+        }
         function initRow(row){
-            var desc = row.querySelector('input[name*="[desc]"]');
-            var price = row.querySelector('input[name*="[price]"]');
+            var desc = row.querySelector('input[data-field="desc"]');
+            var price = row.querySelector('input[data-field="price"]');
             if(!desc){return;}
             var listId = 'sii-prod-' + Math.random().toString(36).slice(2);
             var dl = document.createElement('datalist');
@@ -118,19 +197,50 @@
                     var p = cache[val];
                     if(price){ price.value = p.price; }
                     // Insert SKU into description for traceability
-                    if (p.sku){ desc.value = p.name + ' (' + p.sku + ')'; }
+                    var name = (p.name || '').trim();
+                    var sku = (p.sku || '').toString().trim();
+                    var value = name;
+
+                    if (sku) {
+                        var escaped = sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        var suffixRegex = new RegExp('\\s*\\(' + escaped + '\\)\\s*$', 'i');
+                        if (suffixRegex.test(value)) {
+                            value = value.replace(suffixRegex, ' (' + sku + ')').trim();
+                        } else {
+                            value = value.replace(suffixRegex, '').trim();
+                            value = value.length ? value + ' (' + sku + ')' : '(' + sku + ')';
+                        }
+                    }
+
+                    desc.value = value || sku;
+                    cache[desc.value] = p;
                 }
             });
         }
+
+        function renumberRows(){
+            if (!tableBody){ return; }
+            var rows = tableBody.querySelectorAll('tr');
+            Array.prototype.forEach.call(rows, function(row, index){
+                ['desc','qty','price'].forEach(function(field){
+                    var input = row.querySelector('input[data-field="' + field + '"]');
+                    if (input){
+                        input.name = 'items[' + index + '][' + field + ']';
+                    }
+                });
+            });
+        }
+
         function addRow(){
-            if (!tableBody) return;
-            var row = document.createElement('tr');
-            row.innerHTML = '<td><input type="text" name="items[][desc]" class="regular-text" /></td>'+
-                            '<td><input type="number" name="items[][qty]" value="1" step="0.01" /></td>'+
-                            '<td><input type="number" name="items[][price]" value="0" step="0.01" /></td>'+
+           if (!tableBody) return;
+           var row = document.createElement('tr');
+            row.innerHTML = '<td><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></td>'+
+                            '<td><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" /></td>'+
+                            '<td><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" /></td>'+
                             '<td><button type="button" class="button remove-item">×</button></td>';
-            tableBody.appendChild(row);
-            initRow(row);
+           tableBody.appendChild(row);
+           initRow(row);
+            renumberRows();
         }
         // Toggle sections first to ensure the form adapts immediately
         function toggleSections(){
@@ -164,6 +274,7 @@
                     else { el.removeAttribute('disabled'); }
                 });
             }
+            validateRutField(false);
         }
 
         if (tipoSelect){
@@ -172,10 +283,11 @@
             toggleSections();
         }
 
-        if (tableBody){
+       if (tableBody){
             Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), initRow);
+            renumberRows();
         }
-        if (addBtn && tableBody){
+       if (addBtn && tableBody){
             addBtn.addEventListener('click', function(e){
                 e.preventDefault();
                 addRow();
@@ -185,6 +297,7 @@
                     e.preventDefault();
                     var tr = e.target.closest('tr');
                     if (tr){ tr.remove(); }
+                    renumberRows();
                 }
             });
         }
@@ -192,6 +305,10 @@
         if (form && previewSubmit && typeof window.fetch === 'function' && typeof window.URLSearchParams !== 'undefined'){
             var triggerPreview = function(e){
                 if (e && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)){
+                    return;
+                }
+                if (!validateRutField(true)){
+                    if (e){ e.preventDefault(); }
                     return;
                 }
                 if (e){ e.preventDefault(); }
@@ -267,6 +384,10 @@
                 var submitter = e.submitter || document.activeElement;
                 if (submitter && submitter.name === 'preview'){
                     triggerPreview(e);
+                    return;
+                }
+                if (!validateRutField(true)){
+                    e.preventDefault();
                 }
             });
         }

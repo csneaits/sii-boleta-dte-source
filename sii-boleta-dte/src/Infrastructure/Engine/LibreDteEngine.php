@@ -62,21 +62,33 @@ class LibreDteEngine implements DteEngine {
 		}
 
                 $template = $this->load_template( $tipo );
+                if ( isset( $template['Detalle'] ) ) {
+                        $template['Detalle'] = array();
+                }
+                if ( isset( $template['Encabezado']['Totales'] ) ) {
+                        $template['Encabezado']['Totales'] = array();
+                }
+                if ( isset( $template['DscRcgGlobal'] ) ) {
+                        unset( $template['DscRcgGlobal'] );
+                }
 
                 $detalles = $data['Detalles'] ?? array();
                 $detalle  = array();
                 $i        = 1;
                 foreach ( $detalles as $d ) {
                         $qty  = (float) ( $d['QtyItem'] ?? 1 );
-                        $prc  = (int) round( $d['PrcItem'] ?? 0 );
+                        $prc  = (float) ( $d['PrcItem'] ?? 0 );
                         $line = array(
                                 'NroLinDet' => $d['NroLinDet'] ?? $i,
                                 'NmbItem'   => $d['NmbItem'] ?? '',
                                 'QtyItem'   => $qty,
-                                'PrcItem'   => $prc,
-                                'MontoItem' => (int) round( $qty * $prc ),
+                                'PrcItem'   => (int) round( $prc ),
                         );
-                        if ( ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo ) {
+                        $line['MontoItem'] = isset( $d['MontoItem'] )
+                                ? (int) round( $d['MontoItem'] )
+                                : (int) round( $qty * $prc );
+                        $is_exento = ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo;
+                        if ( $is_exento ) {
                                 $line['IndExe'] = 1;
                         }
                         $detalle[] = $line;
@@ -90,6 +102,15 @@ class LibreDteEngine implements DteEngine {
                         'DirOrigen'    => $settings['direccion'] ?? $data['DirOrigen'] ?? '',
                         'CmnaOrigen'   => $settings['comuna'] ?? $data['CmnaOrigen'] ?? '',
                 );
+                if ( $preview ) {
+                        $this->debug_log( '[preview] settings=' . json_encode( array(
+                                'rut_emisor'    => $settings['rut_emisor'] ?? null,
+                                'razon_social'  => $settings['razon_social'] ?? null,
+                                'giro'          => $settings['giro'] ?? null,
+                                'direccion'     => $settings['direccion'] ?? null,
+                                'comuna'        => $settings['comuna'] ?? null,
+                        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                }
 
                 $documentData = array_replace_recursive(
                         $template,
@@ -97,15 +118,37 @@ class LibreDteEngine implements DteEngine {
                                 'Encabezado' => array(
                                         'IdDoc'    => array(
                                                 'TipoDTE' => $tipo,
-                                                'Folio'   => $data['Folio'] ?? 0,
-                                                'FchEmis' => $data['FchEmis'] ?? '',
-                                        ),
-                                        'Emisor'   => $emisor,
-                                        'Receptor' => $data['Receptor'] ?? array(),
-                                ),
-                                'Detalle'    => $detalle,
-                        )
-                );
+                                               'Folio'   => $data['Folio'] ?? 0,
+                                               'FchEmis' => $data['FchEmis'] ?? '',
+                                       ),
+                                       'Emisor'   => $emisor,
+                                       'Receptor' => $data['Receptor'] ?? array(),
+                               ),
+                               'Detalle'    => $detalle,
+                       )
+               );
+
+                if ( $preview ) {
+                        $this->debug_log( '[preview] emisor=' . json_encode( $documentData['Encabezado']['Emisor'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                        $this->debug_log( '[preview] detalle=' . json_encode( $documentData['Detalle'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                }
+
+                $tasa_iva = null;
+                if ( isset( $data['Encabezado']['Totales']['TasaIVA'] ) ) {
+                        $tasa_iva = (float) $data['Encabezado']['Totales']['TasaIVA'];
+                } elseif ( isset( $template['Encabezado']['Totales']['TasaIVA'] ) ) {
+                        $tasa_iva = (float) $template['Encabezado']['Totales']['TasaIVA'];
+                }
+                if ( null === $tasa_iva && in_array( $tipo, array( 33, 39, 43, 46 ), true ) ) {
+                        $tasa_iva = 19.0;
+                }
+                if ( ! isset( $documentData['Encabezado'] ) ) {
+                        $documentData['Encabezado'] = array();
+                }
+                $documentData['Encabezado']['Totales'] = array( 'MntTotal' => 0 );
+                if ( null !== $tasa_iva ) {
+                        $documentData['Encabezado']['Totales']['TasaIVA'] = $tasa_iva;
+                }
 
 
 
@@ -133,7 +176,29 @@ class LibreDteEngine implements DteEngine {
 		return $bag->getDocument()->saveXml();
 	}
 
-	
+	/**
+	 * Renders a PDF using LibreDTE templates.
+	 */
+	private function debug_log( string $message ): void {
+                if ( ! function_exists( 'wp_upload_dir' ) ) {
+                        error_log( $message );
+                        return;
+                }
+                $uploads = wp_upload_dir();
+                $base = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
+                        ? $uploads['basedir']
+                        : ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
+                $dir = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
+                if ( function_exists( 'wp_mkdir_p' ) ) {
+                        wp_mkdir_p( $dir );
+                } elseif ( ! is_dir( $dir ) ) {
+                        @mkdir( $dir, 0755, true );
+                }
+                $file = $dir . '/debug.log';
+                $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
+                @file_put_contents( $file, $line, FILE_APPEND );
+	}
+
         /**
          * Renders a PDF using LibreDTE templates.
          */
@@ -237,8 +302,8 @@ class LibreDteEngine implements DteEngine {
                 libxml_clear_errors();
                 libxml_use_internal_errors( $previous );
 
-                return $data;
-        }
+               return $data;
+       }
 }
 
 class_alias( LibreDteEngine::class, 'SII_LibreDTE_Engine' );

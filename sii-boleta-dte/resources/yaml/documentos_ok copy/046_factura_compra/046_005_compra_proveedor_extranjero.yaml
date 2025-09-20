@@ -6,9 +6,9 @@ Encabezado:
     RUTEmisor: ''
     RznSoc: ''
     GiroEmis: ''
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
     RUTRecep: 59292930-9
     CdgIntRecep: amazon

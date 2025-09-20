@@ -10,8 +10,8 @@ Encabezado:
     RUTEmisor: ''
     RznSocEmisor: ''
     GiroEmisor: ''
-    DirOrigen: DBG
-    CmnaOrigen: Santa Cruz
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
     RUTRecep: 66666666-6
     RznSocRecep: Sin RUT

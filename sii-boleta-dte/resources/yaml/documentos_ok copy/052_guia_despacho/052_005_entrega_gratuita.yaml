@@ -9,9 +9,9 @@ Encabezado:
     RUTEmisor: ''
     RznSoc: ''
     GiroEmis: ''
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
     RUTRecep: 1234567-4
     RznSocRecep: Venta al por menor de muebles

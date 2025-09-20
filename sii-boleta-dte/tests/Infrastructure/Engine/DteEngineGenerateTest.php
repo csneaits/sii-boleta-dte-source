@@ -1,6 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Infrastructure\Settings;
 
 class DteEngineGenerateTest extends TestCase {
@@ -100,5 +101,14 @@ class DteEngineGenerateTest extends TestCase {
 
         $referencias = $document->xpath( '/dte:DTE/dte:Documento/dte:Referencia' );
         $this->assertSame( array(), $referencias );
+
+        $pdf = new PdfGenerator( $engine );
+        $pdfPath = $pdf->generate( $xml );
+        $this->assertFileExists( $pdfPath );
+        $contents = file_get_contents( $pdfPath );
+        $this->assertNotFalse( $contents );
+        $this->assertStringNotContainsString( 'correo.sii@example.com', $contents );
+        $this->assertStringNotContainsString( '+56 2 32525575', $contents );
+        @unlink( $pdfPath );
     }
 }

@@ -39,7 +39,31 @@ class LibreDTEEngineTest extends TestCase {
 
         // Confirmar que fue copiado
         $this->assertFileExists($outputFile);
-    
+
 }
+
+    public function test_render_pdf_resets_mnttotal_before_normalization() {
+        $settings = new Dummy_Settings([]);
+        $engine   = new LibreDteEngine($settings);
+
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/boleta_multidetalle.xml');
+        $this->assertNotFalse($xml);
+
+        $reflection = new \ReflectionClass(LibreDteEngine::class);
+
+        $parseMethod = $reflection->getMethod('parse_document_data_from_xml');
+        $parseMethod->setAccessible(true);
+        $parsed = $parseMethod->invoke($engine, $xml);
+
+        $this->assertIsArray($parsed);
+        $this->assertSame('7100', $parsed['Encabezado']['Totales']['MntTotal']);
+
+        $resetMethod = $reflection->getMethod('reset_total_before_rendering');
+        $resetMethod->setAccessible(true);
+        $sanitized = $resetMethod->invoke($engine, $parsed);
+
+        $this->assertIsArray($sanitized);
+        $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntTotal']);
+    }
 
 }

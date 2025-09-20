@@ -5,35 +5,86 @@ namespace Sii\BoletaDte\Infrastructure;
  * Provides access to plugin settings.
  */
 class Settings {
-	public const OPTION_GROUP = 'sii_boleta_dte_settings_group';
-	public const OPTION_NAME  = 'sii_boleta_dte_settings';
+        public const OPTION_GROUP = 'sii_boleta_dte_settings_group';
+        public const OPTION_NAME  = 'sii_boleta_dte_settings';
+        public const ENV_TEST     = 'test';
+        public const ENV_PROD     = 'production';
 
 		/**
 		 * Returns settings from WordPress options.
 		 *
 		 * @return array<string,mixed>
 		 */
-	public function get_settings(): array {
-		if ( function_exists( 'get_option' ) ) {
-				$data = get_option( self::OPTION_NAME, array() );
-			if ( is_array( $data ) ) {
-				if ( isset( $data['cert_pass'] ) ) {
-						$data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
-				}
-				if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
-						$caf_path = array();
-					foreach ( $data['cafs'] as $caf ) {
-						if ( isset( $caf['tipo'], $caf['path'] ) ) {
-							$caf_path[ (int) $caf['tipo'] ] = $caf['path'];
-						}
-					}
-						$data['caf_path'] = $caf_path;
-				}
-				return $data;
-			}
-		}
-			return array();
-	}
+        public function get_settings(): array {
+                if ( function_exists( 'get_option' ) ) {
+                                $data = get_option( self::OPTION_NAME, array() );
+                        if ( is_array( $data ) ) {
+                                if ( isset( $data['cert_pass'] ) ) {
+                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
+                                }
+
+                                $environment = self::normalize_environment_slug( $data['environment'] ?? '' );
+                                $all_cafs    = array();
+                                if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
+                                        $all_cafs = $data['cafs'];
+                                }
+
+                                $filtered   = array();
+                                $hidden     = 0;
+                                $caf_path   = array();
+                                foreach ( $all_cafs as $caf ) {
+                                        if ( ! is_array( $caf ) ) {
+                                                continue;
+                                        }
+                                        $caf_env = self::normalize_environment_slug( $caf['environment'] ?? '' );
+                                        if ( '' === (string) ( $caf['environment'] ?? '' ) ) {
+                                                $caf_env = self::ENV_TEST;
+                                        }
+                                        if ( $caf_env !== $environment ) {
+                                                ++$hidden;
+                                                continue;
+                                        }
+                                        $caf['environment'] = $caf_env;
+                                        $filtered[]          = $caf;
+                                        if ( isset( $caf['tipo'], $caf['path'] ) ) {
+                                                $caf_path[ (int) $caf['tipo'] ] = (string) $caf['path'];
+                                        }
+                                }
+
+                                $data['cafs']          = $filtered;
+                                $data['caf_path']      = $caf_path;
+                                $data['cafs_hidden']   = $hidden;
+                                $data['environment_slug'] = $environment;
+                                return $data;
+                        }
+                }
+                        return array();
+        }
+
+        /**
+         * Returns raw settings as stored in WordPress without filtering.
+         *
+         * @return array<string,mixed>
+         */
+        public function get_raw_settings(): array {
+                if ( function_exists( 'get_option' ) ) {
+                                $data = get_option( self::OPTION_NAME, array() );
+                        return is_array( $data ) ? $data : array();
+                }
+                return array();
+        }
+
+        /**
+         * Normalizes an environment value to either test or production.
+         */
+        public static function normalize_environment_slug( $value ): string {
+                $raw = is_string( $value ) ? $value : (string) $value;
+                $raw = strtolower( trim( $raw ) );
+                if ( in_array( $raw, array( '1', 'prod', 'production', 'prod.', 'live' ), true ) ) {
+                        return self::ENV_PROD;
+                }
+                return self::ENV_TEST;
+        }
 
 		/**
 		 * Encrypts a value using a key derived from WordPress salts.

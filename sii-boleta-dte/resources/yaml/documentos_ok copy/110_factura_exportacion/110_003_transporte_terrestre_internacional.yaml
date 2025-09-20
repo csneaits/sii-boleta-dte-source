@@ -15,9 +15,9 @@ Encabezado:
     #            "anticipo". - Largo máx: 10 - Tipo: ALFA.
     FchCancel: '2024-03-20'
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSoc: SASCO SpA
-    GiroEmis: Tecnología, informática y telecomunicaciones
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
     Acteco: 726000
     DirOrigen: Santa Cruz
     # CiudadOrigen: Ciudad de origen. - Largo máx: 20 - Tipo: ALFA.

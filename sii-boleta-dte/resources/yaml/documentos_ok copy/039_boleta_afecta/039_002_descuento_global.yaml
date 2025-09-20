@@ -3,9 +3,9 @@ Encabezado:
     TipoDTE: 39
     Folio: 1
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSocEmisor: SASCO SpA
-    GiroEmisor: Tecnología, Informática y Telecomunicaciones
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
     DirOrigen: DBG
     CmnaOrigen: Santa Cruz
   Receptor:

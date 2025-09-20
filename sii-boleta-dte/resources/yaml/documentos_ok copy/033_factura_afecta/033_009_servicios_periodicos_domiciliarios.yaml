@@ -7,9 +7,9 @@ Encabezado:
     IndServicio: 1
     FchVenc: '2024-10-31'
   Emisor:
-    RUTEmisor: 12345678-5
-    RznSoc: Compañía de Gas
-    GiroEmis: DISTRIBUCION DE COMBUSTIBLES GASEOSOS POR TUBERIA
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
     Acteco: 352020
     DirOrigen: Santa Cruz
     CmnaOrigen: Santa Cruz

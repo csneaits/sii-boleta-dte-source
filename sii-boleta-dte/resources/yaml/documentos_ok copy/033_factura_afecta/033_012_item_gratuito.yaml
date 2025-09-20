@@ -6,9 +6,9 @@ Encabezado:
     #          no tiene derecho a crédito fiscal.
     FmaPago: 3
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSoc: SASCO SpA
-    GiroEmis: Tecnología, informática y telecomunicaciones
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
     Acteco: 726000
     DirOrigen: Santa Cruz
     CmnaOrigen: Santa Cruz

@@ -299,30 +299,11 @@ class LibreDteEngine implements DteEngine {
                         );
                 }
 
-                $has_amounts = false;
-                foreach ( $data['Detalle'] ?? array() as $detalle ) {
-                        if ( ! is_array( $detalle ) ) {
-                                continue;
-                        }
-                        if ( isset( $detalle['MontoItem'] ) && is_numeric( $detalle['MontoItem'] ) ) {
-                                $has_amounts = true;
-                                break;
-                        }
-                }
-
-                if ( $has_amounts && isset( $data['Encabezado']['Totales'] ) && is_array( $data['Encabezado']['Totales'] ) ) {
-                        foreach ( array( 'MntTotal', 'MntNeto', 'MntExe', 'MontoNF', 'IVA', 'IVANoRet' ) as $total_key ) {
-                                if ( array_key_exists( $total_key, $data['Encabezado']['Totales'] ) ) {
-                                        $data['Encabezado']['Totales'][ $total_key ] = 0;
-                                }
-                        }
-                }
-
                 libxml_clear_errors();
                 libxml_use_internal_errors( $previous );
 
-                return $data;
-        }
+               return $data;
+       }
 }
 
 class_alias( LibreDteEngine::class, 'SII_LibreDTE_Engine' );

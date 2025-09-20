@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 39
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSocEmisor: ''
@@ -9,24 +9,17 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 66666666-6
-    RznSocRecep: Sin RUT
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Producto
-  QtyItem: 1
-  PrcItem: 1190
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 DscRcgGlobal:
-  TpoMov: D
-  TpoValor: '%'
-  ValorDR: 10
+  TpoMov: ''
+  TpoValor: ''
+  ValorDR: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 900
-        IVA: 171
-        MntTotal: 1071

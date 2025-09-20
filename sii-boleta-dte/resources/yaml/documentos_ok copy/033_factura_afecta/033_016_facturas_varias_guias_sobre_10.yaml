@@ -3,7 +3,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -12,36 +12,29 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
     # NmbItem: Factura de X Guías de Despacho.
-  - NmbItem: Factura de 20 Guías de Despacho
+  - NmbItem: ''
     # DscItem: Acá se debe de enlistar las guías de despacho a facturar.
-    DscItem: Factura de Guías de Despacho Electrónicas Números 1 - 2 - 3 - 4 - 5 - 6 - 7 - 8 - 9 - 10 - 11 - 12 - 13 - 14 - 15 - 16 - 17 - 18 - 19 - 20
+    DscItem: ''
     # QtyItem: Item debe de ser siempre 1.
-    QtyItem: 1
+    QtyItem: ''
     # PrcItem: Es el total neto sumado de todas las guías de despacho.
-    PrcItem: 25000
+    PrcItem: ''
 Referencia:
     # TpoDocRef: Se indica el tipo de documento de guías "52".
-  - TpoDocRef: 52
+  - TpoDocRef: ''
     # IndGlobal: Indicador de Referencia Global, indica que el documento afecta
     #            a un número mayor de guías, ejemplo 20.
-    IndGlobal: 1
+    IndGlobal: ''
     # FolioRef: Debe de ser siempre "0".
-    FolioRef: 0
-    FchRef: '2024-11-21'
-    RazonRef: Factura guías del mes.
+    FolioRef: ''
+    FchRef: ''
+    RazonRef: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 25000
-        IVA: 4750
-        MntTotal: 29750

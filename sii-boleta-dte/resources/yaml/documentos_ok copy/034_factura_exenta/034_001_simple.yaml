@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 34
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,24 +10,18 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
   # IndExe: Indicador de facturación/exención. Indica si el producto o servicio
   #         es exento o no afecto a impuesto o si ya ha sido facturado.
   #         Largo máx: 1 - Tipo: NÚM.
-- IndExe: 1
-  NmbItem: Horas desarrollo
-  QtyItem: 5
-  PrcItem: 25000
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntExe: 125000
-        MntTotal: 125000

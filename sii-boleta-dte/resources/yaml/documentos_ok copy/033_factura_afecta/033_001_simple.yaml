@@ -8,7 +8,7 @@ Encabezado:
     TipoDTE: 33
     # Folio: Folio del documento autorizado por el SII.
     #        Largo máx: 10 - Tipo: NÚM.
-    Folio: 1
+    Folio: ''
   # Emisor: Área Identificación del Emisor.
   Emisor:
     # RUTEmisor: RUT del Emisor con guión y dígito verificador - Largo máx: 10
@@ -33,31 +33,24 @@ Encabezado:
     # RUTRecep: RUT del cliente, excepto factura que hace referencia al
     #           vendedor. Con guión y dígito verificador
     #           Largo máx: 10 - Tipo: ALFA.
-    RUTRecep: 60803000-K
+    RUTRecep: ''
     # RznSocRecep: Nombre o Razón Social del Receptor
     #              Largo máx: 100 - Tipo: ALFA.
-    RznSocRecep: Servicio de Impuestos Internos
+    RznSocRecep: ''
     # GiroRecep: Giro del negocio del Receptor - Largo máx: 40 - Tipo: ALFA.
-    GiroRecep: Gobierno
+    GiroRecep: ''
     # DirRecep: Dirección legal del Receptor (Registrada en SII).
     #           Largo máx: 70 - Tipo: ALFA.
-    DirRecep: Santiago
+    DirRecep: ''
     # CmnaRecep: Comuna del Receptor - Largo máx: 20 - Tipo: ALFA.
-    CmnaRecep: Santiago
+    CmnaRecep: ''
 # Detalle: Zona de Detalle por Ítem. Cada ítem se enlista con un "guion" (-).
 Detalle:
 # NmbItem: Nombre del Ítem - Largo máx: 80 - Tipo: ALFA.
-- NmbItem: Conectores RJ45
+  - NmbItem: ''
   # QtyItem: Cantidad del ítem - Largo máx: 18 - Tipo: NÚM.
-  QtyItem: 450
+    QtyItem: ''
   # PrcItem: Precio unitario del Ítem - Largo máx: 18 - Tipo: NÚM.
-  PrcItem: 70
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

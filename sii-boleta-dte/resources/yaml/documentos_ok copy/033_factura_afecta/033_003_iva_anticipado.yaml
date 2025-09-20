@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,41 +10,30 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
   # CdgItem: Corresponde a la inforamción de un ítem.
-- CdgItem:
+  - CdgItem:
     # TpoCodigo: Tipo de codificación utilizada para el ítem. - Largo máx: 10
     #            Tipo: ALFA.
-    TpoCodigo: CPCS
+      TpoCodigo: ''
     # VlrCodigo: Código del producto de acuerdo a tipo de codificación indicada
     #            en el campo anterior - Largo máx: 35 - Tipo: ALFA.
-    VlrCodigo: 1900
+      VlrCodigo: ''
   # Retenedor: Área Retenedor.
-  Retenedor:
+    Retenedor:
     # IndAgente: Indicador de Agente Retenedor - Largo máx: 1 - Tipo: ALFA.
-    IndAgente: R
-  NmbItem: Harina
-  QtyItem: 2.5
+      IndAgente: ''
+    NmbItem: ''
+    QtyItem: ''
   # UnmdItem: Unidad de Medida del Ítem - Largo máx: 4 - Tipo: ALFA.
-  UnmdItem: TON
-  PrcItem: 280000
+    UnmdItem: ''
+    PrcItem: ''
   # CodImpAdic: Código de Impuesto o retenciones - Largo máx: 6 - Tipo: ALFA.
-  CodImpAdic: 19
+    CodImpAdic: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 700000
-        IVA: 133000
-        ImptoReten:
-            - TipoImp: 19
-              TasaImp: 12
-              MontoImp: 84000
-        MntTotal: 917000

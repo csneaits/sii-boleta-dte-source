@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 46
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,21 +10,15 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-  IndExe: 1
-  NmbItem: Anillo Oro 18 Quilates 2,8 Grs
-  QtyItem: 1
-  PrcItem: 45000
+  IndExe: ''
+  NmbItem: ''
+  QtyItem: ''
+  PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntExe: 45000
-        MntTotal: 45000

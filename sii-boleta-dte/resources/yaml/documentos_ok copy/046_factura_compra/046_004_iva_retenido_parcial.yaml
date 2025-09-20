@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 46
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,31 +10,19 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- CdgItem:
-    TpoCodigo: INT1
-    VlrCodigo: trigo
-  NmbItem: Trigo
-  QtyItem: 2
-  UnmdItem: Kg
-  PrcItem: 5000
-  CodImpAdic: 34
+  - CdgItem:
+      TpoCodigo: ''
+      VlrCodigo: ''
+    NmbItem: ''
+    QtyItem: ''
+    UnmdItem: ''
+    PrcItem: ''
+    CodImpAdic: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 10000
-        IVA: 1900
-        ImptoReten:
-            - TipoImp: 34
-              TasaImp: 4
-              MontoImp: 400
-        IVANoRet: 1500
-        MntTotal: 11500

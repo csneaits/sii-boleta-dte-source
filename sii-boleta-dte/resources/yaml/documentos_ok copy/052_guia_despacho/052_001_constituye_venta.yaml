@@ -1,15 +1,15 @@
 Encabezado:
   IdDoc:
     TipoDTE: 52
-    Folio: 1
+    Folio: ''
     # TipoDespacho: Tipo de despacho, indica si el documento acompaña bienes y
     #               el despacho es por cuenta del vendedor o comprador. No se
     #               incluye si no acompaña a bienes.- Largo máx: 1 - Tipo: NÚM.
-    TipoDespacho: 1
+    TipoDespacho: ''
     # IndTraslado: Indicador de tipo de traslado de bienes, corresponde valor 1
     #              cuando constituye venta.
     #              Largo máx: 1 - Tipo: NÚM.
-    IndTraslado: 1
+    IndTraslado: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -18,40 +18,33 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Calle 123
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
   # Transporte: Área de transporte. Contiene información sobre el transporte.
   Transporte:
     # Patente: Patente del vehículo de transporte. - Largo máx: 8 - Tipo: ALFA.
-    Patente: ABCD12
+    Patente: ''
     # RUTTrans: RUT del transportista. Con guión y dígito verificador.
     #           Largo máx: 10 - Tipo: ALFA.
-    RUTTrans: 2-7
+    RUTTrans: ''
     # Chofer: Información del chofer.
     Chofer:
       # RUTChofer: RUT del chofer que realiza el transfporte de mercaderías.
       #            Con guión y dígito verificador. - Largo máx: 10 - Tipo: ALFA.
-      RUTChofer: 1-9
+      RUTChofer: ''
       # NombreChofer: Nombre del chofer que realiza el transporte de mercaderías
       #               Largo máx: 30 - Tipo: ALFA.
-      NombreChofer: Pedro
+      NombreChofer: ''
     # DirDest: Dirección de destino. - Largo máx: 70 - Tipo: ALFA.
-    DirDest: Calle 123
+    DirDest: ''
     # CmnaDest: Comuna de destino. - Largo máx: 20 - Tipo: ALFA.
-    CmnaDest: Santiago
+    CmnaDest: ''
 Detalle:
-- NmbItem: Conectores RJ45
-  QtyItem: 450
-  PrcItem: 70
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

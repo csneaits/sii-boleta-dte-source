@@ -1,9 +1,9 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
+    Folio: ''
     # FmaPago: Forma de Pago 1 indica que es "Contado".
-    FmaPago: 1
+    FmaPago: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -12,21 +12,14 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Conectores RJ45
-  QtyItem: 450
-  PrcItem: 70
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

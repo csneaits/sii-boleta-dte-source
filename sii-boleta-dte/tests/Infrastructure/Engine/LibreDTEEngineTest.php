@@ -66,4 +66,36 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntTotal']);
     }
 
+    public function test_parse_document_data_from_xml_mirrors_emitter_aliases(): void {
+        $settings = new Dummy_Settings([]);
+        $engine   = new LibreDteEngine($settings);
+
+        $xml = file_get_contents(__DIR__ . '/../../fixtures/boleta_multidetalle.xml');
+        $this->assertNotFalse($xml);
+
+        $reflection = new \ReflectionClass(LibreDteEngine::class);
+        $parseMethod = $reflection->getMethod('parse_document_data_from_xml');
+        $parseMethod->setAccessible(true);
+
+        $parsed = $parseMethod->invoke($engine, $xml);
+
+        $this->assertIsArray($parsed);
+        $this->assertArrayHasKey('Encabezado', $parsed);
+        $this->assertIsArray($parsed['Encabezado']);
+        $this->assertArrayHasKey('Emisor', $parsed['Encabezado']);
+        $this->assertIsArray($parsed['Encabezado']['Emisor']);
+
+        $emisor = $parsed['Encabezado']['Emisor'];
+
+        $this->assertArrayHasKey('RznSocEmisor', $emisor);
+        $this->assertSame('SASCO SpA', $emisor['RznSocEmisor']);
+        $this->assertArrayHasKey('RznSoc', $emisor);
+        $this->assertSame($emisor['RznSocEmisor'], $emisor['RznSoc']);
+
+        $this->assertArrayHasKey('GiroEmisor', $emisor);
+        $this->assertSame('Tecnología, Informática y Telecomunicaciones', $emisor['GiroEmisor']);
+        $this->assertArrayHasKey('GiroEmis', $emisor);
+        $this->assertSame($emisor['GiroEmisor'], $emisor['GiroEmis']);
+    }
+
 }

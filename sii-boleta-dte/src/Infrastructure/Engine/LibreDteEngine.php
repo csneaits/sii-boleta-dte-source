@@ -210,6 +210,8 @@ class LibreDteEngine implements DteEngine {
                 );
                 $parsedXml = $this->parse_document_data_from_xml( $xml );
 
+                $parsedXml = $this->reset_total_before_rendering( $parsedXml );
+
                 $bag = $parsedXml === null
                         ? new DocumentBag( $xml, options: $options )
                         : new DocumentBag( parsedData: $parsedXml, options: $options );
@@ -245,6 +247,18 @@ class LibreDteEngine implements DteEngine {
                 }
 
                 return array();
+        }
+
+        /**
+         * Normalizes total fields before passing parsed data into LibreDTE renderers.
+         */
+        private function reset_total_before_rendering( ?array $parsedXml ): ?array {
+                if ( null !== $parsedXml
+                        && isset( $parsedXml['Encabezado']['Totales']['MntTotal'] ) ) {
+                        $parsedXml['Encabezado']['Totales']['MntTotal'] = 0;
+                }
+
+                return $parsedXml;
         }
 
         /**

@@ -95,13 +95,45 @@ class LibreDteEngine implements DteEngine {
                         ++$i;
                 }
 
+                $emisor_data = array();
+                if ( isset( $data['Encabezado']['Emisor'] ) && is_array( $data['Encabezado']['Emisor'] ) ) {
+                        $emisor_data = $data['Encabezado']['Emisor'];
+                }
+
                 $emisor = array(
-                        'RUTEmisor'    => $settings['rut_emisor'] ?? $data['RutEmisor'] ?? '',
-                        'RznSocEmisor' => $settings['razon_social'] ?? $data['RznSoc'] ?? '',
-                        'GiroEmisor'   => $settings['giro'] ?? $data['GiroEmisor'] ?? '',
-                        'DirOrigen'    => $settings['direccion'] ?? $data['DirOrigen'] ?? '',
-                        'CmnaOrigen'   => $settings['comuna'] ?? $data['CmnaOrigen'] ?? '',
+                        'RUTEmisor'    => $settings['rut_emisor']
+                                ?? $emisor_data['RUTEmisor']
+                                ?? $data['RUTEmisor']
+                                ?? $data['RutEmisor']
+                                ?? '',
+                        'RznSocEmisor' => $settings['razon_social']
+                                ?? $emisor_data['RznSocEmisor']
+                                ?? $emisor_data['RznSoc']
+                                ?? $data['RznSocEmisor']
+                                ?? $data['RznSoc']
+                                ?? '',
+                        'GiroEmisor'   => $settings['giro']
+                                ?? $emisor_data['GiroEmisor']
+                                ?? $emisor_data['GiroEmis']
+                                ?? $data['GiroEmisor']
+                                ?? $data['GiroEmis']
+                                ?? '',
+                        'DirOrigen'    => $settings['direccion']
+                                ?? $emisor_data['DirOrigen']
+                                ?? $data['DirOrigen']
+                                ?? '',
+                        'CmnaOrigen'   => $settings['comuna']
+                                ?? $emisor_data['CmnaOrigen']
+                                ?? $data['CmnaOrigen']
+                                ?? '',
                 );
+
+                if ( '' !== $emisor['RznSocEmisor'] ) {
+                        $emisor['RznSoc'] = $emisor['RznSocEmisor'];
+                }
+                if ( '' !== $emisor['GiroEmisor'] ) {
+                        $emisor['GiroEmis'] = $emisor['GiroEmisor'];
+                }
                 if ( $preview ) {
                         $this->debug_log( '[preview] settings=' . json_encode( array(
                                 'rut_emisor'    => $settings['rut_emisor'] ?? null,
@@ -298,6 +330,22 @@ class LibreDteEngine implements DteEngine {
                 }
 
                 unset( $data['@attributes'] );
+
+                if ( isset( $data['Encabezado']['Emisor'] ) && is_array( $data['Encabezado']['Emisor'] ) ) {
+                        $emisor = &$data['Encabezado']['Emisor'];
+
+                        if ( isset( $emisor['RznSocEmisor'] ) && ! isset( $emisor['RznSoc'] ) ) {
+                                $emisor['RznSoc'] = $emisor['RznSocEmisor'];
+                        } elseif ( isset( $emisor['RznSoc'] ) && ! isset( $emisor['RznSocEmisor'] ) ) {
+                                $emisor['RznSocEmisor'] = $emisor['RznSoc'];
+                        }
+
+                        if ( isset( $emisor['GiroEmisor'] ) && ! isset( $emisor['GiroEmis'] ) ) {
+                                $emisor['GiroEmis'] = $emisor['GiroEmisor'];
+                        } elseif ( isset( $emisor['GiroEmis'] ) && ! isset( $emisor['GiroEmisor'] ) ) {
+                                $emisor['GiroEmisor'] = $emisor['GiroEmis'];
+                        }
+                }
 
                 if ( isset( $data['Detalle'] ) ) {
                         $detalles = $data['Detalle'];

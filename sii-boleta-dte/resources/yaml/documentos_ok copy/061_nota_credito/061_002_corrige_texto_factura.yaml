@@ -1,48 +1,41 @@
 Encabezado:
   IdDoc:
     TipoDTE: 61
-    Folio: 1
+    Folio: ''
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSoc: SASCO SpA
-    GiroEmis: Tecnología, informática y telecomunicaciones
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
   # Totales: No debe de modificarse en nota de crédito corrige texto.
   Totales:
     # MntNeto: Dejar en 0.
-    MntNeto: 0
+    MntNeto: ''
     # TasaIVA: Dejar en 19.
-    TasaIVA: 19
+    TasaIVA: ''
     # TasaIVA: Dejar en 0.
-    IVA: 0
+    IVA: ''
     # MntTotal: Dejar en 0.
-    MntTotal: 0
+    MntTotal: ''
 Detalle:
-- NmbItem: Corrige Giro
-  QtyItem: 1
-  PrcItem: false
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 Referencia:
-- TpoDocRef: 33
-  FolioRef: 1
-  FchRef: '2016-01-01'
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
   # CodRef: Debe de ser siempre 2, ya que corresponde a
   #         'Corrige Texto Documento de Referencia'.
-  CodRef: 2
-  RazonRef: DONDE DICE Giro1 DEBE DECIR Giro2
+    CodRef: ''
+    RazonRef: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 0
-        IVA: 0
-        MntTotal: 0

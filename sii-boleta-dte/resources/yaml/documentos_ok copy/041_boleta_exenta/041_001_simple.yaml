@@ -1,28 +1,22 @@
 Encabezado:
   IdDoc:
     TipoDTE: 41
-    Folio: 1
+    Folio: ''
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSocEmisor: SASCO SpA
-    GiroEmisor: Tecnología, Informática y Telecomunicaciones
-    DirOrigen: DBG
-    CmnaOrigen: Santa Cruz
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
-    RUTRecep: 66666666-6
-    RznSocRecep: Sin RUT
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- IndExe: 1
-  NmbItem: Servicio
-  QtyItem: 1
-  PrcItem: 1000
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntExe: 1000
-        MntTotal: 1000

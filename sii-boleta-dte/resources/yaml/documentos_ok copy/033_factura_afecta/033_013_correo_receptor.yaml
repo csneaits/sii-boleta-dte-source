@@ -1,34 +1,27 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
-    FmaPago: 1
+    Folio: ''
+    FmaPago: ''
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSoc: SASCO SpA
-    GiroEmis: Tecnología, informática y telecomunicaciones
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
     # CorreoRecep: E-mail de contacto de la empresa receptora - Largo. máx: 80
     #              Tipo: ALFA.
-    CorreoRecep: correo@dominio.cl
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    CorreoRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Conectores RJ45
-  QtyItem: 450
-  PrcItem: 70
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

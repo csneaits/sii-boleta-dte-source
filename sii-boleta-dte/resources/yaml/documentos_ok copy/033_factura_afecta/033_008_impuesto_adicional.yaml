@@ -1,31 +1,24 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
+    Folio: ''
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSoc: SASCO SpA
-    GiroEmis: Tecnología, informática y telecomunicaciones
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Pisco
-  QtyItem: 1
-  PrcItem: 1000
-  CodImpAdic: 24
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+    CodImpAdic: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 1000
-        IVA: 190
-        MntTotal: 1505

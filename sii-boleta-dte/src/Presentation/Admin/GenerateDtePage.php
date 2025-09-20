@@ -608,14 +608,14 @@ class GenerateDtePage {
                 return $expected === $dv;
         }
 
-        /**
-         * Returns the list of available DTE types based on the presence of
-         * fixtures under resources/yaml/documentos_ok copy/.
+       /**
+        * Returns the list of available DTE types based on the presence of
+        * fixtures under resources/yaml/documentos_ok/.
          *
          * @return array<int,string> code => label
          */
         private function get_available_types(): array {
-                $root = dirname( __DIR__, 3 ) . '/resources/yaml/documentos_ok copy/';
+               $root = dirname( __DIR__, 3 ) . '/resources/yaml/documentos_ok/';
                 $codes = array();
                 if ( is_dir( $root ) ) {
                         foreach ( glob( $root . '*' ) as $dir ) {

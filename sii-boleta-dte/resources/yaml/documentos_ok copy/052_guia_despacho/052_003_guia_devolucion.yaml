@@ -14,9 +14,9 @@ Encabezado:
     RUTEmisor: ''
     RznSoc: ''
     GiroEmis: ''
-    Acteco: 523330
-    DirOrigen: Calle 432
-    CmnaOrigen: Hong Kong
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
     RUTRecep: 76192083-9
     RznSocRecep: Servicio de Impuestos Internos

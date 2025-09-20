@@ -9,9 +9,9 @@ Encabezado:
     RUTEmisor: ''
     RznSoc: ''
     GiroEmis: ''
-    Acteco: 726000
-    DirOrigen: Santa Cruz
-    CmnaOrigen: Santa Cruz
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
   Receptor:
     RUTRecep: 60803000-K
     RznSocRecep: Servicio de Impuestos Internos

@@ -18,10 +18,10 @@ Encabezado:
     RUTEmisor: ''
     RznSoc: ''
     GiroEmis: ''
-    Acteco: 726000
-    DirOrigen: Santa Cruz
+    Acteco: ''
+    DirOrigen: ''
     # CiudadOrigen: Ciudad de origen. - Largo máx: 20 - Tipo: ALFA.
-    CiudadOrigen: Santa Cruz
+    CiudadOrigen: ''
   Receptor:
     RUTRecep: 55555555-5
     RznSocRecep: Jackie Chan

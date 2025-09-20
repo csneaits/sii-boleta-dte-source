@@ -394,14 +394,14 @@ class LibreDteEngine implements DteEngine {
                 return $file;
         }
 
-        /** Loads YAML template for a given DTE type exclusively from
-         * resources/yaml/documentos_ok copy/ (carpetas por tipo).
+       /** Loads YAML template for a given DTE type exclusively from
+        * resources/yaml/documentos_ok/ (carpetas por tipo).
          */
         private function load_template( int $tipo ): array {
                 $root = dirname( __DIR__, 2 ) . '/resources/yaml/';
 
                 // Foldered layout copied from LibreDTE fixtures
-                $dir = $root . 'documentos_ok copy/' . sprintf( '%03d', $tipo ) . '*';
+               $dir = $root . 'documentos_ok/' . sprintf( '%03d', $tipo ) . '*';
                 foreach ( glob( $dir ) as $typeDir ) {
                         if ( ! is_dir( $typeDir ) ) {
                                 continue;

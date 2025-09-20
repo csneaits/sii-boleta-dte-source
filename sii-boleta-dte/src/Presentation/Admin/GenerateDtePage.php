@@ -336,6 +336,8 @@ class GenerateDtePage {
                         $data['Referencias'] = array( $ref );
                 }
         }
+        $settings_cfg = $this->settings->get_settings();
+
                 $xml  = $this->engine->generate_dte_xml( $data, $tipo, $preview );
                 if ( is_wp_error( $xml ) ) {
                         $code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
@@ -349,7 +351,17 @@ class GenerateDtePage {
                         return array( 'error' => $msg );
                 }
                 $pdf = $this->pdf->generate( (string) $xml );
-                $pdf_url = $this->store_preview_pdf( $pdf );
+                $pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
+                $pdf_url   = $this->store_preview_pdf(
+                        $pdf,
+                        array(
+                                'label'        => $pdf_label,
+                                'type'         => $tipo,
+                                'folio'        => $folio,
+                                'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+                                'rut_receptor' => $rut,
+                        )
+                );
                 if ( $preview ) {
                         return array(
                                 'preview' => true,
@@ -360,8 +372,7 @@ class GenerateDtePage {
 
                 $file = tempnam( sys_get_temp_dir(), 'dte' );
                 file_put_contents( $file, (string) $xml );
-                $cfg   = $this->settings->get_settings();
-                $env   = (string) ( $cfg['environment'] ?? 'test' );
+                $env   = (string) ( $settings_cfg['environment'] ?? 'test' );
                 $token = $this->token_manager->get_token( $env );
                 $track = $this->api->send_dte_to_sii( $file, $env, $token );
                 return array(
@@ -374,17 +385,37 @@ class GenerateDtePage {
         /**
          * Moves the generated PDF to uploads so it can be displayed via URL.
          * Returns a public URL or empty string on failure.
+         *
+         * @param array<string,mixed> $context Metadata used to build a friendly filename.
          */
-        private function store_preview_pdf( string $path ): string {
+        private function store_preview_pdf( string $path, array $context = array() ): string {
                 if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
                         return '';
                 }
                 $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir(), 'baseurl' => '' );
                 $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
                 $dir     = $base . '/sii-boleta-dte/previews';
-                if ( function_exists( 'wp_mkdir_p' ) ) { wp_mkdir_p( $dir ); } else { if ( ! is_dir( $dir ) ) { @mkdir( $dir, 0755, true ); } }
-                $suffix = function_exists( 'wp_generate_password' ) ? wp_generate_password( 6, false ) : substr( md5( microtime( true ) ), 0, 6 );
-                $dest = $dir . '/preview-' . time() . '-' . $suffix . '.pdf';
+                if ( function_exists( 'wp_mkdir_p' ) ) {
+                        wp_mkdir_p( $dir );
+                } elseif ( ! is_dir( $dir ) ) {
+                        @mkdir( $dir, 0755, true );
+                }
+                $filename = $this->build_pdf_filename( $context );
+                $extension = pathinfo( $filename, PATHINFO_EXTENSION );
+                $name_only = pathinfo( $filename, PATHINFO_FILENAME );
+                if ( '' === (string) $name_only ) {
+                        $name_only = 'dte';
+                }
+                if ( '' === (string) $extension ) {
+                        $extension = 'pdf';
+                        $filename  = $name_only . '.pdf';
+                }
+                $dest    = $dir . '/' . $filename;
+                $counter = 2;
+                while ( file_exists( $dest ) ) {
+                        $dest = $dir . '/' . $name_only . '-' . $counter . '.' . $extension;
+                        ++$counter;
+                }
                 if ( ! @copy( $path, $dest ) ) {
                         return '';
                 }
@@ -402,8 +433,68 @@ class GenerateDtePage {
                         );
                         return $url;
                 }
-		return '';
-	}
+                return '';
+        }
+
+        /**
+         * Builds a descriptive filename for a generated PDF.
+         *
+         * @param array<string,mixed> $context
+         */
+        private function build_pdf_filename( array $context ): string {
+                $label        = isset( $context['label'] ) ? (string) $context['label'] : '';
+                $type         = isset( $context['type'] ) ? (int) $context['type'] : 0;
+                $folio        = isset( $context['folio'] ) ? (int) $context['folio'] : 0;
+                $rut_emisor   = isset( $context['rut_emisor'] ) ? (string) $context['rut_emisor'] : '';
+                $rut_receptor = isset( $context['rut_receptor'] ) ? (string) $context['rut_receptor'] : '';
+
+                if ( '' === $label && $type > 0 ) {
+                        $label = sprintf( 'DTE %d', $type );
+                }
+
+                $parts = array();
+                if ( '' !== trim( $label ) ) {
+                        $parts[] = trim( $label );
+                }
+                if ( $folio >= 0 ) {
+                        $parts[] = 'N' . $folio;
+                }
+                $rut_target = '' !== $rut_emisor ? $rut_emisor : $rut_receptor;
+                if ( '' !== $rut_target ) {
+                        $parts[] = $rut_target;
+                }
+                if ( empty( $parts ) ) {
+                        $parts[] = 'dte';
+                }
+
+                $slug = $this->slugify_filename( implode( '-', $parts ) );
+                if ( '' === $slug ) {
+                        $slug = 'dte';
+                }
+
+                return $slug . '.pdf';
+        }
+
+        /**
+         * Normalizes a filename string into a safe slug.
+         */
+        private function slugify_filename( string $text ): string {
+                $text = strip_tags( $text );
+                if ( function_exists( 'remove_accents' ) ) {
+                        $text = remove_accents( $text );
+                }
+                $text = str_replace( array( '.', ',', ';', ':', "'", '"' ), '', $text );
+                $text = str_replace( array( '/', '\\', '|' ), '-', $text );
+                $text = preg_replace( '/[^A-Za-z0-9\-]+/', '-', $text );
+                $text = trim( (string) $text, '-' );
+                $text = preg_replace( '/-+/', '-', $text );
+
+                if ( function_exists( 'mb_strtolower' ) ) {
+                        return (string) mb_strtolower( (string) $text, 'UTF-8' );
+                }
+
+                return strtolower( (string) $text );
+        }
 
 	/**
 	 * Escribe mensajes de depuración en uploads/sii-boleta-logs/.

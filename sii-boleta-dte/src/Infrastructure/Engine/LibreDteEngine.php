@@ -7,6 +7,8 @@ use JsonException;
 use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\Settings;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
 use libredte\lib\Core\Application;
 use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker;
@@ -26,17 +28,58 @@ class LibreDteEngine implements DteEngine {
 	private CertificateFaker $certificateFaker;
 	private CertificateLoader $certificateLoader;
 
-	public function __construct( Settings $settings ) {
-		$this->settings                  = $settings;
-		$app                             = Application::getInstance();
-		$registry                        = $app->getPackageRegistry()->getBillingPackage();
-		$component                       = $registry->getDocumentComponent();
-		$this->builder                   = $component->getBuilderWorker();
-		$this->renderer                  = $component->getRendererWorker();
-				$this->cafFaker          = $registry->getIdentifierComponent()->getCafFakerWorker();
-				$this->certificateLoader = new CertificateLoader();
-				$this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
-	}
+        public function __construct( Settings $settings ) {
+                $this->settings                  = $settings;
+                $app                             = Application::getInstance();
+                $this->override_receptor_provider( $app );
+                $registry                        = $app->getPackageRegistry()->getBillingPackage();
+                $component                       = $registry->getDocumentComponent();
+                $this->builder                   = $component->getBuilderWorker();
+                $this->renderer                  = $component->getRendererWorker();
+                                $this->cafFaker          = $registry->getIdentifierComponent()->getCafFakerWorker();
+                                $this->certificateLoader = new CertificateLoader();
+                                $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
+        }
+
+        private function override_receptor_provider( Application $app ): void {
+                try {
+                        $container = $app->getService( 'service_container' );
+                } catch ( \Throwable $e ) {
+                        return;
+                }
+
+                if ( ! is_object( $container ) ) {
+                        return;
+                }
+
+                try {
+                        $reflection = new \ReflectionObject( $container );
+                } catch ( \ReflectionException $e ) {
+                        return;
+                }
+
+                if ( ! $reflection->hasProperty( 'privates' ) ) {
+                        return;
+                }
+
+                $property = $reflection->getProperty( 'privates' );
+                $property->setAccessible( true );
+                $privates = $property->getValue( $container );
+                if ( ! is_array( $privates ) ) {
+                        $privates = array();
+                }
+
+                if ( isset( $privates[ ReceptorProviderInterface::class ] )
+                        && $privates[ ReceptorProviderInterface::class ] instanceof EmptyReceptorProvider ) {
+                        return;
+                }
+
+                $factory  = new ReceptorFactory();
+                $provider = new EmptyReceptorProvider( $factory );
+
+                $privates[ ReceptorProviderInterface::class ] = $provider;
+                $property->setValue( $container, $privates );
+        }
 
 	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
 		$tipo     = (int) $tipo_dte;

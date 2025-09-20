@@ -11,4 +11,45 @@ class DteEngineGenerateTest extends TestCase {
         $this->assertIsString( $xml );
         $this->assertStringContainsString( '<DTE', $xml );
     }
+
+    public function test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing(): void {
+        $settings = new class extends Settings { public function get_settings(): array { return array( 'caf_path' => array( 39 => __DIR__ . '/../../fixtures/caf39.xml' ) ); } };
+        $engine   = new LibreDteEngine( $settings );
+        $data     = array(
+            'Encabezado' => array(
+                'Emisor' => array(
+                    'RUTEmisor' => '76192083-9',
+                    'RznSoc'    => 'Empresa Demo',
+                    'GiroEmis'  => 'Servicios',
+                    'DirOrigen' => 'Calle Falsa 123',
+                    'CmnaOrigen'=> 'Santiago',
+                ),
+            ),
+            'Detalles'   => array(
+                array(
+                    'NmbItem' => 'Item',
+                    'QtyItem' => 1,
+                    'PrcItem' => 1000,
+                ),
+            ),
+        );
+
+        $xml = $engine->generate_dte_xml( $data, 39 );
+
+        $this->assertIsString( $xml );
+
+        $document = simplexml_load_string( $xml );
+        $this->assertInstanceOf( \SimpleXMLElement::class, $document );
+        $document->registerXPathNamespace( 'dte', 'http://www.sii.cl/SiiDte' );
+        $emisor = $document->xpath( '/dte:DTE/dte:Documento/dte:Encabezado/dte:Emisor' );
+        $this->assertIsArray( $emisor );
+        $this->assertNotEmpty( $emisor );
+        $emisor = $emisor[0];
+
+        $this->assertSame( '76192083-9', (string) $emisor->RUTEmisor );
+        $this->assertSame( 'Empresa Demo', (string) $emisor->RznSocEmisor );
+        $this->assertSame( 'Servicios', (string) $emisor->GiroEmisor );
+        $this->assertSame( 'Calle Falsa 123', (string) $emisor->DirOrigen );
+        $this->assertSame( 'Santiago', (string) $emisor->CmnaOrigen );
+    }
 }

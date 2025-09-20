@@ -160,6 +160,21 @@ class LibreDteEngine implements DteEngine {
                        )
                );
 
+                $rawReceptor = array();
+                if ( isset( $data['Receptor'] ) && is_array( $data['Receptor'] ) ) {
+                        $rawReceptor = $data['Receptor'];
+                } elseif ( isset( $data['Encabezado']['Receptor'] ) && is_array( $data['Encabezado']['Receptor'] ) ) {
+                        $rawReceptor = $data['Encabezado']['Receptor'];
+                }
+
+                if ( isset( $documentData['Encabezado']['Receptor'] ) ) {
+                        if ( ! empty( $rawReceptor ) ) {
+                                $documentData['Encabezado']['Receptor'] = $this->sanitize_section( $rawReceptor );
+                        } else {
+                                $documentData['Encabezado']['Receptor'] = $this->sanitize_section( (array) $documentData['Encabezado']['Receptor'] );
+                        }
+                }
+
                 if ( $preview ) {
                         $this->debug_log( '[preview] emisor=' . json_encode( $documentData['Encabezado']['Emisor'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
                         $this->debug_log( '[preview] detalle=' . json_encode( $documentData['Detalle'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
@@ -203,15 +218,141 @@ class LibreDteEngine implements DteEngine {
 				$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
 		}
 
-		$bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
-		$this->builder->build( $bag );
-		return $bag->getDocument()->saveXml();
-	}
+                $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+                $this->builder->build( $bag );
 
-	/**
-	 * Renders a PDF using LibreDTE templates.
-	 */
-	private function debug_log( string $message ): void {
+                $xmlString = $bag->getDocument()->saveXml();
+                if ( ! is_string( $xmlString ) ) {
+                        return '';
+                }
+
+                $xmlString = $this->strip_placeholder_fields(
+                        $xmlString,
+                        $rawReceptor,
+                        ! empty( $data['Referencias'] )
+                );
+
+                return $xmlString;
+        }
+
+        /**
+         * Removes null/empty values from a section to avoid leaking placeholder data.
+         *
+         * @param array<string, mixed> $values Section data.
+         * @return array<string, mixed>
+         */
+        private function sanitize_section( array $values ): array {
+                $clean = array();
+
+                foreach ( $values as $key => $value ) {
+                        if ( is_array( $value ) ) {
+                                $nested = $this->sanitize_section( $value );
+                                if ( ! empty( $nested ) ) {
+                                        $clean[ $key ] = $nested;
+                                }
+                                continue;
+                        }
+
+                        if ( null === $value ) {
+                                continue;
+                        }
+
+                        if ( is_string( $value ) ) {
+                                $value = trim( $value );
+                                if ( '' === $value ) {
+                                        continue;
+                                }
+                        }
+
+                        $clean[ $key ] = $value;
+                }
+
+                return $clean;
+        }
+
+        /**
+         * Strips automatically populated nodes that were not requested by the caller.
+         */
+        private function strip_placeholder_fields( string $xml, array $rawReceptor, bool $hasReferences ): string {
+                $previous = libxml_use_internal_errors( true );
+                $document = new \DOMDocument();
+
+                if ( ! $document->loadXML( $xml ) ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return $xml;
+                }
+
+                $xpath = new \DOMXPath( $document );
+                $xpath->registerNamespace( 'dte', 'http://www.sii.cl/SiiDte' );
+
+                $providedKeys = array();
+                foreach ( $rawReceptor as $key => $value ) {
+                        if ( is_string( $value ) ) {
+                                $value = trim( $value );
+                        }
+                        if ( '' === $value || null === $value ) {
+                                continue;
+                        }
+                        $providedKeys[ $key ] = true;
+                }
+
+                $optionalFields = array(
+                        'DirRecep',
+                        'CmnaRecep',
+                        'CiudadRecep',
+                        'Contacto',
+                        'CorreoRecep',
+                        'DirPostal',
+                        'CmnaPostal',
+                        'CiudadPostal',
+                        'CdgIntRecep',
+                        'Telefono',
+                        'TelRecep',
+                );
+
+                $receptorNodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Encabezado/dte:Receptor' );
+                if ( $receptorNodes instanceof \DOMNodeList && $receptorNodes->length > 0 ) {
+                        $receptor = $receptorNodes->item( 0 );
+                        foreach ( $optionalFields as $field ) {
+                                if ( isset( $providedKeys[ $field ] ) ) {
+                                        continue;
+                                }
+                                $fieldNodes = $xpath->query( 'dte:' . $field, $receptor );
+                                if ( ! ( $fieldNodes instanceof \DOMNodeList ) ) {
+                                        continue;
+                                }
+                                for ( $i = $fieldNodes->length - 1; $i >= 0; --$i ) {
+                                        $node = $fieldNodes->item( $i );
+                                        if ( $node instanceof \DOMNode && $node->parentNode === $receptor ) {
+                                                $receptor->removeChild( $node );
+                                        }
+                                }
+                        }
+                }
+
+                if ( ! $hasReferences ) {
+                        $refNodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Referencia' );
+                        if ( $refNodes instanceof \DOMNodeList ) {
+                                for ( $i = $refNodes->length - 1; $i >= 0; --$i ) {
+                                        $node = $refNodes->item( $i );
+                                        if ( $node instanceof \DOMNode && $node->parentNode instanceof \DOMNode ) {
+                                                $node->parentNode->removeChild( $node );
+                                        }
+                                }
+                        }
+                }
+
+                $result = $document->saveXML() ?: $xml;
+                libxml_clear_errors();
+                libxml_use_internal_errors( $previous );
+                return $result;
+        }
+
+        /**
+         * Renders a PDF using LibreDTE templates.
+         */
+        private function debug_log( string $message ): void {
                 if ( ! function_exists( 'wp_upload_dir' ) ) {
                         error_log( $message );
                         return;

@@ -11,9 +11,9 @@ Encabezado:
   # se convierte en el Emisor de la guía de devolución. El Emisor del documento
   # que se hace referencia se convierte en el Receptor de la guía de devolución.
   Emisor:
-    RUTEmisor: 1234567-4
-    RznSoc: Antonio Rosales
-    GiroEmis: Venta al por menor de muebles
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
     Acteco: 523330
     DirOrigen: Calle 432
     CmnaOrigen: Hong Kong

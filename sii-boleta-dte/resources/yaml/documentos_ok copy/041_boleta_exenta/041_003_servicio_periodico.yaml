@@ -7,9 +7,9 @@ Encabezado:
     PeriodoHasta: '2024-12-05'
     FchVenc: '2024-12-10'
   Emisor:
-    RUTEmisor: 76192083-9
-    RznSocEmisor: SASCO SpA
-    GiroEmisor: Empresa de agua potable
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
     DirOrigen: DBG
     CmnaOrigen: Santa Cruz
   Receptor:

@@ -13,11 +13,11 @@ Encabezado:
   Emisor:
     # RUTEmisor: RUT del Emisor con guión y dígito verificador - Largo máx: 10
     #            Tipo: ALFA.
-    RUTEmisor: 76192083-9
+    RUTEmisor: ''
     # RznSoc: Nombre o Razón Social del Emisor - Largo máx: 100 - Tipo: ALFA.
-    RznSoc: SASCO SpA
+    RznSoc: ''
     # GiroEmis: Giro del negocio del Emisor - Largo máx: 80 - Tipo: ALFA.
-    GiroEmis: Tecnología, informática y telecomunicaciones
+    GiroEmis: ''
     # Acteco: Código de Actividad Económica del Emisor. Se acepta un máximo de
     #         4 códigos de actividad económica, se puede incluir sólo el código
     #         correspondiente a la transacción - Largo máx: 6 - Tipo: NÚM.

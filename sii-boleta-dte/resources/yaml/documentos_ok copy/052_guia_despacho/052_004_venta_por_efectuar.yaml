@@ -1,11 +1,11 @@
 Encabezado:
   IdDoc:
     TipoDTE: 52
-    Folio: 1
-    TipoDespacho: 1
+    Folio: ''
+    TipoDespacho: ''
     # IndTraslado: Código 2 indica Venta por efectuar. - Largo máx: 1
     #              Tipo: NÚM.
-    IndTraslado: 2
+    IndTraslado: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -14,29 +14,22 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 1234567-4
-    RznSocRecep: Venta al por menor de muebles
-    GiroRecep: Antonio Rosales
-    DirRecep: Calle 423
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
   Transporte:
-    Patente: ABCD12
-    RUTTrans: 2-7
+    Patente: ''
+    RUTTrans: ''
     Chofer:
-      RUTChofer: 1-9
-      NombreChofer: Pedro
-    DirDest: Calle 123
-    CmnaDest: Santiago
+      RUTChofer: ''
+      NombreChofer: ''
+    DirDest: ''
+    CmnaDest: ''
 Detalle:
-- NmbItem: Conectores RJ45
-  QtyItem: 450
-  PrcItem: 70
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

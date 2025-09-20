@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 34
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,25 +10,19 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- IndExe: 1
-  NmbItem: Horas desarrollo
-  QtyItem: 5
-  PrcItem: 25000
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 DscRcgGlobal:
-  TpoMov: D
-  TpoValor: '%'
-  ValorDR: 10
+  TpoMov: ''
+  TpoValor: ''
+  ValorDR: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntExe: 125000
-        MntTotal: 125000

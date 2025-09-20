@@ -1,12 +1,12 @@
 Encabezado:
   IdDoc:
     TipoDTE: 52
-    Folio: 1
-    TipoDespacho: 1
+    Folio: ''
+    TipoDespacho: ''
     # IndTraslado: Código 7 indica Guía de devolución. - Largo máx: 1
     #              Tipo: NÚM.
-    IndTraslado: 7
-    TermPagoGlosa: DEVOLUCION POR NO CORRESPONDER A LO SOLICITADO SEGUN FACTURA
+    IndTraslado: ''
+    TermPagoGlosa: ''
   # En las guías de devolución el Receptor del documento que se hace referencia
   # se convierte en el Emisor de la guía de devolución. El Emisor del documento
   # que se hace referencia se convierte en el Receptor de la guía de devolución.
@@ -18,29 +18,22 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 76192083-9
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santa Cruz
-    CiudadRecep: Santa Cruz
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CiudadRecep: ''
   Transporte:
-    DirDest: Calle 123
-    CmnaDest: Santiago
+    DirDest: ''
+    CmnaDest: ''
 Detalle:
-- NmbItem: Impresora
-  QtyItem: 1
-  PrcItem: 31500
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 Referencia:
-- TpoDocRef: 33
-  FolioRef: 1
-  FchRef: '2016-01-01'
-  CodRef: 1
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+    CodRef: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 31500
-        IVA: 5985
-        MntTotal: 37485

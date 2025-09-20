@@ -1,9 +1,9 @@
 Encabezado:
   IdDoc:
     TipoDTE: 52
-    Folio: 1
+    Folio: ''
     # IndTraslado: Código 5 indica Traslado interno. - Largo máx: 1 - Tipo: NÚM.
-    IndTraslado: 5
+    IndTraslado: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -12,22 +12,17 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 76192083-9
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Servicios integrales de informática
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
   Transporte:
-    Patente: ABCD12
-    DirDest: Calle 123
-    CmnaDest: Santiago
+    Patente: ''
+    DirDest: ''
+    CmnaDest: ''
 Detalle:
-- NmbItem: Impresora
-  QtyItem: 1
+  - NmbItem: ''
+    QtyItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntTotal: 0

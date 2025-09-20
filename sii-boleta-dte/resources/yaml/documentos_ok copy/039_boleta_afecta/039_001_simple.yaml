@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 39
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSocEmisor: ''
@@ -10,20 +10,13 @@ Encabezado:
     CmnaOrigen: ''
   Receptor:
     # RUTRecep: RUT 66666666-6 corresponde a uno genérico.
-    RUTRecep: 66666666-6
-    RznSocRecep: Sin RUT
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Producto
-  QtyItem: 1
-  PrcItem: 1190
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 1000
-        IVA: 190
-        MntTotal: 1190

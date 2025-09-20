@@ -1,11 +1,11 @@
 Encabezado:
   IdDoc:
     TipoDTE: 33
-    Folio: 1
+    Folio: ''
     # IndServicio: Código 1 corresponde Factura de servicios periódicos
     #              domiciliarios.
-    IndServicio: 1
-    FchVenc: '2024-10-31'
+    IndServicio: ''
+    FchVenc: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -14,22 +14,15 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 76192083-9
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santa Cruz
-    CmnaRecep: Santa Cruz
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Servicio de gas
-  QtyItem: 99
-  UnmdRef: m3
-  PrcItem: 540
+  - NmbItem: ''
+    QtyItem: ''
+    UnmdRef: ''
+    PrcItem: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 53460
-        IVA: 10157
-        MntTotal: 63617

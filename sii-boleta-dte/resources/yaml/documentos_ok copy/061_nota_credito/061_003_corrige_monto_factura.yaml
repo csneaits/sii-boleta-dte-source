@@ -1,7 +1,7 @@
 Encabezado:
   IdDoc:
     TipoDTE: 61
-    Folio: 1
+    Folio: ''
   Emisor:
     RUTEmisor: ''
     RznSoc: ''
@@ -10,29 +10,22 @@ Encabezado:
     DirOrigen: ''
     CmnaOrigen: ''
   Receptor:
-    RUTRecep: 60803000-K
-    RznSocRecep: Servicio de Impuestos Internos
-    GiroRecep: Gobierno
-    DirRecep: Santiago
-    CmnaRecep: Santiago
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
 Detalle:
-- NmbItem: Conectores RJ45
-  QtyItem: 450
-  PrcItem: 20
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
 Referencia:
-- TpoDocRef: 33
-  FolioRef: 1
-  FchRef: '2016-01-01'
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
   # CodRef: Debe de ser siempre 3, ya que corresponde a
   #         'Corrige Monto Documento de Referencia'.
-  CodRef: 3
-  RazonRef: Corrige monto
+    CodRef: ''
+    RazonRef: ''
 
 # Esta sección no debe de ser considerada para un caso de ejemplo de emisión.
-Test:
-  ExpectedValues:
-    Encabezado:
-      Totales:
-        MntNeto: 9000
-        IVA: 1710
-        MntTotal: 10710

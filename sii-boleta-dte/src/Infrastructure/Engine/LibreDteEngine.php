@@ -14,7 +14,6 @@ use libredte\lib\Core\Package\Billing\Component\Document\Worker\RendererWorker;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
 use Symfony\Component\Yaml\Yaml;
-use UnexpectedValueException;
 
 /**
  * DTE engine backed by LibreDTE library.
@@ -172,21 +171,14 @@ class LibreDteEngine implements DteEngine {
 				$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
 		}
 
-                $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
-                try {
-                        $this->builder->build( $bag );
-                } catch ( UnexpectedValueException $e ) {
-                        return $this->handle_engine_failure( $e );
-                } catch ( \Throwable $e ) {
-                        return $this->handle_engine_failure( $e );
-                }
+		$bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+		$this->builder->build( $bag );
+		return $bag->getDocument()->saveXml();
+	}
 
-                return $bag->getDocument()->saveXml();
-        }
-
-        /**
-         * Renders a PDF using LibreDTE templates.
-         */
+	/**
+	 * Renders a PDF using LibreDTE templates.
+	 */
 	private function debug_log( string $message ): void {
                 if ( ! function_exists( 'wp_upload_dir' ) ) {
                         error_log( $message );
@@ -330,26 +322,6 @@ class LibreDteEngine implements DteEngine {
                 libxml_use_internal_errors( $previous );
 
                 return $data;
-        }
-
-        private function handle_engine_failure( \Throwable $e ) {
-                $this->debug_log( '[engine] ' . $e->getMessage() );
-
-                $message = $e->getMessage();
-                $code    = 'sii_boleta_engine_error';
-
-                if ( $e instanceof UnexpectedValueException && false !== stripos( $message, 'verification digit' ) ) {
-                        $code    = 'sii_boleta_invalid_rut';
-                        $message = function_exists( '__' )
-                                ? __( 'El RUT del receptor no es válido. Verifica el dígito verificador.', 'sii-boleta-dte' )
-                                : 'El RUT del receptor no es válido. Verifica el dígito verificador.';
-                }
-
-                if ( class_exists( '\\WP_Error' ) ) {
-                        return new \WP_Error( $code, $message );
-                }
-
-                return false;
         }
 }
 

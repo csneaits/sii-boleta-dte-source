@@ -81,8 +81,26 @@ class LibreDteEngine implements DteEngine {
                 $property->setValue( $container, $privates );
         }
 
-	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
-		$tipo     = (int) $tipo_dte;
+        /**
+         * Returns the first value that is not null and not an empty string.
+         *
+         * @param mixed ...$values Candidate values in priority order.
+         * @return mixed
+         */
+        private function first_non_empty( ...$values ) {
+                foreach ( $values as $value ) {
+                        if ( null === $value || '' === $value ) {
+                                continue;
+                        }
+
+                        return $value;
+                }
+
+                return '';
+        }
+
+        public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
+                $tipo     = (int) $tipo_dte;
 $settings = $this->settings->get_settings();
 
 // Validar que exista un rango para el tipo solicitado.
@@ -141,32 +159,37 @@ return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', '
                 }
 
                 $emisor = array(
-                        'RUTEmisor'    => $emisor_data['RUTEmisor']
-                                ?? $emisor_data['RutEmisor']
-                                ?? $data['RUTEmisor']
-                                ?? $data['RutEmisor']
-                                ?? $settings['rut_emisor']
-                                ?? '',
-                        'RznSocEmisor' => $emisor_data['RznSocEmisor']
-                                ?? $emisor_data['RznSoc']
-                                ?? $data['RznSocEmisor']
-                                ?? $data['RznSoc']
-                                ?? $settings['razon_social']
-                                ?? '',
-                        'GiroEmisor'   => $emisor_data['GiroEmisor']
-                                ?? $emisor_data['GiroEmis']
-                                ?? $data['GiroEmisor']
-                                ?? $data['GiroEmis']
-                                ?? $settings['giro']
-                                ?? '',
-                        'DirOrigen'    => $emisor_data['DirOrigen']
-                                ?? $data['DirOrigen']
-                                ?? $settings['direccion']
-                                ?? '',
-                        'CmnaOrigen'   => $emisor_data['CmnaOrigen']
-                                ?? $data['CmnaOrigen']
-                                ?? $settings['comuna']
-                                ?? '',
+                        'RUTEmisor'    => $this->first_non_empty(
+                                $emisor_data['RUTEmisor'] ?? null,
+                                $emisor_data['RutEmisor'] ?? null,
+                                $data['RUTEmisor'] ?? null,
+                                $data['RutEmisor'] ?? null,
+                                $settings['rut_emisor'] ?? null
+                        ),
+                        'RznSocEmisor' => $this->first_non_empty(
+                                $emisor_data['RznSocEmisor'] ?? null,
+                                $emisor_data['RznSoc'] ?? null,
+                                $data['RznSocEmisor'] ?? null,
+                                $data['RznSoc'] ?? null,
+                                $settings['razon_social'] ?? null
+                        ),
+                        'GiroEmisor'   => $this->first_non_empty(
+                                $emisor_data['GiroEmisor'] ?? null,
+                                $emisor_data['GiroEmis'] ?? null,
+                                $data['GiroEmisor'] ?? null,
+                                $data['GiroEmis'] ?? null,
+                                $settings['giro'] ?? null
+                        ),
+                        'DirOrigen'    => $this->first_non_empty(
+                                $emisor_data['DirOrigen'] ?? null,
+                                $data['DirOrigen'] ?? null,
+                                $settings['direccion'] ?? null
+                        ),
+                        'CmnaOrigen'   => $this->first_non_empty(
+                                $emisor_data['CmnaOrigen'] ?? null,
+                                $data['CmnaOrigen'] ?? null,
+                                $settings['comuna'] ?? null
+                        ),
                 );
 
                 if ( '' !== $emisor['RznSocEmisor'] ) {

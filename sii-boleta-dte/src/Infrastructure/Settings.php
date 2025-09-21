@@ -20,6 +20,22 @@ class Settings {
                                 $data = get_option( self::OPTION_NAME, array() );
                         if ( is_array( $data ) ) {
                                 $environment = self::normalize_environment_slug( $data['environment'] ?? '' );
+                                if ( isset( $data['giros'] ) && is_array( $data['giros'] ) ) {
+                                        $giros = array();
+                                        foreach ( $data['giros'] as $giro ) {
+                                                $value = trim( is_string( $giro ) ? $giro : (string) $giro );
+                                                if ( '' !== $value ) {
+                                                        $giros[] = $value;
+                                                }
+                                        }
+                                        $data['giros'] = array_values( array_unique( $giros ) );
+                                } else {
+                                        $data['giros'] = array();
+                                }
+
+                                if ( ( ! isset( $data['giro'] ) || '' === $data['giro'] ) && ! empty( $data['giros'] ) ) {
+                                        $data['giro'] = $data['giros'][0];
+                                }
                                 $all_cafs    = array();
                                 if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
                                         $all_cafs = $data['cafs'];

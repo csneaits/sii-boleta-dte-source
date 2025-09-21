@@ -141,30 +141,31 @@ return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', '
                 }
 
                 $emisor = array(
-                        'RUTEmisor'    => $settings['rut_emisor']
-                                ?? $emisor_data['RUTEmisor']
+                        'RUTEmisor'    => $emisor_data['RUTEmisor']
+                                ?? $emisor_data['RutEmisor']
                                 ?? $data['RUTEmisor']
                                 ?? $data['RutEmisor']
+                                ?? $settings['rut_emisor']
                                 ?? '',
-                        'RznSocEmisor' => $settings['razon_social']
-                                ?? $emisor_data['RznSocEmisor']
+                        'RznSocEmisor' => $emisor_data['RznSocEmisor']
                                 ?? $emisor_data['RznSoc']
                                 ?? $data['RznSocEmisor']
                                 ?? $data['RznSoc']
+                                ?? $settings['razon_social']
                                 ?? '',
-                        'GiroEmisor'   => $settings['giro']
-                                ?? $emisor_data['GiroEmisor']
+                        'GiroEmisor'   => $emisor_data['GiroEmisor']
                                 ?? $emisor_data['GiroEmis']
                                 ?? $data['GiroEmisor']
                                 ?? $data['GiroEmis']
+                                ?? $settings['giro']
                                 ?? '',
-                        'DirOrigen'    => $settings['direccion']
-                                ?? $emisor_data['DirOrigen']
+                        'DirOrigen'    => $emisor_data['DirOrigen']
                                 ?? $data['DirOrigen']
+                                ?? $settings['direccion']
                                 ?? '',
-                        'CmnaOrigen'   => $settings['comuna']
-                                ?? $emisor_data['CmnaOrigen']
+                        'CmnaOrigen'   => $emisor_data['CmnaOrigen']
                                 ?? $data['CmnaOrigen']
+                                ?? $settings['comuna']
                                 ?? '',
                 );
 

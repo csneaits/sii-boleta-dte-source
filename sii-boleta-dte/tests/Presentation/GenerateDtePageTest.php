@@ -50,13 +50,27 @@ if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } 
 class GenerateDtePageTest extends TestCase {
     public function test_process_post_generates_dte(): void {
         $settings = $this->createMock( Settings::class );
-        $settings->method( 'get_settings' )->willReturn( array( 'environment' => 'test' ) );
+        $settings->method( 'get_settings' )->willReturn( array(
+            'environment' => 'test',
+            'giro'        => 'Principal',
+            'giros'       => array( 'Principal', 'Secundario' ),
+        ) );
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
         $api = $this->createMock( Api::class );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
         $engine = $this->createMock( DteEngine::class );
-        $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+        $engine->expects( $this->once() )
+            ->method( 'generate_dte_xml' )
+            ->with(
+                $this->callback( function ( $data ) {
+                    $this->assertSame( 'Secundario', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                    return true;
+                } ),
+                39,
+                false
+            )
+            ->willReturn( '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
@@ -75,6 +89,7 @@ class GenerateDtePageTest extends TestCase {
                 ),
             ),
             'tipo' => '39',
+            'emisor_giro' => 'Secundario',
         ) );
         $this->assertSame( '123', $result['track_id'] );
         $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
@@ -101,6 +116,8 @@ class GenerateDtePageTest extends TestCase {
             array(
                 'environment' => 'test',
                 'rut_emisor'  => '78.103.459-2',
+                'giro'        => 'Principal',
+                'giros'       => array( 'Principal' ),
             )
         );
         $token = $this->createMock( TokenManager::class );

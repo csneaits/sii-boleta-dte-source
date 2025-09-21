@@ -19,15 +19,11 @@ class Settings {
                 if ( function_exists( 'get_option' ) ) {
                                 $data = get_option( self::OPTION_NAME, array() );
                         if ( is_array( $data ) ) {
-                                if ( isset( $data['cert_pass'] ) ) {
-                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
-                                }
-
                                 $environment = self::normalize_environment_slug( $data['environment'] ?? '' );
-$all_cafs    = array();
-if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
-$all_cafs = $data['cafs'];
-}
+                                $all_cafs    = array();
+                                if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
+                                        $all_cafs = $data['cafs'];
+                                }
 if ( empty( $all_cafs ) && ! empty( $data['caf_path'] ) && is_array( $data['caf_path'] ) ) {
 foreach ( $data['caf_path'] as $tipo => $path ) {
 if ( ! is_string( $path ) || '' === $path || ! @file_exists( $path ) ) {
@@ -47,12 +43,16 @@ $all_cafs[] = array(
 }
 if ( ! empty( $all_cafs ) ) {
 $data['cafs'] = $all_cafs;
-unset( $data['caf_path'] );
-if ( function_exists( 'update_option' ) ) {
-update_option( self::OPTION_NAME, $data );
-}
-}
-}
+                                        unset( $data['caf_path'] );
+                                        if ( function_exists( 'update_option' ) ) {
+                                                update_option( self::OPTION_NAME, $data );
+                                        }
+                                }
+                        }
+
+                                if ( isset( $data['cert_pass'] ) ) {
+                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
+                                }
 
                                 $filtered = array();
                                 $hidden   = 0;

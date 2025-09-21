@@ -83,26 +83,23 @@ class LibreDteEngine implements DteEngine {
 
 	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
 		$tipo     = (int) $tipo_dte;
-		$settings = $this->settings->get_settings();
+$settings = $this->settings->get_settings();
 
-				// Validar CAF proporcionado en la configuración.
-				$caf_file = '';
-		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
-			foreach ( $settings['cafs'] as $caf ) {
-				if ( (int) ( $caf['tipo'] ?? 0 ) === $tipo ) {
-					$caf_file = $caf['path'] ?? '';
-					break;
-				}
-			}
-		} elseif ( isset( $settings['caf_path'][ $tipo ] ) ) {
-				$caf_file = $settings['caf_path'][ $tipo ];
-		}
-		if ( ! $caf_file || ! @file_exists( $caf_file ) ) {
-				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing CAF' ) : false;
-		}
-		if ( ! @simplexml_load_file( $caf_file ) ) {
-				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
-		}
+// Validar que exista un rango para el tipo solicitado.
+$range_inicio = 0;
+$range_fin    = 0;
+if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+foreach ( $settings['cafs'] as $caf ) {
+if ( (int) ( $caf['tipo'] ?? 0 ) === $tipo ) {
+$range_inicio = (int) ( $caf['desde'] ?? 0 );
+$range_fin    = (int) ( $caf['hasta'] ?? 0 );
+break;
+}
+}
+}
+if ( $range_inicio <= 0 || $range_fin < $range_inicio ) {
+return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing CAF range' ) : false;
+}
 
                 $template = $this->load_template( $tipo );
                 if ( isset( $template['Detalle'] ) ) {
@@ -187,21 +184,31 @@ class LibreDteEngine implements DteEngine {
                         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
                 }
 
-                $documentData = array_replace_recursive(
-                        $template,
-                        array(
-                                'Encabezado' => array(
-                                        'IdDoc'    => array(
-                                                'TipoDTE' => $tipo,
-                                               'Folio'   => $data['Folio'] ?? 0,
-                                               'FchEmis' => $data['FchEmis'] ?? '',
-                                       ),
-                                       'Emisor'   => $emisor,
-                                       'Receptor' => $data['Receptor'] ?? array(),
-                               ),
-                               'Detalle'    => $detalle,
-                       )
-               );
+$documentData = array_replace_recursive(
+$template,
+array(
+'Encabezado' => array(
+'IdDoc'    => array(
+'TipoDTE' => $tipo,
+'Folio'   => $data['Folio'] ?? 0,
+'FchEmis' => $data['FchEmis'] ?? '',
+),
+'Emisor'   => $emisor,
+'Receptor' => $data['Receptor'] ?? array(),
+),
+'Detalle'    => $detalle,
+)
+);
+
+$folio = 0;
+if ( isset( $data['Folio'] ) ) {
+$folio = (int) $data['Folio'];
+} elseif ( isset( $documentData['Encabezado']['IdDoc']['Folio'] ) ) {
+$folio = (int) $documentData['Encabezado']['IdDoc']['Folio'];
+}
+if ( $folio > 0 && ( $folio < $range_inicio || $folio > $range_fin ) ) {
+return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Folio fuera de rango' ) : false;
+}
 
                 $rawReceptor = array();
                 if ( isset( $data['Receptor'] ) && is_array( $data['Receptor'] ) ) {

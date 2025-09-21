@@ -24,14 +24,38 @@ class Settings {
                                 }
 
                                 $environment = self::normalize_environment_slug( $data['environment'] ?? '' );
-                                $all_cafs    = array();
-                                if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
-                                        $all_cafs = $data['cafs'];
-                                }
+$all_cafs    = array();
+if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
+$all_cafs = $data['cafs'];
+}
+if ( empty( $all_cafs ) && ! empty( $data['caf_path'] ) && is_array( $data['caf_path'] ) ) {
+foreach ( $data['caf_path'] as $tipo => $path ) {
+if ( ! is_string( $path ) || '' === $path || ! @file_exists( $path ) ) {
+continue;
+}
+$xml = @simplexml_load_file( $path );
+if ( ! $xml ) {
+continue;
+}
+$all_cafs[] = array(
+'tipo'        => (int) $tipo,
+'desde'       => (int) ( $xml->CAF->DA->RNG->D ?? 0 ),
+'hasta'       => (int) ( $xml->CAF->DA->RNG->H ?? 0 ),
+'fecha'       => (string) ( $xml->CAF->DA->FA ?? '' ),
+'environment' => $data['environment'] ?? '',
+);
+}
+if ( ! empty( $all_cafs ) ) {
+$data['cafs'] = $all_cafs;
+unset( $data['caf_path'] );
+if ( function_exists( 'update_option' ) ) {
+update_option( self::OPTION_NAME, $data );
+}
+}
+}
 
-                                $filtered   = array();
-                                $hidden     = 0;
-                                $caf_path   = array();
+                                $filtered = array();
+                                $hidden   = 0;
                                 foreach ( $all_cafs as $caf ) {
                                         if ( ! is_array( $caf ) ) {
                                                 continue;
@@ -45,15 +69,21 @@ class Settings {
                                                 continue;
                                         }
                                         $caf['environment'] = $caf_env;
-                                        $filtered[]          = $caf;
-                                        if ( isset( $caf['tipo'], $caf['path'] ) ) {
-                                                $caf_path[ (int) $caf['tipo'] ] = (string) $caf['path'];
+                                        if ( isset( $caf['tipo'] ) ) {
+                                                $caf['tipo'] = (int) $caf['tipo'];
                                         }
+                                        if ( isset( $caf['desde'] ) ) {
+                                                $caf['desde'] = (int) $caf['desde'];
+                                        }
+                                        if ( isset( $caf['hasta'] ) ) {
+                                                $caf['hasta'] = (int) $caf['hasta'];
+                                        }
+                                        $filtered[] = $caf;
                                 }
 
-                                $data['cafs']          = $filtered;
-                                $data['caf_path']      = $caf_path;
-                                $data['cafs_hidden']   = $hidden;
+                                $data['cafs']            = $filtered;
+                                $data['caf_path']        = array();
+                                $data['cafs_hidden']     = $hidden;
                                 $data['environment_slug'] = $environment;
                                 return $data;
                         }

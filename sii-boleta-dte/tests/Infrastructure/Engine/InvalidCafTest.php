@@ -13,11 +13,9 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
 
 class InvalidCafTest extends TestCase {
     public function test_invalid_caf_returns_false_without_warnings() {
-        $caf_path = tempnam( sys_get_temp_dir(), 'caf' );
-        file_put_contents( $caf_path, 'no-xml' );
-        $settings = new Dummy_Settings([
-            'caf_path' => [ 33 => $caf_path ],
-        ]);
+$settings = new Dummy_Settings([
+'cafs' => [ [ 'tipo' => 33, 'desde' => 0, 'hasta' => 0 ] ],
+]);
         $engine = new LibreDteEngine( $settings );
         $data = [
             'Folio'     => 1,
@@ -39,8 +37,6 @@ class InvalidCafTest extends TestCase {
         ];
 
         $result = $engine->generate_dte_xml( $data, 33, false );
-
-        unlink( $caf_path );
 
         if ( class_exists( '\\WP_Error' ) ) {
             $this->assertInstanceOf( \WP_Error::class, $result );

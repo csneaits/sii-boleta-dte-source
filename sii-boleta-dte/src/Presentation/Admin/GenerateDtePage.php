@@ -644,17 +644,24 @@ class GenerateDtePage {
                 $out = array();
                 // Filtrar además por existencia de CAF válido para el tipo
                 $settings = $this->settings->get_settings();
-                foreach ( $labels as $code => $name ) {
-                        if ( ! isset( $codes[ $code ] ) ) { continue; }
-                        $caf_ok = false;
-                        if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
-                                foreach ( $settings['cafs'] as $caf ) {
-                                        if ( (int) ( $caf['tipo'] ?? 0 ) === (int) $code && ! empty( $caf['path'] ) && file_exists( (string) $caf['path'] ) ) { $caf_ok = true; break; }
-                                }
-                        }
-                        if ( ! $caf_ok && isset( $settings['caf_path'][ $code ] ) && file_exists( (string) $settings['caf_path'][ $code ] ) ) { $caf_ok = true; }
-                        if ( $caf_ok ) { $out[ $code ] = $name; }
-                }
+foreach ( $labels as $code => $name ) {
+if ( ! isset( $codes[ $code ] ) ) { continue; }
+$caf_ok = false;
+if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
+foreach ( $settings['cafs'] as $caf ) {
+if ( (int) ( $caf['tipo'] ?? 0 ) !== (int) $code ) {
+continue;
+}
+$desde = isset( $caf['desde'] ) ? (int) $caf['desde'] : 0;
+$hasta = isset( $caf['hasta'] ) ? (int) $caf['hasta'] : 0;
+if ( $desde > 0 && $hasta >= $desde ) {
+$caf_ok = true;
+break;
+}
+}
+}
+if ( $caf_ok ) { $out[ $code ] = $name; }
+}
                 // Ensure deterministic order by code
                 ksort( $out );
                 // Fallback to basic Boleta if nothing found

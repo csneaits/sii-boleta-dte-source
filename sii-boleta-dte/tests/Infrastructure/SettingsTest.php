@@ -26,26 +26,29 @@ class SettingsTest extends TestCase {
         }
 
         public function test_get_settings_filters_by_environment(): void {
-                $GLOBALS['wp_options'][ Settings::OPTION_NAME ] = array(
-                        'environment' => '0',
-                        'cert_pass'   => Settings::encrypt( 'secret' ),
-                        'cafs'        => array(
-                                array(
-                                        'tipo'        => 39,
-                                        'path'        => '/tmp/caf39.xml',
-                                        'environment' => Settings::ENV_TEST,
-                                ),
-                                array(
-                                        'tipo'        => 41,
-                                        'path'        => '/tmp/caf41.xml',
-                                        'environment' => Settings::ENV_PROD,
-                                ),
-                                array(
-                                        'tipo' => 33,
-                                        'path' => '/tmp/caf33.xml',
-                                ),
-                        ),
-                );
+$GLOBALS['wp_options'][ Settings::OPTION_NAME ] = array(
+'environment' => '0',
+'cert_pass'   => Settings::encrypt( 'secret' ),
+'cafs'        => array(
+array(
+'tipo'        => 39,
+'desde'       => 1,
+'hasta'       => 100,
+'environment' => Settings::ENV_TEST,
+),
+array(
+'tipo'        => 41,
+'desde'       => 1,
+'hasta'       => 200,
+'environment' => Settings::ENV_PROD,
+),
+array(
+'tipo'  => 33,
+'desde' => 50,
+'hasta' => 150,
+),
+),
+);
 
                 $settings = new Settings();
                 $result   = $settings->get_settings();
@@ -54,13 +57,7 @@ class SettingsTest extends TestCase {
                 $this->assertSame( Settings::ENV_TEST, $result['environment_slug'] );
                 $this->assertSame( 1, $result['cafs_hidden'] );
                 $this->assertCount( 2, $result['cafs'] );
-                $this->assertSame(
-                        array(
-                                39 => '/tmp/caf39.xml',
-                                33 => '/tmp/caf33.xml',
-                        ),
-                        $result['caf_path']
-                );
+$this->assertSame( array(), $result['caf_path'] );
         }
 
         public function test_normalize_environment_slug(): void {

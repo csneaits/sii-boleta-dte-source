@@ -31,32 +31,23 @@ class FolioManager {
 	 * @return array<string,string>
 	 */
 	public function get_caf_info( int $type = 39 ): array {
-				$settings = $this->settings->get_settings();
-				$caf_file = '';
-		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
-			foreach ( $settings['cafs'] as $caf ) {
-				if ( (int) ( $caf['tipo'] ?? 0 ) === $type ) {
-					$caf_file = $caf['path'] ?? '';
-					break;
-				}
-			}
-		} elseif ( isset( $settings['caf_path'][ $type ] ) ) {
-				$caf_file = $settings['caf_path'][ $type ];
-		}
-		if ( ! $caf_file || ! file_exists( $caf_file ) ) {
-				return array();
-		}
-				$xml = simplexml_load_file( $caf_file );
-		if ( ! $xml ) {
-				return array();
-		}
-				return array(
-					'FchResol' => (string) ( $xml->CAF->DA->FA ?? '' ),
-					'NroResol' => (string) ( $xml->CAF->DA->RE ?? '' ),
-					'D'        => (int) ( $xml->CAF->DA->RNG->D ?? 0 ),
-					'H'        => (int) ( $xml->CAF->DA->RNG->H ?? 0 ),
-				);
-	}
+$settings = $this->settings->get_settings();
+if ( empty( $settings['cafs'] ) || ! is_array( $settings['cafs'] ) ) {
+return array();
+}
+foreach ( $settings['cafs'] as $caf ) {
+if ( (int) ( $caf['tipo'] ?? 0 ) !== $type ) {
+continue;
+}
+return array(
+'FchResol' => (string) ( $caf['fecha_resol'] ?? $caf['fecha'] ?? '' ),
+'NroResol' => (string) ( $caf['nro_resol'] ?? '' ),
+'D'        => (int) ( $caf['desde'] ?? 0 ),
+'H'        => (int) ( $caf['hasta'] ?? 0 ),
+);
+}
+return array();
+}
 }
 
 class_alias( FolioManager::class, 'SII_Boleta_Folio_Manager' );

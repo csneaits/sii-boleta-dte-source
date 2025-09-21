@@ -14,11 +14,11 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
 class BoletaTotalsTest extends TestCase {
 
     private function get_settings() {
-        return new Dummy_Settings([
-            'caf_path'  => [
-                39 => __DIR__ . '/../../fixtures/caf39.xml',
-                41 => __DIR__ . '/../../fixtures/caf41.xml',
-            ],
+return new Dummy_Settings([
+'cafs'      => [
+[ 'tipo' => 39, 'desde' => 1, 'hasta' => 999 ],
+[ 'tipo' => 41, 'desde' => 1, 'hasta' => 999 ],
+],
             'rut_emisor' => '11111111-1',
             'razon_social' => 'Test',
             'giro' => 'Giro',

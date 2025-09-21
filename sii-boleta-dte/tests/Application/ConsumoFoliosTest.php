@@ -23,10 +23,10 @@ if ( ! function_exists( 'get_option' ) ) {
 class ConsumoFoliosTest extends TestCase {
     public function test_generates_ranges() {
         $GLOBALS['test_options']['sii_boleta_dte_last_folio_39'] = 10;
-        $settings = new Dummy_Settings([
-            'caf_path'   => [ 39 => __DIR__ . '/../fixtures/caf39.xml' ],
-            'rut_emisor' => '11111111-1',
-        ]);
+$settings = new Dummy_Settings([
+'cafs'       => [ [ 'tipo' => 39, 'desde' => 1, 'hasta' => 100 ] ],
+'rut_emisor' => '11111111-1',
+]);
         $folio_mgr = $this->createMock( FolioManager::class );
         $api       = $this->createMock( Api::class );
         $cdf       = new ConsumoFolios( $settings, $folio_mgr, $api );

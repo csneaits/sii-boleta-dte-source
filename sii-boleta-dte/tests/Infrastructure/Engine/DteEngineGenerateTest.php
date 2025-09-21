@@ -5,16 +5,16 @@ use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Infrastructure\Settings;
 
 class DteEngineGenerateTest extends TestCase {
-    public function test_generate_dte_xml(): void {
-        $settings = new class extends Settings { public function get_settings(): array { return array( 'rut_emisor' => '76086428-5', 'razon_social' => 'Test', 'giro' => 'GIRO', 'direccion' => 'Calle', 'comuna' => 'Santiago', 'caf_path' => array( 39 => __DIR__ . '/../../fixtures/caf39.xml' ) ); } };
+public function test_generate_dte_xml(): void {
+$settings = new class extends Settings { public function get_settings(): array { return array( 'rut_emisor' => '76086428-5', 'razon_social' => 'Test', 'giro' => 'GIRO', 'direccion' => 'Calle', 'comuna' => 'Santiago', 'cafs' => array( array( 'tipo' => 39, 'desde' => 1, 'hasta' => 999 ) ) ); } };
         $engine   = new LibreDteEngine( $settings );
         $xml = $engine->generate_dte_xml( array( 'Detalles' => array( array( 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 1000 ) ) ), 39 );
         $this->assertIsString( $xml );
         $this->assertStringContainsString( '<DTE', $xml );
     }
 
-    public function test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing(): void {
-        $settings = new class extends Settings { public function get_settings(): array { return array( 'caf_path' => array( 39 => __DIR__ . '/../../fixtures/caf39.xml' ) ); } };
+public function test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing(): void {
+$settings = new class extends Settings { public function get_settings(): array { return array( 'cafs' => array( array( 'tipo' => 39, 'desde' => 1, 'hasta' => 999 ) ) ); } };
         $engine   = new LibreDteEngine( $settings );
         $data     = array(
             'Encabezado' => array(
@@ -55,14 +55,14 @@ class DteEngineGenerateTest extends TestCase {
     }
 
     public function test_generate_dte_xml_does_not_prefill_missing_receptor_fields(): void {
-        $settings = new class extends Settings { public function get_settings(): array { return array(
-            'rut_emisor' => '76086428-5',
-            'razon_social' => 'Test',
-            'giro' => 'GIRO',
-            'direccion' => 'Calle',
-            'comuna' => 'Santiago',
-            'caf_path' => array( 39 => __DIR__ . '/../../fixtures/caf39.xml' ),
-        ); } };
+$settings = new class extends Settings { public function get_settings(): array { return array(
+'rut_emisor' => '76086428-5',
+'razon_social' => 'Test',
+'giro' => 'GIRO',
+'direccion' => 'Calle',
+'comuna' => 'Santiago',
+'cafs' => array( array( 'tipo' => 39, 'desde' => 1, 'hasta' => 999 ) ),
+); } };
 
         $engine = new LibreDteEngine( $settings );
 

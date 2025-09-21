@@ -65,6 +65,16 @@ class GenerateDtePage {
                 if ( is_array( $result ) && ! empty( $result['preview'] ) ) {
                         $modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
                 }
+                $emitter_giros = $this->get_emitter_giros();
+                $selected_emisor_giro = '';
+                if ( isset( $_POST['emisor_giro'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                        $selected_emisor_giro = (string) $_POST['emisor_giro']; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                } elseif ( ! empty( $emitter_giros ) ) {
+                        $selected_emisor_giro = $emitter_giros[0];
+                }
+                if ( ! in_array( $selected_emisor_giro, $emitter_giros, true ) && ! empty( $emitter_giros ) ) {
+                        $selected_emisor_giro = $emitter_giros[0];
+                }
                 ?>
                                 <div class="wrap">
                                                 <h1><?php esc_html_e( 'Generate DTE', 'sii-boleta-dte' ); ?></h1>
@@ -138,6 +148,21 @@ class GenerateDtePage {
                                                                     <option value="<?php echo (int) $code; ?>"<?php echo selected( $sel_tipo, (int) $code, false ); ?>><?php echo esc_html( $label ); ?></option>
                                                                 <?php endforeach; ?>
                                                             </select>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row"><label for="sii-emisor-giro"><?php esc_html_e( 'Giro emisor', 'sii-boleta-dte' ); ?></label></th>
+                                                        <td>
+                                                            <?php if ( ! empty( $emitter_giros ) ) : ?>
+                                                                <select id="sii-emisor-giro" name="emisor_giro">
+                                                                    <?php foreach ( $emitter_giros as $giro_option ) : ?>
+                                                                        <option value="<?php echo esc_attr( $giro_option ); ?>"<?php echo selected( $selected_emisor_giro, $giro_option, false ); ?>><?php echo esc_html( $giro_option ); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            <?php else : ?>
+                                                                <input type="text" id="sii-emisor-giro" name="emisor_giro" class="regular-text" value="<?php echo esc_attr( $selected_emisor_giro ); ?>" />
+                                                                <p class="description"><?php esc_html_e( 'Configura tus giros económicos desde la página de ajustes.', 'sii-boleta-dte' ); ?></p>
+                                                            <?php endif; ?>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -237,8 +262,21 @@ class GenerateDtePage {
 		if ( empty( $post['sii_boleta_generate_dte_nonce'] ) || ! \wp_verify_nonce( $post['sii_boleta_generate_dte_nonce'], 'sii_boleta_generate_dte' ) ) {
 			return array( 'error' => \__( 'Invalid nonce.', 'sii-boleta-dte' ) );
 		}
-                $preview       = isset( $post['preview'] );
-                $available     = $this->get_available_types();
+                $preview        = isset( $post['preview'] );
+                $available      = $this->get_available_types();
+                $emitter_giros  = $this->get_emitter_giros();
+                $emisor_giro    = '';
+                if ( ! empty( $emitter_giros ) ) {
+                        $selected_giro = (string) ( $post['emisor_giro'] ?? '' );
+                        if ( in_array( $selected_giro, $emitter_giros, true ) ) {
+                                $emisor_giro = $selected_giro;
+                        } else {
+                                $emisor_giro = $emitter_giros[0];
+                        }
+                } else {
+                        $emisor_giro = sanitize_text_field( (string) ( $post['emisor_giro'] ?? '' ) );
+                }
+                $_POST['emisor_giro'] = $emisor_giro; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 $rut_raw       = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
                 $razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
                 $giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
@@ -319,6 +357,11 @@ class GenerateDtePage {
                 ),
                 'Detalles' => $items,
         );
+        if ( '' !== $emisor_giro ) {
+                $data['Encabezado']['Emisor'] = array(
+                        'GiroEmisor' => $emisor_giro,
+                );
+        }
         if ( '' !== $dir_recep ) { $data['Receptor']['DirRecep'] = $dir_recep; }
         if ( '' !== $cmna_recep ) { $data['Receptor']['CmnaRecep'] = $cmna_recep; }
         if ( '' !== $ciudad_recep ) { $data['Receptor']['CiudadRecep'] = $ciudad_recep; }
@@ -608,7 +651,32 @@ class GenerateDtePage {
                 return $expected === $dv;
         }
 
-       /**
+        /**
+         * Returns the list of configured emitter economic activities.
+         *
+         * @return array<int,string>
+         */
+        private function get_emitter_giros(): array {
+                $settings = $this->settings->get_settings();
+                $giros    = array();
+
+                if ( isset( $settings['giros'] ) && is_array( $settings['giros'] ) ) {
+                        foreach ( $settings['giros'] as $giro ) {
+                                $value = trim( (string) $giro );
+                                if ( '' !== $value ) {
+                                        $giros[] = $value;
+                                }
+                        }
+                }
+
+                if ( empty( $giros ) && ! empty( $settings['giro'] ) ) {
+                        $giros[] = (string) $settings['giro'];
+                }
+
+                return array_values( array_unique( $giros ) );
+        }
+
+        /**
         * Returns the list of available DTE types based on the presence of
         * fixtures under resources/yaml/documentos_ok/.
          *

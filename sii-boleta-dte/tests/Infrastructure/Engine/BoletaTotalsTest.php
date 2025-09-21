@@ -22,6 +22,7 @@ return new Dummy_Settings([
             'rut_emisor' => '11111111-1',
             'razon_social' => 'Test',
             'giro' => 'Giro',
+            'giros' => array( 'Giro' ),
             'direccion' => 'Calle 1',
             'comuna' => 'Santiago',
         ]);

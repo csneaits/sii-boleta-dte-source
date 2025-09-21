@@ -32,7 +32,7 @@ class SettingsPage {
 		add_settings_section( 'sii_boleta_emitter', __( 'Emitter', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'rut_emisor', __( 'RUT', 'sii-boleta-dte' ), array( $this, 'field_rut_emisor' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'razon_social', __( 'Razón Social', 'sii-boleta-dte' ), array( $this, 'field_razon_social' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
-		add_settings_field( 'giro', __( 'Giro', 'sii-boleta-dte' ), array( $this, 'field_giro' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
+                add_settings_field( 'giro', __( 'Giros económicos', 'sii-boleta-dte' ), array( $this, 'field_giro' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'direccion', __( 'Dirección', 'sii-boleta-dte' ), array( $this, 'field_direccion' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'comuna', __( 'Comuna', 'sii-boleta-dte' ), array( $this, 'field_comuna' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'acteco', __( 'Código Acteco', 'sii-boleta-dte' ), array( $this, 'field_acteco' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
@@ -76,11 +76,119 @@ class SettingsPage {
 				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
 	}
 
-	public function field_giro(): void {
-				$settings = $this->settings->get_settings();
-				$value    = esc_attr( $settings['giro'] ?? '' );
-				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[giro]" value="' . $value . '" />';
-	}
+        public function field_giro(): void {
+                // phpcs:disable WordPress.WhiteSpace.ControlStructureSpacing,WordPress.WhiteSpace.ScopeIndent,WordPress.WhiteSpace.TabIndentation,Generic.Arrays.ArrayIndentation,PEAR.Functions.FunctionCallSignature
+                $settings = $this->settings->get_settings();
+                $values   = array();
+                if ( isset( $settings['giros'] ) && is_array( $settings['giros'] ) ) {
+                        foreach ( $settings['giros'] as $giro ) {
+                                $giro = trim( (string) $giro );
+                                if ( '' !== $giro ) {
+                                        $values[] = $giro;
+                                }
+                        }
+                }
+
+                if ( empty( $values ) && ! empty( $settings['giro'] ) ) {
+                        $values[] = (string) $settings['giro'];
+                }
+
+                if ( empty( $values ) ) {
+                        $values[] = '';
+                }
+
+                $field_name = esc_attr( Settings::OPTION_NAME ) . '[giros][]';
+                $rows       = '';
+                foreach ( $values as $value ) {
+                        $value_attr = esc_attr( $value );
+                        $rows      .= '<div class="sii-giros-row" style="margin-bottom:6px;display:flex;gap:6px;align-items:center">';
+                        $rows      .= '<input type="text" class="regular-text sii-input-wide" name="' . $field_name . '" value="' . $value_attr . '" />';
+                        $rows      .= '<button type="button" class="button sii-remove-giro" aria-label="' . esc_attr__( 'Eliminar giro', 'sii-boleta-dte' ) . '">&times;</button>';
+                        $rows      .= '</div>';
+                }
+
+                $add_label    = esc_html__( 'Agregar giro', 'sii-boleta-dte' );
+                $description  = esc_html__( 'Agrega los giros económicos disponibles para tu empresa. Podrás elegir uno al generar el DTE.', 'sii-boleta-dte' );
+                $option_name  = esc_attr( Settings::OPTION_NAME );
+                $remove_label = esc_attr__( 'Eliminar giro', 'sii-boleta-dte' );
+
+                $template = <<<HTML
+<div id="sii-giros-container">{$rows}</div>
+<p><button type="button" class="button" id="sii-add-giro">{$add_label}</button></p>
+<p class="description">{$description}</p>
+<template id="sii-giro-template">
+        <div class="sii-giros-row" style="margin-bottom:6px;display:flex;gap:6px;align-items:center">
+                <input type="text" class="regular-text sii-input-wide" name="{$option_name}[giros][]" value="" />
+                <button type="button" class="button sii-remove-giro" aria-label="{$remove_label}">&times;</button>
+        </div>
+</template>
+<script>
+( function () {
+        function ready( fn ) {
+                if ( document.readyState === 'loading' ) {
+                        document.addEventListener( 'DOMContentLoaded', fn );
+                } else {
+                        fn();
+                }
+        }
+        ready( function () {
+                var container = document.getElementById( 'sii-giros-container' );
+                var addBtn = document.getElementById( 'sii-add-giro' );
+                if ( ! container || ! addBtn ) {
+                        return;
+                }
+                var template = document.getElementById( 'sii-giro-template' );
+                function bindRemove( button ) {
+                        if ( ! button ) {
+                                return;
+                        }
+                        button.addEventListener( 'click', function () {
+                                var row = button.closest( '.sii-giros-row' );
+                                if ( row && container.children.length > 1 ) {
+                                        row.remove();
+                                } else if ( row ) {
+                                        var input = row.querySelector( 'input' );
+                                        if ( input ) {
+                                                input.value = '';
+                                        }
+                                }
+                        } );
+                }
+                Array.prototype.forEach.call( container.querySelectorAll( '.sii-remove-giro' ), bindRemove );
+                addBtn.addEventListener( 'click', function () {
+                        if ( template && template.content ) {
+                                var clone = document.importNode( template.content, true );
+                                if ( clone ) {
+                                        container.appendChild( clone );
+                                        bindRemove( container.lastElementChild.querySelector( '.sii-remove-giro' ) );
+                                }
+                                return;
+                        }
+                        var fallback = template && template.firstElementChild ? template.firstElementChild.cloneNode( true ) : null;
+                        if ( fallback ) {
+                                container.appendChild( fallback );
+                                bindRemove( container.lastElementChild.querySelector( '.sii-remove-giro' ) );
+                                return;
+                        }
+                        var row = document.createElement( 'div' );
+                        row.className = 'sii-giros-row';
+                        row.style.marginBottom = '6px';
+                        row.style.display = 'flex';
+                        row.style.gap = '6px';
+                        row.style.alignItems = 'center';
+                        row.innerHTML = '<input type="text" class="regular-text sii-input-wide" name="{$option_name}[giros][]" value="" />' +
+                                '<button type="button" class="button sii-remove-giro" aria-label="{$remove_label}">&times;</button>';
+                        container.appendChild( row );
+                        bindRemove( row.querySelector( '.sii-remove-giro' ) );
+                } );
+        } );
+} )();
+</script>
+HTML;
+
+                echo $template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                // phpcs:enable
+        }
 
 	public function field_direccion(): void {
 		$settings = $this->settings->get_settings();
@@ -261,9 +369,27 @@ class SettingsPage {
 			$output['razon_social'] = sanitize_text_field( $input['razon_social'] );
 		}
 
-		if ( isset( $input['giro'] ) ) {
-			$output['giro'] = sanitize_text_field( $input['giro'] );
-		}
+                if ( isset( $input['giros'] ) ) {
+                        $giros = is_array( $input['giros'] ) ? $input['giros'] : explode( "\n", (string) $input['giros'] );
+                        $sanitized = array();
+                        foreach ( $giros as $giro ) {
+                                $value = sanitize_text_field( (string) $giro );
+                                if ( '' !== $value ) {
+                                        $sanitized[] = $value;
+                                }
+                        }
+                        if ( ! empty( $sanitized ) ) {
+                                $output['giros'] = array_values( array_unique( $sanitized ) );
+                                $output['giro']  = $output['giros'][0];
+                        } else {
+                                $output['giros'] = array();
+                                $output['giro']  = '';
+                        }
+                } elseif ( isset( $input['giro'] ) ) {
+                                $value           = sanitize_text_field( $input['giro'] );
+                                $output['giro']  = $value;
+                                $output['giros'] = '' === $value ? array() : array( $value );
+                }
 
 		if ( isset( $input['direccion'] ) ) {
 			$output['direccion'] = sanitize_text_field( $input['direccion'] );

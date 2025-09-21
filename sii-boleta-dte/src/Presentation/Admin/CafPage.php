@@ -246,7 +246,9 @@ class CafPage {
          * Handles CAF deletion.
          */
         private function handle_delete( string $param ): void {
-                $environment = $this->current_environment_slug();
+                $environment  = $this->current_environment_slug();
+                $raw_settings = $this->settings->get_raw_settings();
+                $cafs         = isset( $raw_settings['cafs'] ) && is_array( $raw_settings['cafs'] ) ? $raw_settings['cafs'] : array();
 
                 $target_path = '';
                 if ( ctype_digit( $param ) ) {
@@ -267,9 +269,6 @@ class CafPage {
                         return;
                 }
 
-                $raw_settings = $this->settings->get_raw_settings();
-                $cafs         = isset( $raw_settings['cafs'] ) && is_array( $raw_settings['cafs'] ) ? $raw_settings['cafs'] : array();
-
                 $index = null;
                 foreach ( $cafs as $i => $caf ) {
                         if ( $this->caf_environment_slug( $caf ) !== $environment ) {
@@ -282,22 +281,7 @@ class CafPage {
                 }
 
                 if ( null === $index || ! isset( $cafs[ $index ] ) ) {
-                        $this->get_cafs();
-                        $raw_settings = $this->settings->get_raw_settings();
-                        $cafs         = isset( $raw_settings['cafs'] ) && is_array( $raw_settings['cafs'] ) ? $raw_settings['cafs'] : array();
-                        $index        = null;
-                        foreach ( $cafs as $i => $caf ) {
-                                if ( $this->caf_environment_slug( $caf ) !== $environment ) {
-                                        continue;
-                                }
-                                if ( (string) ( $caf['path'] ?? '' ) === $target_path ) {
-                                        $index = (int) $i;
-                                        break;
-                                }
-                        }
-                        if ( null === $index || ! isset( $cafs[ $index ] ) ) {
-                                return;
-                        }
+                        return;
                 }
 
                 $caf = $cafs[ $index ];

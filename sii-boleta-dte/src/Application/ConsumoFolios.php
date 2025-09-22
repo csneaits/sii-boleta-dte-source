@@ -33,7 +33,8 @@ class ConsumoFolios {
                         return false;
                 }
 
-                $ranges = FoliosDb::all();
+                $environment = $this->settings->get_environment();
+                $ranges      = FoliosDb::all( $environment );
                 if ( empty( $ranges ) ) {
                         return false;
                 }
@@ -56,8 +57,7 @@ class ConsumoFolios {
                 $car->addChild( 'FchFinal', $fecha );
 
                 foreach ( $grouped as $tipo => $tipo_ranges ) {
-                        $option_key = 'sii_boleta_dte_last_folio_' . (int) $tipo;
-                        $last       = function_exists( 'get_option' ) ? (int) get_option( $option_key, 0 ) : 0;
+                        $last = Settings::get_last_folio_value( (int) $tipo, $environment );
                         foreach ( $tipo_ranges as $range ) {
                                 $desde = (int) $range['desde'];
                                 $hasta = (int) $range['hasta'];

@@ -656,9 +656,10 @@ class GenerateDtePage {
                         112 => __( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ),
                 );
                 $out = array();
+                $environment = $this->settings->get_environment();
                 foreach ( $labels as $code => $name ) {
                         if ( ! isset( $codes[ $code ] ) ) { continue; }
-                        if ( FoliosDb::has_type( (int) $code ) ) {
+                        if ( FoliosDb::has_type( (int) $code, $environment ) ) {
                                 $out[ $code ] = $name;
                         }
                 }

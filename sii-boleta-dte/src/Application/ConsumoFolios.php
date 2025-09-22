@@ -60,7 +60,7 @@ class ConsumoFolios {
                         $last = Settings::get_last_folio_value( (int) $tipo, $environment );
                         foreach ( $tipo_ranges as $range ) {
                                 $desde = (int) $range['desde'];
-                                $hasta = (int) $range['hasta'];
+                                $hasta = (int) $range['hasta'] - 1;
                                 if ( $last < $desde ) {
                                         continue;
                                 }

@@ -5,132 +5,135 @@ namespace Sii\BoletaDte\Infrastructure;
  * Provides access to plugin settings.
  */
 class Settings {
-        public const OPTION_GROUP = 'sii_boleta_dte_settings_group';
-        public const OPTION_NAME  = 'sii_boleta_dte_settings';
-        public const ENV_TEST     = 'test';
-        public const ENV_PROD     = 'production';
+	public const OPTION_GROUP = 'sii_boleta_dte_settings_group';
+	public const OPTION_NAME  = 'sii_boleta_dte_settings';
+	public const ENV_TEST     = 'test';
+	public const ENV_PROD     = 'production';
+
+		/**
+		 * Cached settings for the current request.
+		 *
+		 * @var array<string,mixed>|null
+		 */
+	private static ?array $cache = null;
 
 		/**
 		 * Returns settings from WordPress options.
 		 *
 		 * @return array<string,mixed>
 		 */
-        public function get_settings(): array {
-                if ( function_exists( 'get_option' ) ) {
-                                $data = get_option( self::OPTION_NAME, array() );
-                        if ( is_array( $data ) ) {
-                                $environment = self::normalize_environment_slug( $data['environment'] ?? '' );
-                                if ( isset( $data['giros'] ) && is_array( $data['giros'] ) ) {
-                                        $giros = array();
-                                        foreach ( $data['giros'] as $giro ) {
-                                                $value = trim( is_string( $giro ) ? $giro : (string) $giro );
-                                                if ( '' !== $value ) {
-                                                        $giros[] = $value;
-                                                }
-                                        }
-                                        $data['giros'] = array_values( array_unique( $giros ) );
-                                } else {
-                                        $data['giros'] = array();
-                                }
+	public function get_settings(): array {
+		if ( null !== self::$cache ) {
+				return self::$cache;
+		}
 
-                                if ( ( ! isset( $data['giro'] ) || '' === $data['giro'] ) && ! empty( $data['giros'] ) ) {
-                                        $data['giro'] = $data['giros'][0];
-                                }
-                                $all_cafs    = array();
-                                if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
-                                        $all_cafs = $data['cafs'];
-                                }
-if ( empty( $all_cafs ) && ! empty( $data['caf_path'] ) && is_array( $data['caf_path'] ) ) {
-foreach ( $data['caf_path'] as $tipo => $path ) {
-if ( ! is_string( $path ) || '' === $path || ! @file_exists( $path ) ) {
-continue;
-}
-$xml = @simplexml_load_file( $path );
-if ( ! $xml ) {
-continue;
-}
-$all_cafs[] = array(
-'tipo'        => (int) $tipo,
-'desde'       => (int) ( $xml->CAF->DA->RNG->D ?? 0 ),
-'hasta'       => (int) ( $xml->CAF->DA->RNG->H ?? 0 ),
-'fecha'       => (string) ( $xml->CAF->DA->FA ?? '' ),
-'environment' => $data['environment'] ?? '',
-);
-}
-if ( ! empty( $all_cafs ) ) {
-$data['cafs'] = $all_cafs;
-                                        unset( $data['caf_path'] );
-                                        if ( function_exists( 'update_option' ) ) {
-                                                update_option( self::OPTION_NAME, $data );
-                                        }
-                                }
-                        }
+		if ( function_exists( 'get_option' ) ) {
+				$data = get_option( self::OPTION_NAME, array() );
+			if ( is_array( $data ) ) {
+					$environment = self::normalize_environment_slug( $data['environment'] ?? '' );
+				if ( isset( $data['giros'] ) && is_array( $data['giros'] ) ) {
+					$giros = array();
+					foreach ( $data['giros'] as $giro ) {
+								$value = trim( is_string( $giro ) ? $giro : (string) $giro );
+						if ( '' !== $value ) {
+							$giros[] = $value;
+						}
+					}
+					$data['giros'] = array_values( array_unique( $giros ) );
+				} else {
+						$data['giros'] = array();
+				}
 
-                                if ( isset( $data['cert_pass'] ) ) {
-                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
-                                }
+				if ( ( ! isset( $data['giro'] ) || '' === $data['giro'] ) && ! empty( $data['giros'] ) ) {
+						$data['giro'] = $data['giros'][0];
+				}
 
-                                $filtered = array();
-                                $hidden   = 0;
-                                foreach ( $all_cafs as $caf ) {
-                                        if ( ! is_array( $caf ) ) {
-                                                continue;
-                                        }
-                                        $caf_env = self::normalize_environment_slug( $caf['environment'] ?? '' );
-                                        if ( '' === (string) ( $caf['environment'] ?? '' ) ) {
-                                                $caf_env = self::ENV_TEST;
-                                        }
-                                        if ( $caf_env !== $environment ) {
-                                                ++$hidden;
-                                                continue;
-                                        }
-                                        $caf['environment'] = $caf_env;
-                                        if ( isset( $caf['tipo'] ) ) {
-                                                $caf['tipo'] = (int) $caf['tipo'];
-                                        }
-                                        if ( isset( $caf['desde'] ) ) {
-                                                $caf['desde'] = (int) $caf['desde'];
-                                        }
-                                        if ( isset( $caf['hasta'] ) ) {
-                                                $caf['hasta'] = (int) $caf['hasta'];
-                                        }
-                                        $filtered[] = $caf;
-                                }
+				if ( empty( $data['giros'] ) && ! empty( $data['giro'] ) ) {
+						$data['giros'] = array( (string) $data['giro'] );
+				}
 
-                                $data['cafs']            = $filtered;
-                                $data['caf_path']        = array();
-                                $data['cafs_hidden']     = $hidden;
-                                $data['environment_slug'] = $environment;
-                                return $data;
-                        }
-                }
-                        return array();
-        }
+					$all_cafs = array();
+				if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
+						$all_cafs = $data['cafs'];
+				}
 
-        /**
-         * Returns raw settings as stored in WordPress without filtering.
-         *
-         * @return array<string,mixed>
-         */
-        public function get_raw_settings(): array {
-                if ( function_exists( 'get_option' ) ) {
-                                $data = get_option( self::OPTION_NAME, array() );
-                        return is_array( $data ) ? $data : array();
-                }
-                return array();
-        }
+				if ( isset( $data['cert_pass'] ) ) {
+						$data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
+				}
 
-        /**
-         * Normalizes an environment value to either test or production.
-         */
-        public static function normalize_environment_slug( $value ): string {
-                $raw = is_string( $value ) ? $value : (string) $value;
-                $raw = strtolower( trim( $raw ) );
-                if ( in_array( $raw, array( '1', 'prod', 'production', 'prod.', 'live' ), true ) ) {
-                        return self::ENV_PROD;
-                }
-                return self::ENV_TEST;
-        }
+					$filtered = array();
+					$hidden   = 0;
+				foreach ( $all_cafs as $caf ) {
+					if ( ! is_array( $caf ) ) {
+							continue;
+					}
+						$caf_env = self::normalize_environment_slug( $caf['environment'] ?? '' );
+					if ( '' === (string) ( $caf['environment'] ?? '' ) ) {
+							$caf_env = self::ENV_TEST;
+					}
+					if ( $caf_env !== $environment ) {
+							++$hidden;
+							continue;
+					}
+						$caf['environment'] = $caf_env;
+					if ( isset( $caf['tipo'] ) ) {
+							$caf['tipo'] = (int) $caf['tipo'];
+					}
+					if ( isset( $caf['desde'] ) ) {
+							$caf['desde'] = (int) $caf['desde'];
+					}
+					if ( isset( $caf['hasta'] ) ) {
+							$caf['hasta'] = (int) $caf['hasta'];
+					}
+						$filtered[] = $caf;
+				}
+
+					$data['cafs']             = $filtered;
+					$data['caf_path']         = array();
+					$data['cafs_hidden']      = $hidden;
+					$data['environment_slug'] = $environment;
+					self::$cache              = $data;
+
+					return $data;
+			}
+		}
+
+			self::$cache = array();
+
+			return self::$cache;
+	}
+
+		/**
+		 * Clears the cached settings so that the next call performs a fresh read.
+		 */
+	public static function clear_cache(): void {
+			self::$cache = null;
+	}
+
+		/**
+		 * Returns raw settings as stored in WordPress without filtering.
+		 *
+		 * @return array<string,mixed>
+		 */
+	public function get_raw_settings(): array {
+		if ( function_exists( 'get_option' ) ) {
+				$data = get_option( self::OPTION_NAME, array() );
+				return is_array( $data ) ? $data : array();
+		}
+			return array();
+	}
+
+		/**
+		 * Normalizes an environment value to either test or production.
+		 */
+	public static function normalize_environment_slug( $value ): string {
+			$raw = is_string( $value ) ? $value : (string) $value;
+			$raw = strtolower( trim( $raw ) );
+		if ( in_array( $raw, array( '1', 'prod', 'production', 'prod.', 'live' ), true ) ) {
+				return self::ENV_PROD;
+		}
+			return self::ENV_TEST;
+	}
 
 		/**
 		 * Encrypts a value using a key derived from WordPress salts.
@@ -148,10 +151,10 @@ $data['cafs'] = $all_cafs;
 				return base64_encode( $nonce . $cipher );
 		}
 
-		$iv     = random_bytes( 16 );
-		$cipher = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
-		$cipher = $cipher ? $cipher : '';
-		return base64_encode( $iv . $cipher );
+			$iv     = random_bytes( 16 );
+			$cipher = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+			$cipher = $cipher ? $cipher : '';
+			return base64_encode( $iv . $cipher );
 	}
 
 		/**

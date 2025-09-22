@@ -32,7 +32,7 @@ class SettingsPage {
 		add_settings_section( 'sii_boleta_emitter', __( 'Emitter', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'rut_emisor', __( 'RUT', 'sii-boleta-dte' ), array( $this, 'field_rut_emisor' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'razon_social', __( 'Razón Social', 'sii-boleta-dte' ), array( $this, 'field_razon_social' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
-                add_settings_field( 'giro', __( 'Giros económicos', 'sii-boleta-dte' ), array( $this, 'field_giro' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
+				add_settings_field( 'giro', __( 'Giros económicos', 'sii-boleta-dte' ), array( $this, 'field_giro' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'direccion', __( 'Dirección', 'sii-boleta-dte' ), array( $this, 'field_direccion' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'comuna', __( 'Comuna', 'sii-boleta-dte' ), array( $this, 'field_comuna' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'acteco', __( 'Código Acteco', 'sii-boleta-dte' ), array( $this, 'field_acteco' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
@@ -76,43 +76,43 @@ class SettingsPage {
 				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
 	}
 
-        public function field_giro(): void {
-                // phpcs:disable WordPress.WhiteSpace.ControlStructureSpacing,WordPress.WhiteSpace.ScopeIndent,WordPress.WhiteSpace.TabIndentation,Generic.Arrays.ArrayIndentation,PEAR.Functions.FunctionCallSignature
-                $settings = $this->settings->get_settings();
-                $values   = array();
-                if ( isset( $settings['giros'] ) && is_array( $settings['giros'] ) ) {
-                        foreach ( $settings['giros'] as $giro ) {
-                                $giro = trim( (string) $giro );
-                                if ( '' !== $giro ) {
-                                        $values[] = $giro;
-                                }
-                        }
-                }
+	public function field_giro(): void {
+			// phpcs:disable WordPress.WhiteSpace.ControlStructureSpacing,WordPress.WhiteSpace.ScopeIndent,WordPress.WhiteSpace.TabIndentation,Generic.Arrays.ArrayIndentation,PEAR.Functions.FunctionCallSignature
+			$settings = $this->settings->get_settings();
+			$values   = array();
+		if ( isset( $settings['giros'] ) && is_array( $settings['giros'] ) ) {
+			foreach ( $settings['giros'] as $giro ) {
+				$giro = trim( (string) $giro );
+				if ( '' !== $giro ) {
+						$values[] = $giro;
+				}
+			}
+		}
 
-                if ( empty( $values ) && ! empty( $settings['giro'] ) ) {
-                        $values[] = (string) $settings['giro'];
-                }
+		if ( empty( $values ) && ! empty( $settings['giro'] ) ) {
+				$values[] = (string) $settings['giro'];
+		}
 
-                if ( empty( $values ) ) {
-                        $values[] = '';
-                }
+		if ( empty( $values ) ) {
+				$values[] = '';
+		}
 
-                $field_name = esc_attr( Settings::OPTION_NAME ) . '[giros][]';
-                $rows       = '';
-                foreach ( $values as $value ) {
-                        $value_attr = esc_attr( $value );
-                        $rows      .= '<div class="sii-giros-row" style="margin-bottom:6px;display:flex;gap:6px;align-items:center">';
-                        $rows      .= '<input type="text" class="regular-text sii-input-wide" name="' . $field_name . '" value="' . $value_attr . '" />';
-                        $rows      .= '<button type="button" class="button sii-remove-giro" aria-label="' . esc_attr__( 'Eliminar giro', 'sii-boleta-dte' ) . '">&times;</button>';
-                        $rows      .= '</div>';
-                }
+			$field_name = esc_attr( Settings::OPTION_NAME ) . '[giros][]';
+			$rows       = '';
+		foreach ( $values as $value ) {
+				$value_attr = esc_attr( $value );
+				$rows      .= '<div class="sii-giros-row" style="margin-bottom:6px;display:flex;gap:6px;align-items:center">';
+				$rows      .= '<input type="text" class="regular-text sii-input-wide" name="' . $field_name . '" value="' . $value_attr . '" />';
+				$rows      .= '<button type="button" class="button sii-remove-giro" aria-label="' . esc_attr__( 'Eliminar giro', 'sii-boleta-dte' ) . '">&times;</button>';
+				$rows      .= '</div>';
+		}
 
-                $add_label    = esc_html__( 'Agregar giro', 'sii-boleta-dte' );
-                $description  = esc_html__( 'Agrega los giros económicos disponibles para tu empresa. Podrás elegir uno al generar el DTE.', 'sii-boleta-dte' );
-                $option_name  = esc_attr( Settings::OPTION_NAME );
-                $remove_label = esc_attr__( 'Eliminar giro', 'sii-boleta-dte' );
+			$add_label    = esc_html__( 'Agregar giro', 'sii-boleta-dte' );
+			$description  = esc_html__( 'Agrega los giros económicos disponibles para tu empresa. Podrás elegir uno al generar el DTE.', 'sii-boleta-dte' );
+			$option_name  = esc_attr( Settings::OPTION_NAME );
+			$remove_label = esc_attr__( 'Eliminar giro', 'sii-boleta-dte' );
 
-                $template = <<<HTML
+			$template = <<<HTML
 <div id="sii-giros-container">{$rows}</div>
 <p><button type="button" class="button" id="sii-add-giro">{$add_label}</button></p>
 <p class="description">{$description}</p>
@@ -186,9 +186,9 @@ class SettingsPage {
 </script>
 HTML;
 
-                echo $template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                // phpcs:enable
-        }
+			echo $template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			// phpcs:enable
+	}
 
 	public function field_direccion(): void {
 		$settings = $this->settings->get_settings();
@@ -214,15 +214,15 @@ HTML;
 		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[cdg_sii_sucur]" value="' . $value . '" />';
 	}
 
-    public function field_cert_path(): void {
-        $settings = $this->settings->get_settings();
-        $value    = esc_attr( $settings['cert_path'] ?? '' );
-        echo '<div class="sii-dte-cert-row">';
-        echo '<input type="file" id="sii-dte-cert-file" name="cert_file" accept=".p12,.pfx" />';
-        echo '<input type="text" id="sii-dte-cert-path" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_path]" value="' . $value . '" placeholder="/ruta/al/certificado.p12" class="regular-text" />';
-        echo '</div>';
-        echo '<p class="description">' . esc_html__( 'Puedes subir un archivo .p12/.pfx o ingresar una ruta absoluta en el servidor.', 'sii-boleta-dte' ) . '</p>';
-    }
+	public function field_cert_path(): void {
+		$settings = $this->settings->get_settings();
+		$value    = esc_attr( $settings['cert_path'] ?? '' );
+		echo '<div class="sii-dte-cert-row">';
+		echo '<input type="file" id="sii-dte-cert-file" name="cert_file" accept=".p12,.pfx" />';
+		echo '<input type="text" id="sii-dte-cert-path" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_path]" value="' . $value . '" placeholder="/ruta/al/certificado.p12" class="regular-text" />';
+		echo '</div>';
+		echo '<p class="description">' . esc_html__( 'Puedes subir un archivo .p12/.pfx o ingresar una ruta absoluta en el servidor.', 'sii-boleta-dte' ) . '</p>';
+	}
 
 	public function field_cert_pass(): void {
 		echo '<input type="password" name="' . esc_attr( Settings::OPTION_NAME ) . '[cert_pass]" value="" autocomplete="off" />';
@@ -312,18 +312,18 @@ HTML;
 	/**
 	 * Outputs the settings page markup.
 	 */
-    public function render_page(): void {
-            echo '<div class="wrap">';
-            echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
-            // Enable file uploads in settings form.
-            echo '<form method="post" action="options.php" enctype="multipart/form-data">';
-            settings_fields( Settings::OPTION_GROUP );
-            do_settings_sections( 'sii-boleta-dte' );
-            submit_button();
-            echo '</form>';
-            $this->render_requirements_check();
-            echo '</div>';
-    }
+	public function render_page(): void {
+			echo '<div class="wrap">';
+			echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
+			// Enable file uploads in settings form.
+			echo '<form method="post" action="options.php" enctype="multipart/form-data">';
+			settings_fields( Settings::OPTION_GROUP );
+			do_settings_sections( 'sii-boleta-dte' );
+			submit_button();
+			echo '</form>';
+			$this->render_requirements_check();
+			echo '</div>';
+	}
 
 		/** Displays a quick checklist to verify certification readiness. */
 	private function render_requirements_check(): void {
@@ -369,27 +369,27 @@ HTML;
 			$output['razon_social'] = sanitize_text_field( $input['razon_social'] );
 		}
 
-                if ( isset( $input['giros'] ) ) {
-                        $giros = is_array( $input['giros'] ) ? $input['giros'] : explode( "\n", (string) $input['giros'] );
-                        $sanitized = array();
-                        foreach ( $giros as $giro ) {
-                                $value = sanitize_text_field( (string) $giro );
-                                if ( '' !== $value ) {
-                                        $sanitized[] = $value;
-                                }
-                        }
-                        if ( ! empty( $sanitized ) ) {
-                                $output['giros'] = array_values( array_unique( $sanitized ) );
-                                $output['giro']  = $output['giros'][0];
-                        } else {
-                                $output['giros'] = array();
-                                $output['giro']  = '';
-                        }
-                } elseif ( isset( $input['giro'] ) ) {
-                                $value           = sanitize_text_field( $input['giro'] );
-                                $output['giro']  = $value;
-                                $output['giros'] = '' === $value ? array() : array( $value );
-                }
+		if ( isset( $input['giros'] ) ) {
+				$giros     = is_array( $input['giros'] ) ? $input['giros'] : explode( "\n", (string) $input['giros'] );
+				$sanitized = array();
+			foreach ( $giros as $giro ) {
+						$value = sanitize_text_field( (string) $giro );
+				if ( '' !== $value ) {
+					$sanitized[] = $value;
+				}
+			}
+			if ( ! empty( $sanitized ) ) {
+							$output['giros'] = array_values( array_unique( $sanitized ) );
+							$output['giro']  = $output['giros'][0];
+			} else {
+				$output['giros'] = array();
+				$output['giro']  = '';
+			}
+		} elseif ( isset( $input['giro'] ) ) {
+						$value           = sanitize_text_field( $input['giro'] );
+						$output['giro']  = $value;
+						$output['giros'] = '' === $value ? array() : array( $value );
+		}
 
 		if ( isset( $input['direccion'] ) ) {
 			$output['direccion'] = sanitize_text_field( $input['direccion'] );
@@ -407,51 +407,49 @@ HTML;
 			$output['cdg_sii_sucur'] = sanitize_text_field( $input['cdg_sii_sucur'] );
 		}
 
-        // Handle certificate upload if present.
-        if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {
-            $tmp  = (string) $_FILES['cert_file']['tmp_name'];
-            $name = sanitize_file_name( (string) ( $_FILES['cert_file']['name'] ?? 'cert.p12' ) );
-            $ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-            if ( ! in_array( $ext, array( 'p12', 'pfx' ), true ) ) {
-                add_settings_error( 'cert_file', 'invalid_ext', __( 'Certificate must be a .p12 or .pfx file.', 'sii-boleta-dte' ) );
-            } elseif ( ! file_exists( $tmp ) ) {
-                add_settings_error( 'cert_file', 'missing_tmp', __( 'Upload failed: temporary file not found.', 'sii-boleta-dte' ) );
-            } else {
-                $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => WP_CONTENT_DIR . '/uploads' );
-                $base    = rtrim( (string) ( $uploads['basedir'] ?? ( WP_CONTENT_DIR . '/uploads' ) ), '/\\' );
-                $dir     = $base . '/sii-boleta-dte';
-                if ( function_exists( 'wp_mkdir_p' ) ) {
-                    wp_mkdir_p( $dir );
-                } else {
-                    if ( ! is_dir( $dir ) ) {
-                        @mkdir( $dir, 0755, true );
-                    }
-                }
-                $dest = $dir . '/' . $name;
-                if ( file_exists( $dest ) ) {
-                    $filename = pathinfo( $name, PATHINFO_FILENAME );
-                    $dest     = $dir . '/' . $filename . '-' . time() . '.' . $ext;
-                }
-                if ( @move_uploaded_file( $tmp, $dest ) ) {
-                    $output['cert_path'] = $dest;
-                } else {
-                    add_settings_error( 'cert_file', 'move_failed', __( 'Could not save the uploaded certificate.', 'sii-boleta-dte' ) );
-                }
-            }
-        } elseif ( isset( $input['cert_path'] ) ) {
-            // Manual path entered by user; keep only file name if a path was provided for safety.
-            $path = trim( (string) $input['cert_path'] );
-            if ( '' !== $path ) {
-                // Allow absolute paths; otherwise, sanitize to filename.
-                if ( preg_match( '#^[a-zA-Z]:\\\\|^/|^\\\\#', $path ) ) {
-                    $output['cert_path'] = sanitize_text_field( $path );
-                } else {
-                    $output['cert_path'] = sanitize_file_name( $path );
-                }
-            } else {
-                $output['cert_path'] = '';
-            }
-        }
+		// Handle certificate upload if present.
+		if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$tmp  = (string) $_FILES['cert_file']['tmp_name']; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$name = sanitize_file_name( (string) ( $_FILES['cert_file']['name'] ?? 'cert.p12' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+			if ( ! in_array( $ext, array( 'p12', 'pfx' ), true ) ) {
+				add_settings_error( 'cert_file', 'invalid_ext', __( 'Certificate must be a .p12 or .pfx file.', 'sii-boleta-dte' ) );
+			} elseif ( ! file_exists( $tmp ) ) {
+				add_settings_error( 'cert_file', 'missing_tmp', __( 'Upload failed: temporary file not found.', 'sii-boleta-dte' ) );
+			} else {
+				$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => WP_CONTENT_DIR . '/uploads' );
+				$base    = rtrim( (string) ( $uploads['basedir'] ?? ( WP_CONTENT_DIR . '/uploads' ) ), '/\\' );
+				$dir     = $base . '/sii-boleta-dte';
+				if ( function_exists( 'wp_mkdir_p' ) ) {
+					wp_mkdir_p( $dir );
+				} elseif ( ! is_dir( $dir ) ) {
+												@mkdir( $dir, 0755, true );
+				}
+								$dest = $dir . '/' . $name;
+				if ( file_exists( $dest ) ) {
+					$filename = pathinfo( $name, PATHINFO_FILENAME );
+					$dest     = $dir . '/' . $filename . '-' . time() . '.' . $ext;
+				}
+				if ( @move_uploaded_file( $tmp, $dest ) ) {
+					$output['cert_path'] = $dest;
+				} else {
+					add_settings_error( 'cert_file', 'move_failed', __( 'Could not save the uploaded certificate.', 'sii-boleta-dte' ) );
+				}
+			}
+		} elseif ( isset( $input['cert_path'] ) ) {
+			// Manual path entered by user; keep only file name if a path was provided for safety.
+			$path = trim( (string) $input['cert_path'] );
+			if ( '' !== $path ) {
+				// Allow absolute paths; otherwise, sanitize to filename.
+				if ( preg_match( '#^[a-zA-Z]:\\\\|^/|^\\\\#', $path ) ) {
+					$output['cert_path'] = sanitize_text_field( $path );
+				} else {
+					$output['cert_path'] = sanitize_file_name( $path );
+				}
+			} else {
+				$output['cert_path'] = '';
+			}
+		}
 
 		if ( isset( $input['environment'] ) ) {
 				$output['environment'] = intval( $input['environment'] );
@@ -486,9 +484,11 @@ HTML;
 			$output['smtp_profile'] = sanitize_text_field( $input['smtp_profile'] );
 		}
 
-			$output['enable_logging'] = empty( $input['enable_logging'] ) ? 0 : 1;
+						$output['enable_logging'] = empty( $input['enable_logging'] ) ? 0 : 1;
 
-			return $output;
+						Settings::clear_cache();
+
+						return $output;
 	}
 }
 

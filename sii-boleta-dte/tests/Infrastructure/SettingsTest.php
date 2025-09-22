@@ -23,6 +23,7 @@ use Sii\BoletaDte\Infrastructure\Settings;
 class SettingsTest extends TestCase {
         protected function setUp(): void {
                 $GLOBALS['wp_options'] = array();
+                Settings::clear_cache();
         }
 
         public function test_get_settings_filters_by_environment(): void {
@@ -58,6 +59,25 @@ array(
                 $this->assertSame( 1, $result['cafs_hidden'] );
                 $this->assertCount( 2, $result['cafs'] );
 $this->assertSame( array(), $result['caf_path'] );
+        }
+
+        public function test_get_settings_uses_cache_until_cleared(): void {
+$GLOBALS['wp_options'][ Settings::OPTION_NAME ] = array(
+'giro'  => 'Retail',
+'giros' => array( 'Retail' ),
+);
+
+                $settings = new Settings();
+                $first    = $settings->get_settings();
+
+$GLOBALS['wp_options'][ Settings::OPTION_NAME ] = array();
+
+                $second = $settings->get_settings();
+                $this->assertSame( $first, $second );
+
+                Settings::clear_cache();
+                $third = $settings->get_settings();
+                $this->assertNotEquals( $first, $third );
         }
 
         public function test_normalize_environment_slug(): void {

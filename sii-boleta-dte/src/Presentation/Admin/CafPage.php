@@ -118,6 +118,8 @@ class CafPage {
         echo '<input type="number" name="start" id="sii-boleta-folio-start" min="1" required />';
         echo '<label for="sii-boleta-folio-quantity">' . esc_html__( 'Cantidad de folios', 'sii-boleta-dte' ) . '</label>';
         echo '<input type="number" name="quantity" id="sii-boleta-folio-quantity" min="1" required />';
+        echo '<label for="sii-boleta-folio-end">' . esc_html__( 'Folio final', 'sii-boleta-dte' ) . '</label>';
+        echo '<input type="number" id="sii-boleta-folio-end" readonly />';
         echo '<div class="sii-boleta-modal-actions">';
         echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar', 'sii-boleta-dte' ) . '</button>';
         echo '<button type="button" class="button" id="sii-boleta-folio-cancel">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</button>';

@@ -35,17 +35,12 @@ class SettingsMigration {
         // Legacy CAF paths stored separately.
         $caf_paths = self::get_option_value( 'sii_boleta_dte_caf_paths', array() );
         if ( is_array( $caf_paths ) && ! empty( $caf_paths ) ) {
-            foreach ( $caf_paths as $tipo => $path ) {
-                self::maybe_import_caf_path( (int) $tipo, (string) $path, $active_env );
-            }
             self::delete_option_value( 'sii_boleta_dte_caf_paths' );
         }
 
         // Legacy per-DTE CAF options (e.g. sii_boleta_dte_caf_39).
         foreach ( array( 33, 39, 41, 52 ) as $tipo ) {
-            $opt = self::get_option_value( 'sii_boleta_dte_caf_' . $tipo );
-            if ( $opt ) {
-                self::maybe_import_caf_path( (int) $tipo, (string) $opt, $active_env );
+            if ( self::get_option_value( 'sii_boleta_dte_caf_' . $tipo ) ) {
                 self::delete_option_value( 'sii_boleta_dte_caf_' . $tipo );
             }
         }
@@ -71,27 +66,6 @@ class SettingsMigration {
         self::update_option_value( Settings::OPTION_NAME, $current );
         self::migrate_logs();
         self::update_option_value( 'sii_boleta_dte_migrated', 1 );
-    }
-
-    /**
-     * Attempts to import a CAF XML file by reading its folio range.
-     */
-    private static function maybe_import_caf_path( int $tipo, string $path, string $environment ): void {
-        if ( ! $tipo || '' === $path ) {
-            return;
-        }
-        if ( ! file_exists( $path ) ) {
-            return;
-        }
-        $xml = @simplexml_load_file( $path );
-        if ( ! $xml || ! isset( $xml->CAF->DA->RNG->D, $xml->CAF->DA->RNG->H ) ) {
-            return;
-        }
-        $desde = (int) $xml->CAF->DA->RNG->D;
-        $hasta = (int) $xml->CAF->DA->RNG->H;
-        if ( $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
-            FoliosDb::insert( $tipo, $desde, $hasta, $environment );
-        }
     }
 
     /**

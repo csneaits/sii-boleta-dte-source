@@ -76,11 +76,33 @@ class SettingsPage {
 				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[razon_social]" value="' . $value . '" />';
 	}
 
-	public function field_giro(): void {
-				$settings = $this->settings->get_settings();
-				$value    = esc_attr( $settings['giro'] ?? '' );
-				echo '<input type="text" class="regular-text sii-input-wide" name="' . esc_attr( Settings::OPTION_NAME ) . '[giro]" value="' . $value . '" />';
-	}
+    public function field_giro(): void {
+            $settings = $this->settings->get_settings();
+            $giros    = array();
+            if ( isset( $settings['giros'] ) && is_array( $settings['giros'] ) ) {
+                    $giros = array_values( array_filter( array_map( 'strval', $settings['giros'] ) ) );
+            }
+            if ( empty( $giros ) && ! empty( $settings['giro'] ) ) {
+                    $giros = array( (string) $settings['giro'] );
+            }
+            if ( empty( $giros ) ) {
+                    $giros = array( '' );
+            }
+
+            $option_key   = esc_attr( Settings::OPTION_NAME );
+            $remove_label = esc_attr__( 'Remove giro', 'sii-boleta-dte' );
+            echo '<div id="sii-dte-giros-container" class="sii-dte-giros">';
+            foreach ( $giros as $giro ) {
+                    $value = esc_attr( $giro );
+                    echo '<div class="sii-dte-giro-row">';
+                    echo '<input type="text" class="regular-text sii-input-wide" name="' . $option_key . '[giros][]" value="' . $value . '" />';
+                    echo '<button type="button" class="button sii-dte-remove-giro" aria-label="' . $remove_label . '" title="' . $remove_label . '">&times;</button>';
+                    echo '</div>';
+            }
+            echo '</div>';
+            echo '<p><button type="button" class="button" id="sii-dte-add-giro" data-remove-label="' . $remove_label . '">' . esc_html__( 'Add giro', 'sii-boleta-dte' ) . '</button></p>';
+            echo '<p class="description">' . esc_html__( 'The first giro will be used as the default when issuing documents.', 'sii-boleta-dte' ) . '</p>';
+    }
 
 	public function field_direccion(): void {
 		$settings = $this->settings->get_settings();
@@ -261,9 +283,37 @@ class SettingsPage {
 			$output['razon_social'] = sanitize_text_field( $input['razon_social'] );
 		}
 
-		if ( isset( $input['giro'] ) ) {
-			$output['giro'] = sanitize_text_field( $input['giro'] );
-		}
+                if ( isset( $input['giros'] ) ) {
+                        $giros_raw = $input['giros'];
+                        $giros     = array();
+                        if ( is_array( $giros_raw ) ) {
+                                foreach ( $giros_raw as $giro_value ) {
+                                        $giro = sanitize_text_field( (string) $giro_value );
+                                        if ( '' !== $giro ) {
+                                                $giros[] = $giro;
+                                        }
+                                }
+                        } elseif ( is_string( $giros_raw ) ) {
+                                $giro = sanitize_text_field( $giros_raw );
+                                if ( '' !== $giro ) {
+                                        $giros[] = $giro;
+                                }
+                        }
+                        $output['giros'] = $giros;
+                        if ( ! empty( $giros ) ) {
+                                $output['giro'] = $giros[0];
+                        } elseif ( isset( $output['giro'] ) ) {
+                                unset( $output['giro'] );
+                        }
+                }
+
+                if ( isset( $input['giro'] ) && ! isset( $input['giros'] ) ) {
+                        $giro = sanitize_text_field( $input['giro'] );
+                        $output['giro'] = $giro;
+                        if ( ! isset( $output['giros'] ) || ! is_array( $output['giros'] ) || empty( $output['giros'] ) ) {
+                                $output['giros'] = '' === $giro ? array() : array( $giro );
+                        }
+                }
 
 		if ( isset( $input['direccion'] ) ) {
 			$output['direccion'] = sanitize_text_field( $input['direccion'] );

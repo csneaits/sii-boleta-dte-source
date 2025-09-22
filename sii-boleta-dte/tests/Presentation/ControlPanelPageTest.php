@@ -4,6 +4,10 @@ use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\QueueProcessor;
+use Sii\BoletaDte\Application\RvdManager;
+use Sii\BoletaDte\Application\LibroBoletas;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Infrastructure\TokenManager;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 
@@ -16,6 +20,8 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) { function wp_verify_nonce() { ret
 if ( ! function_exists( 'current_user_can' ) ) { function current_user_can() { return true; } }
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
+if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
+if ( ! function_exists( 'submit_button' ) ) { function submit_button() {} }
 if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = 0 ) { return $d; } }
 
 class ControlPanelPageTest extends TestCase {
@@ -29,7 +35,7 @@ class ControlPanelPageTest extends TestCase {
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array() ) );
         $folio = $this->createMock( FolioManager::class );
         $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
-        $page = new ControlPanelPage( $settings, $folio, $processor );
+        $page = $this->create_page( $settings, $folio, $processor );
         ob_start();
         $page->render_page();
         $html = ob_get_clean();
@@ -44,7 +50,7 @@ class ControlPanelPageTest extends TestCase {
         $folio = $this->createMock( FolioManager::class );
         $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
         ob_start();
-        $page = new ControlPanelPage( $settings, $folio, $processor );
+        $page = $this->create_page( $settings, $folio, $processor );
         $page->render_page();
         $html = ob_get_clean();
         $this->assertStringContainsString( 'Track ID', $html );
@@ -57,7 +63,7 @@ class ControlPanelPageTest extends TestCase {
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn( array() );
         $folio = $this->createMock( FolioManager::class );
-        $page = new ControlPanelPage( $settings, $folio, $processor );
+        $page = $this->create_page( $settings, $folio, $processor );
         $_POST['sii_boleta_queue_nonce'] = 'x';
         $page->handle_queue_action( 'cancel', $id );
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
@@ -70,10 +76,22 @@ class ControlPanelPageTest extends TestCase {
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn( array() );
         $folio = $this->createMock( FolioManager::class );
-        $page = new ControlPanelPage( $settings, $folio, $processor );
+        $page = $this->create_page( $settings, $folio, $processor );
         $_POST['sii_boleta_queue_nonce'] = 'x';
         $page->handle_queue_action( 'requeue', $id );
         $jobs = QueueDb::get_pending_jobs();
         $this->assertSame( 0, $jobs[0]['attempts'] );
+    }
+
+    private function create_page( Settings $settings, FolioManager $folio, QueueProcessor $processor ): ControlPanelPage {
+        $rvd = $this->createMock( RvdManager::class );
+        $rvd->method( 'generate_xml' )->willReturn( '<ConsumoFolios />' );
+        $rvd->method( 'validate_rvd_xml' )->willReturn( true );
+        $libro = $this->createMock( LibroBoletas::class );
+        $libro->method( 'validate_libro_xml' )->willReturn( true );
+        $api = $this->createMock( Api::class );
+        $token_manager = $this->createMock( TokenManager::class );
+        $token_manager->method( 'get_token' )->willReturn( 'token' );
+        return new ControlPanelPage( $settings, $folio, $processor, $rvd, $libro, $api, $token_manager );
     }
 }

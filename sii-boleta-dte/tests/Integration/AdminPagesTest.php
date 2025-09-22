@@ -9,6 +9,8 @@ use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\QueueProcessor;
+use Sii\BoletaDte\Application\RvdManager;
+use Sii\BoletaDte\Application\LibroBoletas;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
@@ -77,8 +79,16 @@ class AdminPagesTest extends TestCase {
             'job_id' => (string) $id,
             'sii_boleta_queue_nonce' => 'x',
         );
+        $rvd = $this->createMock( RvdManager::class );
+        $rvd->method( 'generate_xml' )->willReturn( '<ConsumoFolios />' );
+        $rvd->method( 'validate_rvd_xml' )->willReturn( true );
+        $libro = $this->createMock( LibroBoletas::class );
+        $libro->method( 'validate_libro_xml' )->willReturn( true );
+        $api_control = $this->createMock( Api::class );
+        $token_manager = $this->createMock( TokenManager::class );
+        $token_manager->method( 'get_token' )->willReturn( 'token' );
         ob_start();
-        $page = new ControlPanelPage( $settings, $folio, $processor );
+        $page = new ControlPanelPage( $settings, $folio, $processor, $rvd, $libro, $api_control, $token_manager );
         $page->render_page();
         ob_get_clean();
     }

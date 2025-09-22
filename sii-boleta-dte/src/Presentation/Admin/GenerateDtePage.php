@@ -43,9 +43,26 @@ class GenerateDtePage {
 
 	/** Outputs the page markup. */
     public function render_page(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
+                if ( ! current_user_can( 'manage_options' ) ) {
+                        return;
+                }
+                $settings_cfg      = $this->settings->get_settings();
+                $configured_giros  = array();
+                if ( isset( $settings_cfg['giros'] ) && is_array( $settings_cfg['giros'] ) ) {
+                        foreach ( $settings_cfg['giros'] as $giro_option ) {
+                                $giro_value = (string) $giro_option;
+                                if ( '' !== $giro_value ) {
+                                        $configured_giros[] = $giro_value;
+                                }
+                        }
+                }
+                $default_emitter_giro = '';
+                if ( isset( $settings_cfg['giro'] ) ) {
+                        $default_emitter_giro = (string) $settings_cfg['giro'];
+                }
+                if ( '' === $default_emitter_giro && ! empty( $configured_giros ) ) {
+                        $default_emitter_giro = $configured_giros[0];
+                }
                 $result = null;
                 if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
                                 $result = $this->process_post( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -58,6 +75,9 @@ class GenerateDtePage {
                 $val = static function( string $k ): string {
                         return isset( $_POST[ $k ] ) ? esc_attr( (string) $_POST[ $k ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 };
+                $current_emitter_giro = isset( $_POST['giro_emisor'] )
+                        ? (string) $_POST['giro_emisor'] // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                        : $default_emitter_giro;
                 $item0 = isset( $_POST['items'][0] ) && is_array( $_POST['items'][0] ) ? (array) $_POST['items'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 $i0d   = isset( $item0['desc'] ) ? esc_attr( (string) $item0['desc'] ) : '';
                 $i0q   = isset( $item0['qty'] ) ? esc_attr( (string) $item0['qty'] ) : '1';
@@ -139,6 +159,23 @@ class GenerateDtePage {
                                                                     <option value="<?php echo (int) $code; ?>"<?php echo selected( $sel_tipo, (int) $code, false ); ?>><?php echo esc_html( $label ); ?></option>
                                                                 <?php endforeach; ?>
                                                             </select>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th scope="row"><label for="sii-giro-emisor"><?php esc_html_e( 'Giro emisor', 'sii-boleta-dte' ); ?></label></th>
+                                                        <td>
+                                                            <?php if ( ! empty( $configured_giros ) ) : ?>
+                                                                <select id="sii-giro-emisor" name="giro_emisor">
+                                                                    <?php foreach ( $configured_giros as $giro_option ) :
+                                                                        $value = esc_attr( $giro_option );
+                                                                        $is_selected = (string) $current_emitter_giro === (string) $giro_option ? ' selected' : '';
+                                                                        ?>
+                                                                        <option value="<?php echo $value; ?>"<?php echo $is_selected; ?>><?php echo esc_html( $giro_option ); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            <?php else : ?>
+                                                                <input type="text" id="sii-giro-emisor" name="giro_emisor" class="regular-text" value="<?php echo esc_attr( (string) $current_emitter_giro ); ?>" />
+                                                            <?php endif; ?>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -238,11 +275,35 @@ class GenerateDtePage {
 		if ( empty( $post['sii_boleta_generate_dte_nonce'] ) || ! \wp_verify_nonce( $post['sii_boleta_generate_dte_nonce'], 'sii_boleta_generate_dte' ) ) {
 			return array( 'error' => \__( 'Invalid nonce.', 'sii-boleta-dte' ) );
 		}
-                $preview       = isset( $post['preview'] );
-                $available     = $this->get_available_types();
-                $rut_raw       = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
-                $razon         = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
-                $giro          = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
+                $settings_cfg     = $this->settings->get_settings();
+                $configured_giros = array();
+                if ( isset( $settings_cfg['giros'] ) && is_array( $settings_cfg['giros'] ) ) {
+                        foreach ( $settings_cfg['giros'] as $giro_option ) {
+                                $giro_value = (string) $giro_option;
+                                if ( '' !== $giro_value ) {
+                                        $configured_giros[] = $giro_value;
+                                }
+                        }
+                }
+                $default_emitter_giro = '';
+                if ( isset( $settings_cfg['giro'] ) ) {
+                        $default_emitter_giro = (string) $settings_cfg['giro'];
+                }
+                if ( '' === $default_emitter_giro && ! empty( $configured_giros ) ) {
+                        $default_emitter_giro = $configured_giros[0];
+                }
+                $preview   = isset( $post['preview'] );
+                $available = $this->get_available_types();
+                $rut_raw   = sanitize_text_field( (string) ( $post['rut'] ?? '' ) );
+                $razon     = sanitize_text_field( (string) ( $post['razon'] ?? '' ) );
+                $giro      = sanitize_text_field( (string) ( $post['giro'] ?? '' ) );
+                $giro_emisor = isset( $post['giro_emisor'] ) ? sanitize_text_field( (string) $post['giro_emisor'] ) : $default_emitter_giro;
+                if ( '' === $giro_emisor ) {
+                        $giro_emisor = $default_emitter_giro;
+                }
+                if ( '' !== $giro_emisor ) {
+                        $_POST['giro_emisor'] = $giro_emisor; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
                 $tipo          = (int) ( $post['tipo'] ?? ( array_key_first( $available ) ?? 39 ) );
                 if ( ! isset( $available[ $tipo ] ) ) {
                         $tipo = (int) ( array_key_first( $available ) ?? 39 );
@@ -333,6 +394,14 @@ class GenerateDtePage {
                 ),
                 'Detalles' => $items,
         );
+        if ( '' !== $giro_emisor ) {
+                $data['Encabezado'] = array(
+                        'Emisor' => array(
+                                'GiroEmisor' => $giro_emisor,
+                                'GiroEmis'   => $giro_emisor,
+                        ),
+                );
+        }
         if ( '' !== $dir_recep ) { $data['Receptor']['DirRecep'] = $dir_recep; }
         if ( '' !== $cmna_recep ) { $data['Receptor']['CmnaRecep'] = $cmna_recep; }
         if ( '' !== $ciudad_recep ) { $data['Receptor']['CiudadRecep'] = $ciudad_recep; }
@@ -350,8 +419,6 @@ class GenerateDtePage {
                         $data['Referencias'] = array( $ref );
                 }
         }
-        $settings_cfg = $this->settings->get_settings();
-
                 $xml  = $this->engine->generate_dte_xml( $data, $tipo, $preview );
                 if ( is_wp_error( $xml ) ) {
                         $code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';

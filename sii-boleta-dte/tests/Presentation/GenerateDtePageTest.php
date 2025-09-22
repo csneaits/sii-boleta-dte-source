@@ -50,13 +50,31 @@ if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } 
 class GenerateDtePageTest extends TestCase {
     public function test_process_post_generates_dte(): void {
         $settings = $this->createMock( Settings::class );
-        $settings->method( 'get_settings' )->willReturn( array( 'environment' => 'test' ) );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Principal',
+                'giros'       => array( 'Principal', 'Alternativo' ),
+            )
+        );
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
         $api = $this->createMock( Api::class );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
         $engine = $this->createMock( DteEngine::class );
-        $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+        $engine->expects( $this->once() )
+            ->method( 'generate_dte_xml' )
+            ->with(
+                $this->callback( function ( $data ) {
+                    $this->assertSame( 'Giro', $data['Receptor']['GiroRecep'] );
+                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                    return true;
+                } ),
+                39,
+                false
+            )
+            ->willReturn( '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
@@ -67,6 +85,7 @@ class GenerateDtePageTest extends TestCase {
             'rut' => '1-9',
             'razon' => 'Cliente',
             'giro' => 'Giro',
+            'giro_emisor' => 'Mi Giro',
             'items' => array(
                 array(
                     'desc' => 'Item',
@@ -100,6 +119,7 @@ class GenerateDtePageTest extends TestCase {
         $settings->method( 'get_settings' )->willReturn(
             array(
                 'environment' => 'test',
+                'giro'        => 'Principal',
                 'rut_emisor'  => '78.103.459-2',
             )
         );
@@ -121,6 +141,7 @@ class GenerateDtePageTest extends TestCase {
                 'rut' => '1-9',
                 'razon' => 'Cliente',
                 'giro' => 'Giro',
+                'giro_emisor' => 'Mi Giro',
                 'items' => array(
                     array(
                         'desc' => 'Item',
@@ -147,5 +168,53 @@ class GenerateDtePageTest extends TestCase {
         if ( file_exists( $tmpPdf ) ) {
             unlink( $tmpPdf );
         }
+    }
+
+    public function test_process_post_uses_default_emitter_giro(): void {
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Configurado',
+                'giros'       => array( 'Configurado', 'Extra' ),
+            )
+        );
+        $token = $this->createMock( TokenManager::class );
+        $token->method( 'get_token' )->willReturn( 'tok' );
+        $api = $this->createMock( Api::class );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
+        $engine = $this->createMock( DteEngine::class );
+        $engine->expects( $this->once() )
+            ->method( 'generate_dte_xml' )
+            ->with(
+                $this->callback( function ( $data ) {
+                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                    return true;
+                } ),
+                39,
+                false
+            )
+            ->willReturn( '<xml/>' );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $folio = $this->createMock( FolioManager::class );
+        $folio->method( 'get_next_folio' )->willReturn( 1 );
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $result = $page->process_post( array(
+            'sii_boleta_generate_dte_nonce' => 'good',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro Cliente',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        ) );
+        $this->assertSame( '123', $result['track_id'] );
     }
 }

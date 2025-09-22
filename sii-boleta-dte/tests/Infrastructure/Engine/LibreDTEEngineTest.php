@@ -64,6 +64,8 @@ class LibreDTEEngineTest extends TestCase {
 
         $this->assertIsArray($sanitized);
         $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntTotal']);
+        $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntNeto']);
+        $this->assertSame(0, $sanitized['Encabezado']['Totales']['IVA']);
     }
 
     public function test_parse_document_data_from_xml_mirrors_emitter_aliases(): void {

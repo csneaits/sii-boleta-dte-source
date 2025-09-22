@@ -18,13 +18,13 @@ class FolioManager {
 	 * Gets next folio for a given type.
 	 */
     public function get_next_folio( int $type ) {
-        $ranges = FoliosDb::for_type( $type );
+        $environment = $this->settings->get_environment();
+        $ranges      = FoliosDb::for_type( $type, $environment );
         if ( empty( $ranges ) ) {
             return $this->no_folio_error();
         }
 
-        $key  = 'sii_boleta_dte_last_folio_' . $type;
-        $last = function_exists( 'get_option' ) ? (int) get_option( $key, 0 ) : 0;
+        $last = Settings::get_last_folio_value( $type, $environment );
         $next = null;
         foreach ( $ranges as $range ) {
             $desde = (int) $range['desde'];
@@ -43,9 +43,7 @@ class FolioManager {
             return $this->no_folio_error();
         }
 
-        if ( function_exists( 'update_option' ) ) {
-            update_option( $key, $next );
-        }
+        Settings::update_last_folio_value( $type, $environment, $next );
 
         return $next;
     }
@@ -56,7 +54,7 @@ class FolioManager {
 	 * @return array<string,string>
 	 */
     public function get_caf_info( int $type = 39 ): array {
-        $ranges = FoliosDb::for_type( $type );
+        $ranges = FoliosDb::for_type( $type, $this->settings->get_environment() );
         if ( empty( $ranges ) ) {
             return array();
         }

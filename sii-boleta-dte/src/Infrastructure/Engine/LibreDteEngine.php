@@ -92,7 +92,8 @@ class LibreDteEngine implements DteEngine {
                 } elseif ( isset( $data['Encabezado']['IdDoc']['Folio'] ) ) {
                         $folio_number = (int) $data['Encabezado']['IdDoc']['Folio'];
                 }
-                if ( $folio_number > 0 && ! FoliosDb::find_for_folio( $tipo, $folio_number ) ) {
+                $environment = $this->settings->get_environment();
+                if ( $folio_number > 0 && ! FoliosDb::find_for_folio( $tipo, $folio_number, $environment ) ) {
                         return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
                 }
 

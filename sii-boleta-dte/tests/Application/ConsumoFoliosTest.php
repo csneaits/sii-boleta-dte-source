@@ -23,7 +23,7 @@ if ( ! function_exists( 'get_option' ) ) {
 
 class ConsumoFoliosTest extends TestCase {
     public function test_generates_ranges() {
-        $GLOBALS['test_options']['sii_boleta_dte_last_folio_39'] = 10;
+        $GLOBALS['test_options']['sii_boleta_dte_last_folio_0_39'] = 10;
         FoliosDb::purge();
         FoliosDb::insert( 39, 1, 30 );
         $settings = new Dummy_Settings([

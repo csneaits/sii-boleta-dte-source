@@ -80,9 +80,10 @@ class ControlPanelPage {
 						</thead>
 						<tbody>
 								<?php
-								foreach ( $types as $type ) :
-										$caf       = $this->folio_manager->get_caf_info( (int) $type );
-										$last      = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $type, 0 ) : 0;
+                                $environment = $this->settings->get_environment();
+                                foreach ( $types as $type ) :
+                                                                                $caf       = $this->folio_manager->get_caf_info( (int) $type );
+                                                                                $last      = Settings::get_last_folio_value( (int) $type, $environment );
 										$available = isset( $caf['H'] ) ? (int) $caf['H'] - $last : 0;
 									?>
 										<tr>

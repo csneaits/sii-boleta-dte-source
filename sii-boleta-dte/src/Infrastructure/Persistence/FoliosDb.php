@@ -3,6 +3,8 @@ namespace Sii\BoletaDte\Infrastructure\Persistence;
 
 /* phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared */
 
+use Sii\BoletaDte\Infrastructure\Settings;
+
 /**
  * Persists folio ranges configured from the admin UI.
  *
@@ -15,7 +17,7 @@ class FoliosDb {
     public const TABLE = 'sii_boleta_dte_folios';
 
     /**
-     * @var array<int,array{ id:int,tipo:int,desde:int,hasta:int,created_at:string,updated_at:string }>
+     * @var array<int,array{ id:int,tipo:int,desde:int,hasta:int,environment:string,created_at:string,updated_at:string }>
      */
     private static array $rows = array();
 
@@ -47,10 +49,12 @@ class FoliosDb {
             tipo smallint unsigned NOT NULL,
             folio_inicio bigint(20) unsigned NOT NULL,
             folio_fin bigint(20) unsigned NOT NULL,
+            environment varchar(20) NOT NULL DEFAULT '0',
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
-            KEY tipo (tipo, folio_inicio)
+            KEY tipo (tipo, folio_inicio),
+            KEY env_tipo (environment, tipo, folio_inicio)
         ) {$charset_collate};";
 
         if ( function_exists( 'dbDelta' ) ) {
@@ -63,7 +67,8 @@ class FoliosDb {
     /**
      * Inserts a new folio range.
      */
-    public static function insert( int $tipo, int $desde, int $hasta ): int {
+    public static function insert( int $tipo, int $desde, int $hasta, string $environment = '0' ): int {
+        $env = Settings::normalize_environment( $environment );
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
@@ -73,6 +78,7 @@ class FoliosDb {
                     'tipo'         => $tipo,
                     'folio_inicio' => $desde,
                     'folio_fin'    => $hasta,
+                    'environment'  => $env,
                     'created_at'   => $now,
                     'updated_at'   => $now,
                 )
@@ -91,6 +97,7 @@ class FoliosDb {
             'tipo'       => $tipo,
             'desde'      => $desde,
             'hasta'      => $hasta,
+            'environment'=> $env,
             'created_at' => $now,
             'updated_at' => $now,
         );
@@ -100,7 +107,8 @@ class FoliosDb {
     /**
      * Updates an existing folio range.
      */
-    public static function update( int $id, int $tipo, int $desde, int $hasta ): bool {
+    public static function update( int $id, int $tipo, int $desde, int $hasta, string $environment = '0' ): bool {
+        $env = Settings::normalize_environment( $environment );
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'update' ) ) {
@@ -110,6 +118,7 @@ class FoliosDb {
                     'tipo'         => $tipo,
                     'folio_inicio' => $desde,
                     'folio_fin'    => $hasta,
+                    'environment'  => $env,
                     'updated_at'   => $now,
                 ),
                 array( 'id' => $id )
@@ -125,9 +134,10 @@ class FoliosDb {
         }
 
         self::$use_memory              = true;
-        self::$rows[ $id ]['tipo']     = $tipo;
-        self::$rows[ $id ]['desde']    = $desde;
-        self::$rows[ $id ]['hasta']    = $hasta;
+        self::$rows[ $id ]['tipo']       = $tipo;
+        self::$rows[ $id ]['desde']      = $desde;
+        self::$rows[ $id ]['hasta']      = $hasta;
+        self::$rows[ $id ]['environment']= $env;
         self::$rows[ $id ]['updated_at'] = $now;
         return true;
     }
@@ -160,13 +170,14 @@ class FoliosDb {
     public static function get( int $id ): ?array {
         global $wpdb;
         if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_row' ) ) {
-            $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ( is_array( $row ) ) {
                 return array(
                     'id'         => (int) $row['id'],
                     'tipo'       => (int) $row['tipo'],
                     'desde'      => (int) $row['folio_inicio'],
                     'hasta'      => (int) $row['folio_fin'],
+                    'environment'=> Settings::normalize_environment( (string) $row['environment'] ),
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
                 );
@@ -182,10 +193,11 @@ class FoliosDb {
      *
      * @return array<int,array{id:int,tipo:int,desde:int,hasta:int,created_at:string,updated_at:string}>
      */
-    public static function all(): array {
+    public static function all( string $environment = '0' ): array {
+        $env = Settings::normalize_environment( $environment );
         global $wpdb;
         if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
-            $rows = $wpdb->get_results( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' ORDER BY tipo ASC, folio_inicio ASC', 'ARRAY_A' );
+            $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE environment = %s ORDER BY tipo ASC, folio_inicio ASC', $env ), 'ARRAY_A' );
             if ( ! is_array( $rows ) ) {
                 return array();
             }
@@ -196,6 +208,7 @@ class FoliosDb {
                     'tipo'       => (int) $row['tipo'],
                     'desde'      => (int) $row['folio_inicio'],
                     'hasta'      => (int) $row['folio_fin'],
+                    'environment'=> Settings::normalize_environment( (string) $row['environment'] ),
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
                 );
@@ -203,7 +216,13 @@ class FoliosDb {
             return $out;
         }
 
-        return array_values( self::$rows );
+        $out = array();
+        foreach ( self::$rows as $row ) {
+            if ( Settings::normalize_environment( (string) $row['environment'] ) === $env ) {
+                $out[] = $row;
+            }
+        }
+        return array_values( $out );
     }
 
     /**
@@ -211,8 +230,8 @@ class FoliosDb {
      *
      * @return array<int,array{id:int,tipo:int,desde:int,hasta:int,created_at:string,updated_at:string}>
      */
-    public static function for_type( int $tipo ): array {
-        $all = self::all();
+    public static function for_type( int $tipo, string $environment = '0' ): array {
+        $all = self::all( $environment );
         $out = array();
         foreach ( $all as $row ) {
             if ( (int) $row['tipo'] === $tipo ) {
@@ -234,8 +253,8 @@ class FoliosDb {
     /**
      * Checks whether a range overlaps another one for the same type.
      */
-    public static function overlaps( int $tipo, int $desde, int $hasta, int $exclude_id = 0 ): bool {
-        foreach ( self::for_type( $tipo ) as $row ) {
+    public static function overlaps( int $tipo, int $desde, int $hasta, int $exclude_id = 0, string $environment = '0' ): bool {
+        foreach ( self::for_type( $tipo, $environment ) as $row ) {
             if ( $exclude_id && (int) $row['id'] === $exclude_id ) {
                 continue;
             }
@@ -253,8 +272,8 @@ class FoliosDb {
      *
      * @return array{id:int,tipo:int,desde:int,hasta:int,created_at:string,updated_at:string}|null
      */
-    public static function find_for_folio( int $tipo, int $folio ): ?array {
-        foreach ( self::for_type( $tipo ) as $row ) {
+    public static function find_for_folio( int $tipo, int $folio, string $environment = '0' ): ?array {
+        foreach ( self::for_type( $tipo, $environment ) as $row ) {
             if ( $folio >= $row['desde'] && $folio <= $row['hasta'] ) {
                 return $row;
             }
@@ -263,8 +282,8 @@ class FoliosDb {
     }
 
     /** Indicates whether a document type has at least one range configured. */
-    public static function has_type( int $tipo ): bool {
-        foreach ( self::for_type( $tipo ) as $row ) {
+    public static function has_type( int $tipo, string $environment = '0' ): bool {
+        foreach ( self::for_type( $tipo, $environment ) as $row ) {
             if ( $row['hasta'] >= $row['desde'] ) {
                 return true;
             }

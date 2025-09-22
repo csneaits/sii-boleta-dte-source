@@ -25,7 +25,8 @@ input.sii-input-wide[type="text"] {
 }
 
 .sii-dte-cert-row,
-.sii-dte-caf-row {
+.sii-dte-caf-row,
+.sii-dte-giro-row {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -33,7 +34,8 @@ input.sii-input-wide[type="text"] {
 }
 
 .sii-dte-cert-row input[type="text"],
-.sii-dte-caf-row input[type="text"] {
+.sii-dte-caf-row input[type="text"],
+.sii-dte-giro-row input[type="text"] {
     flex: 1;
 }
 
@@ -47,6 +49,19 @@ input.sii-input-wide[type="text"] {
 }
 
 .sii-dte-caf-row .sii-dte-remove-caf:hover {
+    background: #d32f2f;
+}
+
+.sii-dte-giro-row .sii-dte-remove-giro {
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.sii-dte-giro-row .sii-dte-remove-giro:hover {
     background: #d32f2f;
 }
 

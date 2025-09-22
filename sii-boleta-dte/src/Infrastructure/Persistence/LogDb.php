@@ -67,7 +67,7 @@ KEY status (status)
                 $created = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
 
                 if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
-                        $wpdb->insert(
+                        $inserted = $wpdb->insert(
                                 self::table(),
                                 array(
                                         'track_id'  => $track_id,
@@ -76,7 +76,9 @@ KEY status (status)
                                         'created_at'=> $created,
                                 )
                         );
-                        return;
+                        if ( false !== $inserted ) {
+                                return;
+                        }
                 }
 
                 // Fallback for tests without database.

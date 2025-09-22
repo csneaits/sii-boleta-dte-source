@@ -31,6 +31,7 @@
     }
 
     let currentMode = 'add';
+    let baseQuantity = 0;
 
     function updateTypeOptions(excludedType) {
         if (!typeOptions.length) {
@@ -62,20 +63,36 @@
         typeField.value = selected;
     }
 
-    function calculateEndValue(start, quantity) {
-        const startNumber = Number.parseInt(start, 10);
-        const quantityNumber = Number.parseInt(quantity, 10);
-        if (Number.isNaN(startNumber) || Number.isNaN(quantityNumber) || startNumber <= 0 || quantityNumber <= 0) {
-            return '';
-        }
-        return String(startNumber + quantityNumber - 1);
-    }
-
     function updateEndField() {
         if (!endField) {
             return;
         }
-        endField.value = calculateEndValue(startField ? startField.value : '', qtyField ? qtyField.value : '');
+        const startValue = startField ? startField.value : '';
+        const startNumber = Number.parseInt(startValue, 10);
+        if (Number.isNaN(startNumber) || startNumber <= 0) {
+            endField.value = '';
+            return;
+        }
+        const quantityValue = qtyField ? qtyField.value : '';
+        if (currentMode === 'edit') {
+            let addition = Number.parseInt(quantityValue, 10);
+            if (Number.isNaN(addition) || addition < 0) {
+                addition = 0;
+            }
+            const totalQuantity = baseQuantity + addition;
+            if (totalQuantity <= 0) {
+                endField.value = '';
+                return;
+            }
+            endField.value = String(startNumber + totalQuantity - 1);
+            return;
+        }
+        const quantityNumber = Number.parseInt(quantityValue, 10);
+        if (Number.isNaN(quantityNumber) || quantityNumber <= 0) {
+            endField.value = '';
+            return;
+        }
+        endField.value = String(startNumber + quantityNumber - 1);
     }
 
     function openModal(mode, data) {
@@ -86,8 +103,16 @@
             idField.value = data.id;
             typeField.value = data.tipo;
             typeField.disabled = true;
+            baseQuantity = Number.parseInt(data.cantidad || '0', 10);
+            if (Number.isNaN(baseQuantity) || baseQuantity < 0) {
+                baseQuantity = 0;
+            }
             startField.value = data.desde;
-            qtyField.value = data.cantidad;
+            startField.readOnly = true;
+            if (qtyField) {
+                qtyField.value = '0';
+                qtyField.min = '0';
+            }
             updateEndField();
         } else {
             updateTypeOptions('');
@@ -95,8 +120,15 @@
             idField.value = '0';
             selectFirstAvailableType();
             typeField.disabled = false;
+            baseQuantity = 0;
+            if (startField) {
+                startField.readOnly = false;
+            }
             startField.value = '';
-            qtyField.value = '';
+            if (qtyField) {
+                qtyField.value = '';
+                qtyField.min = '1';
+            }
             if (endField) {
                 endField.value = '';
             }
@@ -204,6 +236,17 @@
             const formData = new FormData(form);
             if (typeField && typeField.disabled) {
                 formData.append('tipo', typeField.value || '');
+            }
+            if (startField && startField.readOnly) {
+                formData.set('start', startField.value || '');
+            }
+            if (currentMode === 'edit') {
+                let addition = qtyField ? Number.parseInt(qtyField.value || '0', 10) : 0;
+                if (Number.isNaN(addition) || addition < 0) {
+                    addition = 0;
+                }
+                const totalQuantity = baseQuantity + addition;
+                formData.set('quantity', String(totalQuantity));
             }
             formData.append('nonce', cfg.nonce);
             setSubmitting(true);

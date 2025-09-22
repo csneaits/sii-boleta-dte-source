@@ -67,16 +67,18 @@ class QueueProcessorTest extends TestCase {
         $file     = $this->create_temp_xml();
         $queue->enqueue_dte( $file, 'test', 'token' );
         $queue->enqueue_libro( '<xml/>', 'test', 'token' );
+        $queue->enqueue_rvd( '<ConsumoFolios/>', 'test', 'token' );
 
         $GLOBALS['wp_remote_post_queue'] = [
             [ 'response' => [ 'code' => 200 ], 'body' => '{"trackId":"1"}' ],
             [ 'response' => [ 'code' => 200 ], 'body' => '<resp><trackId>2</trackId></resp>' ],
+            [ 'response' => [ 'code' => 200 ], 'body' => '{"trackId":"3"}' ],
         ];
 
         $processor->process();
         unlink( $file );
 
-        $this->assertSame( 2, $GLOBALS['wp_remote_post_calls'] );
+        $this->assertSame( 3, $GLOBALS['wp_remote_post_calls'] );
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
     }
 }

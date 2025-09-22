@@ -192,6 +192,7 @@ class Pages {
                         'editTitle'     => \__( 'Editar rango de folios', 'sii-boleta-dte' ),
                         'deleteConfirm' => \__( '¿Eliminar este rango de folios?', 'sii-boleta-dte' ),
                         'genericError'  => \__( 'Ha ocurrido un error. Inténtalo nuevamente.', 'sii-boleta-dte' ),
+                        'saving'        => \__( 'Guardando…', 'sii-boleta-dte' ),
                     ),
                 )
             );

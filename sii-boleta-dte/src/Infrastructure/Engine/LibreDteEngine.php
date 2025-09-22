@@ -268,6 +268,8 @@ class LibreDteEngine implements DteEngine {
                         return '';
                 }
 
+                $xmlString = $this->adjust_totals_in_xml( $xmlString, $detalle, $tipo, $tasa_iva );
+
                 $xmlString = $this->strip_placeholder_fields(
                         $xmlString,
                         $rawReceptor,
@@ -412,7 +414,7 @@ class LibreDteEngine implements DteEngine {
                 $file = $dir . '/debug.log';
                 $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
                 @file_put_contents( $file, $line, FILE_APPEND );
-	}
+        }
 
         /**
          * Renders a PDF using LibreDTE templates.
@@ -520,6 +522,139 @@ class LibreDteEngine implements DteEngine {
                 }
 
                 return $values;
+        }
+
+        /**
+         * Replaces totals in the generated XML so they match VAT-inclusive prices.
+         *
+         * @param array<int,array<string,mixed>> $detalle Document detail lines.
+         */
+        private function adjust_totals_in_xml( string $xml, array $detalle, int $tipo, ?float $tasa_iva ): string {
+                $affected = array( 33, 52, 56, 61 );
+                if ( ! in_array( $tipo, $affected, true ) ) {
+                        return $xml;
+                }
+
+                $totals = $this->calculate_totals( $detalle, $tasa_iva );
+                if ( empty( $totals ) ) {
+                        return $xml;
+                }
+
+                $previous = libxml_use_internal_errors( true );
+                $document = new \DOMDocument();
+
+                if ( ! $document->loadXML( $xml ) ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return $xml;
+                }
+
+                $xpath = new \DOMXPath( $document );
+                $xpath->registerNamespace( 'dte', 'http://www.sii.cl/SiiDte' );
+                $nodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Encabezado/dte:Totales' );
+                if ( ! ( $nodes instanceof \DOMNodeList ) || 0 === $nodes->length ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return $xml;
+                }
+
+                $totalsNode = $nodes->item( 0 );
+                if ( ! ( $totalsNode instanceof \DOMElement ) ) {
+                        libxml_clear_errors();
+                        libxml_use_internal_errors( $previous );
+                        return $xml;
+                }
+
+                $fields = array( 'MntNeto', 'MntExe', 'IVA', 'MntTotal', 'TasaIVA' );
+                foreach ( $fields as $field ) {
+                        $childNodes = $xpath->query( 'dte:' . $field, $totalsNode );
+                        if ( ! ( $childNodes instanceof \DOMNodeList ) ) {
+                                continue;
+                        }
+                        for ( $i = $childNodes->length - 1; $i >= 0; --$i ) {
+                                $node = $childNodes->item( $i );
+                                if ( $node instanceof \DOMNode ) {
+                                        $totalsNode->removeChild( $node );
+                                }
+                        }
+                }
+
+                $namespace = 'http://www.sii.cl/SiiDte';
+                foreach ( $fields as $field ) {
+                        if ( ! array_key_exists( $field, $totals ) ) {
+                                continue;
+                        }
+
+                        $value = $totals[ $field ];
+                        if ( null === $value ) {
+                                continue;
+                        }
+
+                        $text = 'TasaIVA' === $field
+                                ? $this->format_tax_rate( (float) $value )
+                                : (string) $value;
+
+                        $element = $document->createElementNS( $namespace, $field, $text );
+                        $totalsNode->appendChild( $element );
+                }
+
+                $result = $document->saveXML() ?: $xml;
+                libxml_clear_errors();
+                libxml_use_internal_errors( $previous );
+
+                return $result;
+        }
+
+        /**
+         * Calculates totals using VAT-inclusive prices.
+         *
+         * @param array<int,array<string,mixed>> $detalle Document detail lines.
+         */
+        private function calculate_totals( array $detalle, ?float $tasa_iva ): array {
+                $taxable = 0;
+                $exempt  = 0;
+
+                foreach ( $detalle as $line ) {
+                        $amount = (float) ( $line['MontoItem'] ?? 0 );
+                        if ( ! empty( $line['IndExe'] ) ) {
+                                $exempt += $amount;
+                                continue;
+                        }
+
+                        $taxable += $amount;
+                }
+
+                $taxable = (int) round( $taxable );
+                $exempt  = (int) round( $exempt );
+
+                $totals = array(
+                        'MntTotal' => $taxable + $exempt,
+                );
+
+                if ( 0 !== $exempt ) {
+                        $totals['MntExe'] = $exempt;
+                }
+
+                if ( null !== $tasa_iva && $tasa_iva > 0 && 0 !== $taxable ) {
+                        $rate     = 1 + ( $tasa_iva / 100 );
+                        $neto     = (int) round( $taxable / $rate );
+                        $iva      = $taxable - $neto;
+                        $totals['MntNeto'] = $neto;
+                        if ( 0 !== $iva ) {
+                                $totals['IVA'] = $iva;
+                        }
+                        $totals['TasaIVA'] = $tasa_iva;
+                } elseif ( null !== $tasa_iva ) {
+                        $totals['TasaIVA'] = $tasa_iva;
+                }
+
+                return $totals;
+        }
+
+        private function format_tax_rate( float $rate ): string {
+                $formatted = sprintf( '%.2F', $rate );
+                $formatted = rtrim( rtrim( $formatted, '0' ), '.' );
+                return '' === $formatted ? '0' : $formatted;
         }
 
         /**

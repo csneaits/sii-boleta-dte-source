@@ -50,7 +50,10 @@ class Ajax {
             \wp_send_json_error( array( 'message' => \__( 'El rango de folios es inválido.', 'sii-boleta-dte' ) ) );
         }
 
-        if ( FoliosDb::overlaps( $tipo, $start, $hasta, $id ) ) {
+        $settings    = $this->core->get_settings();
+        $environment = method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0';
+
+        if ( FoliosDb::overlaps( $tipo, $start, $hasta, $id, $environment ) ) {
             \wp_send_json_error( array( 'message' => \__( 'El rango se solapa con otro existente para este tipo de documento.', 'sii-boleta-dte' ) ) );
         }
 
@@ -59,12 +62,12 @@ class Ajax {
             if ( ! $existing ) {
                 \wp_send_json_error( array( 'message' => \__( 'El rango seleccionado no existe.', 'sii-boleta-dte' ) ) );
             }
-            FoliosDb::update( $id, $tipo, $start, $hasta );
+            FoliosDb::update( $id, $tipo, $start, $hasta, $environment );
         } else {
-            $id = FoliosDb::insert( $tipo, $start, $hasta );
+            $id = FoliosDb::insert( $tipo, $start, $hasta, $environment );
         }
 
-        $this->clamp_last_folio( $tipo );
+        $this->clamp_last_folio( $tipo, $environment );
         \wp_send_json_success( array( 'id' => $id ) );
     }
 
@@ -85,29 +88,27 @@ class Ajax {
         }
 
         FoliosDb::delete( $id );
-        $this->clamp_last_folio( (int) $range['tipo'] );
+        $settings   = $this->core->get_settings();
+        $range_env  = isset( $range['environment'] ) ? (string) $range['environment'] : ( method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0' );
+        $this->clamp_last_folio( (int) $range['tipo'], $range_env );
         \wp_send_json_success();
     }
 
-    private function clamp_last_folio( int $tipo ): void {
-        if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
-            return;
-        }
-        $key  = 'sii_boleta_dte_last_folio_' . $tipo;
-        $last = (int) get_option( $key, 0 );
+    private function clamp_last_folio( int $tipo, string $environment ): void {
+        $last = Settings::get_last_folio_value( $tipo, $environment );
         if ( $last <= 0 ) {
             return;
         }
         $max = 0;
-        foreach ( FoliosDb::for_type( $tipo ) as $row ) {
+        foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
             if ( $row['hasta'] > $max ) {
                 $max = (int) $row['hasta'];
             }
         }
         if ( 0 === $max ) {
-            update_option( $key, 0 );
+            Settings::update_last_folio_value( $tipo, $environment, 0 );
         } elseif ( $last > $max ) {
-            update_option( $key, $max );
+            Settings::update_last_folio_value( $tipo, $environment, $max );
         }
     }
 

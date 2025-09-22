@@ -105,19 +105,19 @@ class DiagnosticsPage {
 				}
 			}
 		}
-                $cfg       = $this->settings->get_settings();
+                $cfg          = $this->settings->get_settings();
+                $environment = $this->settings->get_environment();
                 $cert_file = $cfg['cert_path'] ?? '';
                 $cert_ok   = $cert_file && file_exists( $cert_file );
-                $ranges    = FoliosDb::all();
+                $ranges    = FoliosDb::all( $environment );
                 $caf_count = count( $ranges );
                 $enabled   = array_map( 'intval', $cfg['enabled_types'] ?? array() );
                 $caf_missing = array();
                 foreach ( $enabled as $tipo ) {
-                        if ( $tipo && ! FoliosDb::has_type( (int) $tipo ) ) {
+                        if ( $tipo && ! FoliosDb::has_type( (int) $tipo, $environment ) ) {
                                 $caf_missing[] = $tipo;
                         }
                 }
-		$environment = isset( $cfg['environment'] ) ? (string) $cfg['environment'] : 'test';
 		echo '<div class="wrap"><h1>' . esc_html__( 'Diagnósticos', 'sii-boleta-dte' ) . '</h1>';
 		echo '<p>' . esc_html__( 'Utiliza esta página para verificar rápidamente los archivos requeridos y la conectividad con el SII. Cada verificación es independiente para que identifiques el paso que está fallando.', 'sii-boleta-dte' ) . '</p>';
 		echo '<h2>' . esc_html__( 'Resumen de configuración', 'sii-boleta-dte' ) . '</h2>';

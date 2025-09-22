@@ -18,11 +18,11 @@ class SettingsMigration {
             return;
         }
 
-        if ( get_option( 'sii_boleta_dte_migrated' ) ) {
+        if ( self::get_option_value( 'sii_boleta_dte_migrated' ) ) {
             return;
         }
 
-        $current = get_option( Settings::OPTION_NAME, array() );
+        $current = self::get_option_value( Settings::OPTION_NAME, array() );
         if ( ! is_array( $current ) ) {
             $current = array();
         }
@@ -30,20 +30,20 @@ class SettingsMigration {
         FoliosDb::install();
 
         // Legacy CAF paths stored separately.
-        $caf_paths = get_option( 'sii_boleta_dte_caf_paths', array() );
+        $caf_paths = self::get_option_value( 'sii_boleta_dte_caf_paths', array() );
         if ( is_array( $caf_paths ) && ! empty( $caf_paths ) ) {
             foreach ( $caf_paths as $tipo => $path ) {
                 self::maybe_import_caf_path( (int) $tipo, (string) $path );
             }
-            delete_option( 'sii_boleta_dte_caf_paths' );
+            self::delete_option_value( 'sii_boleta_dte_caf_paths' );
         }
 
         // Legacy per-DTE CAF options (e.g. sii_boleta_dte_caf_39).
         foreach ( array( 33, 39, 41, 52 ) as $tipo ) {
-            $opt = get_option( 'sii_boleta_dte_caf_' . $tipo );
+            $opt = self::get_option_value( 'sii_boleta_dte_caf_' . $tipo );
             if ( $opt ) {
                 self::maybe_import_caf_path( (int) $tipo, (string) $opt );
-                delete_option( 'sii_boleta_dte_caf_' . $tipo );
+                self::delete_option_value( 'sii_boleta_dte_caf_' . $tipo );
             }
         }
 
@@ -65,9 +65,9 @@ class SettingsMigration {
 
         unset( $current['cafs'], $current['caf_path'] );
 
-        update_option( Settings::OPTION_NAME, $current );
+        self::update_option_value( Settings::OPTION_NAME, $current );
         self::migrate_logs();
-        update_option( 'sii_boleta_dte_migrated', 1 );
+        self::update_option_value( 'sii_boleta_dte_migrated', 1 );
     }
 
     /**
@@ -111,6 +111,52 @@ class SettingsMigration {
                     LogDb::add_entry( '', strtolower( $m[2] ), $m[3] );
                 }
             }
+        }
+    }
+
+    /**
+     * Retrieves an option value while remaining compatible with test stubs.
+     *
+     * @param mixed $default Fallback when the option is not defined.
+     * @return mixed
+     */
+    private static function get_option_value( string $name, $default = false ) {
+        $sentinel = new \stdClass();
+        if ( function_exists( 'get_option' ) ) {
+            $value = get_option( $name, $sentinel );
+            if ( $value !== $sentinel ) {
+                return $value;
+            }
+        }
+        if ( isset( $GLOBALS['wp_options'] ) && array_key_exists( $name, $GLOBALS['wp_options'] ) ) {
+            return $GLOBALS['wp_options'][ $name ];
+        }
+        return $default;
+    }
+
+    /**
+     * Updates an option value both in WordPress and in the test globals.
+     *
+     * @param mixed $value
+     */
+    private static function update_option_value( string $name, $value ): void {
+        if ( function_exists( 'update_option' ) ) {
+            update_option( $name, $value );
+        }
+        if ( isset( $GLOBALS['wp_options'] ) ) {
+            $GLOBALS['wp_options'][ $name ] = $value;
+        }
+    }
+
+    /**
+     * Deletes an option value for both WordPress and the test globals.
+     */
+    private static function delete_option_value( string $name ): void {
+        if ( function_exists( 'delete_option' ) ) {
+            delete_option( $name );
+        }
+        if ( isset( $GLOBALS['wp_options'] ) ) {
+            unset( $GLOBALS['wp_options'][ $name ] );
         }
     }
 }

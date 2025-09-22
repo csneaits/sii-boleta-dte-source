@@ -16,21 +16,13 @@ class Settings {
 	public function get_settings(): array {
 		if ( function_exists( 'get_option' ) ) {
 				$data = get_option( self::OPTION_NAME, array() );
-			if ( is_array( $data ) ) {
-				if ( isset( $data['cert_pass'] ) ) {
-						$data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
-				}
-				if ( isset( $data['cafs'] ) && is_array( $data['cafs'] ) ) {
-						$caf_path = array();
-					foreach ( $data['cafs'] as $caf ) {
-						if ( isset( $caf['tipo'], $caf['path'] ) ) {
-							$caf_path[ (int) $caf['tipo'] ] = $caf['path'];
-						}
-					}
-						$data['caf_path'] = $caf_path;
-				}
-				return $data;
-			}
+                        if ( is_array( $data ) ) {
+                                if ( isset( $data['cert_pass'] ) ) {
+                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
+                                }
+                                unset( $data['cafs'], $data['caf_path'] );
+                                return $data;
+                        }
 		}
 			return array();
 	}

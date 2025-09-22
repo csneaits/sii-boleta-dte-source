@@ -7,6 +7,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**
  * Admin page that allows manually generating a DTE without WooCommerce orders.
@@ -307,7 +308,20 @@ class GenerateDtePage {
                 $rut = '66666666-6';
         }
 
-        $folio = $preview ? 0 : $this->folio_manager->get_next_folio( $tipo );
+        $folio = 0;
+        if ( ! $preview ) {
+            $next = $this->folio_manager->get_next_folio( $tipo );
+            if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
+                return array( 'error' => $next->get_error_message() );
+            }
+            if ( $next instanceof \WP_Error ) {
+                return array( 'error' => $next->get_error_message() );
+            }
+            $folio = (int) $next;
+            if ( $folio <= 0 ) {
+                return array( 'error' => __( 'No hay folios disponibles para emitir este documento.', 'sii-boleta-dte' ) );
+            }
+        }
 
         $data = array(
                 'Folio'    => $folio,
@@ -642,18 +656,11 @@ class GenerateDtePage {
                         112 => __( 'Nota de Crédito de Exportación', 'sii-boleta-dte' ),
                 );
                 $out = array();
-                // Filtrar además por existencia de CAF válido para el tipo
-                $settings = $this->settings->get_settings();
                 foreach ( $labels as $code => $name ) {
                         if ( ! isset( $codes[ $code ] ) ) { continue; }
-                        $caf_ok = false;
-                        if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
-                                foreach ( $settings['cafs'] as $caf ) {
-                                        if ( (int) ( $caf['tipo'] ?? 0 ) === (int) $code && ! empty( $caf['path'] ) && file_exists( (string) $caf['path'] ) ) { $caf_ok = true; break; }
-                                }
+                        if ( FoliosDb::has_type( (int) $code ) ) {
+                                $out[ $code ] = $name;
                         }
-                        if ( ! $caf_ok && isset( $settings['caf_path'][ $code ] ) && file_exists( (string) $settings['caf_path'][ $code ] ) ) { $caf_ok = true; }
-                        if ( $caf_ok ) { $out[ $code ] = $name; }
                 }
                 // Ensure deterministic order by code
                 ksort( $out );

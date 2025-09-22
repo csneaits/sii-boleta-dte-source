@@ -4,6 +4,7 @@ use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Application\ConsumoFolios;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
     class Dummy_Settings extends Settings {
@@ -23,8 +24,9 @@ if ( ! function_exists( 'get_option' ) ) {
 class ConsumoFoliosTest extends TestCase {
     public function test_generates_ranges() {
         $GLOBALS['test_options']['sii_boleta_dte_last_folio_39'] = 10;
+        FoliosDb::purge();
+        FoliosDb::insert( 39, 1, 30 );
         $settings = new Dummy_Settings([
-            'caf_path'   => [ 39 => __DIR__ . '/../fixtures/caf39.xml' ],
             'rut_emisor' => '11111111-1',
         ]);
         $folio_mgr = $this->createMock( FolioManager::class );

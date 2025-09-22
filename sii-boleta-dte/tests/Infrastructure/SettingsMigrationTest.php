@@ -15,9 +15,16 @@ if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $path 
 class SettingsMigrationTest extends TestCase {
     protected function setUp(): void {
         $GLOBALS['wp_options'] = array(
-            'sii_boleta_dte_caf_paths' => array( 39 => __DIR__ . '/../fixtures/caf39.xml' ),
-            'sii_boleta_dte_caf_33'   => __DIR__ . '/../fixtures/caf41.xml',
-            Settings::OPTION_NAME     => array( 'cert_pass' => '1234' ),
+            Settings::OPTION_NAME => array(
+                'cert_pass' => '1234',
+                'cafs'      => array(
+                    array(
+                        'tipo'  => 39,
+                        'desde' => 120,
+                        'hasta' => 150,
+                    ),
+                ),
+            ),
         );
         // create fake log file
         $dir = trailingslashit( wp_upload_dir()['basedir'] ) . 'sii-boleta-logs';

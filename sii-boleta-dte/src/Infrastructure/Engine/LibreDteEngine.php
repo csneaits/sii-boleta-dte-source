@@ -136,6 +136,13 @@ class LibreDteEngine implements DteEngine {
                         $emisor_data = $data['Encabezado']['Emisor'];
                 }
 
+                $custom_giro = $emisor_data['GiroEmisor']
+                        ?? $emisor_data['GiroEmis']
+                        ?? $data['GiroEmisor']
+                        ?? $data['GiroEmis']
+                        ?? '';
+                $custom_giro = is_string( $custom_giro ) ? trim( $custom_giro ) : '';
+
                 $emisor = array(
                         'RUTEmisor'    => $settings['rut_emisor']
                                 ?? $emisor_data['RUTEmisor']
@@ -148,12 +155,11 @@ class LibreDteEngine implements DteEngine {
                                 ?? $data['RznSocEmisor']
                                 ?? $data['RznSoc']
                                 ?? '',
-                        'GiroEmisor'   => $settings['giro']
-                                ?? $emisor_data['GiroEmisor']
-                                ?? $emisor_data['GiroEmis']
-                                ?? $data['GiroEmisor']
-                                ?? $data['GiroEmis']
-                                ?? '',
+                        'GiroEmisor'   => '' !== $custom_giro
+                                ? $custom_giro
+                                : ( $settings['giro']
+                                        ?? ''
+                                ),
                         'DirOrigen'    => $settings['direccion']
                                 ?? $emisor_data['DirOrigen']
                                 ?? $data['DirOrigen']

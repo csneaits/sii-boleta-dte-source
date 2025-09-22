@@ -104,16 +104,17 @@ class Plugin {
 	public function get_engine() {
 		return $this->engine; }
 
-	public function fluent_smtp_profiles( $profiles ) {
-		if ( class_exists( '\\FluentMail\\App\\Models\\Settings' ) ) {
-			$settings = new \FluentMail\App\Models\Settings();
-			$config   = $settings->getConnections();
-			foreach ( $config as $key => $data ) {
-				$profiles[ $key ] = $data['title'] ?? $key;
-			}
-		}
-		return $profiles;
-	}
+        public function fluent_smtp_profiles( $profiles ) {
+                if ( class_exists( '\\FluentMail\\App\\Models\\Settings' ) ) {
+                        $settings = new \FluentMail\App\Models\Settings();
+                        $config   = $settings->getConnections();
+                        foreach ( $config as $key => $data ) {
+                                $label = $data['sender_email'] ?? ( $data['title'] ?? $key );
+                                $profiles[ $key ] = is_scalar( $label ) ? (string) $label : (string) $key;
+                        }
+                }
+                return $profiles;
+        }
 
 	public function fluent_smtp_setup_mailer( $phpmailer, $profile ) {
 		\do_action( 'fluentmail_before_sending_email', $phpmailer, $profile );

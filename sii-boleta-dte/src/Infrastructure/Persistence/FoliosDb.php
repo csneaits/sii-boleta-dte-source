@@ -82,17 +82,19 @@ class FoliosDb {
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
-            $result    = $wpdb->insert(
-                self::table(),
-                array(
-                    'tipo'         => $tipo,
-                    'folio_inicio' => $desde,
-                    'folio_fin'    => $hasta,
-                    'environment'  => $env,
-                    'created_at'   => $now,
-                    'updated_at'   => $now,
-                )
+            $table = self::table();
+            $data  = array(
+                'tipo'         => $tipo,
+                'folio_inicio' => $desde,
+                'folio_fin'    => $hasta,
+                'environment'  => $env,
+                'created_at'   => $now,
+                'updated_at'   => $now,
             );
+            $result = $wpdb->insert( $table, $data );
+            if ( false === $result && self::maybe_recreate_table() ) {
+                $result = $wpdb->insert( $table, $data );
+            }
             $insert_id = property_exists( $wpdb, 'insert_id' ) ? (int) $wpdb->insert_id : 0;
             if ( is_int( $result ) && $result > 0 && $insert_id > 0 ) {
                 self::$use_memory = false;
@@ -115,6 +117,37 @@ class FoliosDb {
     }
 
     /**
+     * Attempts to recreate the folios table when the last database operation failed
+     * because the table is missing (common when the plugin was updated without
+     * reactivating it).
+     */
+    private static function maybe_recreate_table(): bool {
+        global $wpdb;
+        if ( ! is_object( $wpdb ) ) {
+            return false;
+        }
+
+        $error = property_exists( $wpdb, 'last_error' ) ? (string) $wpdb->last_error : '';
+        if ( '' === $error ) {
+            return false;
+        }
+
+        $table      = strtolower( str_replace( '`', '', self::table() ) );
+        $error_lc   = strtolower( $error );
+        $missing_db = strpos( $error_lc, 'doesn\'t exist' ) !== false || strpos( $error_lc, 'no such table' ) !== false;
+
+        if ( $missing_db && strpos( $error_lc, $table ) !== false ) {
+            self::install();
+            if ( property_exists( $wpdb, 'last_error' ) ) {
+                $wpdb->last_error = '';
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Updates an existing folio range.
      */
     public static function update( int $id, int $tipo, int $desde, int $hasta, string $environment = '0' ): bool {
@@ -122,17 +155,18 @@ class FoliosDb {
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'update' ) ) {
-            $result = $wpdb->update(
-                self::table(),
-                array(
-                    'tipo'         => $tipo,
-                    'folio_inicio' => $desde,
-                    'folio_fin'    => $hasta,
-                    'environment'  => $env,
-                    'updated_at'   => $now,
-                ),
-                array( 'id' => $id )
+            $table = self::table();
+            $data  = array(
+                'tipo'         => $tipo,
+                'folio_inicio' => $desde,
+                'folio_fin'    => $hasta,
+                'environment'  => $env,
+                'updated_at'   => $now,
             );
+            $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+            if ( false === $result && self::maybe_recreate_table() ) {
+                $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+            }
             if ( false !== $result ) {
                 self::$use_memory = false;
                 return true;
@@ -156,7 +190,11 @@ class FoliosDb {
     public static function delete( int $id ): bool {
         global $wpdb;
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'delete' ) ) {
-            $result = $wpdb->delete( self::table(), array( 'id' => $id ) );
+            $table  = self::table();
+            $result = $wpdb->delete( $table, array( 'id' => $id ) );
+            if ( false === $result && self::maybe_recreate_table() ) {
+                $result = $wpdb->delete( $table, array( 'id' => $id ) );
+            }
             if ( false !== $result ) {
                 self::$use_memory = false;
                 return true;

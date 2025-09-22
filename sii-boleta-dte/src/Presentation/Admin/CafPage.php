@@ -2,11 +2,18 @@
 namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Settings;
 
 /**
  * Admin page to manage folio ranges.
  */
 class CafPage {
+    private Settings $settings;
+
+    public function __construct( Settings $settings ) {
+        $this->settings = $settings;
+    }
+
     /** Registers hooks if needed. */
     public function register(): void {}
 
@@ -18,7 +25,8 @@ class CafPage {
             return;
         }
 
-        $ranges = FoliosDb::all();
+        $environment = $this->settings->get_environment();
+        $ranges      = FoliosDb::all( $environment );
         usort(
             $ranges,
             function ( $a, $b ) {
@@ -32,7 +40,9 @@ class CafPage {
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__( 'Folios / CAFs', 'sii-boleta-dte' ) . '</h1>';
+        $environment_label = '1' === $environment ? __( 'Producción', 'sii-boleta-dte' ) : __( 'Certificación', 'sii-boleta-dte' );
         echo '<p>' . esc_html__( 'Registra manualmente los rangos de folios autorizados. El sistema validará que los folios emitidos pertenezcan a un rango configurado.', 'sii-boleta-dte' ) . '</p>';
+        echo '<p class="description">' . sprintf( esc_html__( 'Ambiente activo: %s. Los rangos configurados son independientes por ambiente.', 'sii-boleta-dte' ), esc_html( $environment_label ) ) . '</p>';
         echo '<p><button type="button" class="button button-primary" id="sii-boleta-add-folio">' . esc_html__( 'Agregar folios', 'sii-boleta-dte' ) . '</button></p>';
 
         echo '<table class="wp-list-table widefat fixed striped" id="sii-boleta-folios-table">';
@@ -54,7 +64,7 @@ class CafPage {
                 $desde      = (int) $range['desde'];
                 $hasta      = (int) $range['hasta'];
                 $cantidad   = max( 0, $hasta - $desde + 1 );
-                $last       = function_exists( 'get_option' ) ? (int) get_option( 'sii_boleta_dte_last_folio_' . $tipo, 0 ) : 0;
+                $last       = Settings::get_last_folio_value( $tipo, $environment );
                 $consumidos = 0;
                 if ( $last >= $desde ) {
                     $consumidos = min( $cantidad, max( 0, $last - $desde + 1 ) );

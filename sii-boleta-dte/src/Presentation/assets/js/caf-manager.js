@@ -68,7 +68,7 @@
         if (Number.isNaN(startNumber) || Number.isNaN(quantityNumber) || startNumber <= 0 || quantityNumber <= 0) {
             return '';
         }
-        return String(startNumber + quantityNumber);
+        return String(startNumber + quantityNumber - 1);
     }
 
     function updateEndField() {

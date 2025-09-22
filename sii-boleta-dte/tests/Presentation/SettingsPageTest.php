@@ -18,6 +18,14 @@ if ( ! function_exists( 'sanitize_file_name' ) ) { function sanitize_file_name( 
 if ( ! function_exists( 'add_settings_error' ) ) { function add_settings_error() {} }
 if ( ! function_exists( 'esc_textarea' ) ) { function esc_textarea( $s ) { return $s; } }
 if ( ! function_exists( 'selected' ) ) { function selected( $a, $b, $c ) { return $a == $b ? 'selected' : ''; } }
+if ( ! function_exists( 'wp_normalize_path' ) ) { function wp_normalize_path( $path ) { return str_replace( '\\', '/', $path ); } }
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', sys_get_temp_dir() . '/sii-boleta-wp/' );
+}
+if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+    define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
+}
 
 class SettingsPageTest extends TestCase {
     public function test_render_outputs_field(): void {
@@ -50,7 +58,8 @@ class SettingsPageTest extends TestCase {
         $this->assertSame( '11-1', $clean['rut_emisor'] );
         $this->assertSame( array( 'Giro 1', 'Giro 2' ), $clean['giros'] );
         $this->assertSame( 'Giro 1', $clean['giro'] );
-        $this->assertSame( 'cert.pfx', $clean['cert_path'] );
+        $this->assertArrayHasKey( 'cert_path', $clean );
+        $this->assertSame( '', $clean['cert_path'] );
         $this->assertSame( 2, $clean['environment'] );
         $this->assertSame( array( 33, 39 ), $clean['enabled_types'] );
         $this->assertSame( 'secret', Settings::decrypt( $clean['cert_pass'] ) );
@@ -65,5 +74,28 @@ class SettingsPageTest extends TestCase {
         $clean = $page->sanitize_settings( $input );
         $this->assertSame( 'Único', $clean['giro'] );
         $this->assertSame( array( 'Único' ), $clean['giros'] );
+    }
+
+    public function test_sanitize_settings_resolves_relative_cert_path(): void {
+        $uploads = WP_CONTENT_DIR . '/uploads';
+        if ( ! is_dir( $uploads ) ) {
+            @mkdir( $uploads, 0777, true );
+        }
+        $file = $uploads . '/cert-test.pfx';
+        file_put_contents( $file, 'dummy' );
+
+        $page  = new SettingsPage( new Settings() );
+        $input = array( 'cert_path' => 'wp-content/uploads/cert-test.pfx' );
+        $clean = $page->sanitize_settings( $input );
+
+        $expected = realpath( $file );
+        if ( false !== $expected ) {
+            $expected = wp_normalize_path( $expected );
+        } else {
+            $expected = wp_normalize_path( $file );
+        }
+        $this->assertSame( $expected, $clean['cert_path'] );
+
+        @unlink( $file );
     }
 }

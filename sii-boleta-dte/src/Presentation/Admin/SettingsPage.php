@@ -363,17 +363,52 @@ class SettingsPage {
                 }
             }
         } elseif ( isset( $input['cert_path'] ) ) {
-            // Manual path entered by user; keep only file name if a path was provided for safety.
             $path = trim( (string) $input['cert_path'] );
-            if ( '' !== $path ) {
-                // Allow absolute paths; otherwise, sanitize to filename.
-                if ( preg_match( '#^[a-zA-Z]:\\\\|^/|^\\\\#', $path ) ) {
-                    $output['cert_path'] = sanitize_text_field( $path );
-                } else {
-                    $output['cert_path'] = sanitize_file_name( $path );
-                }
-            } else {
+            if ( '' === $path ) {
                 $output['cert_path'] = '';
+            } else {
+                $normalizer = static function ( string $value ): string {
+                    if ( function_exists( 'wp_normalize_path' ) ) {
+                        return wp_normalize_path( $value );
+                    }
+                    return str_replace( '\\', '/', $value );
+                };
+
+                $normalized = $normalizer( $path );
+
+                // Reject directory traversal attempts.
+                if ( preg_match( '#(^|/)\.\.(?:/|$)#', $normalized ) ) {
+                    if ( function_exists( 'add_settings_error' ) ) {
+                        add_settings_error( 'cert_path', 'invalid_path', __( 'Invalid certificate path.', 'sii-boleta-dte' ) );
+                    }
+                    $output['cert_path'] = '';
+                } else {
+                    $resolved = $normalized;
+                    $candidates = array();
+
+                    // If the path is not absolute, try resolving it relative to common WordPress roots.
+                    if ( ! preg_match( '#^[a-zA-Z]:[\\/]|^/|^\\\\#', $normalized ) ) {
+                        $trimmed = ltrim( $normalized, '/\\' );
+                        if ( defined( 'ABSPATH' ) ) {
+                            $candidates[] = rtrim( $normalizer( ABSPATH ), '/\\' ) . '/' . $trimmed;
+                        }
+                        if ( defined( 'WP_CONTENT_DIR' ) ) {
+                            $candidates[] = rtrim( $normalizer( WP_CONTENT_DIR ), '/\\' ) . '/' . $trimmed;
+                        }
+                    } else {
+                        $candidates[] = $normalized;
+                    }
+
+                    foreach ( $candidates as $candidate ) {
+                        $real = realpath( $candidate );
+                        if ( false !== $real ) {
+                            $resolved = $normalizer( $real );
+                            break;
+                        }
+                    }
+
+                    $output['cert_path'] = sanitize_text_field( $resolved );
+                }
             }
         }
 

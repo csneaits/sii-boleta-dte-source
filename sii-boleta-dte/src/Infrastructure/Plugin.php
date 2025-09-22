@@ -46,9 +46,10 @@ class Plugin {
 			$this->settings       = $settings ?? new Settings();
 			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
 			$this->signer         = $signer ?? new Signer();
-			$this->api            = $api ?? new Api();
-			$this->rvd_manager    = $rvd_manager ?? new RvdManager( $this->settings );
-			$this->endpoints      = $endpoints ?? new Endpoints();
+                        $this->api            = $api ?? new Api();
+                        $this->queue          = $queue ?? new Queue();
+                        $this->rvd_manager    = $rvd_manager ?? new RvdManager( $this->settings, $this->api, $this->queue );
+                        $this->endpoints      = $endpoints ?? new Endpoints();
 			$this->metrics        = $metrics ?? new Metrics();
 			$this->consumo_folios = $consumo_folios ?? new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
 
@@ -60,7 +61,6 @@ class Plugin {
 		}
 			$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
-                        $this->queue           = $queue ?? new Queue();
                         $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
                         \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
 			$this->help = $help ?? new Help();

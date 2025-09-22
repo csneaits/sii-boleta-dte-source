@@ -67,7 +67,7 @@ class FoliosDb {
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
-            $result = $wpdb->insert(
+            $result    = $wpdb->insert(
                 self::table(),
                 array(
                     'tipo'         => $tipo,
@@ -77,9 +77,10 @@ class FoliosDb {
                     'updated_at'   => $now,
                 )
             );
-            if ( false !== $result ) {
+            $insert_id = property_exists( $wpdb, 'insert_id' ) ? (int) $wpdb->insert_id : 0;
+            if ( is_int( $result ) && $result > 0 && $insert_id > 0 ) {
                 self::$use_memory = false;
-                return (int) $wpdb->insert_id;
+                return $insert_id;
             }
         }
 
@@ -159,7 +160,7 @@ class FoliosDb {
     public static function get( int $id ): ?array {
         global $wpdb;
         if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_row' ) ) {
-            $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ( is_array( $row ) ) {
                 return array(
                     'id'         => (int) $row['id'],
@@ -184,7 +185,7 @@ class FoliosDb {
     public static function all(): array {
         global $wpdb;
         if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
-            $rows = $wpdb->get_results( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' ORDER BY tipo ASC, folio_inicio ASC', ARRAY_A );
+            $rows = $wpdb->get_results( 'SELECT id,tipo,folio_inicio,folio_fin,created_at,updated_at FROM ' . self::table() . ' ORDER BY tipo ASC, folio_inicio ASC', 'ARRAY_A' );
             if ( ! is_array( $rows ) ) {
                 return array();
             }

@@ -17,8 +17,50 @@
     const endField = document.getElementById('sii-boleta-folio-end');
     const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
     const originalSubmitText = submitBtn ? submitBtn.textContent : '';
+    const typeOptions = typeField ? Array.from(typeField.options) : [];
+
+    const usedTypes = new Set();
+    if (table) {
+        const rows = table.querySelectorAll('tbody tr[data-tipo]');
+        rows.forEach((row) => {
+            const type = row.getAttribute('data-tipo');
+            if (type) {
+                usedTypes.add(type);
+            }
+        });
+    }
 
     let currentMode = 'add';
+
+    function updateTypeOptions(excludedType) {
+        if (!typeOptions.length) {
+            return;
+        }
+        typeOptions.forEach((option) => {
+            if (!option) {
+                return;
+            }
+            option.disabled = false;
+            if (option.value && usedTypes.has(option.value) && option.value !== excludedType) {
+                option.disabled = true;
+            }
+        });
+    }
+
+    function selectFirstAvailableType() {
+        if (!typeField) {
+            return;
+        }
+        let selected = '';
+        typeOptions.some((option) => {
+            if (!option.disabled) {
+                selected = option.value;
+                return true;
+            }
+            return false;
+        });
+        typeField.value = selected;
+    }
 
     function calculateEndValue(start, quantity) {
         const startNumber = Number.parseInt(start, 10);
@@ -39,6 +81,7 @@
     function openModal(mode, data) {
         currentMode = mode;
         if (mode === 'edit') {
+            updateTypeOptions(data.tipo || '');
             modalTitle.textContent = cfg.texts.editTitle;
             idField.value = data.id;
             typeField.value = data.tipo;
@@ -47,9 +90,10 @@
             qtyField.value = data.cantidad;
             updateEndField();
         } else {
+            updateTypeOptions('');
             modalTitle.textContent = cfg.texts.addTitle;
             idField.value = '0';
-            typeField.value = '';
+            selectFirstAvailableType();
             typeField.disabled = false;
             startField.value = '';
             qtyField.value = '';

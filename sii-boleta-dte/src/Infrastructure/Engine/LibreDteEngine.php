@@ -7,6 +7,7 @@ use JsonException;
 use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
 use libredte\lib\Core\Application;
@@ -82,27 +83,18 @@ class LibreDteEngine implements DteEngine {
         }
 
 	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
-		$tipo     = (int) $tipo_dte;
-		$settings = $this->settings->get_settings();
+                $tipo     = (int) $tipo_dte;
+                $settings = $this->settings->get_settings();
 
-				// Validar CAF proporcionado en la configuración.
-				$caf_file = '';
-		if ( ! empty( $settings['cafs'] ) && is_array( $settings['cafs'] ) ) {
-			foreach ( $settings['cafs'] as $caf ) {
-				if ( (int) ( $caf['tipo'] ?? 0 ) === $tipo ) {
-					$caf_file = $caf['path'] ?? '';
-					break;
-				}
-			}
-		} elseif ( isset( $settings['caf_path'][ $tipo ] ) ) {
-				$caf_file = $settings['caf_path'][ $tipo ];
-		}
-		if ( ! $caf_file || ! @file_exists( $caf_file ) ) {
-				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing CAF' ) : false;
-		}
-		if ( ! @simplexml_load_file( $caf_file ) ) {
-				return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
-		}
+                $folio_number = 0;
+                if ( isset( $data['Folio'] ) ) {
+                        $folio_number = (int) $data['Folio'];
+                } elseif ( isset( $data['Encabezado']['IdDoc']['Folio'] ) ) {
+                        $folio_number = (int) $data['Encabezado']['IdDoc']['Folio'];
+                }
+                if ( $folio_number > 0 && ! FoliosDb::find_for_folio( $tipo, $folio_number ) ) {
+                        return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
+                }
 
                 $template = $this->load_template( $tipo );
                 if ( isset( $template['Detalle'] ) ) {

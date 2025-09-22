@@ -3,6 +3,7 @@ namespace Sii\BoletaDte\Infrastructure\Persistence;
 
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**
  * Migrates legacy plugin settings to the structure used by the fullLibreDte
@@ -26,10 +27,14 @@ class SettingsMigration {
             $current = array();
         }
 
+        FoliosDb::install();
+
         // Legacy CAF paths stored separately.
         $caf_paths = get_option( 'sii_boleta_dte_caf_paths', array() );
         if ( is_array( $caf_paths ) && ! empty( $caf_paths ) ) {
-            $current['caf_path'] = $caf_paths;
+            foreach ( $caf_paths as $tipo => $path ) {
+                self::maybe_import_caf_path( (int) $tipo, (string) $path );
+            }
             delete_option( 'sii_boleta_dte_caf_paths' );
         }
 
@@ -37,11 +42,19 @@ class SettingsMigration {
         foreach ( array( 33, 39, 41, 52 ) as $tipo ) {
             $opt = get_option( 'sii_boleta_dte_caf_' . $tipo );
             if ( $opt ) {
-                if ( ! isset( $current['caf_path'] ) || ! is_array( $current['caf_path'] ) ) {
-                    $current['caf_path'] = array();
-                }
-                $current['caf_path'][ $tipo ] = $opt;
+                self::maybe_import_caf_path( (int) $tipo, (string) $opt );
                 delete_option( 'sii_boleta_dte_caf_' . $tipo );
+            }
+        }
+
+        if ( isset( $current['cafs'] ) && is_array( $current['cafs'] ) ) {
+            foreach ( $current['cafs'] as $caf ) {
+                $tipo  = isset( $caf['tipo'] ) ? (int) $caf['tipo'] : 0;
+                $desde = isset( $caf['desde'] ) ? (int) $caf['desde'] : 0;
+                $hasta = isset( $caf['hasta'] ) ? (int) $caf['hasta'] : 0;
+                if ( $tipo && $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
+                    FoliosDb::insert( $tipo, $desde, $hasta );
+                }
             }
         }
 
@@ -50,9 +63,32 @@ class SettingsMigration {
             $current['cert_pass'] = Settings::encrypt( (string) $current['cert_pass'] );
         }
 
+        unset( $current['cafs'], $current['caf_path'] );
+
         update_option( Settings::OPTION_NAME, $current );
         self::migrate_logs();
         update_option( 'sii_boleta_dte_migrated', 1 );
+    }
+
+    /**
+     * Attempts to import a CAF XML file by reading its folio range.
+     */
+    private static function maybe_import_caf_path( int $tipo, string $path ): void {
+        if ( ! $tipo || '' === $path ) {
+            return;
+        }
+        if ( ! file_exists( $path ) ) {
+            return;
+        }
+        $xml = @simplexml_load_file( $path );
+        if ( ! $xml || ! isset( $xml->CAF->DA->RNG->D, $xml->CAF->DA->RNG->H ) ) {
+            return;
+        }
+        $desde = (int) $xml->CAF->DA->RNG->D;
+        $hasta = (int) $xml->CAF->DA->RNG->H;
+        if ( $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
+            FoliosDb::insert( $tipo, $desde, $hasta );
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Sii\BoletaDte\Presentation\Admin;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\TokenManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**
  * Simple diagnostics page to verify requirements and test connectivity.
@@ -104,38 +105,29 @@ class DiagnosticsPage {
 				}
 			}
 		}
-		$cfg       = $this->settings->get_settings();
-		$cert_file = $cfg['cert_path'] ?? '';
-		$cert_ok   = $cert_file && file_exists( $cert_file );
-		$cafs     = array();
-		if ( ! empty( $cfg['cafs'] ) && is_array( $cfg['cafs'] ) ) {
-			$cafs = $cfg['cafs'];
-		} elseif ( ! empty( $cfg['caf_path'] ) && is_array( $cfg['caf_path'] ) ) {
-			foreach ( $cfg['caf_path'] as $tipo => $path ) {
-				$cafs[] = array( 'tipo' => $tipo, 'path' => $path );
-			}
-		}
-		$caf_count = 0;
-		$caf_missing = array();
-		foreach ( $cafs as $caf ) {
-			$path = $caf['path'] ?? '';
-			if ( $path && file_exists( $path ) ) {
-				++$caf_count;
-			} else {
-				$caf_missing[] = $caf['tipo'] ?? '?';
-			}
-		}
+                $cfg       = $this->settings->get_settings();
+                $cert_file = $cfg['cert_path'] ?? '';
+                $cert_ok   = $cert_file && file_exists( $cert_file );
+                $ranges    = FoliosDb::all();
+                $caf_count = count( $ranges );
+                $enabled   = array_map( 'intval', $cfg['enabled_types'] ?? array() );
+                $caf_missing = array();
+                foreach ( $enabled as $tipo ) {
+                        if ( $tipo && ! FoliosDb::has_type( (int) $tipo ) ) {
+                                $caf_missing[] = $tipo;
+                        }
+                }
 		$environment = isset( $cfg['environment'] ) ? (string) $cfg['environment'] : 'test';
 		echo '<div class="wrap"><h1>' . esc_html__( 'Diagnósticos', 'sii-boleta-dte' ) . '</h1>';
 		echo '<p>' . esc_html__( 'Utiliza esta página para verificar rápidamente los archivos requeridos y la conectividad con el SII. Cada verificación es independiente para que identifiques el paso que está fallando.', 'sii-boleta-dte' ) . '</p>';
 		echo '<h2>' . esc_html__( 'Resumen de configuración', 'sii-boleta-dte' ) . '</h2>';
 		echo '<ul class="sii-boleta-diag-status">';
 		echo '<li>' . ( $cert_ok ? '&#10003;' : '&#10007;' ) . ' ' . sprintf( esc_html__( 'Certificado: %s', 'sii-boleta-dte' ), esc_html( $cert_file ? $cert_file : __( 'sin configurar', 'sii-boleta-dte' ) ) ) . '</li>';
-		echo '<li>' . ( $caf_count > 0 ? '&#10003;' : '&#10007;' ) . ' ' . sprintf( esc_html__( 'Archivos CAF detectados: %d', 'sii-boleta-dte' ), (int) $caf_count );
-		if ( ! empty( $caf_missing ) ) {
-			echo ' — ' . esc_html__( 'Faltan los tipos', 'sii-boleta-dte' ) . ' ' . esc_html( implode( ', ', array_map( 'strval', $caf_missing ) ) );
-		}
-		echo '</li>';
+                echo '<li>' . ( $caf_count > 0 ? '&#10003;' : '&#10007;' ) . ' ' . sprintf( esc_html__( 'Rangos de folios configurados: %d', 'sii-boleta-dte' ), (int) $caf_count );
+                if ( ! empty( $caf_missing ) ) {
+                        echo ' — ' . esc_html__( 'Sin rango para los tipos', 'sii-boleta-dte' ) . ' ' . esc_html( implode( ', ', array_map( 'strval', $caf_missing ) ) );
+                }
+                echo '</li>';
 		echo '<li>' . '&#9432; ' . sprintf( esc_html__( 'Ambiente: %s', 'sii-boleta-dte' ), esc_html( $this->describe_environment( $environment ) ) ) . '</li>';
 		echo '</ul>';
 		echo '<h2>' . esc_html__( 'Pruebas de conectividad', 'sii-boleta-dte' ) . '</h2>';

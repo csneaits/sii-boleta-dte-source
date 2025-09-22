@@ -22,6 +22,7 @@ use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
+use Sii\BoletaDte\Application\LibroBoletas;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
 use Sii\BoletaDte\Presentation\Admin\CafPage;
@@ -55,6 +56,7 @@ class Container {
 						self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ) ) );
 						self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );
 						self::bind( RvdManager::class, fn() => new RvdManager( self::get( Settings::class ) ) );
+						self::bind( LibroBoletas::class, fn() => new LibroBoletas( self::get( Settings::class ) ) );
 						self::bind( Woo::class, fn() => new Woo( null ) );
 						self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
 						self::bind( LogsPage::class, fn() => new LogsPage() );
@@ -64,9 +66,9 @@ class Container {
 												self::bind( FolioManager::class, fn() => new FolioManager( self::get( Settings::class ) ) );
 												self::bind( Queue::class, fn() => new Queue() );
 												self::bind( QueueProcessor::class, fn() => new QueueProcessor( self::get( Api::class ) ) );
-												self::bind( GenerateDtePage::class, fn() => new GenerateDtePage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ), self::get( DteEngine::class ), self::get( PdfGenerator::class ), self::get( FolioManager::class ) ) );
-												self::bind( ControlPanelPage::class, fn() => new ControlPanelPage( self::get( Settings::class ), self::get( FolioManager::class ), self::get( QueueProcessor::class ) ) );
-                                self::bind( CafPage::class, fn() => new CafPage( self::get( Settings::class ) ) );
+						self::bind( GenerateDtePage::class, fn() => new GenerateDtePage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ), self::get( DteEngine::class ), self::get( PdfGenerator::class ), self::get( FolioManager::class ) ) );
+                                                self::bind( ControlPanelPage::class, fn() => new ControlPanelPage( self::get( Settings::class ), self::get( FolioManager::class ), self::get( QueueProcessor::class ), self::get( RvdManager::class ), self::get( LibroBoletas::class ), self::get( Api::class ), self::get( TokenManager::class ) ) );
+								self::bind( CafPage::class, fn() => new CafPage( self::get( Settings::class ) ) );
 	}
 
 	/**

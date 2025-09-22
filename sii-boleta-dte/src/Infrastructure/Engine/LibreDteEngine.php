@@ -468,12 +468,63 @@ class LibreDteEngine implements DteEngine {
          * Normalizes total fields before passing parsed data into LibreDTE renderers.
          */
         private function reset_total_before_rendering( ?array $parsedXml ): ?array {
-                if ( null !== $parsedXml
-                        && isset( $parsedXml['Encabezado']['Totales']['MntTotal'] ) ) {
-                        $parsedXml['Encabezado']['Totales']['MntTotal'] = 0;
+                if ( null === $parsedXml || ! isset( $parsedXml['Encabezado']['Totales'] ) ) {
+                        return $parsedXml;
                 }
 
+                $totals = $parsedXml['Encabezado']['Totales'];
+                if ( ! is_array( $totals ) ) {
+                        return $parsedXml;
+                }
+
+                foreach ( $totals as $key => $value ) {
+                        if ( 'TasaIVA' === $key ) {
+                                if ( is_numeric( $value ) ) {
+                                        $totals[ $key ] = (float) $value;
+                                } else {
+                                        unset( $totals[ $key ] );
+                                }
+                                continue;
+                        }
+
+                        if ( is_array( $value ) ) {
+                                $totals[ $key ] = $this->reset_amount_array( $value );
+                                continue;
+                        }
+
+                        if ( is_numeric( $value ) ) {
+                                $totals[ $key ] = 0;
+                        } else {
+                                unset( $totals[ $key ] );
+                        }
+                }
+
+                $parsedXml['Encabezado']['Totales'] = $totals;
+
                 return $parsedXml;
+        }
+
+        /**
+         * Normalizes nested amount structures before sending data to the renderer.
+         *
+         * @param array<string,mixed> $values Totals subsection.
+         * @return array<string,mixed>
+         */
+        private function reset_amount_array( array $values ): array {
+                foreach ( $values as $key => $value ) {
+                        if ( is_array( $value ) ) {
+                                $values[ $key ] = $this->reset_amount_array( $value );
+                                continue;
+                        }
+
+                        if ( is_numeric( $value ) ) {
+                                $values[ $key ] = 0;
+                        } else {
+                                unset( $values[ $key ] );
+                        }
+                }
+
+                return $values;
         }
 
         /**

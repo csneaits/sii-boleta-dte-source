@@ -71,6 +71,11 @@ input.sii-input-wide[type="text"] {
     border: 1px solid #ccd0d4;
     padding: 4px;
     background: #fff;
+    max-width: 200px;
+    max-height: 120px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }
 
 .sii-dte-settings .sii-dte-form .button-primary {

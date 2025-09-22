@@ -160,6 +160,20 @@ su tipo y cantidad de intentos. Un evento cron programado cada hora procesa la
 cola; los errores se reintentan hasta tres veces y pueden gestionarse desde el
 panel de control.
 
+### Automatización de envíos y gestión de la cola
+
+- **Evento cron unificado**: al activar el plugin se agenda el hook
+  `sii_boleta_dte_process_queue`, que sirve como disparador para las tareas
+  automáticas internas. El mismo evento ejecuta tanto el procesador de la cola
+  como la generación/envío periódico del RVD.
+- **Cola persistente de envíos**: la clase `Queue` registra los trabajos de
+  tipo DTE, libro o RVD en la tabla personalizada mediante `QueueDb`. El
+  `QueueProcessor` lee dichos trabajos, los envía al SII, gestiona reintentos
+  y deja constancia del resultado en el registro consolidado.
+- **Gestión manual**: desde el Panel de Control es posible procesar, reintentar
+  o cancelar cada trabajo en espera. La vista distingue claramente entre DTE,
+  libros y RVD para facilitar su seguimiento.
+
 Los libros electrónicos o RVD se generan seleccionando un rango de fechas y se
 guardan en `wp-content/uploads/sii-boleta-dte/libros/` junto al track ID
 devuelto por el SII.

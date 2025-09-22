@@ -11,10 +11,12 @@ use Sii\BoletaDte\Infrastructure\Cron;
 class RvdManager {
     private Settings $settings;
     private Api $api;
+    private Queue $queue;
 
-    public function __construct( Settings $settings, Api $api = null ) {
+    public function __construct( Settings $settings, Api $api = null, Queue $queue = null ) {
         $this->settings = $settings;
         $this->api      = $api ?? new Api();
+        $this->queue    = $queue ?? new Queue();
         if ( function_exists( 'add_action' ) ) {
             add_action( Cron::HOOK, array( $this, 'maybe_run' ) );
         }
@@ -26,8 +28,12 @@ class RvdManager {
         if ( '' === $xml || ! $this->validate_rvd_xml( $xml ) ) {
             return;
         }
-        $token = $this->api->generate_token( 'boleta', '', '' );
-        $this->api->send_libro_to_sii( $xml, 'boleta', $token );
+        $environment = $this->settings->get_environment();
+        $token       = $this->api->generate_token( $environment, '', '' );
+        if ( '' === $token ) {
+            return;
+        }
+        $this->queue->enqueue_rvd( $xml, $environment, $token );
     }
 
     /**

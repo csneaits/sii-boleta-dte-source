@@ -128,42 +128,75 @@ class Pages {
                     );
         }
 
-		if ( 'sii-boleta-dte_page_sii-boleta-dte-settings' === $hook ) {
-										\wp_enqueue_media();
-										\wp_enqueue_style(
-											'sii-boleta-admin-settings',
-											SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/admin-settings.css',
-											array(),
-											SII_BOLETA_DTE_VERSION
-										);
-										\wp_enqueue_script(
-											'sii-boleta-admin-settings',
-											SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/admin-settings.js',
-											array( 'jquery' ),
-											SII_BOLETA_DTE_VERSION,
-											true
-										);
-										\wp_localize_script(
-											'sii-boleta-admin-settings',
-											'siiBoletaSettings',
-											array(
-												'optionKey' => Settings::OPTION_NAME,
-												'cafOptions' => array(
-													33 => \__( 'Factura', 'sii-boleta-dte' ),
-													39 => \__( 'Boleta', 'sii-boleta-dte' ),
-												),
-												'texts' => array(
-													'selectDocument' => \__( 'Select document type', 'sii-boleta-dte' ),
-													'selectLogo'     => \__( 'Select logo', 'sii-boleta-dte' ),
-													'useLogo'        => \__( 'Use logo', 'sii-boleta-dte' ),
-													'sending'        => \__( 'Sending…', 'sii-boleta-dte' ),
-													'sendFail'       => \__( 'Failed to send', 'sii-boleta-dte' ),
-												),
-												'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-											)
-										);
-		}
-	}
+        if ( 'sii-boleta-dte_page_sii-boleta-dte-settings' === $hook ) {
+            \wp_enqueue_media();
+            \wp_enqueue_style(
+                'sii-boleta-admin-settings',
+                SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/admin-settings.css',
+                array(),
+                SII_BOLETA_DTE_VERSION
+            );
+            \wp_enqueue_script(
+                'sii-boleta-admin-settings',
+                SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/admin-settings.js',
+                array(),
+                SII_BOLETA_DTE_VERSION,
+                true
+            );
+            \wp_localize_script(
+                'sii-boleta-admin-settings',
+                'siiBoletaSettings',
+                array(
+                    'optionKey' => Settings::OPTION_NAME,
+                    'texts'     => array(
+                        'selectLogo' => \__( 'Select logo', 'sii-boleta-dte' ),
+                        'useLogo'    => \__( 'Use logo', 'sii-boleta-dte' ),
+                        'sending'    => \__( 'Sending…', 'sii-boleta-dte' ),
+                        'sendFail'   => \__( 'Failed to send', 'sii-boleta-dte' ),
+                    ),
+                    'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+                )
+            );
+        }
+
+        if ( 'sii-boleta-dte_page_sii-boleta-dte-cafs' === $hook ) {
+            $script_relative = 'src/Presentation/assets/js/caf-manager.js';
+            $style_relative  = 'src/Presentation/assets/css/caf-manager.css';
+            $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
+            $style_path      = SII_BOLETA_DTE_PATH . $style_relative;
+            $base_version    = SII_BOLETA_DTE_VERSION;
+            if ( file_exists( $script_path ) ) {
+                $base_version .= '-' . filemtime( $script_path );
+            }
+            \wp_enqueue_style(
+                'sii-boleta-caf-manager',
+                SII_BOLETA_DTE_URL . $style_relative,
+                array(),
+                file_exists( $style_path ) ? $base_version : SII_BOLETA_DTE_VERSION
+            );
+            \wp_enqueue_script(
+                'sii-boleta-caf-manager',
+                SII_BOLETA_DTE_URL . $script_relative,
+                array(),
+                $base_version,
+                true
+            );
+            \wp_localize_script(
+                'sii-boleta-caf-manager',
+                'siiBoletaCaf',
+                array(
+                    'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                    'nonce' => \wp_create_nonce( 'sii_boleta_caf' ),
+                    'texts' => array(
+                        'addTitle'      => \__( 'Agregar rango de folios', 'sii-boleta-dte' ),
+                        'editTitle'     => \__( 'Editar rango de folios', 'sii-boleta-dte' ),
+                        'deleteConfirm' => \__( '¿Eliminar este rango de folios?', 'sii-boleta-dte' ),
+                        'genericError'  => \__( 'Ha ocurrido un error. Inténtalo nuevamente.', 'sii-boleta-dte' ),
+                    ),
+                )
+            );
+        }
+        }
 }
 
 class_alias( Pages::class, 'Sii\\BoletaDte\\Admin\\Pages' );

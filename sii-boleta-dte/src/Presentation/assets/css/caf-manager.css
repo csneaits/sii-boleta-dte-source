@@ -1,0 +1,43 @@
+#sii-boleta-folio-modal.hidden {
+    display: none;
+}
+
+#sii-boleta-folio-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+}
+
+.sii-boleta-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.sii-boleta-modal {
+    position: relative;
+    max-width: 420px;
+    margin: 8% auto;
+    background: #fff;
+    padding: 24px;
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#sii-boleta-folio-form label {
+    display: block;
+    margin-top: 12px;
+}
+
+#sii-boleta-folio-form input,
+#sii-boleta-folio-form select {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.sii-boleta-modal-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}

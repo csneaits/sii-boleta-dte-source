@@ -50,7 +50,7 @@ class SettingsMigration {
                 $tipo  = isset( $caf['tipo'] ) ? (int) $caf['tipo'] : 0;
                 $desde = isset( $caf['desde'] ) ? (int) $caf['desde'] : 0;
                 $hasta = isset( $caf['hasta'] ) ? (int) $caf['hasta'] : 0;
-                if ( $tipo && $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
+                if ( $tipo && $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta, 0, $active_env ) ) {
                     FoliosDb::insert( $tipo, $desde, $hasta, $active_env );
                 }
             }

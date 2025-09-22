@@ -18,6 +18,9 @@ class LogDb {
         /** @var array<int, array{track_id:string,status:string,response:string,created_at:string}> */
         private static array $entries = array();
 
+        /** Indicates whether the in-memory store should be used. */
+        private static bool $use_memory = true;
+
         /**
          * Returns the full table name including WordPress prefix.
          */
@@ -34,7 +37,8 @@ class LogDb {
                 global $wpdb;
                 if ( ! is_object( $wpdb ) ) {
                         // Tests without a database simply reset the in-memory store.
-                        self::$entries = array();
+                        self::$entries  = array();
+                        self::$use_memory = true;
                         return;
                 }
 
@@ -76,12 +80,14 @@ KEY status (status)
                                         'created_at'=> $created,
                                 )
                         );
-                        if ( false !== $inserted ) {
+                        if ( is_int( $inserted ) && $inserted > 0 ) {
+                                self::$use_memory = false;
                                 return;
                         }
                 }
 
                 // Fallback for tests without database.
+                self::$use_memory = true;
                 self::$entries[] = array(
                         'track_id'  => $track_id,
                         'status'    => $status,
@@ -127,7 +133,7 @@ KEY status (status)
                 $limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
 
                 global $wpdb;
-                if ( is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
+                if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
                         $table = self::table();
                         $sql   = "SELECT track_id,status,response,created_at FROM {$table}";
                         $params = array();
@@ -138,7 +144,7 @@ KEY status (status)
                         $sql     .= ' ORDER BY id DESC LIMIT %d';
                         $params[] = $limit;
                         $prepared = $wpdb->prepare( $sql, $params );
-                        $rows     = $wpdb->get_results( $prepared, ARRAY_A );
+                        $rows     = $wpdb->get_results( $prepared, 'ARRAY_A' );
                         return is_array( $rows ) ? $rows : array();
                 }
 
@@ -160,9 +166,11 @@ KEY status (status)
                 global $wpdb;
                 if ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) ) {
                         $wpdb->query( 'TRUNCATE TABLE ' . self::table() );
+                        self::$use_memory = false;
                         return;
                 }
-                self::$entries = array();
+                self::$entries   = array();
+                self::$use_memory = true;
         }
 }
 

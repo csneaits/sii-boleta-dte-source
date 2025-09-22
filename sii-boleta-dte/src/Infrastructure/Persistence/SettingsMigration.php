@@ -29,11 +29,14 @@ class SettingsMigration {
 
         FoliosDb::install();
 
+        $environment = isset( $current['environment'] ) ? (string) $current['environment'] : '0';
+        $active_env  = Settings::normalize_environment( $environment );
+
         // Legacy CAF paths stored separately.
         $caf_paths = self::get_option_value( 'sii_boleta_dte_caf_paths', array() );
         if ( is_array( $caf_paths ) && ! empty( $caf_paths ) ) {
             foreach ( $caf_paths as $tipo => $path ) {
-                self::maybe_import_caf_path( (int) $tipo, (string) $path );
+                self::maybe_import_caf_path( (int) $tipo, (string) $path, $active_env );
             }
             self::delete_option_value( 'sii_boleta_dte_caf_paths' );
         }
@@ -42,7 +45,7 @@ class SettingsMigration {
         foreach ( array( 33, 39, 41, 52 ) as $tipo ) {
             $opt = self::get_option_value( 'sii_boleta_dte_caf_' . $tipo );
             if ( $opt ) {
-                self::maybe_import_caf_path( (int) $tipo, (string) $opt );
+                self::maybe_import_caf_path( (int) $tipo, (string) $opt, $active_env );
                 self::delete_option_value( 'sii_boleta_dte_caf_' . $tipo );
             }
         }
@@ -53,7 +56,7 @@ class SettingsMigration {
                 $desde = isset( $caf['desde'] ) ? (int) $caf['desde'] : 0;
                 $hasta = isset( $caf['hasta'] ) ? (int) $caf['hasta'] : 0;
                 if ( $tipo && $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
-                    FoliosDb::insert( $tipo, $desde, $hasta );
+                    FoliosDb::insert( $tipo, $desde, $hasta, $active_env );
                 }
             }
         }
@@ -73,7 +76,7 @@ class SettingsMigration {
     /**
      * Attempts to import a CAF XML file by reading its folio range.
      */
-    private static function maybe_import_caf_path( int $tipo, string $path ): void {
+    private static function maybe_import_caf_path( int $tipo, string $path, string $environment ): void {
         if ( ! $tipo || '' === $path ) {
             return;
         }
@@ -87,7 +90,7 @@ class SettingsMigration {
         $desde = (int) $xml->CAF->DA->RNG->D;
         $hasta = (int) $xml->CAF->DA->RNG->H;
         if ( $desde && $hasta && $desde <= $hasta && ! FoliosDb::overlaps( $tipo, $desde, $hasta ) ) {
-            FoliosDb::insert( $tipo, $desde, $hasta );
+            FoliosDb::insert( $tipo, $desde, $hasta, $environment );
         }
     }
 

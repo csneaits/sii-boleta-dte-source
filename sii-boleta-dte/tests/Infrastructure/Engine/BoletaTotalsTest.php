@@ -2,6 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
     class Dummy_Settings extends Settings {
@@ -13,12 +14,14 @@ if ( ! class_exists( 'Dummy_Settings' ) ) {
 
 class BoletaTotalsTest extends TestCase {
 
+    protected function setUp(): void {
+        FoliosDb::purge();
+        FoliosDb::insert( 39, 1, 1000 );
+        FoliosDb::insert( 41, 1, 1000 );
+    }
+
     private function get_settings() {
         return new Dummy_Settings([
-            'caf_path'  => [
-                39 => __DIR__ . '/../../fixtures/caf39.xml',
-                41 => __DIR__ . '/../../fixtures/caf41.xml',
-            ],
             'rut_emisor' => '11111111-1',
             'razon_social' => 'Test',
             'giro' => 'Giro',

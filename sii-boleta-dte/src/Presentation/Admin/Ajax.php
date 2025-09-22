@@ -5,6 +5,7 @@ use Sii\BoletaDte\Infrastructure\Factory\Container;
 use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 class Ajax {
 	private Plugin $core;
@@ -20,6 +21,94 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', array( $this, 'lookup_user_by_rut' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_view_pdf', array( $this, 'view_pdf' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_generate_preview', array( $this, 'generate_preview' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_save_folio_range', array( $this, 'save_folio_range' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_delete_folio_range', array( $this, 'delete_folio_range' ) );
+    }
+
+    public function save_folio_range(): void {
+        \check_ajax_referer( 'sii_boleta_caf', 'nonce' );
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+        }
+
+        $id       = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+        $tipo     = isset( $_POST['tipo'] ) ? (int) $_POST['tipo'] : 0;
+        $start    = isset( $_POST['start'] ) ? (int) $_POST['start'] : 0;
+        $quantity = isset( $_POST['quantity'] ) ? (int) $_POST['quantity'] : 0;
+
+        $allowed = array( 33, 34, 39, 41, 52, 56, 61 );
+        if ( ! in_array( $tipo, $allowed, true ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'Tipo de documento inválido.', 'sii-boleta-dte' ) ) );
+        }
+
+        if ( $start <= 0 || $quantity <= 0 ) {
+            \wp_send_json_error( array( 'message' => \__( 'Debes ingresar valores positivos para el folio inicial y la cantidad.', 'sii-boleta-dte' ) ) );
+        }
+
+        $hasta = $start + $quantity - 1;
+        if ( $hasta < $start ) {
+            \wp_send_json_error( array( 'message' => \__( 'El rango de folios es inválido.', 'sii-boleta-dte' ) ) );
+        }
+
+        if ( FoliosDb::overlaps( $tipo, $start, $hasta, $id ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'El rango se solapa con otro existente para este tipo de documento.', 'sii-boleta-dte' ) ) );
+        }
+
+        if ( $id > 0 ) {
+            $existing = FoliosDb::get( $id );
+            if ( ! $existing ) {
+                \wp_send_json_error( array( 'message' => \__( 'El rango seleccionado no existe.', 'sii-boleta-dte' ) ) );
+            }
+            FoliosDb::update( $id, $tipo, $start, $hasta );
+        } else {
+            $id = FoliosDb::insert( $tipo, $start, $hasta );
+        }
+
+        $this->clamp_last_folio( $tipo );
+        \wp_send_json_success( array( 'id' => $id ) );
+    }
+
+    public function delete_folio_range(): void {
+        \check_ajax_referer( 'sii_boleta_caf', 'nonce' );
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+        }
+
+        $id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+        if ( $id <= 0 ) {
+            \wp_send_json_error( array( 'message' => \__( 'Identificador de rango inválido.', 'sii-boleta-dte' ) ) );
+        }
+
+        $range = FoliosDb::get( $id );
+        if ( ! $range ) {
+            \wp_send_json_error( array( 'message' => \__( 'El rango indicado no existe.', 'sii-boleta-dte' ) ) );
+        }
+
+        FoliosDb::delete( $id );
+        $this->clamp_last_folio( (int) $range['tipo'] );
+        \wp_send_json_success();
+    }
+
+    private function clamp_last_folio( int $tipo ): void {
+        if ( ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
+            return;
+        }
+        $key  = 'sii_boleta_dte_last_folio_' . $tipo;
+        $last = (int) get_option( $key, 0 );
+        if ( $last <= 0 ) {
+            return;
+        }
+        $max = 0;
+        foreach ( FoliosDb::for_type( $tipo ) as $row ) {
+            if ( $row['hasta'] > $max ) {
+                $max = (int) $row['hasta'];
+            }
+        }
+        if ( 0 === $max ) {
+            update_option( $key, 0 );
+        } elseif ( $last > $max ) {
+            update_option( $key, $max );
+        }
     }
 
 	public function test_smtp(): void {

@@ -1,10 +1,19 @@
 # SII Boleta DTE – Plugin WordPress para emisión de DTE
 
-Plugin para generar boletas, facturas y otros Documentos Tributarios Electrónicos (DTE) con integración al Servicio de Impuestos Internos de Chile. Incluye firma digital, timbraje con CAF, envío y consulta de estados, integración con WooCommerce y representación en PDF/HTML.
+Plugin modular para generar boletas, facturas y otros Documentos Tributarios Electrónicos (DTE) integrados con el Servicio de Impuestos Internos (SII) de Chile. El núcleo abstrae la firma digital, el uso de CAF, la generación de PDF417 y el intercambio con los servicios del SII para que la interfaz de WordPress y WooCommerce sólo deban orquestar los flujos de negocio.
+
+## Características principales
+
+- **Integración completa con el SII**: genera tokens, firma los XML con `xmlseclibs` y envía DTE, libros y Resumen de Ventas Diarias (RVD) utilizando la librería `libredte-lib-core` como motor de renderizado.【F:sii-boleta-dte/src/Infrastructure/Rest/Api.php†L16-L142】【F:sii-boleta-dte/src/Infrastructure/Engine/LibreDteEngine.php†L13-L129】
+- **Gestión de folios y CAF**: administra folios en base de datos, soporta múltiples CAF por tipo de documento y expone un panel para cargar o reemplazar archivos XML autorizados.【F:sii-boleta-dte/src/Application/FolioManager.php†L13-L145】【F:sii-boleta-dte/src/Presentation/Admin/CafPage.php†L17-L214】
+- **Cola persistente de trabajos**: almacena envíos pendientes de DTE, libros o RVD en la tabla `sii_boleta_dte_queue` y permite procesarlos manualmente o mediante el evento cron `sii_boleta_dte_process_queue`.【F:sii-boleta-dte/src/Infrastructure/Persistence/QueueDb.php†L7-L160】【F:sii-boleta-dte/src/Application/QueueProcessor.php†L14-L157】
+- **Integración con WooCommerce**: añade campos en el checkout, genera el DTE al completar el pedido y expone un repositorio para consultar documentos asociados a órdenes.【F:sii-boleta-dte/src/Presentation/WooCommerce/CheckoutFields.php†L18-L158】【F:sii-boleta-dte/src/Infrastructure/WooCommerce/WooCommerceDteRepository.php†L12-L122】
+- **Panel administrativo completo**: páginas para configuración, panel de control, generación manual, diagnóstico, ayuda, logs y manejo de CAF, todas registradas desde `Infrastructure\Plugin` y `Presentation\Admin`.【F:sii-boleta-dte/src/Infrastructure/Plugin.php†L20-L113】【F:sii-boleta-dte/src/Presentation/Admin/Pages.php†L17-L209】
+- **Consulta pública de boletas**: expone la ruta `/boleta/{folio}` que renderiza la representación HTML del DTE almacenado en la carpeta de cargas de WordPress.【F:sii-boleta-dte/src/Infrastructure/Rest/Endpoints.php†L11-L92】
 
 ## Arquitectura
 
-El núcleo sigue una arquitectura **hexagonal** (ports & adapters) que mantiene la lógica de negocio aislada de las dependencias externas.
+La base del plugin sigue una arquitectura **hexagonal** (ports & adapters). El código de negocio se concentra en los módulos `Domain` y `Application`, mientras que los adaptadores concretos viven en `Infrastructure` y `Presentation`.
 
 ```mermaid
 flowchart LR
@@ -18,155 +27,84 @@ flowchart LR
     S --- D
 ```
 
-### Capas
-
-- **Domain**: entidades y reglas de negocio puras.
-- **Application**: casos de uso que coordinan el dominio.
-- **Infrastructure**: adaptadores concretos (CLI, REST, WooCommerce, persistencia, motor de timbraje, etc.).
-- **Presentation**: interfaz de administración y formularios en WordPress.
-- **Shared**: utilidades comunes reutilizables en todas las capas.
+El contenedor de dependencias `Infrastructure\Factory\Container` inicializa los servicios clave (ajustes, motor de timbraje, API del SII, gestor de colas, generador PDF, etc.) y los inyecta en las distintas páginas y casos de uso.【F:sii-boleta-dte/src/Infrastructure/Factory/Container.php†L17-L115】
 
 ## Estructura del repositorio
 
 - `sii-boleta-dte/`
-  - `src/` – código fuente organizado según las capas anteriores.
-  - `src/Presentation/assets/` – hojas de estilo y scripts utilizados en la interfaz administrativa.
-  - `resources/` – plantillas y datos requeridos por LibreDTE.
-  - `tests/` – pruebas unitarias con PHPUnit.
-- `build.sh` / `build.ps1` – scripts de empaquetado que generan un ZIP instalable bajo `dist/`.
+  - `sii-boleta-dte.php` – archivo principal del plugin que declara hooks de activación, carga el autoloader de Composer y construye la capa de infraestructura.【F:sii-boleta-dte/sii-boleta-dte.php†L1-L118】
+  - `src/Domain/` – entidades y contratos de dominio (`Dte`, `Rut`, `DteRepository`, `Logger`, `DteEngine`).
+  - `src/Application/` – casos de uso (`Queue`, `QueueProcessor`, `FolioManager`, `LibroBoletas`, `RvdManager`) que coordinan el dominio y la infraestructura.【F:sii-boleta-dte/src/Application/Queue.php†L9-L91】【F:sii-boleta-dte/src/Application/RvdManager.php†L5-L56】
+  - `src/Infrastructure/` – adaptadores concretos: API REST del SII, motor LibreDTE, gestores de folios/logs/colas, integración con WooCommerce, cron, render HTML, PDF y CLI.【F:sii-boleta-dte/src/Infrastructure/Rest/Api.php†L16-L142】【F:sii-boleta-dte/src/Infrastructure/Persistence/FoliosDb.php†L9-L162】
+  - `src/Presentation/` – interfaz de administración y componentes de WooCommerce (campos, activos, AJAX y páginas de WP).【F:sii-boleta-dte/src/Presentation/Admin/GenerateDtePage.php†L17-L268】
+  - `resources/` – plantillas Twig, archivos YAML y esquemas XML utilizados por LibreDTE y validaciones del SII.
+  - `languages/` – traducciones (`.po/.mo`) del dominio `sii-boleta-dte`.
+  - `tests/` – pruebas automatizadas con PHPUnit para cada capa, más `fixtures` y resultados esperados.
+- `build.sh` / `build.ps1` / `build.bat` – scripts para empaquetar el plugin en un ZIP instalable.
 
-## Compilación del plugin
+## Construcción del plugin
 
 ```bash
 chmod +x build.sh
 ./build.sh
 ```
 
-Generará `dist/sii-boleta-dte-<versión>.zip` listo para instalar en WordPress.
+El script resuelve la versión desde la cabecera del plugin, ejecuta `composer install --no-dev --prefer-dist --optimize-autoloader` y genera `dist/sii-boleta-dte-<versión>.zip` listo para instalar en WordPress.【F:build.sh†L1-L41】
 
-En Windows:
+En Windows PowerShell:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process RemoteSigned
 ./build.ps1
 ```
 
-## Desarrollo
+## Entorno de desarrollo
 
-Requisitos mínimos: PHP 8.4 con extensiones `soap`, `mbstring` y `openssl`.
-
-Instala las dependencias:
+- Requiere PHP 8.4 con extensiones `soap`, `mbstring`, `openssl` y Composer instalado.【F:sii-boleta-dte/composer.json†L12-L31】
+- Instala dependencias y activa el autoloader con:
 
 ```bash
 cd sii-boleta-dte
 composer install
 ```
 
-Ejecuta las pruebas y estándares:
+- Ejecuta la suite de pruebas y el estándar de código de WordPress/WPCS:
 
 ```bash
 composer test
 composer phpcs
 ```
 
-## Configuración rápida
+Los tests se inicializan desde `tests/bootstrap.php`, que prepara constantes de WordPress y carga mocks mínimos.【F:sii-boleta-dte/tests/bootstrap.php†L1-L112】
 
-En **Ajustes → SII Boletas** define:
+## Páginas y flujo en WordPress
 
-- Datos del emisor (`RUT`, `Razón Social`, `Giro`, `Dirección`, `Comuna`, `Acteco` y opcional `CdgSIISucur`).
-- Certificado digital y su contraseña.
-- Ambiente de trabajo (`test` o `production`).
-- Tipos de DTE habilitados para WooCommerce.
-- Opciones del PDF: formato (`carta` o `boleta`), mostrar u ocultar el logotipo, nota de pie de página y ruta del logotipo de la empresa.
-- Perfil SMTP a utilizar (por ejemplo FluentSMTP) y habilitar o deshabilitar el registro en archivos.
+El plugin registra sus páginas administrativas en el menú **SII Boletas** y reutiliza las APIs de ajustes y listas de WordPress:
 
-### Migración desde versiones anteriores
+- **Ajustes** – define datos del emisor, certificado, ambiente, tipos de DTE habilitados, opciones PDF, perfil SMTP y logging.【F:sii-boleta-dte/src/Presentation/Admin/SettingsPage.php†L17-L175】
+- **Folios / CAFs** – permite subir, listar y eliminar archivos CAF autorizados por el SII, guardándolos en `wp-content/uploads/sii-boleta-dte/cafs/`.【F:sii-boleta-dte/src/Presentation/Admin/CafPage.php†L37-L214】
+- **Panel de control** – muestra métricas del plugin (folios disponibles, últimos DTE enviados, estado de la cola) y ofrece acciones de procesar, reintentar o cancelar trabajos pendientes.【F:sii-boleta-dte/src/Presentation/Admin/ControlPanelPage.php†L28-L235】
+- **Generación manual** – formulario para emitir DTE sin pedido de WooCommerce, con previsualización PDF/Twig antes del envío al SII.【F:sii-boleta-dte/src/Presentation/Admin/GenerateDtePage.php†L37-L268】
+- **Logs** – visor sobre la tabla `sii_boleta_dte_logs` para filtrar entradas por nivel o `trackId`.【F:sii-boleta-dte/src/Presentation/Admin/LogsPage.php†L17-L230】
+- **Diagnóstico** – ejecuta validaciones de entorno y pruebas de token contra el SII utilizando la API interna y el gestor de tokens.【F:sii-boleta-dte/src/Presentation/Admin/DiagnosticsPage.php†L19-L220】
+- **Ayuda** – recopila enlaces y documentación contextual del plugin.【F:sii-boleta-dte/src/Presentation/Admin/Help.php†L17-L108】
 
-Al activar una versión nueva del plugin se migrarán automáticamente los ajustes
-antiguos (`sii_boleta_dte_settings`) y los archivos de registro existentes al
-nuevo esquema basado en base de datos. Esta migración se ejecuta una sola vez y
-no altera los datos originales.
+Los scripts y estilos de estas páginas residen en `src/Presentation/assets` y se encolan desde `Pages::enqueue_assets()` únicamente en los hooks apropiados.【F:sii-boleta-dte/src/Presentation/Admin/Pages.php†L89-L210】
 
-### Registro y visualización de logs
+## Cron, cola y registros
 
-Los mensajes se almacenan en la tabla personalizada `sii_boleta_dte_logs` y de
-forma opcional en archivos dentro de `wp-content/uploads/sii-boleta-logs/`. En
-la página de ajustes puedes habilitar o deshabilitar cada método de registro y
-consultar las últimas entradas desde el administrador de WordPress mediante el
-visualizador de logs incluido.  La interfaz reutiliza la tabla estándar de
-WordPress y permite filtrar por estado o track ID.
+- El evento `sii_boleta_dte_process_queue` se programa en la activación del plugin y procesa la cola mediante `QueueProcessor::process()`. También ejecuta trabajos de RVD y libros electrónicos programados por `Cron` y `RvdManager`.【F:sii-boleta-dte/src/Infrastructure/Cron.php†L7-L66】【F:sii-boleta-dte/src/Application/RvdManager.php†L16-L38】
+- Los logs se almacenan en la tabla `sii_boleta_dte_logs` y, opcionalmente, en archivos dentro de `wp-content/uploads/sii-boleta-logs/`. El `SharedLogger` respeta las preferencias definidas en ajustes y expone un helper global `sii_boleta_write_log()` para reutilizar en temas o plugins externos.【F:sii-boleta-dte/src/Shared/SharedLogger.php†L14-L156】【F:sii-boleta-dte/sii-boleta-dte.php†L82-L118】
+- Las migraciones de ajustes, folios manuales y logs desde versiones anteriores se ejecutan en la activación mediante `SettingsMigration`, `FoliosDb::install()` y `LogDb::install()`.【F:sii-boleta-dte/src/Infrastructure/Persistence/SettingsMigration.php†L12-L122】【F:sii-boleta-dte/sii-boleta-dte.php†L64-L79】
 
-### Gestión de CAFs
+## Integración con WooCommerce y checkout
 
-Los CAF (archivos XML de folios autorizados) se administran desde el menú **SII Boletas → Folios / CAFs**. Allí puedes:
+El módulo `Presentation\WooCommerce\CheckoutFields` añade un campo de RUT y selector de tipo de documento en el checkout, valida su formato y almacena los valores como metadatos del pedido. Al marcar un pedido como completado, `Infrastructure\WooCommerce\Woo` genera el DTE correspondiente, lo envía al SII y guarda el XML/PDF en la carpeta de cargas organizada por fecha y RUT.【F:sii-boleta-dte/src/Presentation/WooCommerce/CheckoutFields.php†L26-L158】【F:sii-boleta-dte/src/Infrastructure/WooCommerce/Woo.php†L18-L235】
 
-1. Subir uno o varios archivos `.xml` entregados por el SII. Se almacenan en `wp-content/uploads/sii-boleta-dte/cafs/`.
-2. Ver una tabla con el tipo de documento, rango de folios, estado y fecha de carga de cada CAF.
-3. Eliminar o reemplazar CAFs antiguos. El motor de emisión selecciona automáticamente el CAF vigente según el tipo de DTE y mostrará un error si no existe uno disponible.
+## Endpoints y CLI
 
-Cada CAF puede vincularse a un tipo de documento específico desde la pantalla de ajustes. Al generar un DTE, `LibreDteEngine` toma el CAF asignado al tipo solicitado y verifica que el folio esté dentro del rango autorizado antes de firmar el XML.
-
-### Cliente API y flujo de WooCommerce
-
-El cliente `Api` maneja la generación de tokens, el envío de DTE y consulta de
-estado contra los servicios del SII.  Soporta un número configurable de reintentos
-ante fallos de red u otros errores HTTP.  La integración con WooCommerce añade un
-selector de tipo de documento y campo RUT en el checkout, genera el DTE al marcar
-el pedido como completado, guarda el track ID devuelto por el SII y almacena el
-PDF generado para que pueda descargarse desde la pantalla de edición del pedido.
-
-### Diagnóstico y ayuda
-
-Desde el menú del plugin puedes acceder a un panel de **diagnóstico** que verifica
-requisitos básicos y permite probar la generación de tokens y la conectividad con
-los servicios del SII.  También se incluye una página de **ayuda** con enlaces a la
-documentación del proyecto y guías de uso.
-
-### Panel de control y generación manual de DTE
-
-La nueva página de **Panel de Control** muestra el estado general del plugin y
-permite gestionar la cola persistente de trabajos:
-
-- Folios disponibles por tipo de documento (se calculan a partir del último
-  folio usado y el límite del CAF).
-- Últimos DTE enviados con su `trackId` y estado.
-- Cola de procesos pendientes con acciones para **Procesar**, **Reintentar** o
-  **Cancelar** cada elemento.  "Procesar" envía inmediatamente el trabajo al
-  SII, "Reintentar" reinicia el contador de intentos y "Cancelar" elimina el
-  trabajo.
-
-El procesado automático de la cola se realiza mediante el evento cron
-`sii_boleta_dte_process_queue`, por lo que es recomendable tener las tareas
-programadas de WordPress o un *cron job* del sistema configurado.
-
-Además se incluye una página de **Generación manual** de DTE accesible sólo para
-administradores. Desde allí se pueden emitir boletas, facturas, facturas exentas
-o guías de despacho sin asociarlas a un pedido de WooCommerce.  Es necesario
-ingresar los datos del receptor y una lista de ítems utilizando el formato:
-
-```
-cantidad|descripción|precio|afecto
-```
-
-Cada ítem se ingresa en una línea independiente; `afecto` debe ser `1` para
-afecto a IVA u `0` para exento.  El formulario incorpora un botón de
-**Previsualizar** que genera el XML a partir de las plantillas YAML y muestra un
-PDF incrustado antes del envío. Tras presionar **Enviar al SII** se valida y
-firma el documento, se obtiene el `trackId` devuelto por el SII y se guarda una
-copia del XML y el PDF en una carpeta organizada por fecha y RUT.
-
-La cola de trabajos almacena envíos de DTE, libros o RVD. Cada elemento registra
-su tipo y cantidad de intentos. Un evento cron programado cada hora procesa la
-cola; los errores se reintentan hasta tres veces y pueden gestionarse desde el
-panel de control.
-
-Los libros electrónicos o RVD se generan seleccionando un rango de fechas y se
-guardan en `wp-content/uploads/sii-boleta-dte/libros/` junto al track ID
-devuelto por el SII.
-
-Los estilos y scripts utilizados por estas páginas se encuentran en
-`src/Presentation/assets` y se cargan mediante las funciones `wp_enqueue_style`
-y `wp_enqueue_script`.
+- `Infrastructure\Rest\Endpoints` expone la consulta pública de boletas mencionada anteriormente y puede extenderse para servir PDFs u otros formatos.
+- Existe un stub de comando WP-CLI en `Infrastructure\Cli\Cli` (`wp sii-boleta dte_emitir`) listo para ampliarse con automatizaciones o integraciones externas.【F:sii-boleta-dte/src/Infrastructure/Cli/Cli.php†L1-L9】
 
 ## Contribuciones
 

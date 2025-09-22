@@ -6,6 +6,7 @@ use Sii\BoletaDte\Infrastructure\Settings;
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
 if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
+if ( ! function_exists( 'esc_attr__' ) ) { function esc_attr__( $s ) { return $s; } }
 if ( ! function_exists( 'settings_fields' ) ) { function settings_fields() {} }
 if ( ! function_exists( 'do_settings_sections' ) ) { function do_settings_sections() {} }
 if ( ! function_exists( 'submit_button' ) ) { function submit_button() {} }
@@ -35,6 +36,8 @@ class SettingsPageTest extends TestCase {
         $page = new SettingsPage( new Settings() );
         $input = array(
             'rut_emisor'    => ' 11-1 ',
+            'giro'          => ' Principal ',
+            'giros'         => array( '  Giro 1 ', '', 'Giro 2' ),
             'cert_pass'     => 'secret',
             'cert_path'     => '../cert.pfx',
             'environment'   => '2',
@@ -45,6 +48,8 @@ class SettingsPageTest extends TestCase {
         );
         $clean = $page->sanitize_settings( $input );
         $this->assertSame( '11-1', $clean['rut_emisor'] );
+        $this->assertSame( array( 'Giro 1', 'Giro 2' ), $clean['giros'] );
+        $this->assertSame( 'Giro 1', $clean['giro'] );
         $this->assertSame( 'cert.pfx', $clean['cert_path'] );
         $this->assertSame( 2, $clean['environment'] );
         $this->assertSame( array( 33, 39 ), $clean['enabled_types'] );
@@ -52,5 +57,13 @@ class SettingsPageTest extends TestCase {
         $this->assertSame( 123, $clean['pdf_logo'] );
         $this->assertSame( 1, $clean['pdf_show_logo'] );
         $this->assertSame( 1, $clean['enable_logging'] );
+    }
+
+    public function test_sanitize_settings_with_only_single_giro(): void {
+        $page  = new SettingsPage( new Settings() );
+        $input = array( 'giro' => 'Único' );
+        $clean = $page->sanitize_settings( $input );
+        $this->assertSame( 'Único', $clean['giro'] );
+        $this->assertSame( array( 'Único' ), $clean['giros'] );
     }
 }

@@ -128,7 +128,7 @@ class Pages {
                     );
         }
 
-        if ( 'sii-boleta-dte_page_sii-boleta-dte-settings' === $hook ) {
+        if ( false !== strpos( $hook, 'sii-boleta-dte-settings' ) ) {
             \wp_enqueue_media();
             \wp_enqueue_style(
                 'sii-boleta-admin-settings',
@@ -159,7 +159,7 @@ class Pages {
             );
         }
 
-        if ( 'sii-boleta-dte_page_sii-boleta-dte-cafs' === $hook ) {
+        if ( false !== strpos( $hook, 'sii-boleta-dte-cafs' ) ) {
             $script_relative = 'src/Presentation/assets/js/caf-manager.js';
             $style_relative  = 'src/Presentation/assets/css/caf-manager.css';
             $script_path     = SII_BOLETA_DTE_PATH . $script_relative;

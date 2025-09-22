@@ -158,6 +158,9 @@
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             const formData = new FormData(form);
+            if (typeField && typeField.disabled) {
+                formData.append('tipo', typeField.value || '');
+            }
             formData.append('nonce', cfg.nonce);
             setSubmitting(true);
             fetch(cfg.ajax, {

@@ -8,8 +8,8 @@ use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
  * Persistent queue backed by a custom database table.
  *
  * Jobs are arrays with a 'type' key and additional data depending on the
- * operation. Supported types: `dte` and `libro` for sending DTE XML files or
- * Libro/RVD XML strings to SII through the Api class.
+ * operation. Supported types: `dte`, `libro` and `rvd` for sending DTE XML
+ * files or Libro/RVD XML strings to SII through the Api class.
  */
 class Queue {
         public function __construct() {
@@ -27,16 +27,27 @@ class Queue {
 		);
 	}
 
-	public function enqueue_libro( string $xml, string $environment, string $token ): void {
-		QueueDb::enqueue(
-			'libro',
-			array(
-				'xml'         => $xml,
-				'environment' => $environment,
-				'token'       => $token,
-			)
-		);
-	}
+        public function enqueue_libro( string $xml, string $environment, string $token ): void {
+                QueueDb::enqueue(
+                        'libro',
+                        array(
+                                'xml'         => $xml,
+                                'environment' => $environment,
+                                'token'       => $token,
+                        )
+                );
+        }
+
+        public function enqueue_rvd( string $xml, string $environment, string $token ): void {
+                QueueDb::enqueue(
+                        'rvd',
+                        array(
+                                'xml'         => $xml,
+                                'environment' => $environment,
+                                'token'       => $token,
+                        )
+                );
+        }
 
 }
 

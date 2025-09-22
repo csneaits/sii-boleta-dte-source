@@ -63,8 +63,8 @@ class LibreDTEEngineTest extends TestCase {
         $sanitized = $resetMethod->invoke($engine, $parsed);
 
         $this->assertIsArray($sanitized);
-        $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntTotal']);
-        $this->assertSame(0, $sanitized['Encabezado']['Totales']['MntNeto']);
+        $this->assertSame(7100, $sanitized['Encabezado']['Totales']['MntTotal']);
+        $this->assertSame(7100, $sanitized['Encabezado']['Totales']['MntNeto']);
         $this->assertSame(0, $sanitized['Encabezado']['Totales']['IVA']);
     }
 

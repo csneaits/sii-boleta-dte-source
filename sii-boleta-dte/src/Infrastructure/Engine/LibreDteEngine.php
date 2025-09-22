@@ -425,11 +425,15 @@ class LibreDteEngine implements DteEngine {
                 );
                 $parsedXml = $this->parse_document_data_from_xml( $xml );
 
-                $parsedXml = $this->reset_total_before_rendering( $parsedXml );
+                if ( null !== $parsedXml ) {
+                        $parsedXml = $this->reset_total_before_rendering( $parsedXml );
+                        $options['normalizer'] = array( 'normalize' => false );
+                        $bag = new DocumentBag( parsedData: $parsedXml, options: $options );
+                        $bag->setNormalizedData( $parsedXml );
+                } else {
+                        $bag = new DocumentBag( $xml, options: $options );
+                }
 
-                $bag = $parsedXml === null
-                        ? new DocumentBag( $xml, options: $options )
-                        : new DocumentBag( parsedData: $parsedXml, options: $options );
                 $pdf  = $this->renderer->render( $bag );
                 $file = tempnam( sys_get_temp_dir(), 'pdf' );
                 file_put_contents( $file, $pdf );
@@ -477,29 +481,7 @@ class LibreDteEngine implements DteEngine {
                         return $parsedXml;
                 }
 
-                foreach ( $totals as $key => $value ) {
-                        if ( 'TasaIVA' === $key ) {
-                                if ( is_numeric( $value ) ) {
-                                        $totals[ $key ] = (float) $value;
-                                } else {
-                                        unset( $totals[ $key ] );
-                                }
-                                continue;
-                        }
-
-                        if ( is_array( $value ) ) {
-                                $totals[ $key ] = $this->reset_amount_array( $value );
-                                continue;
-                        }
-
-                        if ( is_numeric( $value ) ) {
-                                $totals[ $key ] = 0;
-                        } else {
-                                unset( $totals[ $key ] );
-                        }
-                }
-
-                $parsedXml['Encabezado']['Totales'] = $totals;
+                $parsedXml['Encabezado']['Totales'] = $this->normalize_totals_for_rendering( $totals );
 
                 return $parsedXml;
         }
@@ -510,18 +492,31 @@ class LibreDteEngine implements DteEngine {
          * @param array<string,mixed> $values Totals subsection.
          * @return array<string,mixed>
          */
-        private function reset_amount_array( array $values ): array {
+        private function normalize_totals_for_rendering( array $values ): array {
                 foreach ( $values as $key => $value ) {
+                        if ( 'TasaIVA' === $key ) {
+                                if ( is_numeric( $value ) ) {
+                                        $values[ $key ] = (float) $value;
+                                } else {
+                                        unset( $values[ $key ] );
+                                }
+                                continue;
+                        }
+
                         if ( is_array( $value ) ) {
-                                $values[ $key ] = $this->reset_amount_array( $value );
+                                $values[ $key ] = $this->normalize_totals_for_rendering( $value );
+                                if ( empty( $values[ $key ] ) ) {
+                                        unset( $values[ $key ] );
+                                }
                                 continue;
                         }
 
                         if ( is_numeric( $value ) ) {
-                                $values[ $key ] = 0;
-                        } else {
-                                unset( $values[ $key ] );
+                                $values[ $key ] = (int) round( (float) $value );
+                                continue;
                         }
+
+                        unset( $values[ $key ] );
                 }
 
                 return $values;

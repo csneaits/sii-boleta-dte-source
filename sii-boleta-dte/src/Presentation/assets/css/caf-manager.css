@@ -41,3 +41,32 @@
     gap: 8px;
     justify-content: flex-end;
 }
+
+.sii-boleta-modal-actions .button.is-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.sii-boleta-modal-actions .button.is-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: sii-boleta-spinner 0.6s linear infinite;
+}
+
+@keyframes sii-boleta-spinner {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

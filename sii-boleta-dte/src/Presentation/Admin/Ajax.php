@@ -45,8 +45,8 @@ class Ajax {
             \wp_send_json_error( array( 'message' => \__( 'Debes ingresar valores positivos para el folio inicial y la cantidad.', 'sii-boleta-dte' ) ) );
         }
 
-        $hasta = $start + $quantity - 1;
-        if ( $hasta < $start ) {
+        $hasta = $start + $quantity;
+        if ( $hasta <= $start ) {
             \wp_send_json_error( array( 'message' => \__( 'El rango de folios es inválido.', 'sii-boleta-dte' ) ) );
         }
 
@@ -101,11 +101,12 @@ class Ajax {
         }
         $max = 0;
         foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
-            if ( $row['hasta'] > $max ) {
-                $max = (int) $row['hasta'];
+            $range_max = (int) $row['hasta'] - 1;
+            if ( $range_max > $max ) {
+                $max = $range_max;
             }
         }
-        if ( 0 === $max ) {
+        if ( $max <= 0 ) {
             Settings::update_last_folio_value( $tipo, $environment, 0 );
         } elseif ( $last > $max ) {
             Settings::update_last_folio_value( $tipo, $environment, $max );

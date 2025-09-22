@@ -23,7 +23,15 @@ class FoliosDb {
 
     private static int $auto_inc = 1;
 
-    private static bool $use_memory = true;
+    private static ?bool $use_memory = null;
+
+    private static function using_memory(): bool {
+        global $wpdb;
+        if ( null === self::$use_memory ) {
+            self::$use_memory = ! ( is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) );
+        }
+        return self::$use_memory;
+    }
 
     /** Returns the full table name with WP prefix. */
     private static function table(): string {
@@ -36,11 +44,13 @@ class FoliosDb {
     public static function install(): void {
         global $wpdb;
         if ( ! is_object( $wpdb ) ) {
-            self::$rows      = array();
-            self::$auto_inc  = 1;
+            self::$rows       = array();
+            self::$auto_inc   = 1;
             self::$use_memory = true;
             return;
         }
+
+        self::$use_memory = null;
 
         $table           = self::table();
         $charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : '';
@@ -169,7 +179,7 @@ class FoliosDb {
      */
     public static function get( int $id ): ?array {
         global $wpdb;
-        if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_row' ) ) {
+        if ( ! self::using_memory() && is_object( $wpdb ) && method_exists( $wpdb, 'get_row' ) ) {
             $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ( is_array( $row ) ) {
                 return array(
@@ -196,7 +206,7 @@ class FoliosDb {
     public static function all( string $environment = '0' ): array {
         $env = Settings::normalize_environment( $environment );
         global $wpdb;
-        if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
+        if ( ! self::using_memory() && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
             $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE environment = %s ORDER BY tipo ASC, folio_inicio ASC', $env ), 'ARRAY_A' );
             if ( ! is_array( $rows ) ) {
                 return array();
@@ -293,8 +303,8 @@ class FoliosDb {
 
     /** Clears the in-memory store (used in tests). */
     public static function purge(): void {
-        self::$rows      = array();
-        self::$auto_inc  = 1;
+        self::$rows       = array();
+        self::$auto_inc   = 1;
         self::$use_memory = true;
     }
 }

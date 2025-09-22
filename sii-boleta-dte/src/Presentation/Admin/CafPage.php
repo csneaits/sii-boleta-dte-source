@@ -62,8 +62,12 @@ class CafPage {
             foreach ( $ranges as $range ) {
                 $tipo       = (int) $range['tipo'];
                 $desde      = (int) $range['desde'];
-                $hasta      = (int) $range['hasta'];
-                $cantidad   = max( 0, $hasta - $desde + 1 );
+                $hasta_raw  = (int) $range['hasta'];
+                $hasta      = $hasta_raw - 1;
+                if ( $hasta < $desde ) {
+                    $hasta = $desde;
+                }
+                $cantidad   = max( 0, $hasta_raw - $desde );
                 $last       = Settings::get_last_folio_value( $tipo, $environment );
                 $consumidos = 0;
                 if ( $last >= $desde ) {

@@ -27,13 +27,14 @@ class FolioManager {
         $last = Settings::get_last_folio_value( $type, $environment );
         $next = null;
         foreach ( $ranges as $range ) {
-            $desde = (int) $range['desde'];
-            $hasta = (int) $range['hasta'];
+            $desde        = (int) $range['desde'];
+            $hasta_raw    = (int) $range['hasta'];
+            $hasta_limit  = $hasta_raw - 1;
             if ( $last < $desde ) {
                 $next = $desde;
                 break;
             }
-            if ( $last >= $desde && $last < $hasta ) {
+            if ( $last >= $desde && $last < $hasta_limit ) {
                 $next = $last + 1;
                 break;
             }
@@ -64,7 +65,7 @@ class FolioManager {
             'FchResol' => '',
             'NroResol' => '',
             'D'        => (int) $first['desde'],
-            'H'        => (int) $last['hasta'],
+            'H'        => (int) $last['hasta'] - 1,
         );
     }
 

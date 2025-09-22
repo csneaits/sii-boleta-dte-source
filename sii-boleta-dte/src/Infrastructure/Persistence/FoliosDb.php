@@ -308,7 +308,7 @@ class FoliosDb {
             }
             $max_inicio = max( $row['desde'], $desde );
             $min_fin    = min( $row['hasta'], $hasta );
-            if ( $max_inicio <= $min_fin ) {
+            if ( $max_inicio < $min_fin ) {
                 return true;
             }
         }
@@ -322,7 +322,7 @@ class FoliosDb {
      */
     public static function find_for_folio( int $tipo, int $folio, string $environment = '0' ): ?array {
         foreach ( self::for_type( $tipo, $environment ) as $row ) {
-            if ( $folio >= $row['desde'] && $folio <= $row['hasta'] ) {
+            if ( $folio >= $row['desde'] && $folio < $row['hasta'] ) {
                 return $row;
             }
         }
@@ -332,7 +332,7 @@ class FoliosDb {
     /** Indicates whether a document type has at least one range configured. */
     public static function has_type( int $tipo, string $environment = '0' ): bool {
         foreach ( self::for_type( $tipo, $environment ) as $row ) {
-            if ( $row['hasta'] >= $row['desde'] ) {
+            if ( $row['hasta'] > $row['desde'] ) {
                 return true;
             }
         }

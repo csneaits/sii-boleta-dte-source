@@ -14,8 +14,27 @@
     const typeField = document.getElementById('sii-boleta-folio-type');
     const startField = document.getElementById('sii-boleta-folio-start');
     const qtyField = document.getElementById('sii-boleta-folio-quantity');
+    const endField = document.getElementById('sii-boleta-folio-end');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    const originalSubmitText = submitBtn ? submitBtn.textContent : '';
 
     let currentMode = 'add';
+
+    function calculateEndValue(start, quantity) {
+        const startNumber = Number.parseInt(start, 10);
+        const quantityNumber = Number.parseInt(quantity, 10);
+        if (Number.isNaN(startNumber) || Number.isNaN(quantityNumber) || startNumber <= 0 || quantityNumber <= 0) {
+            return '';
+        }
+        return String(startNumber + quantityNumber - 1);
+    }
+
+    function updateEndField() {
+        if (!endField) {
+            return;
+        }
+        endField.value = calculateEndValue(startField ? startField.value : '', qtyField ? qtyField.value : '');
+    }
 
     function openModal(mode, data) {
         currentMode = mode;
@@ -26,6 +45,7 @@
             typeField.disabled = true;
             startField.value = data.desde;
             qtyField.value = data.cantidad;
+            updateEndField();
         } else {
             modalTitle.textContent = cfg.texts.addTitle;
             idField.value = '0';
@@ -33,6 +53,9 @@
             typeField.disabled = false;
             startField.value = '';
             qtyField.value = '';
+            if (endField) {
+                endField.value = '';
+            }
         }
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
@@ -108,11 +131,35 @@
         });
     }
 
+    if (startField) {
+        startField.addEventListener('input', updateEndField);
+    }
+
+    if (qtyField) {
+        qtyField.addEventListener('input', updateEndField);
+    }
+
+    function setSubmitting(isSubmitting) {
+        if (!submitBtn) {
+            return;
+        }
+        if (isSubmitting) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('is-loading');
+            submitBtn.textContent = cfg.texts.saving || originalSubmitText;
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('is-loading');
+            submitBtn.textContent = originalSubmitText;
+        }
+    }
+
     if (form) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();
             const formData = new FormData(form);
             formData.append('nonce', cfg.nonce);
+            setSubmitting(true);
             fetch(cfg.ajax, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -123,12 +170,14 @@
                     if (!payload || !payload.success) {
                         const message = payload && payload.data && payload.data.message ? payload.data.message : cfg.texts.genericError;
                         window.alert(message);
+                        setSubmitting(false);
                         return;
                     }
                     window.location.reload();
                 })
                 .catch(() => {
                     window.alert(cfg.texts.genericError);
+                    setSubmitting(false);
                 });
         });
     }

@@ -86,6 +86,13 @@ class Api {
                 LogDb::add_entry( (string) $sx->trackId, 'sent', $body );
                 return array( 'trackId' => (string) $sx->trackId );
             }
+
+            $json = json_decode( $body, true );
+            if ( is_array( $json ) && isset( $json['trackId'] ) ) {
+                LogDb::add_entry( (string) $json['trackId'], 'sent', $body );
+                return array( 'trackId' => (string) $json['trackId'] );
+            }
+
             return new WP_Error( 'sii_boleta_libro_http_error', $body );
         }
         return new WP_Error( 'sii_boleta_libro_http_error', 'HTTP error' );

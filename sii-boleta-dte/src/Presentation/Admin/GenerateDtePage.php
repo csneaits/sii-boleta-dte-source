@@ -91,10 +91,10 @@ class GenerateDtePage {
 				$environment_label = '1' === $environment ? __( 'Production', 'sii-boleta-dte' ) : __( 'Certification', 'sii-boleta-dte' );
 				$rvd_automation    = ! empty( $settings_cfg['rvd_auto_enabled'] );
 				$libro_automation  = ! empty( $settings_cfg['libro_auto_enabled'] );
-		?>
-				<div class="wrap sii-generate-dte">
-						<style>
-						.sii-generate-dte {
+                ?>
+                                <?php AdminStyles::open_container( 'sii-generate-dte' ); ?>
+                                                <style>
+                                                .sii-generate-dte {
 								position: relative;
 								padding: 2.5rem 2.2rem 3rem;
 								border-radius: 24px;
@@ -436,7 +436,7 @@ class GenerateDtePage {
 										<iframe id="sii-dte-modal-frame" class="sii-dte-modal-frame" src="" title="<?php esc_attr_e( 'DTE preview', 'sii-boleta-dte' ); ?>"></iframe>
 								</div>
 						</div>
-						<div class="sii-generate-dte-layout">
+                                                <div class="sii-generate-dte-layout">
 								<div class="sii-generate-dte-card">
 										<div id="sii-generate-dte-notices">
 												<?php if ( is_array( $result ) && ! empty( $result['preview'] ) ) : ?>
@@ -617,10 +617,10 @@ class GenerateDtePage {
 												</ol>
 										</div>
 								</aside>
-						</div>
-				</div>
-				<?php
-	}
+                                                </div>
+                                <?php AdminStyles::close_container(); ?>
+                                <?php
+        }
 
 	/**
 	 * Processes form submission and returns result data.

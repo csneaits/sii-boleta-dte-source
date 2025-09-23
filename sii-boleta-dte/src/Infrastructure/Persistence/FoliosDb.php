@@ -271,6 +271,8 @@ class FoliosDb {
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
 
+        $caf_xml = self::normalize_caf_keys( $caf_xml );
+
         if ( self::using_memory() || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'update' ) ) {
             if ( ! isset( self::$rows[ $id ] ) ) {
                 return false;
@@ -304,6 +306,71 @@ class FoliosDb {
         }
 
         return false;
+    }
+
+    /**
+     * Restores PEM line breaks for CAF keys before persisting them.
+     */
+    private static function normalize_caf_keys( string $caf_xml ): string {
+        if ( '' === $caf_xml ) {
+            return $caf_xml;
+        }
+
+        $pattern = '/<(RSASK|RSAPUBK)>(.*?)<\/\1>/is';
+        $callback = static function ( array $matches ): string {
+            $inner = $matches[2];
+            if ( preg_match( '/^(\s*)(.*?)(\s*)$/s', $inner, $whitespace ) ) {
+                $leading  = $whitespace[1];
+                $content  = $whitespace[2];
+                $trailing = $whitespace[3];
+            } else {
+                $leading  = '';
+                $content  = $inner;
+                $trailing = '';
+            }
+
+            $normalized = self::normalize_pem_block( $content );
+            if ( $normalized === $content ) {
+                return $matches[0];
+            }
+
+            return '<' . $matches[1] . '>' . $leading . $normalized . $trailing . '</' . $matches[1] . '>';
+        };
+
+        $normalized = preg_replace_callback( $pattern, $callback, $caf_xml );
+        if ( null === $normalized ) {
+            return $caf_xml;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Formats a PEM string to 64-character lines keeping header/footer intact.
+     */
+    private static function normalize_pem_block( string $pem ): string {
+        $trimmed = trim( $pem );
+        if ( '' === $trimmed ) {
+            return $pem;
+        }
+
+        if ( ! preg_match( '/^(-----BEGIN (?P<label>[A-Z ]+)-----)(?P<body>.*?)(-----END (?P=label)-----)$/is', $trimmed, $parts ) ) {
+            return $pem;
+        }
+
+        $label = strtoupper( $parts['label'] );
+        $begin = '-----BEGIN ' . $label . '-----';
+        $end   = '-----END ' . $label . '-----';
+
+        $body = preg_replace( '/[^A-Za-z0-9+\/=]/', '', $parts['body'] );
+        if ( null === $body || '' === $body ) {
+            return $pem;
+        }
+
+        $chunked = chunk_split( $body, 64, "\n" );
+        $chunked = rtrim( $chunked, "\n" );
+
+        return $begin . "\n" . $chunked . "\n" . $end;
     }
 
     /** Deletes a folio range. */

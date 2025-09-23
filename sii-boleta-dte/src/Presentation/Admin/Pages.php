@@ -116,6 +116,7 @@ class Pages {
                             'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
                             'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
                             'previewAction' => 'sii_boleta_dte_generate_preview',
+                            'sendAction'    => 'sii_boleta_dte_send_document',
                             'texts' => array(
                                 'previewReady' => __( 'Preview generated. Review the document below.', 'sii-boleta-dte' ),
                                 'previewError' => __( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ),
@@ -123,6 +124,10 @@ class Pages {
                                 'loading'      => __( 'Generating preview…', 'sii-boleta-dte' ),
                                 'rutInvalid'   => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ),
                                 'rutRequired'  => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
+                                'sendError'    => __( 'Could not send the document. Please try again.', 'sii-boleta-dte' ),
+                                'sendSuccess'  => __( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ),
+                                'sending'      => __( 'Sending…', 'sii-boleta-dte' ),
+                                'viewPdf'      => __( 'Download PDF', 'sii-boleta-dte' ),
                             ),
                         )
                     );

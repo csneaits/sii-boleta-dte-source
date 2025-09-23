@@ -415,28 +415,45 @@ class Ajax {
 		$post = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		/** @var GenerateDtePage $page */
 		$page   = Container::get( GenerateDtePage::class );
-		$result = $page->process_post( $post );
+                $result = $page->process_post( $post );
 
-		if ( isset( $result['error'] ) && $result['error'] ) {
-			$message = is_string( $result['error'] ) ? $result['error'] : \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' );
-			\wp_send_json_error( array( 'message' => $message ) );
-		}
+                if ( isset( $result['error'] ) && $result['error'] ) {
+                        $message = is_string( $result['error'] ) ? $result['error'] : \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' );
+                        \wp_send_json_error( array( 'message' => $message ) );
+                }
 
-		$track_id = (string) ( $result['track_id'] ?? '' );
-		if ( '' === $track_id ) {
-			\wp_send_json_error( array( 'message' => \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' ) ) );
-		}
+                if ( ! empty( $result['queued'] ) ) {
+                        $queue_message = isset( $result['message'] ) && is_string( $result['message'] )
+                                ? $result['message']
+                                : \__( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
+                        $pdf_url      = (string) ( $result['pdf_url'] ?? '' );
+                        $notice_type  = isset( $result['notice_type'] ) && is_string( $result['notice_type'] ) ? $result['notice_type'] : 'warning';
+                        \wp_send_json_success(
+                                array(
+                                        'queued'      => true,
+                                        'pdf_url'     => $pdf_url,
+                                        'message'     => $queue_message,
+                                        'notice_type' => $notice_type,
+                                )
+                        );
+                }
 
-		$pdf_url = (string) ( $result['pdf_url'] ?? '' );
+                $track_id = (string) ( $result['track_id'] ?? '' );
+                if ( '' === $track_id ) {
+                        \wp_send_json_error( array( 'message' => \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' ) ) );
+                }
 
-		\wp_send_json_success(
-			array(
-				'track_id' => $track_id,
-				'pdf_url'  => $pdf_url,
-				'message'  => sprintf( \__( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ), $track_id ),
-			)
-		);
-	}
+                $pdf_url = (string) ( $result['pdf_url'] ?? '' );
+
+                \wp_send_json_success(
+                        array(
+                                'track_id' => $track_id,
+                                'pdf_url'  => $pdf_url,
+                                'message'  => sprintf( \__( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ), $track_id ),
+                                'notice_type' => isset( $result['notice_type'] ) && is_string( $result['notice_type'] ) ? $result['notice_type'] : 'success',
+                        )
+                );
+        }
 
     public function lookup_user_by_rut(): void {
 		\check_ajax_referer( 'sii_boleta_nonce' );

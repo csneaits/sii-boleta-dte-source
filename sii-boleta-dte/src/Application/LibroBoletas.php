@@ -254,6 +254,13 @@ class LibroBoletas {
         $date     = $date->setTimezone( $timezone )->modify( 'first day of last month' );
         return $date->format( 'Y-m' );
     }
+
+    private function format_date( int $timestamp, string $format ): string {
+        if ( function_exists( 'wp_date' ) ) {
+            return wp_date( $format, $timestamp );
+        }
+        return gmdate( $format, $timestamp );
+    }
 }
 
 class_alias( LibroBoletas::class, 'SII_Libro_Boletas' );

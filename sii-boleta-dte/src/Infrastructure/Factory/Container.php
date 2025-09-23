@@ -57,7 +57,15 @@ class Container {
 						self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );
                         self::bind( Queue::class, fn() => new Queue() );
                         self::bind( RvdManager::class, fn() => new RvdManager( self::get( Settings::class ), self::get( Api::class ), self::get( Queue::class ) ) );
-						self::bind( LibroBoletas::class, fn() => new LibroBoletas( self::get( Settings::class ) ) );
+                        self::bind(
+                                LibroBoletas::class,
+                                fn() => new LibroBoletas(
+                                        self::get( Settings::class ),
+                                        self::get( Api::class ),
+                                        self::get( Queue::class ),
+                                        self::get( FolioManager::class )
+                                )
+                        );
 						self::bind( Woo::class, fn() => new Woo( null ) );
 						self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
 						self::bind( LogsPage::class, fn() => new LogsPage() );

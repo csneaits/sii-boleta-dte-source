@@ -51,12 +51,17 @@ class SettingsPage {
 		// PDF Options.
 		add_settings_section( 'sii_boleta_pdf', __( 'PDF Options', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'pdf_format', __( 'Format', 'sii-boleta-dte' ), array( $this, 'field_pdf_format' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
-		add_settings_field( 'pdf_logo', __( 'Company Logo', 'sii-boleta-dte' ), array( $this, 'field_pdf_logo' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
-		add_settings_field( 'pdf_show_logo', __( 'Show Logo', 'sii-boleta-dte' ), array( $this, 'field_pdf_show_logo' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
-		add_settings_field( 'pdf_footer', __( 'Footer Note', 'sii-boleta-dte' ), array( $this, 'field_pdf_footer' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
+                add_settings_field( 'pdf_logo', __( 'Company Logo', 'sii-boleta-dte' ), array( $this, 'field_pdf_logo' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
+                add_settings_field( 'pdf_show_logo', __( 'Show Logo', 'sii-boleta-dte' ), array( $this, 'field_pdf_show_logo' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
+                add_settings_field( 'pdf_footer', __( 'Footer Note', 'sii-boleta-dte' ), array( $this, 'field_pdf_footer' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
 
-		// SMTP profile.
-		add_settings_section( 'sii_boleta_smtp', __( 'SMTP', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
+                // Automation.
+                add_settings_section( 'sii_boleta_automation', __( 'Automation', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
+                add_settings_field( 'rvd_auto', __( 'Daily RVD', 'sii-boleta-dte' ), array( $this, 'field_rvd_auto' ), 'sii-boleta-dte', 'sii_boleta_automation' );
+                add_settings_field( 'libro_auto', __( 'Monthly Libro', 'sii-boleta-dte' ), array( $this, 'field_libro_auto' ), 'sii-boleta-dte', 'sii_boleta_automation' );
+
+                // SMTP profile.
+                add_settings_section( 'sii_boleta_smtp', __( 'SMTP', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'smtp_profile', __( 'SMTP Profile', 'sii-boleta-dte' ), array( $this, 'field_smtp_profile' ), 'sii-boleta-dte', 'sii_boleta_smtp' );
 
 		// Logging.
@@ -198,11 +203,43 @@ class SettingsPage {
 		echo '<label><input type="checkbox" name="' . $name . '" value="1"' . ( $checked ? ' checked' : '' ) . ' /> ' . esc_html__( 'Show logo on PDF', 'sii-boleta-dte' ) . '</label>';
 	}
 
-	public function field_pdf_footer(): void {
-		$settings = $this->settings->get_settings();
-		$value    = esc_textarea( $settings['pdf_footer'] ?? '' );
-		echo '<textarea name="' . esc_attr( Settings::OPTION_NAME ) . '[pdf_footer]" rows="3" cols="40">' . $value . '</textarea>';
-	}
+        public function field_pdf_footer(): void {
+                $settings = $this->settings->get_settings();
+                $value    = esc_textarea( $settings['pdf_footer'] ?? '' );
+                echo '<textarea name="' . esc_attr( Settings::OPTION_NAME ) . '[pdf_footer]" rows="3" cols="40">' . $value . '</textarea>';
+        }
+
+        public function field_rvd_auto(): void {
+                $settings = $this->settings->get_settings();
+                $enabled  = ! empty( $settings['rvd_auto_enabled'] );
+                $time     = isset( $settings['rvd_auto_time'] ) ? (string) $settings['rvd_auto_time'] : '02:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $time ) ) {
+                        $time = '02:00';
+                }
+                $name = esc_attr( Settings::OPTION_NAME );
+                echo '<label><input type="checkbox" name="' . $name . '[rvd_auto_enabled]" value="1"' . ( $enabled ? ' checked' : '' ) . ' /> ' . esc_html__( 'Enable automatic daily RVD sending', 'sii-boleta-dte' ) . '</label>';
+                echo '<p><label for="sii-boleta-rvd-time">' . esc_html__( 'Send at', 'sii-boleta-dte' ) . '</label> ';
+                echo '<input type="time" id="sii-boleta-rvd-time" name="' . $name . '[rvd_auto_time]" value="' . esc_attr( $time ) . '" step="60" /></p>';
+        }
+
+        public function field_libro_auto(): void {
+                $settings = $this->settings->get_settings();
+                $enabled  = ! empty( $settings['libro_auto_enabled'] );
+                $day      = isset( $settings['libro_auto_day'] ) ? (int) $settings['libro_auto_day'] : 1;
+                if ( $day < 1 || $day > 31 ) {
+                        $day = 1;
+                }
+                $time = isset( $settings['libro_auto_time'] ) ? (string) $settings['libro_auto_time'] : '03:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $time ) ) {
+                        $time = '03:00';
+                }
+                $name = esc_attr( Settings::OPTION_NAME );
+                echo '<label><input type="checkbox" name="' . $name . '[libro_auto_enabled]" value="1"' . ( $enabled ? ' checked' : '' ) . ' /> ' . esc_html__( 'Enable automatic monthly Libro sending', 'sii-boleta-dte' ) . '</label>';
+                echo '<p><label for="sii-boleta-libro-day">' . esc_html__( 'Day of month', 'sii-boleta-dte' ) . '</label> ';
+                echo '<input type="number" id="sii-boleta-libro-day" min="1" max="31" name="' . $name . '[libro_auto_day]" value="' . (int) $day . '" /></p>';
+                echo '<p><label for="sii-boleta-libro-time">' . esc_html__( 'Send at', 'sii-boleta-dte' ) . '</label> ';
+                echo '<input type="time" id="sii-boleta-libro-time" name="' . $name . '[libro_auto_time]" value="' . esc_attr( $time ) . '" step="60" /></p>';
+        }
 
 	public function field_smtp_profile(): void {
 				$settings = $this->settings->get_settings();
@@ -327,9 +364,34 @@ class SettingsPage {
 			$output['acteco'] = sanitize_text_field( $input['acteco'] );
 		}
 
-		if ( isset( $input['cdg_sii_sucur'] ) ) {
-			$output['cdg_sii_sucur'] = sanitize_text_field( $input['cdg_sii_sucur'] );
-		}
+                if ( isset( $input['cdg_sii_sucur'] ) ) {
+                        $output['cdg_sii_sucur'] = sanitize_text_field( $input['cdg_sii_sucur'] );
+                }
+
+                $output['rvd_auto_enabled'] = empty( $input['rvd_auto_enabled'] ) ? 0 : 1;
+                if ( isset( $input['rvd_auto_time'] ) ) {
+                        $rvd_time = (string) $input['rvd_auto_time'];
+                        if ( preg_match( '/^(\d{2}):(\d{2})$/', $rvd_time ) ) {
+                                $output['rvd_auto_time'] = $rvd_time;
+                        }
+                }
+
+                $output['libro_auto_enabled'] = empty( $input['libro_auto_enabled'] ) ? 0 : 1;
+                if ( isset( $input['libro_auto_day'] ) ) {
+                        $libro_day = (int) $input['libro_auto_day'];
+                        if ( $libro_day < 1 ) {
+                                $libro_day = 1;
+                        } elseif ( $libro_day > 31 ) {
+                                $libro_day = 31;
+                        }
+                        $output['libro_auto_day'] = $libro_day;
+                }
+                if ( isset( $input['libro_auto_time'] ) ) {
+                        $libro_time = (string) $input['libro_auto_time'];
+                        if ( preg_match( '/^(\d{2}):(\d{2})$/', $libro_time ) ) {
+                                $output['libro_auto_time'] = $libro_time;
+                        }
+                }
 
         // Handle certificate upload if present.
         if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {

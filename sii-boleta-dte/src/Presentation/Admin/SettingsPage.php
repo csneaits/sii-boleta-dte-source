@@ -264,38 +264,45 @@ class SettingsPage {
 	 * Outputs the settings page markup.
 	 */
     public function render_page(): void {
-            echo '<div class="wrap">';
+            AdminStyles::open_container( 'sii-settings-page' );
             echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
+            echo '<div class="sii-admin-card sii-admin-card--form">';
             // Enable file uploads in settings form.
             echo '<form method="post" action="options.php" enctype="multipart/form-data">';
             settings_fields( Settings::OPTION_GROUP );
             do_settings_sections( 'sii-boleta-dte' );
             submit_button();
             echo '</form>';
-            $this->render_requirements_check();
             echo '</div>';
+            $this->render_requirements_check();
+            AdminStyles::close_container();
     }
 
 		/** Displays a quick checklist to verify certification readiness. */
-	private function render_requirements_check(): void {
-					$cfg    = $this->settings->get_settings();
-					$checks = array(
-						'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
-						'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
-						'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
-					);
-					echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2><ul>';
-					foreach ( $checks as $key => $label ) {
-									$ok = false;
-						if ( 'cert_path' === $key ) {
-										$ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
-						} else {
-											$ok = ! empty( $cfg[ $key ] );
-						}
-									echo '<li>' . ( $ok ? '&#10003;' : '&#10007;' ) . ' ' . esc_html( $label ) . '</li>';
-					}
-					echo '</ul>';
-	}
+        private function render_requirements_check(): void {
+                                        $cfg    = $this->settings->get_settings();
+                                        $checks = array(
+                                                'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
+                                                'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
+                                                'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
+                                        );
+                                        echo '<div class="sii-admin-card sii-admin-card--compact">';
+                                        echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2>';
+                                        echo '<ul class="sii-admin-checklist">';
+                                        foreach ( $checks as $key => $label ) {
+                                                                        $ok = false;
+                                                if ( 'cert_path' === $key ) {
+                                                                                $ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
+                                                } else {
+                                                                                        $ok = ! empty( $cfg[ $key ] );
+                                                }
+                                                                        $icon_class = $ok ? '' : ' is-bad';
+                                                                        $icon       = $ok ? '&#10003;' : '&#10007;';
+                                                                        echo '<li><span class="sii-admin-status-icon' . $icon_class . '">' . $icon . '</span>' . esc_html( $label ) . '</li>';
+                                        }
+                                        echo '</ul>';
+                                        echo '</div>';
+        }
 
 	/**
 	 * Sanitizes and validates settings before saving.

@@ -104,6 +104,10 @@ class FoliosDb {
             return;
         }
 
+        if ( ! self::table_exists() ) {
+            return;
+        }
+
         $table = self::table();
         $columns = array(
             'caf_xml'        => 'longtext NULL',
@@ -145,6 +149,8 @@ class FoliosDb {
             );
             return $id;
         }
+
+        self::ensure_columns();
 
         $table = self::table();
         $data  = array(
@@ -278,6 +284,8 @@ class FoliosDb {
             return true;
         }
 
+        self::ensure_columns();
+
         $table  = self::table();
         $data   = array(
             'caf_xml'        => $caf_xml,
@@ -332,6 +340,7 @@ class FoliosDb {
     public static function get( int $id ): ?array {
         global $wpdb;
         if ( ! self::using_memory() && is_object( $wpdb ) && method_exists( $wpdb, 'get_row' ) ) {
+            self::ensure_columns();
             $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ( is_array( $row ) ) {
                 return array(
@@ -362,6 +371,7 @@ class FoliosDb {
         $env = Settings::normalize_environment( $environment );
         global $wpdb;
         if ( ! self::using_memory() && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
+            self::ensure_columns();
             $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,caf_xml,caf_filename,caf_uploaded_at,created_at,updated_at FROM ' . self::table() . ' WHERE environment = %s ORDER BY tipo ASC, folio_inicio ASC', $env ), 'ARRAY_A' );
             if ( ! is_array( $rows ) ) {
                 return array();

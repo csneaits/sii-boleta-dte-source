@@ -14,6 +14,7 @@ use libredte\lib\Core\Application;
 use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\RendererWorker;
+use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafLoaderWorkerInterface;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
 use Symfony\Component\Yaml\Yaml;
@@ -23,9 +24,10 @@ use Symfony\Component\Yaml\Yaml;
  */
 class LibreDteEngine implements DteEngine {
 	private Settings $settings;
-	private BuilderWorker $builder;
-	private RendererWorker $renderer;
-	private CafFakerWorker $cafFaker;
+        private BuilderWorker $builder;
+        private RendererWorker $renderer;
+        private CafLoaderWorkerInterface $cafLoader;
+        private CafFakerWorker $cafFaker;
 	private CertificateFaker $certificateFaker;
 	private CertificateLoader $certificateLoader;
 
@@ -37,7 +39,9 @@ class LibreDteEngine implements DteEngine {
                 $component                       = $registry->getDocumentComponent();
                 $this->builder                   = $component->getBuilderWorker();
                 $this->renderer                  = $component->getRendererWorker();
-                                $this->cafFaker          = $registry->getIdentifierComponent()->getCafFakerWorker();
+                $identifier                      = $registry->getIdentifierComponent();
+                $this->cafLoader                 = $identifier->getCafLoaderWorker();
+                $this->cafFaker                  = $identifier->getCafFakerWorker();
                                 $this->certificateLoader = new CertificateLoader();
                                 $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
         }
@@ -245,11 +249,36 @@ class LibreDteEngine implements DteEngine {
                         $documentData['Referencia'] = $data['Referencias'];
                 }
 
-				$emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
-				$cafBag       = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
+                                $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
 
-				$cert_file = $settings['cert_path'] ?? '';
-				$cert_pass = $settings['cert_pass'] ?? '';
+                $cafXml = '';
+                if ( $folio_number > 0 ) {
+                        $range = FoliosDb::find_for_folio( $tipo, $folio_number, $environment );
+                        if ( $range && ! empty( $range['caf'] ) ) {
+                                $cafXml = (string) $range['caf'];
+                        }
+                }
+                if ( '' === $cafXml ) {
+                        foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
+                                if ( ! empty( $row['caf'] ) ) {
+                                        $cafXml = (string) $row['caf'];
+                                        break;
+                                }
+                        }
+                }
+
+                if ( '' === trim( $cafXml ) ) {
+                        $cafBag = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
+                } else {
+                        try {
+                                $cafBag = $this->cafLoader->load( $cafXml );
+                        } catch ( \Throwable $e ) {
+                                return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
+                        }
+                }
+
+                                $cert_file = $settings['cert_path'] ?? '';
+                                $cert_pass = $settings['cert_pass'] ?? '';
 		try {
 			if ( $cert_file && @file_exists( $cert_file ) ) {
 						$certificate = $this->certificateLoader->load( $cert_file, (string) $cert_pass );

@@ -6,9 +6,10 @@ use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use libredte\lib\Core\Application;
 
 class Ajax {
-	private Plugin $core;
+        private Plugin $core;
 
 	public function __construct( Plugin $core ) {
 		$this->core = $core;
@@ -35,6 +36,42 @@ class Ajax {
         $tipo     = isset( $_POST['tipo'] ) ? (int) $_POST['tipo'] : 0;
         $start    = isset( $_POST['start'] ) ? (int) $_POST['start'] : 0;
         $quantity = isset( $_POST['quantity'] ) ? (int) $_POST['quantity'] : 0;
+
+        $caf_file     = $_FILES['caf_file'] ?? null;
+        $caf_contents = null;
+        $caf_name     = '';
+
+        if ( is_array( $caf_file ) && (int) ( $caf_file['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {
+            $tmp_name = (string) ( $caf_file['tmp_name'] ?? '' );
+            if ( '' === $tmp_name || ! file_exists( $tmp_name ) ) {
+                \wp_send_json_error( array( 'message' => \__( 'No se pudo leer el archivo CAF subido.', 'sii-boleta-dte' ) ) );
+            }
+            $caf_name = isset( $caf_file['name'] ) ? (string) $caf_file['name'] : 'caf.xml';
+            if ( function_exists( 'sanitize_file_name' ) ) {
+                $caf_name = sanitize_file_name( $caf_name );
+            }
+            $ext = strtolower( pathinfo( $caf_name, PATHINFO_EXTENSION ) );
+            if ( ! in_array( $ext, array( 'xml', 'caf' ), true ) ) {
+                \wp_send_json_error( array( 'message' => \__( 'El CAF debe ser un archivo .xml o .caf.', 'sii-boleta-dte' ) ) );
+            }
+            $contents = file_get_contents( $tmp_name );
+            if ( false === $contents ) {
+                \wp_send_json_error( array( 'message' => \__( 'No se pudo leer el archivo CAF subido.', 'sii-boleta-dte' ) ) );
+            }
+
+            try {
+                $app     = Application::getInstance();
+                $loader  = $app->getPackageRegistry()->getBillingPackage()->getIdentifierComponent()->getCafLoaderWorker();
+                $cafBag  = $loader->load( $contents );
+                $caf     = $cafBag->getCaf();
+                $tipo    = (int) $caf->getTipoDocumento();
+                $start   = (int) $caf->getFolioDesde();
+                $quantity = (int) $caf->getCantidadFolios();
+                $caf_contents = $caf->getXml();
+            } catch ( \Throwable $e ) {
+                \wp_send_json_error( array( 'message' => \__( 'El archivo CAF no es válido.', 'sii-boleta-dte' ) ) );
+            }
+        }
 
         $allowed = array( 33, 34, 39, 41, 52, 56, 61 );
         if ( ! in_array( $tipo, $allowed, true ) ) {
@@ -65,6 +102,10 @@ class Ajax {
             FoliosDb::update( $id, $tipo, $start, $hasta, $environment );
         } else {
             $id = FoliosDb::insert( $tipo, $start, $hasta, $environment );
+        }
+
+        if ( null !== $caf_contents ) {
+            FoliosDb::store_caf( $id, $caf_contents, $caf_name );
         }
 
         $this->clamp_last_folio( $tipo, $environment );

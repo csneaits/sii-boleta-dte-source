@@ -104,6 +104,61 @@ class Settings {
         }
 
         /**
+         * Builds the option key that stores the last execution for a scheduled task.
+         */
+        public static function schedule_option_key( string $task, string $environment ): string {
+                $env  = self::normalize_environment( $environment );
+                $slug = strtolower( preg_replace( '/[^a-z0-9_]+/i', '_', $task ) ?? '' );
+                $slug = '' === $slug ? 'task' : trim( $slug, '_' );
+                return 'sii_boleta_dte_last_' . $slug . '_run_' . $env;
+        }
+
+        /**
+         * Retrieves the last execution marker for a scheduled task.
+         */
+        public static function get_schedule_last_run( string $task, string $environment ): string {
+                $key      = self::schedule_option_key( $task, $environment );
+                $sentinel = new \stdClass();
+
+                if ( function_exists( 'get_option' ) ) {
+                        $value = get_option( $key, $sentinel );
+                        if ( $value !== $sentinel ) {
+                                return (string) $value;
+                        }
+                }
+
+                if ( isset( $GLOBALS['test_options'][ $key ] ) ) {
+                        return (string) $GLOBALS['test_options'][ $key ];
+                }
+                if ( isset( $GLOBALS['wp_options'][ $key ] ) ) {
+                        return (string) $GLOBALS['wp_options'][ $key ];
+                }
+
+                return '';
+        }
+
+        /**
+         * Stores the last execution marker for a scheduled task.
+         */
+        public static function update_schedule_last_run( string $task, string $environment, string $value ): void {
+                $key = self::schedule_option_key( $task, $environment );
+                if ( function_exists( 'update_option' ) ) {
+                        update_option( $key, $value );
+                        return;
+                }
+
+                if ( isset( $GLOBALS['test_options'] ) && is_array( $GLOBALS['test_options'] ) ) {
+                        $GLOBALS['test_options'][ $key ] = $value;
+                        return;
+                }
+
+                if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                        $GLOBALS['wp_options'] = array();
+                }
+                $GLOBALS['wp_options'][ $key ] = $value;
+        }
+
+        /**
          * Returns settings from WordPress options.
          *
          * @return array<string,mixed>

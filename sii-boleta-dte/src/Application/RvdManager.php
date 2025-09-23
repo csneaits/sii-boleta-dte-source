@@ -24,16 +24,40 @@ class RvdManager {
 
     /** Triggered by cron to generate and send the RVD. */
     public function maybe_run(): void {
+        $config = $this->settings->get_settings();
+        if ( empty( $config['rvd_auto_enabled'] ) ) {
+            return;
+        }
+
+        $environment = $this->settings->get_environment();
+        $time_string = isset( $config['rvd_auto_time'] ) ? (string) $config['rvd_auto_time'] : '02:00';
+        if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $time_string ) ) {
+            $time_string = '02:00';
+        }
+
+        $now        = $this->current_timestamp();
+        $today_key  = $this->format_date( $now, 'Y-m-d' );
+        $targetTime = $this->timestamp_for_time( $time_string, $now );
+
+        if ( $now < $targetTime ) {
+            return;
+        }
+
+        $last_run = Settings::get_schedule_last_run( 'rvd', $environment );
+        if ( $last_run === $today_key ) {
+            return;
+        }
+
         $xml = $this->generate_xml();
         if ( '' === $xml || ! $this->validate_rvd_xml( $xml ) ) {
             return;
         }
-        $environment = $this->settings->get_environment();
         $token       = $this->api->generate_token( $environment, '', '' );
         if ( '' === $token ) {
             return;
         }
         $this->queue->enqueue_rvd( $xml, $environment, $token );
+        Settings::update_schedule_last_run( 'rvd', $environment, $today_key );
     }
 
     /**
@@ -64,6 +88,36 @@ class RvdManager {
         $valid = $doc->schemaValidate( $xsd );
         libxml_clear_errors();
         return $valid;
+    }
+
+    private function current_timestamp(): int {
+        if ( function_exists( 'current_time' ) ) {
+            return (int) current_time( 'timestamp' );
+        }
+        return time();
+    }
+
+    private function timestamp_for_time( string $time, int $reference ): int {
+        try {
+            $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new \DateTimeZone( 'UTC' );
+        } catch ( \Throwable $e ) {
+            $timezone = new \DateTimeZone( 'UTC' );
+        }
+
+        $date = new \DateTimeImmutable( '@' . $reference );
+        $date = $date->setTimezone( $timezone );
+
+        list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
+        $date = $date->setTime( $hour, $minute, 0 );
+
+        return $date->getTimestamp();
+    }
+
+    private function format_date( int $timestamp, string $format ): string {
+        if ( function_exists( 'wp_date' ) ) {
+            return wp_date( $format, $timestamp );
+        }
+        return gmdate( $format, $timestamp );
     }
 }
 

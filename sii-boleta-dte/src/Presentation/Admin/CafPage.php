@@ -51,13 +51,14 @@ class CafPage {
         echo '<th>' . esc_html__( 'Rango', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Consumidos', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Restantes', 'sii-boleta-dte' ) . '</th>';
+        echo '<th>' . esc_html__( 'CAF', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Creado', 'sii-boleta-dte' ) . '</th>';
         echo '<th>' . esc_html__( 'Acciones', 'sii-boleta-dte' ) . '</th>';
         echo '</tr></thead><tbody>';
 
         if ( empty( $ranges ) ) {
-            echo '<tr><td colspan="7">' . esc_html__( 'Aún no se han registrado rangos de folios.', 'sii-boleta-dte' ) . '</td></tr>';
+            echo '<tr><td colspan="8">' . esc_html__( 'Aún no se han registrado rangos de folios.', 'sii-boleta-dte' ) . '</td></tr>';
         } else {
             foreach ( $ranges as $range ) {
                 $tipo       = (int) $range['tipo'];
@@ -77,11 +78,16 @@ class CafPage {
                 $estado    = $restantes > 0 ? __( 'Vigente', 'sii-boleta-dte' ) : __( 'Agotado', 'sii-boleta-dte' );
                 $type_label = $types[ $tipo ] ?? (string) $tipo;
                 $created = esc_html( $range['created_at'] ?? '' );
-                echo '<tr data-id="' . (int) $range['id'] . '" data-tipo="' . esc_attr( (string) $tipo ) . '" data-desde="' . esc_attr( (string) $desde ) . '" data-cantidad="' . esc_attr( (string) $cantidad ) . '">';
+                $caf_name = isset( $range['caf_filename'] ) ? (string) $range['caf_filename'] : '';
+                $caf_name = '' !== $caf_name ? $caf_name : ( ! empty( $range['caf'] ) ? __( 'CAF cargado', 'sii-boleta-dte' ) : '' );
+                $caf_uploaded = isset( $range['caf_uploaded_at'] ) ? (string) $range['caf_uploaded_at'] : '';
+                $caf_label = '' !== $caf_name ? $caf_name : __( 'Pendiente', 'sii-boleta-dte' );
+                echo '<tr data-id="' . (int) $range['id'] . '" data-tipo="' . esc_attr( (string) $tipo ) . '" data-desde="' . esc_attr( (string) $desde ) . '" data-cantidad="' . esc_attr( (string) $cantidad ) . '" data-caf-name="' . esc_attr( $caf_name ) . '" data-caf-uploaded="' . esc_attr( $caf_uploaded ) . '">';
                 echo '<td>' . esc_html( $type_label ) . '</td>';
                 echo '<td>' . esc_html( $desde . ' - ' . $hasta ) . '</td>';
                 echo '<td>' . (int) $consumidos . '</td>';
                 echo '<td>' . (int) $restantes . '</td>';
+                echo '<td>' . esc_html( $caf_label ) . '</td>';
                 echo '<td>' . esc_html( $estado ) . '</td>';
                 echo '<td>' . $created . '</td>';
                 echo '<td>';
@@ -124,6 +130,9 @@ class CafPage {
         echo '<input type="number" name="quantity" id="sii-boleta-folio-quantity" min="1" required />';
         echo '<label for="sii-boleta-folio-end">' . esc_html__( 'Folio final', 'sii-boleta-dte' ) . '</label>';
         echo '<input type="number" id="sii-boleta-folio-end" readonly />';
+        echo '<label for="sii-boleta-folio-caf">' . esc_html__( 'Archivo CAF', 'sii-boleta-dte' ) . '</label>';
+        echo '<input type="file" name="caf_file" id="sii-boleta-folio-caf" accept=".xml,.caf" />';
+        echo '<p class="description" id="sii-boleta-folio-caf-info">' . esc_html__( 'Aún no se ha cargado un CAF para este rango.', 'sii-boleta-dte' ) . '</p>';
         echo '<div class="sii-boleta-modal-actions">';
         echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar', 'sii-boleta-dte' ) . '</button>';
         echo '<button type="button" class="button" id="sii-boleta-folio-cancel">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</button>';

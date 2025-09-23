@@ -7,6 +7,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**
@@ -18,16 +19,18 @@ class GenerateDtePage {
 	private Api $api;
 	private DteEngine $engine;
 	private PdfGenerator $pdf;
-	private FolioManager $folio_manager;
+        private FolioManager $folio_manager;
+        private Queue $queue;
 
-	public function __construct( Settings $settings, TokenManager $token_manager, Api $api, DteEngine $engine, PdfGenerator $pdf, FolioManager $folio_manager ) {
-		$this->settings      = $settings;
-		$this->token_manager = $token_manager;
-		$this->api           = $api;
-		$this->engine        = $engine;
-		$this->pdf           = $pdf;
-		$this->folio_manager = $folio_manager;
-	}
+        public function __construct( Settings $settings, TokenManager $token_manager, Api $api, DteEngine $engine, PdfGenerator $pdf, FolioManager $folio_manager, Queue $queue ) {
+                $this->settings      = $settings;
+                $this->token_manager = $token_manager;
+                $this->api           = $api;
+                $this->engine        = $engine;
+                $this->pdf           = $pdf;
+                $this->folio_manager = $folio_manager;
+                $this->queue         = $queue;
+        }
 
 	/** Registers the submenu page. */
 	public function register(): void {
@@ -816,17 +819,55 @@ class GenerateDtePage {
 				);
 		}
 
-				$file = tempnam( sys_get_temp_dir(), 'dte' );
-				file_put_contents( $file, (string) $xml );
-				$env   = (string) ( $settings_cfg['environment'] ?? 'test' );
-				$token = $this->token_manager->get_token( $env );
-				$track = $this->api->send_dte_to_sii( $file, $env, $token );
-				return array(
-					'track_id' => $track,
-					'pdf'      => $pdf,      // keep raw path for tests
-					'pdf_url'  => $pdf_url,  // public URL for link
-				);
-	}
+                                $file = tempnam( sys_get_temp_dir(), 'dte' );
+                                file_put_contents( $file, (string) $xml );
+                                $env   = (string) ( $settings_cfg['environment'] ?? 'test' );
+                                $token = $this->token_manager->get_token( $env );
+                                $track = $this->api->send_dte_to_sii( $file, $env, $token );
+                                if ( function_exists( 'is_wp_error' ) && is_wp_error( $track ) ) {
+                                                $code    = method_exists( $track, 'get_error_code' ) ? (string) $track->get_error_code() : '';
+                                                $message = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
+                                                $message = $this->normalize_api_error_message( $message );
+                                                if ( $this->should_queue_for_error( $code ) ) {
+                                                                $context    = array(
+                                                                        'label'        => $pdf_label,
+                                                                        'type'         => $tipo,
+                                                                        'folio'        => $folio,
+                                                                        'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+                                                                        'rut_receptor' => $rut,
+                                                                );
+                                                                $queued_file = $this->store_xml_for_queue( $file, $context );
+                                                                if ( is_string( $queued_file ) && '' !== $queued_file ) {
+                                                                                $file = $queued_file;
+                                                                }
+                                                                $this->queue->enqueue_dte( $file, $env, $token );
+                                                                return array(
+                                                                        'queued'      => true,
+                                                                        'pdf'         => $pdf,
+                                                                        'pdf_url'     => $pdf_url,
+                                                                        'message'     => __( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' ),
+                                                                        'notice_type' => 'warning',
+                                                                );
+                                                }
+
+                                                return array(
+                                                        'error' => '' !== $message ? $message : __( 'Could not send the document. Please try again.', 'sii-boleta-dte' ),
+                                                );
+                                }
+
+                                if ( ! is_string( $track ) || '' === trim( (string) $track ) ) {
+                                                return array(
+                                                        'error' => __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' ),
+                                                );
+                                }
+
+                                return array(
+                                        'track_id'    => trim( (string) $track ),
+                                        'pdf'         => $pdf,      // keep raw path for tests
+                                        'pdf_url'     => $pdf_url,  // public URL for link
+                                        'notice_type' => 'success',
+                                );
+        }
 
 		/**
 		 * Moves the generated PDF to uploads so it can be displayed via URL.
@@ -834,10 +875,10 @@ class GenerateDtePage {
 		 *
 		 * @param array<string,mixed> $context Metadata used to build a friendly filename.
 		 */
-	private function store_preview_pdf( string $path, array $context = array() ): string {
-		if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
-				return '';
-		}
+        private function store_preview_pdf( string $path, array $context = array() ): string {
+                if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
+                                return '';
+                }
 			$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
 				'basedir' => sys_get_temp_dir(),
 				'baseurl' => '',
@@ -849,22 +890,17 @@ class GenerateDtePage {
 			} elseif ( ! is_dir( $dir ) ) {
 					@mkdir( $dir, 0755, true );
 			}
-			$filename  = $this->build_pdf_filename( $context );
-			$extension = pathinfo( $filename, PATHINFO_EXTENSION );
-			$name_only = pathinfo( $filename, PATHINFO_FILENAME );
-			if ( '' === (string) $name_only ) {
-					$name_only = 'dte';
-			}
-			if ( '' === (string) $extension ) {
-					$extension = 'pdf';
-					$filename  = $name_only . '.pdf';
-			}
-			$dest    = $dir . '/' . $filename;
-			$counter = 2;
-			while ( file_exists( $dest ) ) {
-					$dest = $dir . '/' . $name_only . '-' . $counter . '.' . $extension;
-					++$counter;
-			}
+                        $filename  = $this->build_pdf_filename( $context, 'pdf' );
+                        $name_only = pathinfo( $filename, PATHINFO_FILENAME );
+                        if ( '' === (string) $name_only ) {
+                                        $name_only = 'dte';
+                        }
+                        $dest    = $dir . '/' . $filename;
+                        $counter = 2;
+                        while ( file_exists( $dest ) ) {
+                                        $dest = $dir . '/' . $name_only . '-' . $counter . '.pdf';
+                                        ++$counter;
+                        }
 			if ( ! @copy( $path, $dest ) ) {
 					return '';
 			}
@@ -880,22 +916,61 @@ class GenerateDtePage {
 						),
 						admin_url( 'admin-ajax.php' )
 					);
-					return $url;
-			}
-			return '';
-	}
+                                        return $url;
+                        }
+                        return '';
+        }
 
-		/**
-		 * Builds a descriptive filename for a generated PDF.
-		 *
-		 * @param array<string,mixed> $context
-		 */
-	private function build_pdf_filename( array $context ): string {
-			$label        = isset( $context['label'] ) ? (string) $context['label'] : '';
-			$type         = isset( $context['type'] ) ? (int) $context['type'] : 0;
-			$folio        = isset( $context['folio'] ) ? (int) $context['folio'] : 0;
-			$rut_emisor   = isset( $context['rut_emisor'] ) ? (string) $context['rut_emisor'] : '';
-			$rut_receptor = isset( $context['rut_receptor'] ) ? (string) $context['rut_receptor'] : '';
+                /**
+                 * Stores the XML representation for queued retries in a persistent directory.
+                 *
+                 * @param array<string,mixed> $context Metadata used to build the filename.
+                 */
+        private function store_xml_for_queue( string $path, array $context = array() ): string {
+                if ( '' === $path || ! file_exists( $path ) ) {
+                                return '';
+                }
+
+                        $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
+                                'basedir' => sys_get_temp_dir(),
+                        );
+                        $base = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
+                        $dir  = $base . '/sii-boleta-dte/queue';
+                        if ( function_exists( 'wp_mkdir_p' ) ) {
+                                        wp_mkdir_p( $dir );
+                        } elseif ( ! is_dir( $dir ) ) {
+                                        @mkdir( $dir, 0755, true );
+                        }
+                        $filename  = $this->build_pdf_filename( $context, 'xml' );
+                        $name_only = pathinfo( $filename, PATHINFO_FILENAME );
+                        if ( '' === $name_only ) {
+                                        $name_only = 'dte';
+                        }
+                        $dest    = $dir . '/' . $filename;
+                        $counter = 2;
+                        while ( file_exists( $dest ) ) {
+                                        $dest = $dir . '/' . $name_only . '-' . $counter . '.xml';
+                                        ++$counter;
+                        }
+                        if ( ! @copy( $path, $dest ) ) {
+                                        return '';
+                        }
+                        @chmod( $dest, 0644 );
+
+                        return $dest;
+        }
+
+                /**
+                 * Builds a descriptive filename for a generated PDF.
+                 *
+                 * @param array<string,mixed> $context
+         */
+        private function build_pdf_filename( array $context, string $extension = 'pdf' ): string {
+                        $label        = isset( $context['label'] ) ? (string) $context['label'] : '';
+                        $type         = isset( $context['type'] ) ? (int) $context['type'] : 0;
+                        $folio        = isset( $context['folio'] ) ? (int) $context['folio'] : 0;
+                        $rut_emisor   = isset( $context['rut_emisor'] ) ? (string) $context['rut_emisor'] : '';
+                        $rut_receptor = isset( $context['rut_receptor'] ) ? (string) $context['rut_receptor'] : '';
 
 		if ( '' === $label && $type > 0 ) {
 				$label = sprintf( 'DTE %d', $type );
@@ -912,26 +987,31 @@ class GenerateDtePage {
 		if ( '' !== $rut_target ) {
 				$parts[] = $rut_target;
 		}
-		if ( empty( $parts ) ) {
-				$parts[] = 'dte';
-		}
+                        if ( empty( $parts ) ) {
+                                $parts[] = 'dte';
+                }
 
-			$slug = $this->slugify_filename( implode( '-', $parts ) );
-		if ( '' === $slug ) {
-				$slug = 'dte';
-		}
+                        $slug = $this->slugify_filename( implode( '-', $parts ) );
+                if ( '' === $slug ) {
+                                $slug = 'dte';
+                }
 
-			return $slug . '.pdf';
-	}
+                        $extension = preg_replace( '/[^A-Za-z0-9]+/', '', (string) $extension );
+                if ( '' === $extension ) {
+                                $extension = 'pdf';
+                }
+
+                        return $slug . '.' . $extension;
+        }
 
 		/**
 		 * Normalizes a filename string into a safe slug.
 		 */
-	private function slugify_filename( string $text ): string {
-			$text = strip_tags( $text );
-		if ( function_exists( 'remove_accents' ) ) {
-				$text = remove_accents( $text );
-		}
+        private function slugify_filename( string $text ): string {
+                        $text = strip_tags( $text );
+                if ( function_exists( 'remove_accents' ) ) {
+                                $text = remove_accents( $text );
+                }
 			$text = str_replace( array( '.', ',', ';', ':', "'", '"' ), '', $text );
 			$text = str_replace( array( '/', '\\', '|' ), '-', $text );
 			$text = preg_replace( '/[^A-Za-z0-9\-]+/', '-', $text );
@@ -942,13 +1022,56 @@ class GenerateDtePage {
 				return (string) mb_strtolower( (string) $text, 'UTF-8' );
 		}
 
-			return strtolower( (string) $text );
-	}
+                        return strtolower( (string) $text );
+        }
 
-	/**
-	 * Escribe mensajes de depuración en uploads/sii-boleta-logs/.
-	 */
-	private function debug_log( string $message ): void {
+                /**
+                 * Determines if a WP_Error code represents a temporary outage that warrants queuing.
+                 */
+        private function should_queue_for_error( string $code ): bool {
+                $code = strtolower( trim( $code ) );
+                if ( '' === $code ) {
+                                return false;
+                }
+
+                        $temporary = array(
+                                'http_request_failed',
+                                'http_request_timeout',
+                                'sii_boleta_http_error',
+                        );
+
+                return in_array( $code, $temporary, true );
+        }
+
+                /**
+                 * Attempts to extract a human readable message from the API error payload.
+                 */
+        private function normalize_api_error_message( string $message ): string {
+                $trimmed = trim( $message );
+                if ( '' === $trimmed ) {
+                                return '';
+                }
+
+                        $decoded = json_decode( $trimmed, true );
+                if ( is_array( $decoded ) ) {
+                                $keys = array( 'mensaje', 'message', 'error', 'detail', 'descripcion' );
+                        foreach ( $keys as $key ) {
+                                if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                                                        $value = (string) $decoded[ $key ];
+                                                        if ( '' !== trim( $value ) ) {
+                                                                return trim( $value );
+                                                        }
+                                                }
+                        }
+                }
+
+                        return $trimmed;
+        }
+
+        /**
+         * Escribe mensajes de depuración en uploads/sii-boleta-logs/.
+         */
+        private function debug_log( string $message ): void {
 		$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array();
 		$base    = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
 			? $uploads['basedir']

@@ -8,6 +8,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Application\LibroBoletas;
@@ -45,7 +46,8 @@ class AdminPagesTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->method( 'get_next_folio' )->willReturn( 1 );
-        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = array(
             'sii_boleta_generate_dte_nonce' => 'x',

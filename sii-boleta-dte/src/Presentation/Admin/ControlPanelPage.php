@@ -61,38 +61,151 @@ class ControlPanelPage {
 		if ( isset( $_GET['tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$tab = function_exists( 'sanitize_key' ) ? sanitize_key( (string) $_GET['tab'] ) : strtolower( (string) $_GET['tab'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
-		?>
-		<div class="wrap">
-			<?php $this->render_notices(); ?>
-			<h1><?php echo esc_html__( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
-			<h2 class="nav-tab-wrapper">
-				<?php
-				$base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=sii-boleta-dte';
-				$tabs = array(
-					'logs'  => __( 'Recent DTEs', 'sii-boleta-dte' ),
-					'queue' => __( 'Queue', 'sii-boleta-dte' ),
-					'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
-					'libro' => __( 'Libro validation', 'sii-boleta-dte' ),
-				);
-				if ( ! isset( $tabs[ $tab ] ) ) {
-					$tab = 'logs';
-				}
-				foreach ( $tabs as $key => $label ) {
+                ?>
+                <div class="wrap sii-control-panel">
+                        <style>
+                                .sii-control-panel h1 {
+                                        margin-bottom: 1.5rem;
+                                }
+                                .sii-control-panel .nav-tab-wrapper {
+                                        background: #fff;
+                                        border-radius: 8px;
+                                        padding: 0.4rem;
+                                        display: inline-flex;
+                                        gap: 0.25rem;
+                                        border: 1px solid #d5d8dc;
+                                }
+                                .sii-control-panel .nav-tab {
+                                        border: none;
+                                        border-radius: 6px;
+                                        background: transparent;
+                                        color: #4a5568;
+                                        font-weight: 600;
+                                        transition: all 0.2s ease;
+                                        padding: 0.5rem 1rem;
+                                }
+                                .sii-control-panel .nav-tab:hover {
+                                        background: rgba(58, 123, 213, 0.08);
+                                        color: #2b6cb0;
+                                }
+                                .sii-control-panel .nav-tab.nav-tab-active {
+                                        background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+                                        color: #fff;
+                                        box-shadow: 0 6px 18px rgba(58, 123, 213, 0.25);
+                                }
+                                .sii-control-panel .sii-section {
+                                        background: #fff;
+                                        border-radius: 12px;
+                                        padding: 1.5rem;
+                                        margin-top: 1.5rem;
+                                        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+                                }
+                                .sii-control-panel .sii-metric-grid {
+                                        display: grid;
+                                        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                                        gap: 1rem;
+                                        margin-top: 1rem;
+                                }
+                                .sii-control-panel .sii-metric-card {
+                                        border-radius: 10px;
+                                        padding: 1rem 1.25rem;
+                                        background: linear-gradient(135deg, #edf2ff 0%, #f8f9ff 100%);
+                                        border: 1px solid #dbe7ff;
+                                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+                                }
+                                .sii-control-panel .sii-metric-card h3 {
+                                        margin-top: 0;
+                                        margin-bottom: 0.6rem;
+                                        font-size: 1rem;
+                                        color: #1a365d;
+                                }
+                                .sii-control-panel .sii-metric-value {
+                                        font-size: 2rem;
+                                        font-weight: 700;
+                                        color: #2b6cb0;
+                                        margin: 0.25rem 0 0.75rem;
+                                }
+                                .sii-control-panel .sii-metric-details {
+                                        margin: 0;
+                                        padding: 0;
+                                        list-style: none;
+                                        color: #334155;
+                                }
+                                .sii-control-panel .sii-metric-details li {
+                                        margin: 0.15rem 0;
+                                }
+                                .sii-control-panel .sii-highlight {
+                                        border-left: 4px solid #2b6cb0;
+                                        padding-left: 1rem;
+                                        margin-top: 1rem;
+                                        color: #1e293b;
+                                }
+                                @media (prefers-color-scheme: dark) {
+                                        .sii-control-panel .nav-tab-wrapper {
+                                                background: rgba(15,23,42,0.65);
+                                                border-color: rgba(148,163,184,0.45);
+                                        }
+                                        .sii-control-panel .nav-tab {
+                                                color: #e2e8f0;
+                                        }
+                                        .sii-control-panel .nav-tab:hover {
+                                                color: #63b3ed;
+                                        }
+                                        .sii-control-panel .nav-tab.nav-tab-active {
+                                                box-shadow: 0 8px 20px rgba(15, 118, 255, 0.35);
+                                        }
+                                        .sii-control-panel .sii-section {
+                                                background: rgba(15,23,42,0.65);
+                                                box-shadow: 0 16px 30px rgba(2, 6, 23, 0.45);
+                                        }
+                                        .sii-control-panel .sii-metric-card {
+                                                background: linear-gradient(135deg, rgba(30,64,175,0.55) 0%, rgba(14,116,144,0.45) 100%);
+                                                border-color: rgba(59,130,246,0.45);
+                                                color: #f8fafc;
+                                        }
+                                        .sii-control-panel .sii-metric-card h3,
+                                        .sii-control-panel .sii-metric-details,
+                                        .sii-control-panel .sii-highlight {
+                                                color: #e2e8f0;
+                                        }
+                                        .sii-control-panel .sii-metric-value {
+                                                color: #63b3ed;
+                                        }
+                                }
+                        </style>
+                        <?php $this->render_notices(); ?>
+                        <h1><?php echo esc_html__( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
+                        <h2 class="nav-tab-wrapper">
+                                <?php
+                                $base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=sii-boleta-dte';
+                                $tabs = array(
+                                        'logs'    => __( 'Recent DTEs', 'sii-boleta-dte' ),
+                                        'queue'   => __( 'Queue', 'sii-boleta-dte' ),
+                                        'rvd'     => __( 'RVD', 'sii-boleta-dte' ),
+                                        'libro'   => __( 'Libro validation', 'sii-boleta-dte' ),
+                                        'metrics' => __( 'Metrics', 'sii-boleta-dte' ),
+                                );
+                                if ( ! isset( $tabs[ $tab ] ) ) {
+                                        $tab = 'logs';
+                                }
+                                foreach ( $tabs as $key => $label ) {
 					$active = $tab === $key ? ' nav-tab-active' : '';
 					echo '<a href="' . esc_url( $base . '&tab=' . $key ) . '" class="nav-tab' . $active . '">' . esc_html( $label ) . '</a>';
 				}
 				?>
 			</h2>
 			<?php
-			if ( 'queue' === $tab ) {
-				$this->render_queue();
-			} elseif ( 'rvd' === $tab ) {
-				$this->render_rvd_tools();
-			} elseif ( 'libro' === $tab ) {
-				$this->render_libro_validation();
-			} else {
-				$this->render_recent_logs();
-			}
+                        if ( 'queue' === $tab ) {
+                                $this->render_queue();
+                        } elseif ( 'rvd' === $tab ) {
+                                $this->render_rvd_tools();
+                        } elseif ( 'libro' === $tab ) {
+                                $this->render_libro_validation();
+                        } elseif ( 'metrics' === $tab ) {
+                                $this->render_metrics_dashboard();
+                        } else {
+                                $this->render_recent_logs();
+                        }
 			?>
 		</div>
 		<?php
@@ -130,16 +243,17 @@ class ControlPanelPage {
 	}
 
 	/** Shows latest log entries. */
-	private function render_recent_logs(): void {
-		$logs = LogDb::get_logs( array( 'limit' => 5 ) );
-		?>
-		<h2><?php echo esc_html__( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
-		<table class="widefat striped">
-			<thead>
-				<tr>
-					<th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
-					<th><?php echo esc_html__( 'Status', 'sii-boleta-dte' ); ?></th>
-				</tr>
+        private function render_recent_logs(): void {
+                $logs = LogDb::get_logs( array( 'limit' => 5 ) );
+                ?>
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
+                        <table class="widefat striped">
+                        <thead>
+                                <tr>
+                                        <th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
+                                        <th><?php echo esc_html__( 'Status', 'sii-boleta-dte' ); ?></th>
+                                </tr>
 			</thead>
 			<tbody>
 				<?php foreach ( $logs as $row ) : ?>
@@ -147,25 +261,27 @@ class ControlPanelPage {
 					<td><?php echo esc_html( $row['track_id'] ); ?></td>
 					<td><?php echo esc_html( $row['status'] ); ?></td>
 				</tr>
-				<?php endforeach; ?>
-			</tbody>
-		</table>
-		<?php
-	}
+                                <?php endforeach; ?>
+                        </tbody>
+                        </table>
+                </div>
+                <?php
+        }
 
-	/** Lists queue items with controls. */
-	private function render_queue(): void {
-		$jobs = QueueDb::get_pending_jobs();
-		?>
-		<h2><?php echo esc_html__( 'Queue', 'sii-boleta-dte' ); ?></h2>
-		<?php if ( empty( $jobs ) ) : ?>
-		<p><?php echo esc_html__( 'No queued items.', 'sii-boleta-dte' ); ?></p>
-		<?php else : ?>
-		<table class="wp-list-table widefat fixed striped">
-		<thead>
-		<tr>
-			<th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
-			<th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
+        /** Lists queue items with controls. */
+        private function render_queue(): void {
+                $jobs = QueueDb::get_pending_jobs();
+                ?>
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Queue', 'sii-boleta-dte' ); ?></h2>
+                        <?php if ( empty( $jobs ) ) : ?>
+                        <p><?php echo esc_html__( 'No queued items.', 'sii-boleta-dte' ); ?></p>
+                        <?php else : ?>
+                        <table class="wp-list-table widefat fixed striped">
+                <thead>
+                <tr>
+                        <th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
+                        <th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
 			<th><?php echo esc_html__( 'Attempts', 'sii-boleta-dte' ); ?></th>
 			<th><?php echo esc_html__( 'Actions', 'sii-boleta-dte' ); ?></th>
 		</tr>
@@ -185,46 +301,146 @@ class ControlPanelPage {
 				<button class="button" name="queue_action" value="cancel"><?php echo esc_html__( 'Cancel', 'sii-boleta-dte' ); ?></button>
 				</form>
 			</td>
-		</tr>
-		<?php endforeach; ?>
-		</tbody>
-		</table>
-		<?php endif; ?>
-		<?php
-	}
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+                        </table>
+                        <?php endif; ?>
+                </div>
+                <?php
+        }
 
         private function render_rvd_tools(): void {
                 ?>
-                <h2><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></h2>
-                <p><?php echo esc_html__( 'Creates the daily sales summary and sends it to the SII immediately.', 'sii-boleta-dte' ); ?></p>
-                <form method="post">
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></h2>
+                        <p><?php echo esc_html__( 'Creates the daily sales summary and sends it to the SII immediately.', 'sii-boleta-dte' ); ?></p>
+                        <form method="post">
                         <input type="hidden" name="rvd_action" value="generate_send" />
                         <?php $this->output_nonce_field( 'sii_boleta_rvd', 'sii_boleta_rvd_nonce' ); ?>
                         <button type="submit" class="button button-primary"><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></button>
-                </form>
-                <?php $this->render_rvd_schedule(); ?>
+                        </form>
+                        <?php $this->render_rvd_schedule(); ?>
+                </div>
                 <?php
         }
 
         private function render_libro_validation(): void {
                 ?>
-                <h2><?php echo esc_html__( 'Validate Libro XML', 'sii-boleta-dte' ); ?></h2>
-                <p><?php echo esc_html__( 'Paste the Libro XML to verify it against the official schema.', 'sii-boleta-dte' ); ?></p>
-                <?php $this->render_libro_schedule(); ?>
-                <form method="post">
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Validate Libro XML', 'sii-boleta-dte' ); ?></h2>
+                        <p><?php echo esc_html__( 'Paste the Libro XML to verify it against the official schema.', 'sii-boleta-dte' ); ?></p>
+                        <?php $this->render_libro_schedule(); ?>
+                        <form method="post">
                         <input type="hidden" name="libro_action" value="validate" />
-			<?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
-			<textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
-			<?php
-			if ( function_exists( 'submit_button' ) ) {
-				submit_button( __( 'Validate XML', 'sii-boleta-dte' ) );
-			} else {
-				echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validate XML', 'sii-boleta-dte' ) . '</button>';
-			}
-			?>
-		</form>
-		<?php
-	}
+                        <?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
+                        <textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
+                        <?php
+                        if ( function_exists( 'submit_button' ) ) {
+                                submit_button( __( 'Validate XML', 'sii-boleta-dte' ) );
+                        } else {
+                                echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validate XML', 'sii-boleta-dte' ) . '</button>';
+                        }
+                        ?>
+                        </form>
+                </div>
+                <?php
+        }
+
+        private function render_metrics_dashboard(): void {
+                $logs          = LogDb::get_logs( array( 'limit' => 50 ) );
+                $status_counts = array();
+                foreach ( $logs as $row ) {
+                        $status = isset( $row['status'] ) ? (string) $row['status'] : '';
+                        if ( '' === $status ) {
+                                continue;
+                        }
+                        if ( ! isset( $status_counts[ $status ] ) ) {
+                                $status_counts[ $status ] = 0;
+                        }
+                        ++$status_counts[ $status ];
+                }
+
+                $total_dtes    = count( $logs );
+                $accepted_dtes = $status_counts['accepted'] ?? 0;
+                $sent_dtes     = $status_counts['sent'] ?? 0;
+                $rejected_dtes = $status_counts['rejected'] ?? 0;
+
+                $cfg          = $this->settings->get_settings();
+                $environment  = $this->settings->get_environment();
+                $rvd_enabled  = ! empty( $cfg['rvd_auto_enabled'] );
+                $rvd_time     = isset( $cfg['rvd_auto_time'] ) ? (string) $cfg['rvd_auto_time'] : '02:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $rvd_time ) ) {
+                        $rvd_time = '02:00';
+                }
+                $rvd_last_run = Settings::get_schedule_last_run( 'rvd', $environment );
+                $rvd_next     = $rvd_enabled ? $this->next_daily_run_timestamp( $rvd_time ) : 0;
+
+                $libro_enabled = ! empty( $cfg['libro_auto_enabled'] );
+                $libro_day     = isset( $cfg['libro_auto_day'] ) ? (int) $cfg['libro_auto_day'] : 1;
+                if ( $libro_day < 1 || $libro_day > 31 ) {
+                        $libro_day = 1;
+                }
+                $libro_time = isset( $cfg['libro_auto_time'] ) ? (string) $cfg['libro_auto_time'] : '03:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $libro_time ) ) {
+                        $libro_time = '03:00';
+                }
+                $libro_last_run = Settings::get_schedule_last_run( 'libro', $environment );
+                $libro_next     = $libro_enabled ? $this->next_monthly_run_timestamp( $libro_day, $libro_time ) : 0;
+                $libro_period   = $this->previous_month_period( $this->current_timestamp() );
+
+                $queue_jobs    = QueueDb::get_pending_jobs( 50 );
+                $queue_counts  = array(
+                        'dte'   => 0,
+                        'rvd'   => 0,
+                        'libro' => 0,
+                );
+                foreach ( $queue_jobs as $job ) {
+                        $type = isset( $job['type'] ) ? (string) $job['type'] : '';
+                        if ( isset( $queue_counts[ $type ] ) ) {
+                                ++$queue_counts[ $type ];
+                        }
+                }
+                ?>
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Operational metrics', 'sii-boleta-dte' ); ?></h2>
+                        <div class="sii-metric-grid">
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'DTE performance', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo (int) $total_dtes; ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Accepted', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
+                                                <li><?php echo esc_html__( 'Sent (awaiting result)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
+                                                <li><?php echo esc_html__( 'Rejected', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
+                                        </ul>
+                                </div>
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'RVD automation', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Active', 'sii-boleta-dte' ) : __( 'Paused', 'sii-boleta-dte' ) ); ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Last submission', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Next run', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $rvd_next ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['rvd']; ?></li>
+                                        </ul>
+                                </div>
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'Libro de boletas', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo esc_html( $libro_enabled ? __( 'Scheduled', 'sii-boleta-dte' ) : __( 'Manual', 'sii-boleta-dte' ) ); ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Last report', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $libro_last_run ? $libro_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Next reporting window', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $libro_next ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Period under preparation', 'sii-boleta-dte' ) . ': ' . esc_html( $libro_period ); ?></li>
+                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['libro']; ?></li>
+                                        </ul>
+                                </div>
+                        </div>
+                        <div class="sii-highlight">
+                                <strong><?php echo esc_html__( 'Focus on RVD:', 'sii-boleta-dte' ); ?></strong>
+                                <span><?php echo esc_html__( 'Keep the daily summary flowing — it is our next objective to perfect the RVD pipeline.', 'sii-boleta-dte' ); ?></span>
+                        </div>
+                </div>
+                <?php
+        }
 
 	/** Handles queue actions. */
 	public function handle_queue_action( string $action, int $id ): void {

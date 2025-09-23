@@ -172,6 +172,17 @@ class FoliosDb {
         return 0;
     }
 
+    /** Returns the last database error if available. */
+    public static function last_error(): string {
+        global $wpdb;
+        if ( is_object( $wpdb ) && property_exists( $wpdb, 'last_error' ) ) {
+            $error = (string) $wpdb->last_error;
+            return trim( $error );
+        }
+
+        return '';
+    }
+
     /**
      * Attempts to recreate the folios table when the last database operation failed
      * because the table is missing (common when the plugin was updated without

@@ -17,7 +17,7 @@ class FoliosDb {
     public const TABLE = 'sii_boleta_dte_folios';
 
     /**
-     * @var array<int,array{ id:int,tipo:int,desde:int,hasta:int,environment:string,created_at:string,updated_at:string }>
+     * @var array<int,array{ id:int,tipo:int,desde:int,hasta:int,environment:string,created_at:string,updated_at:string,caf:string,caf_filename:string,caf_uploaded_at:?string }>
      */
     private static array $rows = array();
 
@@ -60,6 +60,9 @@ class FoliosDb {
             folio_inicio bigint(20) unsigned NOT NULL,
             folio_fin bigint(20) unsigned NOT NULL,
             environment varchar(20) NOT NULL DEFAULT '0',
+            caf_xml longtext NULL,
+            caf_filename varchar(255) NULL,
+            caf_uploaded_at datetime NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
@@ -71,6 +74,31 @@ class FoliosDb {
             dbDelta( $sql );
         } elseif ( method_exists( $wpdb, 'query' ) ) {
             $wpdb->query( $sql );
+        }
+
+        self::ensure_columns();
+    }
+
+    private static function ensure_columns(): void {
+        global $wpdb;
+        if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+            return;
+        }
+
+        $table = self::table();
+        $columns = array(
+            'caf_xml'        => 'longtext NULL',
+            'caf_filename'   => 'varchar(255) NULL',
+            'caf_uploaded_at'=> 'datetime NULL',
+        );
+
+        foreach ( $columns as $name => $definition ) {
+            $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM `' . $table . '` LIKE %s', $name ) );
+            if ( null !== $exists ) {
+                continue;
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $wpdb->query( 'ALTER TABLE `' . $table . '` ADD `' . $name . '` ' . $definition );
         }
     }
 
@@ -84,15 +112,19 @@ class FoliosDb {
         if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
             $table = self::table();
             $data  = array(
-                'tipo'         => $tipo,
-                'folio_inicio' => $desde,
-                'folio_fin'    => $hasta,
-                'environment'  => $env,
-                'created_at'   => $now,
-                'updated_at'   => $now,
+                'tipo'           => $tipo,
+                'folio_inicio'   => $desde,
+                'folio_fin'      => $hasta,
+                'environment'    => $env,
+                'caf_xml'        => null,
+                'caf_filename'   => null,
+                'caf_uploaded_at'=> null,
+                'created_at'     => $now,
+                'updated_at'     => $now,
             );
             $result = $wpdb->insert( $table, $data );
             if ( false === $result && self::maybe_recreate_table() ) {
+                self::ensure_columns();
                 $result = $wpdb->insert( $table, $data );
             }
             $insert_id = property_exists( $wpdb, 'insert_id' ) ? (int) $wpdb->insert_id : 0;
@@ -105,13 +137,16 @@ class FoliosDb {
         self::$use_memory        = true;
         $id                      = self::$auto_inc++;
         self::$rows[ $id ] = array(
-            'id'         => $id,
-            'tipo'       => $tipo,
-            'desde'      => $desde,
-            'hasta'      => $hasta,
-            'environment'=> $env,
-            'created_at' => $now,
-            'updated_at' => $now,
+            'id'             => $id,
+            'tipo'           => $tipo,
+            'desde'          => $desde,
+            'hasta'          => $hasta,
+            'environment'    => $env,
+            'caf'            => '',
+            'caf_filename'   => '',
+            'caf_uploaded_at'=> null,
+            'created_at'     => $now,
+            'updated_at'     => $now,
         );
         return $id;
     }
@@ -165,6 +200,7 @@ class FoliosDb {
             );
             $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
             if ( false === $result && self::maybe_recreate_table() ) {
+                self::ensure_columns();
                 $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
             }
             if ( false !== $result ) {
@@ -178,11 +214,49 @@ class FoliosDb {
         }
 
         self::$use_memory              = true;
-        self::$rows[ $id ]['tipo']       = $tipo;
-        self::$rows[ $id ]['desde']      = $desde;
-        self::$rows[ $id ]['hasta']      = $hasta;
-        self::$rows[ $id ]['environment']= $env;
-        self::$rows[ $id ]['updated_at'] = $now;
+        self::$rows[ $id ]['tipo']           = $tipo;
+        self::$rows[ $id ]['desde']          = $desde;
+        self::$rows[ $id ]['hasta']          = $hasta;
+        self::$rows[ $id ]['environment']    = $env;
+        self::$rows[ $id ]['updated_at']     = $now;
+        return true;
+    }
+
+    /**
+     * Stores the CAF XML associated to a range.
+     */
+    public static function store_caf( int $id, string $caf_xml, string $filename = '' ): bool {
+        global $wpdb;
+        $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
+
+        if ( is_object( $wpdb ) && method_exists( $wpdb, 'update' ) ) {
+            $table  = self::table();
+            $data   = array(
+                'caf_xml'        => $caf_xml,
+                'caf_filename'   => $filename,
+                'caf_uploaded_at'=> $now,
+                'updated_at'     => $now,
+            );
+            $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+            if ( false === $result && self::maybe_recreate_table() ) {
+                self::ensure_columns();
+                $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+            }
+            if ( false !== $result ) {
+                self::$use_memory = false;
+                return true;
+            }
+        }
+
+        if ( ! isset( self::$rows[ $id ] ) ) {
+            return false;
+        }
+
+        self::$use_memory                     = true;
+        self::$rows[ $id ]['caf']             = $caf_xml;
+        self::$rows[ $id ]['caf_filename']    = $filename;
+        self::$rows[ $id ]['caf_uploaded_at'] = $now;
+        self::$rows[ $id ]['updated_at']      = $now;
         return true;
     }
 
@@ -226,6 +300,9 @@ class FoliosDb {
                     'desde'      => (int) $row['folio_inicio'],
                     'hasta'      => (int) $row['folio_fin'],
                     'environment'=> Settings::normalize_environment( (string) $row['environment'] ),
+                    'caf'        => (string) ( $row['caf_xml'] ?? '' ),
+                    'caf_filename'=> (string) ( $row['caf_filename'] ?? '' ),
+                    'caf_uploaded_at'=> isset( $row['caf_uploaded_at'] ) ? (string) $row['caf_uploaded_at'] : null,
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
                 );
@@ -245,7 +322,7 @@ class FoliosDb {
         $env = Settings::normalize_environment( $environment );
         global $wpdb;
         if ( ! self::using_memory() && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) ) {
-            $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE environment = %s ORDER BY tipo ASC, folio_inicio ASC', $env ), 'ARRAY_A' );
+            $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,caf_xml,caf_filename,caf_uploaded_at,created_at,updated_at FROM ' . self::table() . ' WHERE environment = %s ORDER BY tipo ASC, folio_inicio ASC', $env ), 'ARRAY_A' );
             if ( ! is_array( $rows ) ) {
                 return array();
             }
@@ -257,6 +334,9 @@ class FoliosDb {
                     'desde'      => (int) $row['folio_inicio'],
                     'hasta'      => (int) $row['folio_fin'],
                     'environment'=> Settings::normalize_environment( (string) $row['environment'] ),
+                    'caf'        => (string) ( $row['caf_xml'] ?? '' ),
+                    'caf_filename'=> (string) ( $row['caf_filename'] ?? '' ),
+                    'caf_uploaded_at'=> isset( $row['caf_uploaded_at'] ) ? (string) $row['caf_uploaded_at'] : null,
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
                 );

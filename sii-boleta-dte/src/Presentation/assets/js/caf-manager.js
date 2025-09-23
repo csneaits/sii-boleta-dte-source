@@ -15,6 +15,8 @@
     const startField = document.getElementById('sii-boleta-folio-start');
     const qtyField = document.getElementById('sii-boleta-folio-quantity');
     const endField = document.getElementById('sii-boleta-folio-end');
+    const cafField = document.getElementById('sii-boleta-folio-caf');
+    const cafInfo = document.getElementById('sii-boleta-folio-caf-info');
     const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
     const originalSubmitText = submitBtn ? submitBtn.textContent : '';
     const typeOptions = typeField ? Array.from(typeField.options) : [];
@@ -95,6 +97,21 @@
         endField.value = String(startNumber + quantityNumber - 1);
     }
 
+    function describeCaf(name, uploaded) {
+        if (!cafInfo) {
+            return;
+        }
+        if (!name) {
+            cafInfo.textContent = cfg.texts.noCaf;
+            return;
+        }
+        let description = cfg.texts.currentCaf.replace('%s', name);
+        if (uploaded) {
+            description += ' ' + cfg.texts.uploadedOn.replace('%s', uploaded);
+        }
+        cafInfo.textContent = description;
+    }
+
     function openModal(mode, data) {
         currentMode = mode;
         if (mode === 'edit') {
@@ -114,6 +131,7 @@
                 qtyField.min = '0';
             }
             updateEndField();
+            describeCaf(data.cafName || '', data.cafUploaded || '');
         } else {
             updateTypeOptions('');
             modalTitle.textContent = cfg.texts.addTitle;
@@ -132,6 +150,10 @@
             if (endField) {
                 endField.value = '';
             }
+            describeCaf('', '');
+        }
+        if (cafField) {
+            cafField.value = '';
         }
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
@@ -170,7 +192,9 @@
                     id: row.getAttribute('data-id'),
                     tipo: row.getAttribute('data-tipo'),
                     desde: row.getAttribute('data-desde'),
-                    cantidad: row.getAttribute('data-cantidad')
+                    cantidad: row.getAttribute('data-cantidad'),
+                    cafName: row.getAttribute('data-caf-name'),
+                    cafUploaded: row.getAttribute('data-caf-uploaded')
                 };
                 openModal('edit', data);
             }
@@ -213,6 +237,16 @@
 
     if (qtyField) {
         qtyField.addEventListener('input', updateEndField);
+    }
+
+    if (cafField && cafInfo) {
+        cafField.addEventListener('change', function () {
+            if (!cafField.files || !cafField.files.length) {
+                return;
+            }
+            const file = cafField.files[0];
+            describeCaf(file.name, '');
+        });
     }
 
     function setSubmitting(isSubmitting) {

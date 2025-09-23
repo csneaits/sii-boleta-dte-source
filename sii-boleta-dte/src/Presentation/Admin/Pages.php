@@ -193,6 +193,9 @@ class Pages {
                         'deleteConfirm' => \__( '¿Eliminar este rango de folios?', 'sii-boleta-dte' ),
                         'genericError'  => \__( 'Ha ocurrido un error. Inténtalo nuevamente.', 'sii-boleta-dte' ),
                         'saving'        => \__( 'Guardando…', 'sii-boleta-dte' ),
+                        'noCaf'         => \__( 'Aún no se ha cargado un CAF.', 'sii-boleta-dte' ),
+                        'currentCaf'    => \__( 'CAF actual: %s', 'sii-boleta-dte' ),
+                        'uploadedOn'    => \__( '(última carga: %s)', 'sii-boleta-dte' ),
                     ),
                 )
             );

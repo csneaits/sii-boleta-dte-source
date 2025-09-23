@@ -2,6 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
     class Dummy_Settings extends Settings {
@@ -100,4 +101,48 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertSame($emisor['GiroEmisor'], $emisor['GiroEmis']);
     }
 
+    public function test_preview_ignores_real_caf_ranges(): void {
+        FoliosDb::install();
+        $rangeId = FoliosDb::insert(39, 1, 100, 'test');
+        $cafPath = __DIR__ . '/../../fixtures/caf39.xml';
+        $cafXml  = file_get_contents($cafPath);
+        $this->assertIsString($cafXml);
+        FoliosDb::store_caf($rangeId, $cafXml, 'caf39.xml');
+
+        $settings = new Dummy_Settings([
+            'environment'   => 'test',
+            'rut_emisor'    => '76192083-9',
+            'razon_social'  => 'Empresa de Prueba',
+            'giro'          => 'Servicios',
+            'direccion'     => 'Direccion 123',
+            'comuna'        => 'Santiago',
+        ]);
+
+        $engine = new LibreDteEngine($settings);
+
+        $data = [
+            'Folio'    => 0,
+            'FchEmis'  => '2024-01-01',
+            'Receptor' => [
+                'RUTRecep'    => '66666666-6',
+                'RznSocRecep' => 'Cliente Prueba',
+                'GiroRecep'   => 'Comercio',
+            ],
+            'Detalles' => [
+                [
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'Producto',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1000,
+                    'MontoItem' => 1000,
+                ],
+            ],
+        ];
+
+        $xml = $engine->generate_dte_xml($data, 39, true);
+
+        $this->assertIsString($xml);
+        $this->assertNotSame('', $xml);
+        $this->assertStringContainsString('<CAF', $xml);
+    }
 }

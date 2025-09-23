@@ -118,24 +118,48 @@ class DiagnosticsPage {
                                 $caf_missing[] = $tipo;
                         }
                 }
-		echo '<div class="wrap"><h1>' . esc_html__( 'Diagnósticos', 'sii-boleta-dte' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Utiliza esta página para verificar rápidamente los archivos requeridos y la conectividad con el SII. Cada verificación es independiente para que identifiques el paso que está fallando.', 'sii-boleta-dte' ) . '</p>';
-		echo '<h2>' . esc_html__( 'Resumen de configuración', 'sii-boleta-dte' ) . '</h2>';
-		echo '<ul class="sii-boleta-diag-status">';
-		echo '<li>' . ( $cert_ok ? '&#10003;' : '&#10007;' ) . ' ' . sprintf( esc_html__( 'Certificado: %s', 'sii-boleta-dte' ), esc_html( $cert_file ? $cert_file : __( 'sin configurar', 'sii-boleta-dte' ) ) ) . '</li>';
-                echo '<li>' . ( $caf_count > 0 ? '&#10003;' : '&#10007;' ) . ' ' . sprintf( esc_html__( 'Rangos de folios configurados: %d', 'sii-boleta-dte' ), (int) $caf_count );
+                AdminStyles::open_container( 'sii-diagnostics-page' );
+                echo '<h1>' . esc_html__( 'Diagnósticos', 'sii-boleta-dte' ) . '</h1>';
+                echo '<p class="sii-admin-subtitle">' . esc_html__( 'Utiliza esta página para verificar rápidamente los archivos requeridos y la conectividad con el SII. Cada verificación es independiente para que identifiques el paso que está fallando.', 'sii-boleta-dte' ) . '</p>';
+                echo '<div class="sii-admin-card sii-admin-card--compact">';
+                echo '<h2>' . esc_html__( 'Resumen de configuración', 'sii-boleta-dte' ) . '</h2>';
+                echo '<ul class="sii-admin-checklist">';
+                $items = array();
+                $cert_label = $cert_file ? $cert_file : __( 'sin configurar', 'sii-boleta-dte' );
+                $cert_text  = sprintf( __( 'Certificado: %s', 'sii-boleta-dte' ), $cert_label );
+                $items[]   = array(
+                        'ok'   => $cert_ok,
+                        'text' => $cert_text,
+                );
+                $folio_text = sprintf( __( 'Rangos de folios configurados: %d', 'sii-boleta-dte' ), (int) $caf_count );
                 if ( ! empty( $caf_missing ) ) {
-                        echo ' — ' . esc_html__( 'Sin rango para los tipos', 'sii-boleta-dte' ) . ' ' . esc_html( implode( ', ', array_map( 'strval', $caf_missing ) ) );
+                        $missing   = implode( ', ', array_map( 'strval', $caf_missing ) );
+                        $folio_text .= ' — ' . sprintf( __( 'Sin rango para los tipos %s', 'sii-boleta-dte' ), $missing );
                 }
-                echo '</li>';
-		echo '<li>' . '&#9432; ' . sprintf( esc_html__( 'Ambiente: %s', 'sii-boleta-dte' ), esc_html( $this->describe_environment( $environment ) ) ) . '</li>';
-		echo '</ul>';
-		echo '<h2>' . esc_html__( 'Pruebas de conectividad', 'sii-boleta-dte' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Ejecuta las siguientes pruebas para confirmar que el plugin puede autenticarse y comunicarse con el SII. Puedes realizarlas las veces que necesites; los resultados se muestran debajo de cada botón.', 'sii-boleta-dte' ) . '</p>';
-		echo '<form method="post">';
-		if ( function_exists( 'wp_nonce_field' ) ) {
-			wp_nonce_field( 'sii_boleta_diag' );
-		}
+                $items[] = array(
+                        'ok'   => $caf_count > 0,
+                        'text' => $folio_text,
+                );
+                $items[] = array(
+                        'icon'  => '&#9432;',
+                        'class' => ' is-info',
+                        'text'  => sprintf( __( 'Ambiente: %s', 'sii-boleta-dte' ), $this->describe_environment( $environment ) ),
+                );
+                foreach ( $items as $item ) {
+                        $ok         = $item['ok'] ?? null;
+                        $icon       = $item['icon'] ?? ( $ok ? '&#10003;' : '&#10007;' );
+                        $icon_class = $item['class'] ?? ( $ok ? '' : ' is-bad' );
+                        echo '<li><span class="sii-admin-status-icon' . $icon_class . '">' . $icon . '</span>' . esc_html( $item['text'] ) . '</li>';
+                }
+                echo '</ul>';
+                echo '</div>';
+                echo '<div class="sii-admin-card">';
+                echo '<h2>' . esc_html__( 'Pruebas de conectividad', 'sii-boleta-dte' ) . '</h2>';
+                echo '<p class="description">' . esc_html__( 'Ejecuta las siguientes pruebas para confirmar que el plugin puede autenticarse y comunicarse con el SII. Puedes realizarlas las veces que necesites; los resultados se muestran debajo de cada botón.', 'sii-boleta-dte' ) . '</p>';
+                echo '<form method="post">';
+                if ( function_exists( 'wp_nonce_field' ) ) {
+                        wp_nonce_field( 'sii_boleta_diag' );
+                }
 		echo '<div class="sii-boleta-diag-action">';
 		echo '<p><strong>' . esc_html__( 'Generación de token', 'sii-boleta-dte' ) . '</strong><br>' . esc_html__( 'Solicita un token nuevo utilizando el certificado digital y RUT configurados.', 'sii-boleta-dte' ) . '</p>';
 		echo '<p><button class="button" name="sii_boleta_diag" value="token">' . esc_html__( 'Ejecutar prueba de token', 'sii-boleta-dte' ) . '</button></p>';
@@ -158,8 +182,10 @@ class DiagnosticsPage {
 			}
 			echo '</div>';
 		}
-		echo '</form></div>';
-	}
+                echo '</form>';
+                echo '</div>';
+                AdminStyles::close_container();
+        }
 
 	/**
 	 * Traduce la clave del ambiente a una etiqueta legible.

@@ -193,24 +193,26 @@ class ControlPanelPage {
 		<?php
 	}
 
-	private function render_rvd_tools(): void {
-		?>
-		<h2><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></h2>
-		<p><?php echo esc_html__( 'Creates the daily sales summary and sends it to the SII immediately.', 'sii-boleta-dte' ); ?></p>
-		<form method="post">
-			<input type="hidden" name="rvd_action" value="generate_send" />
-			<?php $this->output_nonce_field( 'sii_boleta_rvd', 'sii_boleta_rvd_nonce' ); ?>
-			<button type="submit" class="button button-primary"><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></button>
-		</form>
-		<?php
-	}
+        private function render_rvd_tools(): void {
+                ?>
+                <h2><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></h2>
+                <p><?php echo esc_html__( 'Creates the daily sales summary and sends it to the SII immediately.', 'sii-boleta-dte' ); ?></p>
+                <form method="post">
+                        <input type="hidden" name="rvd_action" value="generate_send" />
+                        <?php $this->output_nonce_field( 'sii_boleta_rvd', 'sii_boleta_rvd_nonce' ); ?>
+                        <button type="submit" class="button button-primary"><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></button>
+                </form>
+                <?php $this->render_rvd_schedule(); ?>
+                <?php
+        }
 
-	private function render_libro_validation(): void {
-		?>
-		<h2><?php echo esc_html__( 'Validate Libro XML', 'sii-boleta-dte' ); ?></h2>
-		<p><?php echo esc_html__( 'Paste the Libro XML to verify it against the official schema.', 'sii-boleta-dte' ); ?></p>
-		<form method="post">
-			<input type="hidden" name="libro_action" value="validate" />
+        private function render_libro_validation(): void {
+                ?>
+                <h2><?php echo esc_html__( 'Validate Libro XML', 'sii-boleta-dte' ); ?></h2>
+                <p><?php echo esc_html__( 'Paste the Libro XML to verify it against the official schema.', 'sii-boleta-dte' ); ?></p>
+                <?php $this->render_libro_schedule(); ?>
+                <form method="post">
+                        <input type="hidden" name="libro_action" value="validate" />
 			<?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
 			<textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
 			<?php
@@ -296,10 +298,10 @@ class ControlPanelPage {
 		$this->add_notice( $message );
 	}
 
-	private function handle_libro_action( string $action, string $xml ): void {
-		if ( 'validate' !== $action ) {
-			return;
-		}
+        private function handle_libro_action( string $action, string $xml ): void {
+                if ( 'validate' !== $action ) {
+                        return;
+                }
 
 		if ( ! $this->verify_nonce( 'sii_boleta_libro_nonce', 'sii_boleta_libro' ) ) {
 			$this->add_notice( __( 'Security verification failed. Please try again.', 'sii-boleta-dte' ), 'error' );
@@ -316,11 +318,11 @@ class ControlPanelPage {
 			$this->add_notice( __( 'Libro XML is valid.', 'sii-boleta-dte' ) );
 		} else {
 			$this->add_notice( __( 'Libro XML did not pass validation. Review the structure and try again.', 'sii-boleta-dte' ), 'error' );
-		}
-	}
+                }
+        }
 
-	private function output_nonce_field( string $action, string $name ): void {
-		if ( function_exists( 'wp_nonce_field' ) ) {
+        private function output_nonce_field( string $action, string $name ): void {
+                if ( function_exists( 'wp_nonce_field' ) ) {
 			\wp_nonce_field( $action, $name );
 			return;
 		}
@@ -339,11 +341,11 @@ class ControlPanelPage {
 			return (bool) \wp_verify_nonce( (string) $_POST[ $field ], $action );
 		}
 
-		return true;
-	}
+                return true;
+        }
 
-	private function add_notice( string $message, string $type = 'success' ): void {
-		$this->notices[] = array(
+        private function add_notice( string $message, string $type = 'success' ): void {
+                $this->notices[] = array(
 			'type'    => 'error' === $type ? 'error' : 'success',
 			'message' => $message,
 		);
@@ -364,14 +366,147 @@ class ControlPanelPage {
 	}
 
 	/** Returns a translated label for a queue job type. */
-	private function translate_type( string $type ): string {
-		$map = array(
-			'dte'   => __( 'DTE', 'sii-boleta-dte' ),
-			'libro' => __( 'Libro', 'sii-boleta-dte' ),
-			'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
-		);
-		return $map[ $type ] ?? $type;
-	}
+        private function translate_type( string $type ): string {
+                $map = array(
+                        'dte'   => __( 'DTE', 'sii-boleta-dte' ),
+                        'libro' => __( 'Libro', 'sii-boleta-dte' ),
+                        'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
+                );
+                return $map[ $type ] ?? $type;
+        }
+
+        private function render_rvd_schedule(): void {
+                $cfg       = $this->settings->get_settings();
+                $enabled   = ! empty( $cfg['rvd_auto_enabled'] );
+                $time      = isset( $cfg['rvd_auto_time'] ) ? (string) $cfg['rvd_auto_time'] : '02:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $time ) ) {
+                        $time = '02:00';
+                }
+                $environment = $this->settings->get_environment();
+                $last        = Settings::get_schedule_last_run( 'rvd', $environment );
+                $next_ts     = $enabled ? $this->next_daily_run_timestamp( $time ) : 0;
+                ?>
+                <h3><?php echo esc_html__( 'Automatic schedule', 'sii-boleta-dte' ); ?></h3>
+                <p><?php echo esc_html__( 'Status:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Enabled', 'sii-boleta-dte' ) : __( 'Disabled', 'sii-boleta-dte' ) ); ?></p>
+                <?php if ( $enabled ) : ?>
+                        <p><?php echo esc_html__( 'Daily time:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
+                        <p><?php echo esc_html__( 'Next run:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
+                <?php endif; ?>
+                <p><?php echo esc_html__( 'Last run:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Never', 'sii-boleta-dte' ) ); ?></p>
+                <?php
+        }
+
+        private function render_libro_schedule(): void {
+                $cfg       = $this->settings->get_settings();
+                $enabled   = ! empty( $cfg['libro_auto_enabled'] );
+                $day       = isset( $cfg['libro_auto_day'] ) ? (int) $cfg['libro_auto_day'] : 1;
+                if ( $day < 1 || $day > 31 ) {
+                        $day = 1;
+                }
+                $time      = isset( $cfg['libro_auto_time'] ) ? (string) $cfg['libro_auto_time'] : '03:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $time ) ) {
+                        $time = '03:00';
+                }
+                $environment = $this->settings->get_environment();
+                $last        = Settings::get_schedule_last_run( 'libro', $environment );
+                $next_ts     = $enabled ? $this->next_monthly_run_timestamp( $day, $time ) : 0;
+                $period      = $this->previous_month_period( $this->current_timestamp() );
+                ?>
+                <h3><?php echo esc_html__( 'Monthly Libro schedule', 'sii-boleta-dte' ); ?></h3>
+                <p><?php echo esc_html__( 'Status:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Enabled', 'sii-boleta-dte' ) : __( 'Disabled', 'sii-boleta-dte' ) ); ?></p>
+                <?php if ( $enabled ) : ?>
+                        <p><?php echo esc_html__( 'Scheduled day:', 'sii-boleta-dte' ) . ' ' . esc_html( (string) $day ); ?></p>
+                        <p><?php echo esc_html__( 'Send time:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
+                        <p><?php echo esc_html__( 'Next run:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
+                        <p><?php echo esc_html__( 'Period to be reported:', 'sii-boleta-dte' ) . ' ' . esc_html( $period ); ?></p>
+                <?php endif; ?>
+                <p><?php echo esc_html__( 'Last run:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Never', 'sii-boleta-dte' ) ); ?></p>
+                <?php
+        }
+
+        private function current_timestamp(): int {
+                if ( function_exists( 'current_time' ) ) {
+                        return (int) current_time( 'timestamp' );
+                }
+                return time();
+        }
+
+        private function get_timezone(): \DateTimeZone {
+                try {
+                        if ( function_exists( 'wp_timezone' ) ) {
+                                return wp_timezone();
+                        }
+                } catch ( \Throwable $e ) {
+                        // Ignore and fallback.
+                }
+                return new \DateTimeZone( 'UTC' );
+        }
+
+        private function timestamp_for_time( string $time, int $reference ): int {
+                $timezone = $this->get_timezone();
+                $date     = new \DateTimeImmutable( '@' . $reference );
+                $date     = $date->setTimezone( $timezone );
+                list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
+                $date = $date->setTime( $hour, $minute, 0 );
+                return $date->getTimestamp();
+        }
+
+        private function next_daily_run_timestamp( string $time ): int {
+                $now    = $this->current_timestamp();
+                $target = $this->timestamp_for_time( $time, $now );
+                if ( $now >= $target ) {
+                        $target = $this->timestamp_for_time( $time, $now + 86400 );
+                }
+                return $target;
+        }
+
+        private function timestamp_for_month_day_time( int $day, string $time, int $reference ): int {
+                $timezone = $this->get_timezone();
+                $date     = new \DateTimeImmutable( '@' . $reference );
+                $date     = $date->setTimezone( $timezone );
+                $year     = (int) $date->format( 'Y' );
+                $month    = (int) $date->format( 'm' );
+                $base     = new \DateTimeImmutable( sprintf( '%04d-%02d-01 00:00:00', $year, $month ), $timezone );
+                $days     = (int) $base->format( 't' );
+                $day      = min( max( 1, $day ), $days );
+                list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
+                $target = $base->setDate( $year, $month, $day )->setTime( $hour, $minute, 0 );
+                return $target->getTimestamp();
+        }
+
+        private function next_monthly_run_timestamp( int $day, string $time ): int {
+                $now    = $this->current_timestamp();
+                $target = $this->timestamp_for_month_day_time( $day, $time, $now );
+                if ( $now >= $target ) {
+                        $timezone = $this->get_timezone();
+                        $date     = new \DateTimeImmutable( '@' . $now );
+                        $date     = $date->setTimezone( $timezone )->modify( 'first day of next month' );
+                        $year     = (int) $date->format( 'Y' );
+                        $month    = (int) $date->format( 'm' );
+                        $days     = (int) $date->format( 't' );
+                        $day      = min( max( 1, $day ), $days );
+                        list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
+                        $target = $date->setDate( $year, $month, $day )->setTime( $hour, $minute, 0 )->getTimestamp();
+                }
+                return $target;
+        }
+
+        private function previous_month_period( int $timestamp ): string {
+                $timezone = $this->get_timezone();
+                $date     = new \DateTimeImmutable( '@' . $timestamp );
+                $date     = $date->setTimezone( $timezone )->modify( 'first day of last month' );
+                return $date->format( 'Y-m' );
+        }
+
+        private function format_datetime( int $timestamp ): string {
+                if ( $timestamp <= 0 ) {
+                        return __( 'Not scheduled', 'sii-boleta-dte' );
+                }
+                if ( function_exists( 'wp_date' ) ) {
+                        return wp_date( 'Y-m-d H:i', $timestamp );
+                }
+                return gmdate( 'Y-m-d H:i', $timestamp );
+        }
 }
 
 class_alias( ControlPanelPage::class, 'SII_Boleta_Control_Panel_Page' );

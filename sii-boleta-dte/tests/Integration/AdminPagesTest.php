@@ -21,6 +21,7 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) { function wp_verify_nonce() { ret
 if ( ! function_exists( 'current_user_can' ) ) { function current_user_can() { return true; } }
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
+if ( ! function_exists( 'esc_attr_e' ) ) { function esc_attr_e( $s ) { echo $s; } }
 if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'submit_button' ) ) { function submit_button( $text = '' ) { echo '<button>' . $text . '</button>'; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }

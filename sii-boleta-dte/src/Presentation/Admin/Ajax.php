@@ -99,13 +99,20 @@ class Ajax {
             if ( ! $existing ) {
                 \wp_send_json_error( array( 'message' => \__( 'El rango seleccionado no existe.', 'sii-boleta-dte' ) ) );
             }
-            FoliosDb::update( $id, $tipo, $start, $hasta, $environment );
+            if ( ! FoliosDb::update( $id, $tipo, $start, $hasta, $environment ) ) {
+                \wp_send_json_error( array( 'message' => \__( 'No se pudo actualizar el rango de folios en la base de datos.', 'sii-boleta-dte' ) ) );
+            }
         } else {
             $id = FoliosDb::insert( $tipo, $start, $hasta, $environment );
+            if ( $id <= 0 ) {
+                \wp_send_json_error( array( 'message' => \__( 'No se pudo guardar el rango de folios en la base de datos.', 'sii-boleta-dte' ) ) );
+            }
         }
 
         if ( null !== $caf_contents ) {
-            FoliosDb::store_caf( $id, $caf_contents, $caf_name );
+            if ( ! FoliosDb::store_caf( $id, $caf_contents, $caf_name ) ) {
+                \wp_send_json_error( array( 'message' => \__( 'No se pudo guardar el archivo CAF. Revisa los permisos de la base de datos.', 'sii-boleta-dte' ) ) );
+            }
         }
 
         $this->clamp_last_folio( $tipo, $environment );
@@ -128,7 +135,9 @@ class Ajax {
             \wp_send_json_error( array( 'message' => \__( 'El rango indicado no existe.', 'sii-boleta-dte' ) ) );
         }
 
-        FoliosDb::delete( $id );
+        if ( ! FoliosDb::delete( $id ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'No se pudo eliminar el rango de folios de la base de datos.', 'sii-boleta-dte' ) ) );
+        }
         $settings   = $this->core->get_settings();
         $range_env  = isset( $range['environment'] ) ? (string) $range['environment'] : ( method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0' );
         $this->clamp_last_folio( (int) $range['tipo'], $range_env );

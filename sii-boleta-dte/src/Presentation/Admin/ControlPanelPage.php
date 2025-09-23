@@ -215,31 +215,54 @@ class ControlPanelPage {
 								.sii-control-panel .sii-inline-form .button {
 										min-width: 90px;
 								}
-								.sii-control-panel .sii-metric-grid {
-										display: grid;
-										grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-										gap: 1.2rem;
-										margin-top: 1.2rem;
-								}
-								.sii-control-panel .sii-metric-card {
-										border-radius: 16px;
-										padding: 1.2rem 1.4rem;
-										background: linear-gradient(135deg, #edf2ff 0%, #f8f9ff 100%);
-										border: 1px solid rgba(219, 231, 255, 0.9);
-										box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-								}
-								.sii-control-panel .sii-metric-card h3 {
-										margin-top: 0;
-										margin-bottom: 0.65rem;
-										font-size: 1.05rem;
-										color: #1d4ed8;
-								}
-								.sii-control-panel .sii-metric-value {
-										font-size: 2.05rem;
-										font-weight: 700;
-										color: #1e40af;
-										margin: 0.3rem 0 0.85rem;
-								}
+                                                                .sii-control-panel .sii-metric-filter {
+                                                                                display: flex;
+                                                                                flex-wrap: wrap;
+                                                                                gap: 1rem;
+                                                                                align-items: flex-end;
+                                                                                margin-top: 1.5rem;
+                                                                                margin-bottom: 1.3rem;
+                                                                }
+                                                                .sii-control-panel .sii-metric-filter label {
+                                                                                display: flex;
+                                                                                flex-direction: column;
+                                                                                gap: 0.35rem;
+                                                                                font-weight: 600;
+                                                                                color: #1d4ed8;
+                                                                }
+                                                                .sii-control-panel .sii-metric-filter select {
+                                                                                min-width: 160px;
+                                                                                border-radius: 999px;
+                                                                                border: 1px solid rgba(148, 163, 184, 0.35);
+                                                                                padding: 0.45rem 1rem;
+                                                                                background: rgba(255, 255, 255, 0.94);
+                                                                                box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+                                                                }
+                                                                .sii-control-panel .sii-metric-grid {
+                                                                                display: grid;
+                                                                                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                                                                                gap: 1.5rem;
+                                                                                margin-top: 0.4rem;
+                                                                }
+                                                                .sii-control-panel .sii-metric-card {
+                                                                                border-radius: 16px;
+                                                                                padding: 1.3rem 1.5rem;
+                                                                                background: linear-gradient(140deg, rgba(237, 242, 255, 0.95) 0%, rgba(248, 249, 255, 0.92) 100%);
+                                                                                border: 1px solid rgba(219, 231, 255, 0.82);
+                                                                                box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+                                                                }
+                                                                .sii-control-panel .sii-metric-card h3 {
+                                                                                margin-top: 0;
+                                                                                margin-bottom: 0.65rem;
+                                                                                font-size: 1.08rem;
+                                                                                color: #1d4ed8;
+                                                                }
+                                                                .sii-control-panel .sii-metric-value {
+                                                                                font-size: 2.1rem;
+                                                                                font-weight: 700;
+                                                                                color: #1e40af;
+                                                                                margin: 0.35rem 0 0.9rem;
+                                                                }
 								.sii-control-panel .sii-metric-details {
 										margin: 0;
 										padding: 0;
@@ -250,13 +273,115 @@ class ControlPanelPage {
 								.sii-control-panel .sii-metric-details li {
 										margin: 0.2rem 0;
 								}
-								.sii-control-panel .sii-highlight {
-										border-left: 4px solid rgba(37, 99, 235, 0.75);
-										padding-left: 1.2rem;
-										margin-top: 1.3rem;
-										color: #0f172a;
-										font-size: 0.98rem;
-								}
+                                                                .sii-control-panel .sii-metric-charts {
+                                                                                display: grid;
+                                                                                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                                                                                gap: 1.5rem;
+                                                                                margin-top: 2.1rem;
+                                                                }
+                                                                .sii-control-panel .sii-chart-card {
+                                                                                border-radius: 18px;
+                                                                                padding: 1.4rem 1.7rem;
+                                                                                background: linear-gradient(140deg, rgba(237, 242, 255, 0.96) 0%, rgba(226, 232, 255, 0.9) 100%);
+                                                                                border: 1px solid rgba(191, 219, 254, 0.7);
+                                                                                box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+                                                                                display: flex;
+                                                                                flex-direction: column;
+                                                                                gap: 1.1rem;
+                                                                }
+                                                                .sii-control-panel .sii-chart-card h3 {
+                                                                                margin: 0;
+                                                                                color: #1d4ed8;
+                                                                                font-size: 1.12rem;
+                                                                }
+                                                                .sii-control-panel .sii-chart-card p {
+                                                                                margin: 0;
+                                                                                color: #475569;
+                                                                                font-size: 0.85rem;
+                                                                }
+                                                                .sii-control-panel .sii-series-bars {
+                                                                                display: grid;
+                                                                                grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
+                                                                                align-items: end;
+                                                                                gap: 0.5rem;
+                                                                                height: 180px;
+                                                                                padding-bottom: 0.8rem;
+                                                                }
+                                                                .sii-control-panel .sii-series-bar {
+                                                                                position: relative;
+                                                                                background: linear-gradient(180deg, rgba(59, 130, 246, 0.9) 0%, rgba(14, 165, 233, 0.8) 100%);
+                                                                                border-radius: 10px 10px 4px 4px;
+                                                                                min-height: 4px;
+                                                                                box-shadow: 0 12px 22px rgba(37, 99, 235, 0.28);
+                                                                                transition: transform 0.2s ease;
+                                                                }
+                                                                .sii-control-panel .sii-series-bar::after {
+                                                                                content: attr(data-value);
+                                                                                position: absolute;
+                                                                                bottom: calc(100% + 6px);
+                                                                                left: 50%;
+                                                                                transform: translateX(-50%);
+                                                                                font-size: 0.75rem;
+                                                                                color: #1e40af;
+                                                                                font-weight: 600;
+                                                                }
+                                                                .sii-control-panel .sii-series-bar:hover {
+                                                                                transform: translateY(-4px);
+                                                                }
+                                                                .sii-control-panel .sii-series-axis {
+                                                                                display: grid;
+                                                                                grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
+                                                                                gap: 0.5rem;
+                                                                                font-size: 0.75rem;
+                                                                                color: #475569;
+                                                                                text-align: center;
+                                                                                font-weight: 600;
+                                                                }
+                                                                .sii-control-panel .sii-chart-empty {
+                                                                                display: flex;
+                                                                                align-items: center;
+                                                                                justify-content: center;
+                                                                                min-height: 140px;
+                                                                                color: #64748b;
+                                                                                background: rgba(226, 232, 240, 0.35);
+                                                                                border-radius: 14px;
+                                                                                border: 1px dashed rgba(148, 163, 184, 0.4);
+                                                                }
+                                                                .sii-control-panel .sii-chart-pie {
+                                                                                width: 160px;
+                                                                                height: 160px;
+                                                                                margin: 0 auto;
+                                                                                border-radius: 50%;
+                                                                                background: conic-gradient(#cbd5f5 0deg 360deg);
+                                                                                box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.82), 0 20px 38px rgba(15, 23, 42, 0.15);
+                                                                }
+                                                                .sii-control-panel .sii-pie-legend {
+                                                                                display: flex;
+                                                                                flex-direction: column;
+                                                                                gap: 0.6rem;
+                                                                                font-size: 0.9rem;
+                                                                }
+                                                                .sii-control-panel .sii-pie-legend span {
+                                                                                display: inline-flex;
+                                                                                align-items: center;
+                                                                                gap: 0.55rem;
+                                                                                color: #334155;
+                                                                }
+                                                                .sii-control-panel .sii-pie-legend span::before {
+                                                                                content: '';
+                                                                                width: 14px;
+                                                                                height: 14px;
+                                                                                border-radius: 4px;
+                                                                                background: currentColor;
+                                                                                box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
+                                                                }
+                                                                .sii-control-panel .sii-highlight {
+                                                                                border-left: 4px solid rgba(37, 99, 235, 0.75);
+                                                                                padding-left: 1.2rem;
+                                                                                margin-top: 1.3rem;
+                                                                                color: #0f172a;
+                                                                                font-size: 0.98rem;
+                                                                }
 								.sii-control-panel .notice {
 										border-radius: 14px;
 										padding: 0.9rem 1rem;
@@ -345,6 +470,38 @@ class ControlPanelPage {
 										.sii-control-panel .sii-metric-value,
 										.sii-control-panel .sii-highlight {
 												color: #e2e8f0;
+										}
+										.sii-control-panel .sii-metric-filter select {
+												background: rgba(30, 41, 59, 0.9);
+												color: #e2e8f0;
+												border-color: rgba(148, 163, 184, 0.45);
+										}
+										.sii-control-panel .sii-metric-card {
+												background: linear-gradient(140deg, rgba(30, 41, 59, 0.92) 0%, rgba(30, 64, 175, 0.45) 100%);
+												border-color: rgba(59, 130, 246, 0.35);
+												box-shadow: 0 18px 48px rgba(15, 23, 42, 0.75);
+										}
+										.sii-control-panel .sii-chart-card {
+												background: linear-gradient(140deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 118, 255, 0.28) 100%);
+												border-color: rgba(59, 130, 246, 0.38);
+												box-shadow: 0 24px 52px rgba(2, 6, 23, 0.75);
+										}
+										.sii-control-panel .sii-chart-card h3,
+										.sii-control-panel .sii-chart-card p,
+										.sii-control-panel .sii-series-axis,
+										.sii-control-panel .sii-pie-legend span {
+												color: #cbd5f5;
+										}
+										.sii-control-panel .sii-series-bar::after {
+												color: #f8fafc;
+										}
+										.sii-control-panel .sii-chart-empty {
+												background: rgba(30, 41, 59, 0.7);
+												color: #cbd5f5;
+												border-color: rgba(148, 163, 184, 0.4);
+										}
+										.sii-control-panel .sii-chart-pie {
+												box-shadow: inset 0 0 0 12px rgba(15, 23, 42, 0.55), 0 20px 38px rgba(2, 6, 23, 0.65);
 										}
 										.sii-control-panel table.widefat,
 										.sii-control-panel table.wp-list-table {
@@ -565,100 +722,396 @@ class ControlPanelPage {
 				<?php
 	}
 
-	private function render_metrics_dashboard(): void {
-			$logs          = LogDb::get_logs( array( 'limit' => 50 ) );
-			$status_counts = array();
-		foreach ( $logs as $row ) {
-				$status = isset( $row['status'] ) ? (string) $row['status'] : '';
-			if ( '' === $status ) {
-				continue;
-			}
-			if ( ! isset( $status_counts[ $status ] ) ) {
-					$status_counts[ $status ] = 0;
-			}
-				++$status_counts[ $status ];
-		}
+        private function render_metrics_dashboard(): void {
+                $logs  = LogDb::get_logs( array( 'limit' => 500 ) );
+                $years = array();
+                foreach ( $logs as $row ) {
+                        $timestamp = isset( $row['created_at'] ) ? strtotime( (string) $row['created_at'] ) : false;
+                        if ( false === $timestamp ) {
+                                continue;
+                        }
+                        $year = (int) gmdate( 'Y', $timestamp );
+                        if ( ! in_array( $year, $years, true ) ) {
+                                $years[] = $year;
+                        }
+                }
+                rsort( $years );
 
-			$total_dtes    = count( $logs );
-			$accepted_dtes = $status_counts['accepted'] ?? 0;
-			$sent_dtes     = $status_counts['sent'] ?? 0;
-			$rejected_dtes = $status_counts['rejected'] ?? 0;
+                $raw_year = isset( $_GET['metrics_year'] ) ? (string) $_GET['metrics_year'] : '';
+                if ( function_exists( 'sanitize_text_field' ) ) {
+                        $raw_year = sanitize_text_field( $raw_year );
+                } else {
+                        $raw_year = preg_replace( '/[^0-9]/', '', $raw_year );
+                }
+                $selected_year = (int) $raw_year;
+                if ( $selected_year <= 0 || ! in_array( $selected_year, $years, true ) ) {
+                        $selected_year = 0;
+                }
 
-			$cfg         = $this->settings->get_settings();
-			$environment = $this->settings->get_environment();
-			$rvd_enabled = ! empty( $cfg['rvd_auto_enabled'] );
-			$rvd_time    = isset( $cfg['rvd_auto_time'] ) ? (string) $cfg['rvd_auto_time'] : '02:00';
-		if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $rvd_time ) ) {
-				$rvd_time = '02:00';
-		}
-			$rvd_last_run = Settings::get_schedule_last_run( 'rvd', $environment );
-			$rvd_next     = $rvd_enabled ? $this->next_daily_run_timestamp( $rvd_time ) : 0;
+                $raw_month = isset( $_GET['metrics_month'] ) ? (string) $_GET['metrics_month'] : '';
+                if ( function_exists( 'sanitize_text_field' ) ) {
+                        $raw_month = sanitize_text_field( $raw_month );
+                } else {
+                        $raw_month = preg_replace( '/[^0-9]/', '', $raw_month );
+                }
+                $selected_month = (int) $raw_month;
+                if ( $selected_month < 1 || $selected_month > 12 ) {
+                        $selected_month = 0;
+                }
 
-			$libro_enabled = ! empty( $cfg['libro_auto_enabled'] );
-			$libro_day     = isset( $cfg['libro_auto_day'] ) ? (int) $cfg['libro_auto_day'] : 1;
-		if ( $libro_day < 1 || $libro_day > 31 ) {
-				$libro_day = 1;
-		}
-			$libro_time = isset( $cfg['libro_auto_time'] ) ? (string) $cfg['libro_auto_time'] : '03:00';
-		if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $libro_time ) ) {
-				$libro_time = '03:00';
-		}
-			$libro_last_run = Settings::get_schedule_last_run( 'libro', $environment );
-			$libro_next     = $libro_enabled ? $this->next_monthly_run_timestamp( $libro_day, $libro_time ) : 0;
-			$libro_period   = $this->previous_month_period( $this->current_timestamp() );
+                $filtered_logs = array();
+                foreach ( $logs as $row ) {
+                        $timestamp = isset( $row['created_at'] ) ? strtotime( (string) $row['created_at'] ) : false;
+                        if ( false === $timestamp ) {
+                                continue;
+                        }
+                        $year  = (int) gmdate( 'Y', $timestamp );
+                        $month = (int) gmdate( 'n', $timestamp );
+                        if ( $selected_year > 0 && $year !== $selected_year ) {
+                                continue;
+                        }
+                        if ( $selected_month > 0 && $month !== $selected_month ) {
+                                continue;
+                        }
+                        $row['__timestamp'] = $timestamp;
+                        $filtered_logs[]    = $row;
+                }
 
-			$queue_jobs   = QueueDb::get_pending_jobs( 50 );
-			$queue_counts = array(
-				'dte'   => 0,
-				'rvd'   => 0,
-				'libro' => 0,
-			);
-			foreach ( $queue_jobs as $job ) {
-					$type = isset( $job['type'] ) ? (string) $job['type'] : '';
-				if ( isset( $queue_counts[ $type ] ) ) {
-						++$queue_counts[ $type ];
-				}
-			}
-			?>
-				<div class="sii-section">
-						<h2><?php echo esc_html__( 'Operational metrics', 'sii-boleta-dte' ); ?></h2>
-						<div class="sii-metric-grid">
-								<div class="sii-metric-card">
-										<h3><?php echo esc_html__( 'DTE performance', 'sii-boleta-dte' ); ?></h3>
-										<p class="sii-metric-value"><?php echo (int) $total_dtes; ?></p>
-										<ul class="sii-metric-details">
-												<li><?php echo esc_html__( 'Accepted', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
-												<li><?php echo esc_html__( 'Sent (awaiting result)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
-												<li><?php echo esc_html__( 'Rejected', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
-										</ul>
-								</div>
-								<div class="sii-metric-card">
-										<h3><?php echo esc_html__( 'RVD automation', 'sii-boleta-dte' ); ?></h3>
-										<p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Active', 'sii-boleta-dte' ) : __( 'Paused', 'sii-boleta-dte' ) ); ?></p>
-										<ul class="sii-metric-details">
-												<li><?php echo esc_html__( 'Last submission', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
-												<li><?php echo esc_html__( 'Next run', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $rvd_next ) ); ?></li>
-												<li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['rvd']; ?></li>
-										</ul>
-								</div>
-								<div class="sii-metric-card">
-										<h3><?php echo esc_html__( 'Libro de boletas', 'sii-boleta-dte' ); ?></h3>
-										<p class="sii-metric-value"><?php echo esc_html( $libro_enabled ? __( 'Scheduled', 'sii-boleta-dte' ) : __( 'Manual', 'sii-boleta-dte' ) ); ?></p>
-										<ul class="sii-metric-details">
-												<li><?php echo esc_html__( 'Last report', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $libro_last_run ? $libro_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
-												<li><?php echo esc_html__( 'Next reporting window', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $libro_next ) ); ?></li>
-												<li><?php echo esc_html__( 'Period under preparation', 'sii-boleta-dte' ) . ': ' . esc_html( $libro_period ); ?></li>
-												<li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['libro']; ?></li>
-										</ul>
-								</div>
-						</div>
-						<div class="sii-highlight">
-								<strong><?php echo esc_html__( 'Focus on RVD:', 'sii-boleta-dte' ); ?></strong>
-								<span><?php echo esc_html__( 'Keep the daily summary flowing — it is our next objective to perfect the RVD pipeline.', 'sii-boleta-dte' ); ?></span>
-						</div>
-				</div>
-				<?php
-	}
+                $status_counts = array();
+                foreach ( $filtered_logs as $row ) {
+                        $status = isset( $row['status'] ) ? (string) $row['status'] : '';
+                        if ( '' === $status ) {
+                                continue;
+                        }
+                        if ( ! isset( $status_counts[ $status ] ) ) {
+                                $status_counts[ $status ] = 0;
+                        }
+                        ++$status_counts[ $status ];
+                }
+
+                $total_dtes    = count( $filtered_logs );
+                $accepted_dtes = $status_counts['accepted'] ?? 0;
+                $sent_dtes     = $status_counts['sent'] ?? 0;
+                $rejected_dtes = $status_counts['rejected'] ?? 0;
+
+                $reference_year = $selected_year > 0 ? $selected_year : (int) gmdate( 'Y' );
+                $month_options  = array();
+                for ( $m = 1; $m <= 12; ++$m ) {
+                        $timestamp            = gmmktime( 0, 0, 0, $m, 1, $reference_year );
+                        $month_options[ $m ] = function_exists( 'date_i18n' ) ? date_i18n( 'F', $timestamp ) : gmdate( 'F', $timestamp );
+                }
+
+                $page_slug = isset( $_GET['page'] ) ? (string) $_GET['page'] : 'sii-boleta-dte';
+                if ( function_exists( 'sanitize_key' ) ) {
+                        $page_slug = sanitize_key( $page_slug );
+                } else {
+                        $page_slug = strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', $page_slug ) );
+                }
+                if ( '' === $page_slug ) {
+                        $page_slug = 'sii-boleta-dte';
+                }
+                $metrics_base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=' . rawurlencode( $page_slug );
+                $metrics_url  = $metrics_base . '&tab=metrics';
+
+                $series_points  = array();
+                $series_caption = '';
+
+                if ( $selected_year > 0 && $selected_month > 0 ) {
+                        $days         = $this->days_in_month( $selected_year, $selected_month );
+                        $daily_counts = array_fill( 1, $days, 0 );
+                        foreach ( $filtered_logs as $row ) {
+                                $day = (int) gmdate( 'j', $row['__timestamp'] );
+                                if ( isset( $daily_counts[ $day ] ) ) {
+                                        ++$daily_counts[ $day ];
+                                }
+                        }
+                        for ( $day = 1; $day <= $days; ++$day ) {
+                                $series_points[] = array(
+                                        'label' => sprintf( '%02d', $day ),
+                                        'value' => $daily_counts[ $day ] ?? 0,
+                                );
+                        }
+                        $month_label   = $month_options[ $selected_month ] ?? (string) $selected_month;
+                        $series_caption = sprintf( __( 'Daily activity for %1$s %2$d', 'sii-boleta-dte' ), $month_label, $selected_year );
+                } elseif ( $selected_year > 0 ) {
+                        $monthly_counts = array_fill( 1, 12, 0 );
+                        foreach ( $filtered_logs as $row ) {
+                                $month = (int) gmdate( 'n', $row['__timestamp'] );
+                                ++$monthly_counts[ $month ];
+                        }
+                        for ( $month = 1; $month <= 12; ++$month ) {
+                                $timestamp = gmmktime( 0, 0, 0, $month, 1, $selected_year );
+                                $label     = function_exists( 'date_i18n' ) ? date_i18n( 'M', $timestamp ) : gmdate( 'M', $timestamp );
+                                $series_points[] = array(
+                                        'label' => $label,
+                                        'value' => $monthly_counts[ $month ] ?? 0,
+                                );
+                        }
+                        $series_caption = sprintf( __( 'Monthly totals for %d', 'sii-boleta-dte' ), $selected_year );
+                } elseif ( $selected_month > 0 ) {
+                        $year_counts = array();
+                        foreach ( $filtered_logs as $row ) {
+                                $year = (int) gmdate( 'Y', $row['__timestamp'] );
+                                if ( ! isset( $year_counts[ $year ] ) ) {
+                                        $year_counts[ $year ] = 0;
+                                }
+                                ++$year_counts[ $year ];
+                        }
+                        ksort( $year_counts );
+                        foreach ( $year_counts as $year => $value ) {
+                                $series_points[] = array(
+                                        'label' => (string) $year,
+                                        'value' => $value,
+                                );
+                        }
+                        $month_label   = $month_options[ $selected_month ] ?? (string) $selected_month;
+                        $series_caption = sprintf( __( 'Yearly comparison for %s', 'sii-boleta-dte' ), $month_label );
+                } else {
+                        $month_counts = array();
+                        foreach ( $filtered_logs as $row ) {
+                                $year  = (int) gmdate( 'Y', $row['__timestamp'] );
+                                $month = (int) gmdate( 'n', $row['__timestamp'] );
+                                $key   = sprintf( '%04d-%02d', $year, $month );
+                                if ( ! isset( $month_counts[ $key ] ) ) {
+                                        $month_counts[ $key ] = 0;
+                                }
+                                ++$month_counts[ $key ];
+                        }
+                        ksort( $month_counts );
+                        if ( count( $month_counts ) > 6 ) {
+                                $month_counts = array_slice( $month_counts, -6, null, true );
+                        }
+                        foreach ( $month_counts as $key => $value ) {
+                                list( $year, $month ) = array_map( 'intval', explode( '-', $key ) );
+                                $timestamp = gmmktime( 0, 0, 0, $month, 1, $year );
+                                $label     = function_exists( 'date_i18n' ) ? date_i18n( 'M Y', $timestamp ) : gmdate( 'M Y', $timestamp );
+                                $series_points[] = array(
+                                        'label' => $label,
+                                        'value' => $value,
+                                );
+                        }
+                        $series_caption = __( 'Most recent six months of activity', 'sii-boleta-dte' );
+                }
+
+                if ( '' === $series_caption ) {
+                        $series_caption = __( 'Timeline for the latest submissions', 'sii-boleta-dte' );
+                }
+
+                $series_total = 0;
+                foreach ( $series_points as $point ) {
+                        $series_total += (int) $point['value'];
+                }
+                $series_max = 0;
+                if ( $series_total > 0 ) {
+                        $series_max = max( array_map( static fn( $point ) => (int) $point['value'], $series_points ) );
+                }
+
+                $legend_items = array(
+                        array(
+                                'label' => __( 'Accepted', 'sii-boleta-dte' ),
+                                'value' => $accepted_dtes,
+                                'color' => '#22c55e',
+                        ),
+                        array(
+                                'label' => __( 'Sent (awaiting result)', 'sii-boleta-dte' ),
+                                'value' => $sent_dtes,
+                                'color' => '#38bdf8',
+                        ),
+                        array(
+                                'label' => __( 'Rejected', 'sii-boleta-dte' ),
+                                'value' => $rejected_dtes,
+                                'color' => '#ef4444',
+                        ),
+                );
+
+                $pie_total   = 0;
+                $gradients   = array();
+                $start_angle = 0.0;
+                foreach ( $legend_items as &$item ) {
+                        $pie_total += (int) $item['value'];
+                }
+                if ( $pie_total > 0 ) {
+                        foreach ( $legend_items as &$item ) {
+                                $item_value        = (int) $item['value'];
+                                $item['percentage'] = (int) round( ( $item_value / $pie_total ) * 100 );
+                                $angle              = ( $item_value / $pie_total ) * 360;
+                                $end_angle          = $start_angle + $angle;
+                                if ( $angle > 0 ) {
+                                        $gradients[] = sprintf( '%s %.2fdeg %.2fdeg', $item['color'], $start_angle, $end_angle );
+                                }
+                                $start_angle = $end_angle;
+                        }
+                } else {
+                        foreach ( $legend_items as &$item ) {
+                                $item['percentage'] = 0;
+                        }
+                }
+                unset( $item );
+
+                $pie_style = '';
+                if ( ! empty( $gradients ) ) {
+                        $pie_style = 'background: conic-gradient(' . implode( ', ', $gradients ) . ');';
+                }
+
+                $cfg         = $this->settings->get_settings();
+                $environment = $this->settings->get_environment();
+                $rvd_enabled = ! empty( $cfg['rvd_auto_enabled'] );
+                $rvd_time    = isset( $cfg['rvd_auto_time'] ) ? (string) $cfg['rvd_auto_time'] : '02:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $rvd_time ) ) {
+                        $rvd_time = '02:00';
+                }
+                $rvd_last_run = Settings::get_schedule_last_run( 'rvd', $environment );
+                $rvd_next     = $rvd_enabled ? $this->next_daily_run_timestamp( $rvd_time ) : 0;
+
+                $libro_enabled = ! empty( $cfg['libro_auto_enabled'] );
+                $libro_day     = isset( $cfg['libro_auto_day'] ) ? (int) $cfg['libro_auto_day'] : 1;
+                if ( $libro_day < 1 || $libro_day > 31 ) {
+                        $libro_day = 1;
+                }
+                $libro_time = isset( $cfg['libro_auto_time'] ) ? (string) $cfg['libro_auto_time'] : '03:00';
+                if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $libro_time ) ) {
+                        $libro_time = '03:00';
+                }
+                $libro_last_run = Settings::get_schedule_last_run( 'libro', $environment );
+                $libro_next     = $libro_enabled ? $this->next_monthly_run_timestamp( $libro_day, $libro_time ) : 0;
+                $libro_period   = $this->previous_month_period( $this->current_timestamp() );
+
+                $queue_jobs   = QueueDb::get_pending_jobs( 50 );
+                $queue_counts = array(
+                        'dte'   => 0,
+                        'rvd'   => 0,
+                        'libro' => 0,
+                );
+                foreach ( $queue_jobs as $job ) {
+                        $type = isset( $job['type'] ) ? (string) $job['type'] : '';
+                        if ( isset( $queue_counts[ $type ] ) ) {
+                                ++$queue_counts[ $type ];
+                        }
+                }
+
+                $dominant_status = __( 'Accepted', 'sii-boleta-dte' );
+                $dominant_value  = $accepted_dtes;
+                if ( $sent_dtes > $dominant_value ) {
+                        $dominant_status = __( 'Sent (awaiting result)', 'sii-boleta-dte' );
+                        $dominant_value  = $sent_dtes;
+                }
+                if ( $rejected_dtes > $dominant_value ) {
+                        $dominant_status = __( 'Rejected', 'sii-boleta-dte' );
+                        $dominant_value  = $rejected_dtes;
+                }
+                ?>
+                <div class="sii-section">
+                        <h2><?php echo esc_html__( 'Operational metrics', 'sii-boleta-dte' ); ?></h2>
+                        <form method="get" class="sii-metric-filter">
+                                <input type="hidden" name="page" value="<?php echo esc_attr( $page_slug ); ?>" />
+                                <input type="hidden" name="tab" value="metrics" />
+                                <label>
+                                        <span><?php echo esc_html__( 'Year', 'sii-boleta-dte' ); ?></span>
+                                        <select name="metrics_year">
+                                                <option value=""><?php echo esc_html__( 'All years', 'sii-boleta-dte' ); ?></option>
+                                                <?php foreach ( $years as $year_option ) : ?>
+                                                        <?php $selected_attr = ( (int) $year_option === $selected_year ) ? ' selected="selected"' : ''; ?>
+                                                        <option value="<?php echo (int) $year_option; ?>"<?php echo $selected_attr; ?>><?php echo (int) $year_option; ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </label>
+                                <label>
+                                        <span><?php echo esc_html__( 'Month', 'sii-boleta-dte' ); ?></span>
+                                        <select name="metrics_month">
+                                                <option value=""><?php echo esc_html__( 'All months', 'sii-boleta-dte' ); ?></option>
+                                                <?php foreach ( $month_options as $month_number => $month_label ) : ?>
+                                                        <?php $selected_attr = ( (int) $month_number === $selected_month ) ? ' selected="selected"' : ''; ?>
+                                                        <option value="<?php echo (int) $month_number; ?>"<?php echo $selected_attr; ?>><?php echo esc_html( $month_label ); ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </label>
+                                <button type="submit" class="button button-primary"><?php echo esc_html__( 'Apply filters', 'sii-boleta-dte' ); ?></button>
+                                <?php if ( $selected_year || $selected_month ) : ?>
+                                        <a class="button" href="<?php echo esc_url( $metrics_url ); ?>"><?php echo esc_html__( 'Reset', 'sii-boleta-dte' ); ?></a>
+                                <?php endif; ?>
+                        </form>
+                        <div class="sii-metric-grid">
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'DTE performance', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo (int) $total_dtes; ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Accepted', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
+                                                <li><?php echo esc_html__( 'Sent (awaiting result)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
+                                                <li><?php echo esc_html__( 'Rejected', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
+                                        </ul>
+                                </div>
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'RVD automation', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Active', 'sii-boleta-dte' ) : __( 'Paused', 'sii-boleta-dte' ) ); ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Last submission', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Next run', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $rvd_next ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['rvd']; ?></li>
+                                        </ul>
+                                </div>
+                                <div class="sii-metric-card">
+                                        <h3><?php echo esc_html__( 'Libro de boletas', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo esc_html( $libro_enabled ? __( 'Scheduled', 'sii-boleta-dte' ) : __( 'Manual', 'sii-boleta-dte' ) ); ?></p>
+                                        <ul class="sii-metric-details">
+                                                <li><?php echo esc_html__( 'Last report', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $libro_last_run ? $libro_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Next reporting window', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $libro_next ) ); ?></li>
+                                                <li><?php echo esc_html__( 'Period under preparation', 'sii-boleta-dte' ) . ': ' . esc_html( $libro_period ); ?></li>
+                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['libro']; ?></li>
+                                        </ul>
+                                </div>
+                        </div>
+                        <div class="sii-metric-charts">
+                                <div class="sii-chart-card">
+                                        <h3><?php echo esc_html__( 'Time series', 'sii-boleta-dte' ); ?></h3>
+                                        <p><?php echo esc_html( $series_caption ); ?></p>
+                                        <?php if ( $series_total > 0 && $series_max > 0 ) : ?>
+                                                <div class="sii-series-bars">
+                                                        <?php foreach ( $series_points as $point ) : ?>
+                                                                <?php
+                                                                $value      = (int) $point['value'];
+                                                                $height     = max( 6, (int) round( ( $value / $series_max ) * 100 ) );
+                                                                $bar_style  = 'height: ' . $height . '%;';
+                                                                ?>
+                                                                <div class="sii-series-bar" style="<?php echo esc_attr( $bar_style ); ?>" data-value="<?php echo esc_attr( (string) $value ); ?>"></div>
+                                                        <?php endforeach; ?>
+                                                </div>
+                                                <div class="sii-series-axis">
+                                                        <?php foreach ( $series_points as $point ) : ?>
+                                                                <span><?php echo esc_html( (string) $point['label'] ); ?></span>
+                                                        <?php endforeach; ?>
+                                                </div>
+                                        <?php else : ?>
+                                                <div class="sii-chart-empty"><?php echo esc_html__( 'No data available for the selected filters.', 'sii-boleta-dte' ); ?></div>
+                                        <?php endif; ?>
+                                </div>
+                                <div class="sii-chart-card">
+                                        <h3><?php echo esc_html__( 'Status distribution', 'sii-boleta-dte' ); ?></h3>
+                                        <p><?php echo esc_html__( 'Accepted vs pending vs rejected', 'sii-boleta-dte' ); ?></p>
+                                        <?php if ( $pie_total > 0 ) : ?>
+                                                <div class="sii-chart-pie"<?php echo '' !== $pie_style ? ' style="' . esc_attr( $pie_style ) . '"' : ''; ?>></div>
+                                        <?php else : ?>
+                                                <div class="sii-chart-empty"><?php echo esc_html__( 'No DTE activity to display.', 'sii-boleta-dte' ); ?></div>
+                                        <?php endif; ?>
+                                        <div class="sii-pie-legend">
+                                                <?php foreach ( $legend_items as $item ) : ?>
+                                                        <span style="color: <?php echo esc_attr( $item['color'] ); ?>;">
+                                                                <?php echo esc_html( $item['label'] ); ?> · <?php echo (int) $item['value']; ?> (<?php echo (int) $item['percentage']; ?>%)
+                                                        </span>
+                                                <?php endforeach; ?>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="sii-highlight">
+                                <strong><?php echo esc_html__( 'Key takeaway', 'sii-boleta-dte' ); ?></strong>
+                                <?php if ( $series_total > 0 ) : ?>
+                                        <span><?php echo esc_html( sprintf( __( 'Most documents are currently classified as %1$s (%2$d records).', 'sii-boleta-dte' ), $dominant_status, $dominant_value ) ); ?></span>
+                                <?php else : ?>
+                                        <span><?php echo esc_html__( 'We have not recorded activity for this period yet — use the filters to explore other dates.', 'sii-boleta-dte' ); ?></span>
+                                <?php endif; ?>
+                        </div>
+                </div>
+                <?php
+        }
 
 	/** Handles queue actions. */
 	public function handle_queue_action( string $action, int $id ): void {
@@ -908,28 +1361,36 @@ class ControlPanelPage {
 			return $target->getTimestamp();
 	}
 
-	private function next_monthly_run_timestamp( int $day, string $time ): int {
-			$now    = $this->current_timestamp();
-			$target = $this->timestamp_for_month_day_time( $day, $time, $now );
-		if ( $now >= $target ) {
-				$timezone              = $this->get_timezone();
-				$date                  = new \DateTimeImmutable( '@' . $now );
-				$date                  = $date->setTimezone( $timezone )->modify( 'first day of next month' );
-				$year                  = (int) $date->format( 'Y' );
-				$month                 = (int) $date->format( 'm' );
-				$days                  = (int) $date->format( 't' );
-				$day                   = min( max( 1, $day ), $days );
-				list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
-				$target                = $date->setDate( $year, $month, $day )->setTime( $hour, $minute, 0 )->getTimestamp();
-		}
-			return $target;
-	}
+        private function next_monthly_run_timestamp( int $day, string $time ): int {
+                        $now    = $this->current_timestamp();
+                        $target = $this->timestamp_for_month_day_time( $day, $time, $now );
+                if ( $now >= $target ) {
+                                $timezone              = $this->get_timezone();
+                                $date                  = new \DateTimeImmutable( '@' . $now );
+                                $date                  = $date->setTimezone( $timezone )->modify( 'first day of next month' );
+                                $year                  = (int) $date->format( 'Y' );
+                                $month                 = (int) $date->format( 'm' );
+                                $days                  = (int) $date->format( 't' );
+                                $day                   = min( max( 1, $day ), $days );
+                                list( $hour, $minute ) = array_map( 'intval', explode( ':', $time ) );
+                                $target                = $date->setDate( $year, $month, $day )->setTime( $hour, $minute, 0 )->getTimestamp();
+                }
+                        return $target;
+        }
 
-	private function previous_month_period( int $timestamp ): string {
-			$timezone = $this->get_timezone();
-			$date     = new \DateTimeImmutable( '@' . $timestamp );
-			$date     = $date->setTimezone( $timezone )->modify( 'first day of last month' );
-			return $date->format( 'Y-m' );
+        private function days_in_month( int $year, int $month ): int {
+                if ( $month < 1 || $month > 12 ) {
+                                return 30;
+                }
+                $timestamp = gmmktime( 0, 0, 0, $month, 1, max( 1, $year ) );
+                return (int) gmdate( 't', $timestamp );
+        }
+
+        private function previous_month_period( int $timestamp ): string {
+                        $timezone = $this->get_timezone();
+                        $date     = new \DateTimeImmutable( '@' . $timestamp );
+                        $date     = $date->setTimezone( $timezone )->modify( 'first day of last month' );
+                        return $date->format( 'Y-m' );
 	}
 
 	private function format_datetime( int $timestamp ): string {

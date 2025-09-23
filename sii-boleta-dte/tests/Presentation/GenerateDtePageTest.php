@@ -7,6 +7,7 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Application\Queue;
 
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
@@ -46,6 +47,19 @@ if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
 if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
+if ( ! class_exists( 'WP_Error' ) ) {
+    class WP_Error {
+        private $code;
+        private $message;
+        public function __construct( $code = '', $message = '' ) {
+            $this->code    = $code;
+            $this->message = $message;
+        }
+        public function get_error_message() { return $this->message; }
+        public function get_error_code() { return $this->code; }
+    }
+}
+if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $thing ) { return $thing instanceof WP_Error; } }
 
 class GenerateDtePageTest extends TestCase {
     public function test_process_post_generates_dte(): void {
@@ -79,7 +93,9 @@ class GenerateDtePageTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->method( 'get_next_folio' )->willReturn( 1 );
-        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $queue->expects( $this->never() )->method( 'enqueue_dte' );
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array(
             'sii_boleta_generate_dte_nonce' => 'good',
             'rut' => '1-9',
@@ -97,6 +113,7 @@ class GenerateDtePageTest extends TestCase {
         ) );
         $this->assertSame( '123', $result['track_id'] );
         $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
+        $this->assertSame( 'success', $result['notice_type'] );
     }
 
     public function test_process_post_invalid_nonce(): void {
@@ -106,7 +123,8 @@ class GenerateDtePageTest extends TestCase {
         $engine = $this->createMock( DteEngine::class );
         $pdf = $this->createMock( PdfGenerator::class );
         $folio = $this->createMock( FolioManager::class );
-        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array() );
         $this->assertArrayHasKey( 'error', $result );
     }
@@ -132,8 +150,9 @@ class GenerateDtePageTest extends TestCase {
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( $tmpPdf );
         $folio = $this->createMock( FolioManager::class );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
 
-        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post(
             array(
                 'sii_boleta_generate_dte_nonce' => 'good',
@@ -200,7 +219,8 @@ class GenerateDtePageTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->method( 'get_next_folio' )->willReturn( 1 );
-        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array(
             'sii_boleta_generate_dte_nonce' => 'good',
             'rut' => '1-9',
@@ -216,5 +236,57 @@ class GenerateDtePageTest extends TestCase {
             'tipo' => '39',
         ) );
         $this->assertSame( '123', $result['track_id'] );
+    }
+
+    public function test_process_post_queues_when_sii_unavailable(): void {
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Principal',
+                'rut_emisor'  => '11.111.111-1',
+            )
+        );
+        $token = $this->createMock( TokenManager::class );
+        $token->method( 'get_token' )->willReturn( 'tok' );
+        $api = $this->createMock( Api::class );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( new WP_Error( 'sii_boleta_http_error', 'HTTP 500' ) );
+        $engine = $this->createMock( DteEngine::class );
+        $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $folio = $this->createMock( FolioManager::class );
+        $folio->method( 'get_next_folio' )->willReturn( 10 );
+
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $queue->expects( $this->once() )->method( 'enqueue_dte' )->with(
+            $this->callback( function ( $file ) {
+                return is_string( $file ) && '' !== $file;
+            } ),
+            'test',
+            'tok'
+        );
+
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        $result = $page->process_post( array(
+            'sii_boleta_generate_dte_nonce' => 'good',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        ) );
+
+        $this->assertArrayHasKey( 'queued', $result );
+        $this->assertTrue( $result['queued'] );
+        $this->assertSame( 'warning', $result['notice_type'] );
+        $this->assertSame( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', $result['message'] );
+        $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
     }
 }

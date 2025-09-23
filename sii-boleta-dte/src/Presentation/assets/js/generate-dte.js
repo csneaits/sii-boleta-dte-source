@@ -444,6 +444,7 @@
                         message = 'Tracking ID: ' + trackId;
                     }
                     var pdfUrl = payload.pdf_url || '';
+                    var noticeType = payload.notice_type || (payload.queued ? 'warning' : 'success');
                     var linkText = texts.viewPdf || 'Download PDF';
                     var link = null;
                     if (pdfUrl){
@@ -452,7 +453,7 @@
                             modal.setAttribute('data-preview-url', pdfUrl);
                         }
                     }
-                    showNotice('success', message, link);
+                    showNotice(noticeType, message, link);
                     if (pdfUrl){
                         try {
                             var evtSend = new CustomEvent('sii-boleta-open-preview', { detail: { url: pdfUrl } });

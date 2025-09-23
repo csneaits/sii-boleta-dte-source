@@ -428,7 +428,23 @@
                     headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
                     body: paramsSend.toString()
                 }).then(function(resp){
-                    if (!resp.ok){ throw new Error(errorSend); }
+                    if (!resp.ok){
+                        return resp.text().then(function(body){
+                            var detailedMessage = '';
+                            if (body){
+                                try {
+                                    var jsonBody = JSON.parse(body);
+                                    var responseMessage = jsonBody && jsonBody.data && jsonBody.data.message ? jsonBody.data.message : '';
+                                    detailedMessage = responseMessage || (jsonBody && jsonBody.message ? jsonBody.message : '');
+                                } catch (parseErr) {
+                                    detailedMessage = body.trim();
+                                }
+                            }
+                            var statusInfo = resp.status ? ' (HTTP ' + resp.status + (resp.statusText ? ' ' + resp.statusText : '') + ')' : '';
+                            var combined = detailedMessage ? detailedMessage + statusInfo : errorSend + statusInfo;
+                            throw new Error(combined);
+                        });
+                    }
                     return resp.json();
                 }).then(function(data){
                     if (!data || !data.success){

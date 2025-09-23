@@ -33,6 +33,25 @@ class FoliosDb {
         return self::$use_memory;
     }
 
+    /**
+     * Determines whether the folios table exists in the database.
+     */
+    private static function table_exists(): bool {
+        global $wpdb;
+        if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) || ! method_exists( $wpdb, 'prepare' ) ) {
+            return false;
+        }
+
+        $table = self::table();
+        $like  = function_exists( 'esc_like' ) ? esc_like( $table ) : strtr( $table, array( '_' => '\\_', '%' => '\\%' ) );
+        $sql   = $wpdb->prepare( 'SHOW TABLES LIKE %s', $like );
+        if ( false === $sql ) {
+            return false;
+        }
+        $found = $wpdb->get_var( $sql );
+        return is_string( $found ) && strtolower( (string) $found ) === strtolower( $table );
+    }
+
     /** Returns the full table name with WP prefix. */
     private static function table(): string {
         global $wpdb;
@@ -109,46 +128,48 @@ class FoliosDb {
         $env = Settings::normalize_environment( $environment );
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
-        if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
-            $table = self::table();
-            $data  = array(
+        if ( self::using_memory() || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'insert' ) ) {
+            self::$use_memory        = true;
+            $id                      = self::$auto_inc++;
+            self::$rows[ $id ] = array(
+                'id'             => $id,
                 'tipo'           => $tipo,
-                'folio_inicio'   => $desde,
-                'folio_fin'      => $hasta,
+                'desde'          => $desde,
+                'hasta'          => $hasta,
                 'environment'    => $env,
-                'caf_xml'        => null,
-                'caf_filename'   => null,
+                'caf'            => '',
+                'caf_filename'   => '',
                 'caf_uploaded_at'=> null,
                 'created_at'     => $now,
                 'updated_at'     => $now,
             );
-            $result = $wpdb->insert( $table, $data );
-            if ( false === $result && self::maybe_recreate_table() ) {
-                self::ensure_columns();
-                $result = $wpdb->insert( $table, $data );
-            }
-            $insert_id = property_exists( $wpdb, 'insert_id' ) ? (int) $wpdb->insert_id : 0;
-            if ( is_int( $result ) && $result > 0 && $insert_id > 0 ) {
-                self::$use_memory = false;
-                return $insert_id;
-            }
+            return $id;
         }
 
-        self::$use_memory        = true;
-        $id                      = self::$auto_inc++;
-        self::$rows[ $id ] = array(
-            'id'             => $id,
+        $table = self::table();
+        $data  = array(
             'tipo'           => $tipo,
-            'desde'          => $desde,
-            'hasta'          => $hasta,
+            'folio_inicio'   => $desde,
+            'folio_fin'      => $hasta,
             'environment'    => $env,
-            'caf'            => '',
-            'caf_filename'   => '',
+            'caf_xml'        => null,
+            'caf_filename'   => null,
             'caf_uploaded_at'=> null,
             'created_at'     => $now,
             'updated_at'     => $now,
         );
-        return $id;
+        $result = $wpdb->insert( $table, $data );
+        if ( false === $result && self::maybe_recreate_table() ) {
+            self::ensure_columns();
+            $result = $wpdb->insert( $table, $data );
+        }
+        $insert_id = property_exists( $wpdb, 'insert_id' ) ? (int) $wpdb->insert_id : 0;
+        if ( is_int( $result ) && $result > 0 && $insert_id > 0 ) {
+            self::$use_memory = false;
+            return $insert_id;
+        }
+
+        return 0;
     }
 
     /**
@@ -163,23 +184,25 @@ class FoliosDb {
         }
 
         $error = property_exists( $wpdb, 'last_error' ) ? (string) $wpdb->last_error : '';
-        if ( '' === $error ) {
+        $table    = strtolower( str_replace( '`', '', self::table() ) );
+        $missing  = false;
+
+        if ( '' !== $error ) {
+            $error_lc = strtolower( $error );
+            $missing  = ( strpos( $error_lc, 'doesn\'t exist' ) !== false || strpos( $error_lc, 'no such table' ) !== false ) && strpos( $error_lc, $table ) !== false;
+        } else {
+            $missing = ! self::table_exists();
+        }
+
+        if ( ! $missing ) {
             return false;
         }
 
-        $table      = strtolower( str_replace( '`', '', self::table() ) );
-        $error_lc   = strtolower( $error );
-        $missing_db = strpos( $error_lc, 'doesn\'t exist' ) !== false || strpos( $error_lc, 'no such table' ) !== false;
-
-        if ( $missing_db && strpos( $error_lc, $table ) !== false ) {
-            self::install();
-            if ( property_exists( $wpdb, 'last_error' ) ) {
-                $wpdb->last_error = '';
-            }
-            return true;
+        self::install();
+        if ( property_exists( $wpdb, 'last_error' ) ) {
+            $wpdb->last_error = '';
         }
-
-        return false;
+        return true;
     }
 
     /**
@@ -189,37 +212,39 @@ class FoliosDb {
         $env = Settings::normalize_environment( $environment );
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
-        if ( is_object( $wpdb ) && method_exists( $wpdb, 'update' ) ) {
-            $table = self::table();
-            $data  = array(
-                'tipo'         => $tipo,
-                'folio_inicio' => $desde,
-                'folio_fin'    => $hasta,
-                'environment'  => $env,
-                'updated_at'   => $now,
-            );
+        if ( self::using_memory() || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'update' ) ) {
+            if ( ! isset( self::$rows[ $id ] ) ) {
+                return false;
+            }
+
+            self::$use_memory              = true;
+            self::$rows[ $id ]['tipo']     = $tipo;
+            self::$rows[ $id ]['desde']    = $desde;
+            self::$rows[ $id ]['hasta']    = $hasta;
+            self::$rows[ $id ]['environment'] = $env;
+            self::$rows[ $id ]['updated_at']  = $now;
+            return true;
+        }
+
+        $table = self::table();
+        $data  = array(
+            'tipo'         => $tipo,
+            'folio_inicio' => $desde,
+            'folio_fin'    => $hasta,
+            'environment'  => $env,
+            'updated_at'   => $now,
+        );
+        $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+        if ( false === $result && self::maybe_recreate_table() ) {
+            self::ensure_columns();
             $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
-            if ( false === $result && self::maybe_recreate_table() ) {
-                self::ensure_columns();
-                $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
-            }
-            if ( false !== $result ) {
-                self::$use_memory = false;
-                return true;
-            }
+        }
+        if ( false !== $result ) {
+            self::$use_memory = false;
+            return true;
         }
 
-        if ( ! isset( self::$rows[ $id ] ) ) {
-            return false;
-        }
-
-        self::$use_memory              = true;
-        self::$rows[ $id ]['tipo']           = $tipo;
-        self::$rows[ $id ]['desde']          = $desde;
-        self::$rows[ $id ]['hasta']          = $hasta;
-        self::$rows[ $id ]['environment']    = $env;
-        self::$rows[ $id ]['updated_at']     = $now;
-        return true;
+        return false;
     }
 
     /**
@@ -229,59 +254,63 @@ class FoliosDb {
         global $wpdb;
         $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
 
-        if ( is_object( $wpdb ) && method_exists( $wpdb, 'update' ) ) {
-            $table  = self::table();
-            $data   = array(
-                'caf_xml'        => $caf_xml,
-                'caf_filename'   => $filename,
-                'caf_uploaded_at'=> $now,
-                'updated_at'     => $now,
-            );
+        if ( self::using_memory() || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'update' ) ) {
+            if ( ! isset( self::$rows[ $id ] ) ) {
+                return false;
+            }
+
+            self::$use_memory                     = true;
+            self::$rows[ $id ]['caf']             = $caf_xml;
+            self::$rows[ $id ]['caf_filename']    = $filename;
+            self::$rows[ $id ]['caf_uploaded_at'] = $now;
+            self::$rows[ $id ]['updated_at']      = $now;
+            return true;
+        }
+
+        $table  = self::table();
+        $data   = array(
+            'caf_xml'        => $caf_xml,
+            'caf_filename'   => $filename,
+            'caf_uploaded_at'=> $now,
+            'updated_at'     => $now,
+        );
+        $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
+        if ( false === $result && self::maybe_recreate_table() ) {
+            self::ensure_columns();
             $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
-            if ( false === $result && self::maybe_recreate_table() ) {
-                self::ensure_columns();
-                $result = $wpdb->update( $table, $data, array( 'id' => $id ) );
-            }
-            if ( false !== $result ) {
-                self::$use_memory = false;
-                return true;
-            }
+        }
+        if ( false !== $result ) {
+            self::$use_memory = false;
+            return true;
         }
 
-        if ( ! isset( self::$rows[ $id ] ) ) {
-            return false;
-        }
-
-        self::$use_memory                     = true;
-        self::$rows[ $id ]['caf']             = $caf_xml;
-        self::$rows[ $id ]['caf_filename']    = $filename;
-        self::$rows[ $id ]['caf_uploaded_at'] = $now;
-        self::$rows[ $id ]['updated_at']      = $now;
-        return true;
+        return false;
     }
 
     /** Deletes a folio range. */
     public static function delete( int $id ): bool {
         global $wpdb;
-        if ( is_object( $wpdb ) && method_exists( $wpdb, 'delete' ) ) {
-            $table  = self::table();
+        if ( self::using_memory() || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'delete' ) ) {
+            if ( ! isset( self::$rows[ $id ] ) ) {
+                return false;
+            }
+
+            self::$use_memory = true;
+            unset( self::$rows[ $id ] );
+            return true;
+        }
+
+        $table  = self::table();
+        $result = $wpdb->delete( $table, array( 'id' => $id ) );
+        if ( false === $result && self::maybe_recreate_table() ) {
             $result = $wpdb->delete( $table, array( 'id' => $id ) );
-            if ( false === $result && self::maybe_recreate_table() ) {
-                $result = $wpdb->delete( $table, array( 'id' => $id ) );
-            }
-            if ( false !== $result ) {
-                self::$use_memory = false;
-                return true;
-            }
+        }
+        if ( false !== $result ) {
+            self::$use_memory = false;
+            return true;
         }
 
-        if ( ! isset( self::$rows[ $id ] ) ) {
-            return false;
-        }
-
-        self::$use_memory = true;
-        unset( self::$rows[ $id ] );
-        return true;
+        return false;
     }
 
     /**

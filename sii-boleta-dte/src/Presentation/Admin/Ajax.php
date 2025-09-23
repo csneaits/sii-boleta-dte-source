@@ -22,6 +22,7 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_lookup_user_by_rut', array( $this, 'lookup_user_by_rut' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_view_pdf', array( $this, 'view_pdf' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_generate_preview', array( $this, 'generate_preview' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_send_document', array( $this, 'send_document' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_save_folio_range', array( $this, 'save_folio_range' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_delete_folio_range', array( $this, 'delete_folio_range' ) );
     }
@@ -402,6 +403,40 @@ class Ajax {
                         )
                 );
         }
+
+	public function send_document(): void {
+		if ( ! function_exists( 'check_ajax_referer' ) ) {
+			return;
+		}
+		\check_ajax_referer( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' );
+		if ( ! \current_user_can( 'manage_options' ) ) {
+			\wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+		}
+		$post = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		/** @var GenerateDtePage $page */
+		$page   = Container::get( GenerateDtePage::class );
+		$result = $page->process_post( $post );
+
+		if ( isset( $result['error'] ) && $result['error'] ) {
+			$message = is_string( $result['error'] ) ? $result['error'] : \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' );
+			\wp_send_json_error( array( 'message' => $message ) );
+		}
+
+		$track_id = (string) ( $result['track_id'] ?? '' );
+		if ( '' === $track_id ) {
+			\wp_send_json_error( array( 'message' => \__( 'Could not send the document. Please try again.', 'sii-boleta-dte' ) ) );
+		}
+
+		$pdf_url = (string) ( $result['pdf_url'] ?? '' );
+
+		\wp_send_json_success(
+			array(
+				'track_id' => $track_id,
+				'pdf_url'  => $pdf_url,
+				'message'  => sprintf( \__( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ), $track_id ),
+			)
+		);
+	}
 
     public function lookup_user_by_rut(): void {
 		\check_ajax_referer( 'sii_boleta_nonce' );

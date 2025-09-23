@@ -21,6 +21,9 @@
         var texts = (window.siiBoletaGenerate && window.siiBoletaGenerate.texts) ? window.siiBoletaGenerate.texts : {};
         var ajaxUrl = (window.siiBoletaGenerate && window.siiBoletaGenerate.ajax) ? window.siiBoletaGenerate.ajax : (window.ajaxurl || '/wp-admin/admin-ajax.php');
         var previewAction = (window.siiBoletaGenerate && window.siiBoletaGenerate.previewAction) ? window.siiBoletaGenerate.previewAction : 'sii_boleta_dte_generate_preview';
+        var sendAction = (window.siiBoletaGenerate && window.siiBoletaGenerate.sendAction) ? window.siiBoletaGenerate.sendAction : 'sii_boleta_dte_send_document';
+        var supportsAjax = typeof window.fetch === 'function' && typeof window.URLSearchParams !== 'undefined';
+        var sendSubmit = form ? form.querySelector('input[type="submit"][name="submit"]') : null;
         var rutInput = document.getElementById('sii-rut');
 
         function normalizeRutValue(value){
@@ -302,31 +305,35 @@
             });
         }
 
-        if (form && previewSubmit && typeof window.fetch === 'function' && typeof window.URLSearchParams !== 'undefined'){
-            var triggerPreview = function(e){
-                if (e && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)){
+        var triggerPreview = null;
+        var triggerSend = null;
+
+        if (form && previewSubmit && supportsAjax){
+            triggerPreview = function(event, submitter){
+                if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)){
                     return;
                 }
-                if (!validateRutField(true)){
-                    if (e){ e.preventDefault(); }
-                    return;
-                }
-                if (e){ e.preventDefault(); }
+                if (event){ event.preventDefault(); }
                 if (form.getAttribute('data-preview-loading') === '1'){
                     return;
                 }
                 form.setAttribute('data-preview-loading', '1');
-                var originalValue = previewSubmit.value;
-                var loadingText = texts.loading || originalValue;
-                previewSubmit.value = loadingText;
-                previewSubmit.disabled = true;
-                previewSubmit.classList.add('updating-message');
+                var button = (submitter && submitter.tagName) ? submitter : previewSubmit;
+                var originalValue = button ? button.value : '';
+                if (button){
+                    var loadingText = texts.loading || originalValue;
+                    button.value = loadingText;
+                    button.disabled = true;
+                    button.classList.add('updating-message');
+                }
 
                 var reset = function(){
                     form.removeAttribute('data-preview-loading');
-                    previewSubmit.disabled = false;
-                    previewSubmit.classList.remove('updating-message');
-                    previewSubmit.value = originalValue;
+                    if (button){
+                        button.disabled = false;
+                        button.classList.remove('updating-message');
+                        button.value = originalValue;
+                    }
                 };
 
                 var formData = new FormData(form);
@@ -378,16 +385,114 @@
                     reset();
                 });
             };
+        }
 
-            previewSubmit.addEventListener('click', triggerPreview);
-            form.addEventListener('submit', function(e){
-                var submitter = e.submitter || document.activeElement;
-                if (submitter && submitter.name === 'preview'){
-                    triggerPreview(e);
+        if (form && supportsAjax){
+            triggerSend = function(event, submitter){
+                if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)){
                     return;
                 }
+                if (event){ event.preventDefault(); }
+                if (form.getAttribute('data-send-loading') === '1'){
+                    return;
+                }
+                form.setAttribute('data-send-loading', '1');
+                var button = (submitter && submitter.tagName) ? submitter : sendSubmit;
+                var originalValue = button ? button.value : '';
+                if (button){
+                    var sendingText = texts.sending || originalValue;
+                    button.value = sendingText;
+                    button.disabled = true;
+                    button.classList.add('updating-message');
+                }
+
+                var resetSend = function(){
+                    form.removeAttribute('data-send-loading');
+                    if (button){
+                        button.disabled = false;
+                        button.classList.remove('updating-message');
+                        button.value = originalValue;
+                    }
+                };
+
+                var formData = new FormData(form);
+                formData.delete('preview');
+                formData.set('action', sendAction);
+                var paramsSend = new URLSearchParams();
+                formData.forEach(function(val, key){
+                    paramsSend.append(key, val);
+                });
+                var errorSend = texts.sendError || 'Could not send the document. Please try again.';
+                fetch(ajaxUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                    body: paramsSend.toString()
+                }).then(function(resp){
+                    if (!resp.ok){ throw new Error(errorSend); }
+                    return resp.json();
+                }).then(function(data){
+                    if (!data || !data.success){
+                        var msg = data && data.data && data.data.message ? data.data.message : errorSend;
+                        throw new Error(msg);
+                    }
+                    var payload = data.data || {};
+                    var message = payload.message || texts.sendSuccess || '';
+                    var trackId = payload.track_id ? payload.track_id.toString() : '';
+                    if (message && message.indexOf('%s') !== -1 && trackId){
+                        message = message.replace('%s', trackId);
+                    } else if (!message && trackId){
+                        message = 'Tracking ID: ' + trackId;
+                    }
+                    var pdfUrl = payload.pdf_url || '';
+                    var linkText = texts.viewPdf || 'Download PDF';
+                    var link = null;
+                    if (pdfUrl){
+                        link = { href: pdfUrl, text: linkText };
+                        if (modal){
+                            modal.setAttribute('data-preview-url', pdfUrl);
+                        }
+                    }
+                    showNotice('success', message, link);
+                    if (pdfUrl){
+                        try {
+                            var evtSend = new CustomEvent('sii-boleta-open-preview', { detail: { url: pdfUrl } });
+                            window.dispatchEvent(evtSend);
+                        } catch (errEvt) {
+                            if (document.createEvent){
+                                var legacySend = document.createEvent('CustomEvent');
+                                legacySend.initCustomEvent('sii-boleta-open-preview', false, false, { url: pdfUrl });
+                                window.dispatchEvent(legacySend);
+                            } else {
+                                openModal(pdfUrl);
+                            }
+                        }
+                    }
+                    resetSend();
+                }).catch(function(err){
+                    var msg = err && err.message ? err.message : errorSend;
+                    showNotice('error', msg);
+                    resetSend();
+                });
+            };
+        }
+
+        if (form){
+            form.addEventListener('submit', function(e){
+                var submitter = e.submitter || document.activeElement;
+                var isPreview = submitter && submitter.name === 'preview';
                 if (!validateRutField(true)){
                     e.preventDefault();
+                    return;
+                }
+                if (!supportsAjax){
+                    return;
+                }
+                if (isPreview && triggerPreview){
+                    triggerPreview(e, submitter);
+                    return;
+                }
+                if (triggerSend){
+                    triggerSend(e, submitter);
                 }
             });
         }

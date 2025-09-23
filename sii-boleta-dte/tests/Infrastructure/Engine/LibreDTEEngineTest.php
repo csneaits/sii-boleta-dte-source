@@ -3,6 +3,7 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
 
 if ( ! class_exists( 'Dummy_Settings' ) ) {
     class Dummy_Settings extends Settings {
@@ -144,5 +145,101 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertIsString($xml);
         $this->assertNotSame('', $xml);
         $this->assertStringContainsString('<CAF', $xml);
+    }
+
+    public function test_generate_xml_with_flattened_caf_is_normalized(): void {
+        FoliosDb::install();
+        $rangeId = FoliosDb::insert(39, 1, 20, 'test');
+
+        $settings = new Dummy_Settings([
+            'environment'   => 'test',
+            'rut_emisor'    => '76192083-9',
+            'razon_social'  => 'Empresa de Prueba',
+            'giro'          => 'Servicios',
+            'direccion'     => 'Direccion 123',
+            'comuna'        => 'Santiago',
+        ]);
+
+        $engine = new LibreDteEngine($settings);
+
+        $reflection = new \ReflectionClass(LibreDteEngine::class);
+        $cafFakerProp = $reflection->getProperty('cafFaker');
+        $cafFakerProp->setAccessible(true);
+        $cafFaker = $cafFakerProp->getValue($engine);
+
+        $this->assertIsObject($cafFaker);
+
+        $emisorEntity = new Emisor('76192083-9', 'Empresa de Prueba');
+        $cafBag       = $cafFaker->create($emisorEntity, 39, 1, 20);
+        $cafXml       = $cafBag->getCaf()->getXml();
+
+        $pattern = '/<(RSASK|RSAPUBK)>(.*?)<\/\1>/s';
+
+        $withBreaks = preg_replace_callback(
+            $pattern,
+            static function ( array $matches ): string {
+                $block = trim($matches[2]);
+                if (!preg_match('/^(-----BEGIN [^-]+-----)(.*?)(-----END [^-]+-----)$/s', $block, $pemParts)) {
+                    return $matches[0];
+                }
+
+                $body     = preg_replace('/[^A-Za-z0-9+\/=]/', '', $pemParts[2]);
+                $chunked  = chunk_split($body, 64, "\n");
+                $chunked  = rtrim($chunked, "\n");
+                $formatted = $pemParts[1] . "\n" . $chunked . "\n" . $pemParts[3];
+
+                return '<' . $matches[1] . '>' . "\n" . $formatted . "\n" . '</' . $matches[1] . '>';
+            },
+            $cafXml
+        );
+
+        $this->assertIsString($withBreaks);
+        $this->assertNotSame($cafXml, $withBreaks);
+
+        $flattened = preg_replace_callback(
+            $pattern,
+            static function ( array $matches ): string {
+                $compact = str_replace(["\r", "\n", "\t"], '', $matches[2]);
+                return '<' . $matches[1] . '>' . $compact . '</' . $matches[1] . '>';
+            },
+            $withBreaks
+        );
+
+        $this->assertIsString($flattened);
+        $this->assertNotSame($withBreaks, $flattened);
+
+        $stored = FoliosDb::store_caf($rangeId, $flattened, 'caf39.xml');
+        $this->assertTrue($stored);
+
+        $storedRange = FoliosDb::get($rangeId);
+        $this->assertIsArray($storedRange);
+        $this->assertArrayHasKey('caf', $storedRange);
+        $this->assertStringContainsString("\n", (string) $storedRange['caf']);
+        $this->assertMatchesRegularExpression('/<RSASK>.*\n.*<\/RSASK>/s', (string) $storedRange['caf']);
+
+        $data = [
+            'Folio'    => 1,
+            'FchEmis'  => '2024-01-01',
+            'Receptor' => [
+                'RUTRecep'    => '66666666-6',
+                'RznSocRecep' => 'Cliente Prueba',
+                'GiroRecep'   => 'Comercio',
+            ],
+            'Detalles' => [
+                [
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'Producto',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1000,
+                    'MontoItem' => 1000,
+                ],
+            ],
+        ];
+
+        $xml = $engine->generate_dte_xml($data, 39, false);
+
+        $this->assertIsString($xml);
+        $this->assertNotSame('', $xml);
+        $this->assertStringContainsString('<DTE', $xml);
     }
 }

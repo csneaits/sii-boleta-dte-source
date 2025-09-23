@@ -110,13 +110,16 @@ class LogsPage {
 		}
 	}
 
-	public function render_page(): void {
-		$table = new LogsTable();
-		$table->prepare_items();
-		echo '<div class="wrap"><h1>' . esc_html__( 'Logs', 'sii-boleta-dte' ) . '</h1>';
-		$table->display();
-		echo '</div>';
-	}
+        public function render_page(): void {
+                $table = new LogsTable();
+                $table->prepare_items();
+                AdminStyles::open_container( 'sii-logs-page' );
+                echo '<h1>' . esc_html__( 'Logs', 'sii-boleta-dte' ) . '</h1>';
+                echo '<div class="sii-admin-card sii-admin-card--table">';
+                $table->display();
+                echo '</div>';
+                AdminStyles::close_container();
+        }
 }
 
 class_alias( LogsPage::class, 'SII_Boleta_Logs_Page' );

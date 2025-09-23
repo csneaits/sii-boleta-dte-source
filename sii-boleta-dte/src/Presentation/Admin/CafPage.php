@@ -38,13 +38,14 @@ class CafPage {
         );
         $types = $this->supported_types();
 
-        echo '<div class="wrap">';
+        AdminStyles::open_container( 'sii-folios-page' );
         echo '<h1>' . esc_html__( 'Folios / CAFs', 'sii-boleta-dte' ) . '</h1>';
         $environment_label = '1' === $environment ? __( 'Producción', 'sii-boleta-dte' ) : __( 'Certificación', 'sii-boleta-dte' );
-        echo '<p>' . esc_html__( 'Registra manualmente los rangos de folios autorizados. El sistema validará que los folios emitidos pertenezcan a un rango configurado.', 'sii-boleta-dte' ) . '</p>';
+        echo '<p class="sii-admin-subtitle">' . esc_html__( 'Registra manualmente los rangos de folios autorizados. El sistema validará que los folios emitidos pertenezcan a un rango configurado.', 'sii-boleta-dte' ) . '</p>';
         echo '<p class="description">' . sprintf( esc_html__( 'Ambiente activo: %s. Los rangos configurados son independientes por ambiente.', 'sii-boleta-dte' ), esc_html( $environment_label ) ) . '</p>';
-        echo '<p><button type="button" class="button button-primary" id="sii-boleta-add-folio">' . esc_html__( 'Agregar folios', 'sii-boleta-dte' ) . '</button></p>';
+        echo '<div class="sii-admin-actions"><button type="button" class="button button-primary" id="sii-boleta-add-folio">' . esc_html__( 'Agregar folios', 'sii-boleta-dte' ) . '</button></div>';
 
+        echo '<div class="sii-admin-card sii-admin-card--table">';
         echo '<table class="wp-list-table widefat fixed striped" id="sii-boleta-folios-table">';
         echo '<thead><tr>';
         echo '<th>' . esc_html__( 'Tipo', 'sii-boleta-dte' ) . '</th>';
@@ -100,6 +101,8 @@ class CafPage {
 
         echo '</tbody></table>';
         echo '</div>';
+
+        AdminStyles::close_container();
 
         $this->render_modal();
     }

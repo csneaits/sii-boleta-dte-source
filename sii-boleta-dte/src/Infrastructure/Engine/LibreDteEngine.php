@@ -252,22 +252,24 @@ class LibreDteEngine implements DteEngine {
                                 $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
 
                 $cafXml = '';
-                if ( $folio_number > 0 ) {
-                        $range = FoliosDb::find_for_folio( $tipo, $folio_number, $environment );
-                        if ( $range && ! empty( $range['caf'] ) ) {
-                                $cafXml = (string) $range['caf'];
+                if ( ! $preview ) {
+                        if ( $folio_number > 0 ) {
+                                $range = FoliosDb::find_for_folio( $tipo, $folio_number, $environment );
+                                if ( $range && ! empty( $range['caf'] ) ) {
+                                        $cafXml = (string) $range['caf'];
+                                }
                         }
-                }
-                if ( '' === $cafXml ) {
-                        foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
-                                if ( ! empty( $row['caf'] ) ) {
-                                        $cafXml = (string) $row['caf'];
-                                        break;
+                        if ( '' === $cafXml ) {
+                                foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
+                                        if ( ! empty( $row['caf'] ) ) {
+                                                $cafXml = (string) $row['caf'];
+                                                break;
+                                        }
                                 }
                         }
                 }
 
-                if ( '' === trim( $cafXml ) ) {
+                if ( $preview || '' === trim( $cafXml ) ) {
                         $cafBag = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
                 } else {
                         try {

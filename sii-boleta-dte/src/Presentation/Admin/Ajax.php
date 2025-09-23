@@ -100,18 +100,33 @@ class Ajax {
                 \wp_send_json_error( array( 'message' => \__( 'El rango seleccionado no existe.', 'sii-boleta-dte' ) ) );
             }
             if ( ! FoliosDb::update( $id, $tipo, $start, $hasta, $environment ) ) {
-                \wp_send_json_error( array( 'message' => \__( 'No se pudo actualizar el rango de folios en la base de datos.', 'sii-boleta-dte' ) ) );
+                $message = \__( 'No se pudo actualizar el rango de folios en la base de datos.', 'sii-boleta-dte' );
+                $db_error = FoliosDb::last_error();
+                if ( '' !== $db_error ) {
+                    $message .= ' ' . sprintf( \__( 'Error de base de datos: %s', 'sii-boleta-dte' ), $db_error );
+                }
+                \wp_send_json_error( array( 'message' => $message ) );
             }
         } else {
             $id = FoliosDb::insert( $tipo, $start, $hasta, $environment );
             if ( $id <= 0 ) {
-                \wp_send_json_error( array( 'message' => \__( 'No se pudo guardar el rango de folios en la base de datos.', 'sii-boleta-dte' ) ) );
+                $message = \__( 'No se pudo guardar el rango de folios en la base de datos.', 'sii-boleta-dte' );
+                $db_error = FoliosDb::last_error();
+                if ( '' !== $db_error ) {
+                    $message .= ' ' . sprintf( \__( 'Error de base de datos: %s', 'sii-boleta-dte' ), $db_error );
+                }
+                \wp_send_json_error( array( 'message' => $message ) );
             }
         }
 
         if ( null !== $caf_contents ) {
             if ( ! FoliosDb::store_caf( $id, $caf_contents, $caf_name ) ) {
-                \wp_send_json_error( array( 'message' => \__( 'No se pudo guardar el archivo CAF. Revisa los permisos de la base de datos.', 'sii-boleta-dte' ) ) );
+                $message = \__( 'No se pudo guardar el archivo CAF. Revisa los permisos de la base de datos.', 'sii-boleta-dte' );
+                $db_error = FoliosDb::last_error();
+                if ( '' !== $db_error ) {
+                    $message .= ' ' . sprintf( \__( 'Error de base de datos: %s', 'sii-boleta-dte' ), $db_error );
+                }
+                \wp_send_json_error( array( 'message' => $message ) );
             }
         }
 

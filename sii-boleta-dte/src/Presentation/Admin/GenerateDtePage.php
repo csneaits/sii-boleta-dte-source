@@ -22,6 +22,14 @@ class GenerateDtePage {
         private FolioManager $folio_manager;
         private Queue $queue;
 
+        private const PREVIEW_TRANSIENT_PREFIX = 'sii_boleta_preview_';
+        private const PREVIEW_TTL              = 900;
+
+        /**
+         * @var array<string,array{path:string,expires:int}>
+         */
+        private static array $preview_cache = array();
+
         public function __construct( Settings $settings, TokenManager $token_manager, Api $api, DteEngine $engine, PdfGenerator $pdf, FolioManager $folio_manager, Queue $queue ) {
                 $this->settings      = $settings;
                 $this->token_manager = $token_manager;
@@ -654,7 +662,7 @@ class GenerateDtePage {
 														</td>
 													</tr>
 													<tr>
-														<th scope="row"><label for="sii-rut"><?php esc_html_e( 'Customer RUT', 'sii-boleta-dte' ); ?></label></th>
+                                                <th scope="row"><label for="sii-rut"><?php esc_html_e( 'RUT del cliente', 'sii-boleta-dte' ); ?></label></th>
 														<td><input type="text" id="sii-rut" name="rut" required class="regular-text" value="<?php echo $val( 'rut' ); ?>" /></td>
 													</tr>
 													<tr>
@@ -679,27 +687,27 @@ class GenerateDtePage {
 														<td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val( 'ciudad_recep' ); ?>" /></td>
 													</tr>
 													<tr>
-														<th scope="row"><label for="sii-items"><?php esc_html_e( 'Items', 'sii-boleta-dte' ); ?></label></th>
+                                                <th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
 														<td>
 																<table id="sii-items-table" class="widefat">
 																		<thead>
 																				<tr>
-																						<th><?php esc_html_e( 'Description', 'sii-boleta-dte' ); ?></th>
-																						<th><?php esc_html_e( 'Quantity', 'sii-boleta-dte' ); ?></th>
-																						<th><?php esc_html_e( 'Unit Price', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Precio unitario', 'sii-boleta-dte' ); ?></th>
 																						<th></th>
 																				</tr>
 																		</thead>
 																<tbody>
                                                                                                                                <tr>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Description', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Quantity', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Unit Price', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Actions', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Remove item', 'sii-boleta-dte' ); ?>">×</button></td>
+                                                               <td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Cantidad', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Precio unitario', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Eliminar ítem', 'sii-boleta-dte' ); ?>">×</button></td>
                                                                                                                                </tr>
 																</tbody>
 															</table>
-															<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>
+                                                        <p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button></p>
 														</td>
 													</tr>
 													<!-- Reference section for credit/debit notes -->
@@ -732,26 +740,26 @@ class GenerateDtePage {
 																</tbody>
 																</table>
 																<div class="sii-generate-actions">
-																		<?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
-																		<?php submit_button( __( 'Send to SII', 'sii-boleta-dte' ) ); ?>
+                                                               <?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
+                                                               <?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
 										</form>
 								</div>
 								<aside class="sii-generate-dte-aside">
 										<div class="sii-generate-dte-card sii-generate-dte-card--accent">
-												<h2><?php esc_html_e( 'Workspace overview', 'sii-boleta-dte' ); ?></h2>
+                                                                                                <h2><?php esc_html_e( 'Resumen del espacio de trabajo', 'sii-boleta-dte' ); ?></h2>
 												<ul class="sii-generate-dte-summary">
-														<li><?php printf( esc_html__( 'Environment: %s', 'sii-boleta-dte' ), esc_html( $environment_label ) ); ?></li>
-														<li><?php echo esc_html( $rvd_automation ? __( 'Daily RVD automation is enabled.', 'sii-boleta-dte' ) : __( 'RVD automation is currently disabled.', 'sii-boleta-dte' ) ); ?></li>
-														<li><?php echo esc_html( $libro_automation ? __( 'Libro validation runs on schedule.', 'sii-boleta-dte' ) : __( 'Libro validation is configured manually.', 'sii-boleta-dte' ) ); ?></li>
+                                                                                                                <li><?php printf( esc_html__( 'Ambiente: %s', 'sii-boleta-dte' ), esc_html( $environment_label ) ); ?></li>
+                                                                                                                <li><?php echo esc_html( $rvd_automation ? __( 'La automatización diaria del RVD está habilitada.', 'sii-boleta-dte' ) : __( 'La automatización del RVD está deshabilitada actualmente.', 'sii-boleta-dte' ) ); ?></li>
+                                                                                                                <li><?php echo esc_html( $libro_automation ? __( 'La validación del libro se ejecuta de forma programada.', 'sii-boleta-dte' ) : __( 'La validación del libro está configurada de forma manual.', 'sii-boleta-dte' ) ); ?></li>
 												</ul>
-												<p><?php esc_html_e( 'Use the preview to review seals, folios and item totals before dispatching the document to the SII.', 'sii-boleta-dte' ); ?></p>
+                                                                                                <p><?php esc_html_e( 'Utiliza la previsualización para revisar timbres, folios y totales de ítems antes de enviar el documento al SII.', 'sii-boleta-dte' ); ?></p>
 										</div>
 										<div class="sii-generate-dte-card sii-generate-dte-card--tips">
-												<h2><?php esc_html_e( 'Helpful tips', 'sii-boleta-dte' ); ?></h2>
+                                                                                                <h2><?php esc_html_e( 'Consejos útiles', 'sii-boleta-dte' ); ?></h2>
 												<ol class="sii-generate-dte-tips">
-														<li><?php esc_html_e( 'Add clear item descriptions and keep unit prices in whole pesos for accurate totals.', 'sii-boleta-dte' ); ?></li>
-														<li><?php esc_html_e( 'When issuing invoices or guides, complete the receiver address fields to speed up logistics.', 'sii-boleta-dte' ); ?></li>
-														<li><?php esc_html_e( 'If your customer lacks a RUT for boletas, the system will apply the generic SII identifier automatically.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Agrega descripciones claras a los ítems y mantén precios unitarios en pesos enteros para totales precisos.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Al emitir facturas o guías, completa los campos de dirección del receptor para agilizar la logística.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Si tu cliente no tiene RUT para boletas, el sistema aplicará automáticamente el identificador genérico del SII.', 'sii-boleta-dte' ); ?></li>
 												</ol>
 										</div>
 								</aside>
@@ -866,7 +874,7 @@ class GenerateDtePage {
 
 		$folio = 0;
 		if ( ! $preview ) {
-			$next = $this->folio_manager->get_next_folio( $tipo );
+            $next = $this->folio_manager->get_next_folio( $tipo, false );
 			if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
 				return array( 'error' => $next->get_error_message() );
 			}
@@ -934,25 +942,29 @@ class GenerateDtePage {
 			}
 				return array( 'error' => $msg );
 		}
-				$pdf       = $this->pdf->generate( (string) $xml );
-				$pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
-				$pdf_url   = $this->store_preview_pdf(
-					$pdf,
-					array(
-						'label'        => $pdf_label,
-						'type'         => $tipo,
-						'folio'        => $folio,
-						'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
-						'rut_receptor' => $rut,
-					)
-				);
-		if ( $preview ) {
-				return array(
-					'preview' => true,
-					'pdf'     => $pdf,      // keep raw for tests
-					'pdf_url' => $pdf_url,  // public URL for iframe
-				);
-		}
+        $pdf       = $this->pdf->generate( (string) $xml );
+        $pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
+
+        $pdf_context = array(
+                'label'        => $pdf_label,
+                'type'         => $tipo,
+                'folio'        => $folio,
+                'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+                'rut_receptor' => $rut,
+        );
+
+        if ( $preview ) {
+                $pdf_url = $this->create_preview_pdf_link( $pdf, $pdf_context );
+                return array(
+                        'preview' => true,
+                        'pdf'     => $pdf,      // keep raw for tests
+                        'pdf_url' => $pdf_url,  // public URL for iframe
+                );
+        }
+
+        $this->folio_manager->mark_folio_used( $tipo, $folio );
+
+        $pdf_url = $this->store_persistent_pdf( $pdf, $pdf_context );
 
                                 $file = tempnam( sys_get_temp_dir(), 'dte' );
                                 file_put_contents( $file, (string) $xml );
@@ -1004,27 +1016,56 @@ class GenerateDtePage {
                                 );
         }
 
-		/**
-		 * Moves the generated PDF to uploads so it can be displayed via URL.
-		 * Returns a public URL or empty string on failure.
-		 *
-		 * @param array<string,mixed> $context Metadata used to build a friendly filename.
-		 */
-        private function store_preview_pdf( string $path, array $context = array() ): string {
+        /**
+         * Stores the preview PDF path temporarily and returns a signed URL to view it.
+         *
+         * @param array<string,mixed> $context Metadata used to build a friendly filename.
+         */
+        private function create_preview_pdf_link( string $path, array $context = array() ): string {
                 if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
                                 return '';
                 }
-			$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
-				'basedir' => sys_get_temp_dir(),
-				'baseurl' => '',
-			);
-			$base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
-			$dir     = $base . '/sii-boleta-dte/previews';
-			if ( function_exists( 'wp_mkdir_p' ) ) {
-					wp_mkdir_p( $dir );
-			} elseif ( ! is_dir( $dir ) ) {
-					@mkdir( $dir, 0755, true );
-			}
+
+                $filename  = $this->build_pdf_filename( $context, 'pdf' );
+                $name_only = pathinfo( $filename, PATHINFO_FILENAME );
+                if ( '' === (string) $name_only ) {
+                        $name_only = 'dte';
+                        $filename  = 'dte.pdf';
+                }
+
+                $key     = $filename;
+                $counter = 2;
+                while ( $this->preview_key_exists( $key ) ) {
+                        $key = $name_only . '-' . $counter . '.pdf';
+                        ++$counter;
+                }
+
+                $this->set_preview_entry( $key, $path );
+
+                return $this->build_viewer_url( $key, true );
+        }
+
+        /**
+         * Moves the generated PDF to uploads so it can be displayed via URL.
+         * Returns a public URL or empty string on failure.
+         *
+         * @param array<string,mixed> $context Metadata used to build a friendly filename.
+         */
+        private function store_persistent_pdf( string $path, array $context = array() ): string {
+                if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
+                                return '';
+                }
+                        $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
+                                'basedir' => sys_get_temp_dir(),
+                                'baseurl' => '',
+                        );
+                        $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
+                        $dir     = $base . '/sii-boleta-dte/previews';
+                        if ( function_exists( 'wp_mkdir_p' ) ) {
+                                        wp_mkdir_p( $dir );
+                        } elseif ( ! is_dir( $dir ) ) {
+                                        @mkdir( $dir, 0755, true );
+                        }
                         $filename  = $this->build_pdf_filename( $context, 'pdf' );
                         $name_only = pathinfo( $filename, PATHINFO_FILENAME );
                         if ( '' === (string) $name_only ) {
@@ -1036,24 +1077,110 @@ class GenerateDtePage {
                                         $dest = $dir . '/' . $name_only . '-' . $counter . '.pdf';
                                         ++$counter;
                         }
-			if ( ! @copy( $path, $dest ) ) {
-					return '';
-			}
-			@chmod( $dest, 0644 );
-			// Build an admin-ajax powered viewer URL so proxies (Cloudflare) or theme routing don't interfere.
-			if ( function_exists( 'admin_url' ) ) {
-					$nonce = function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '';
-					$url   = add_query_arg(
-						array(
-							'action'   => 'sii_boleta_dte_view_pdf',
-							'key'      => basename( $dest ),
-							'_wpnonce' => $nonce,
-						),
-						admin_url( 'admin-ajax.php' )
-					);
-                                        return $url;
+                        if ( ! @copy( $path, $dest ) ) {
+                                        return '';
                         }
+                        @chmod( $dest, 0644 );
+
+                return $this->build_viewer_url( basename( $dest ) );
+        }
+
+        private function build_viewer_url( string $key, bool $preview = false ): string {
+                if ( ! function_exists( 'admin_url' ) ) {
                         return '';
+                }
+
+                $args = array(
+                        'action'   => 'sii_boleta_dte_view_pdf',
+                        'key'      => $key,
+                        '_wpnonce' => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '',
+                );
+
+                if ( $preview ) {
+                        $args['preview'] = '1';
+                }
+
+                return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
+        }
+
+        private function preview_key_exists( string $key ): bool {
+                return null !== self::get_preview_entry( $key );
+        }
+
+        private function set_preview_entry( string $key, string $path ): void {
+                $data = array(
+                        'path'    => $path,
+                        'expires' => time() + self::PREVIEW_TTL,
+                );
+
+                if ( function_exists( 'set_transient' ) ) {
+                        set_transient( self::PREVIEW_TRANSIENT_PREFIX . $key, $data, self::PREVIEW_TTL );
+                }
+
+                self::$preview_cache[ $key ] = $data;
+        }
+
+        private static function get_preview_entry( string $key ): ?array {
+                $data = null;
+
+                if ( function_exists( 'get_transient' ) ) {
+                        $value = get_transient( self::PREVIEW_TRANSIENT_PREFIX . $key );
+                        if ( false !== $value && is_array( $value ) ) {
+                                $data = $value;
+                        }
+                }
+
+                if ( null === $data && isset( self::$preview_cache[ $key ] ) ) {
+                        $data = self::$preview_cache[ $key ];
+                }
+
+                if ( null === $data ) {
+                        return null;
+                }
+
+                $expires = isset( $data['expires'] ) ? (int) $data['expires'] : 0;
+                if ( $expires > 0 && $expires < time() ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                $path = isset( $data['path'] ) ? (string) $data['path'] : '';
+                if ( '' === $path ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                return array(
+                        'path'    => $path,
+                        'expires' => $expires,
+                );
+        }
+
+        private static function clear_preview_entry( string $key ): void {
+                if ( function_exists( 'delete_transient' ) ) {
+                        delete_transient( self::PREVIEW_TRANSIENT_PREFIX . $key );
+                }
+
+                unset( self::$preview_cache[ $key ] );
+        }
+
+        public static function resolve_preview_path( string $key ): ?string {
+                $entry = self::get_preview_entry( $key );
+                if ( null === $entry ) {
+                        return null;
+                }
+
+                $path = $entry['path'];
+                if ( ! file_exists( $path ) ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                return $path;
+        }
+
+        public static function clear_preview_path( string $key ): void {
+                self::clear_preview_entry( $key );
         }
 
                 /**

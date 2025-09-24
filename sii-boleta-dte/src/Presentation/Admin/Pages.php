@@ -87,6 +87,10 @@ class Pages {
 	}
 
         public function enqueue_assets( string $hook ): void {
+                if ( false !== strpos( $hook, 'sii-boleta-dte' ) ) {
+                        $this->enqueue_admin_surface_style();
+                }
+
                 if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
                         $style_relative = 'src/Presentation/assets/css/control-panel.css';
                         $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
@@ -94,141 +98,163 @@ class Pages {
                         if ( file_exists( $style_path ) ) {
                                 $style_version .= '-' . filemtime( $style_path );
                         }
-                                                \wp_enqueue_style(
-                                                        'sii-boleta-control-panel',
-                                                        SII_BOLETA_DTE_URL . $style_relative,
-                                                        array(),
-                                                        $style_version
-                                                );
+
+                        \wp_enqueue_style(
+                                'sii-boleta-control-panel',
+                                SII_BOLETA_DTE_URL . $style_relative,
+                                array(),
+                                $style_version
+                        );
                 }
-        if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
+
+                if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
                         $style_relative = 'src/Presentation/assets/css/generate-dte.css';
                         $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
                         $style_version  = SII_BOLETA_DTE_VERSION;
                         if ( file_exists( $style_path ) ) {
                                 $style_version .= '-' . filemtime( $style_path );
                         }
-                                                \wp_enqueue_style(
-                                                        'sii-boleta-generate-dte',
-                                                        SII_BOLETA_DTE_URL . $style_relative,
-                                                        array(),
-                                                        $style_version
-                                                );
+
+                        \wp_enqueue_style(
+                                'sii-boleta-generate-dte',
+                                SII_BOLETA_DTE_URL . $style_relative,
+                                array(),
+                                $style_version
+                        );
+
                         $script_relative = 'src/Presentation/assets/js/generate-dte.js';
                         $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
                         $script_version  = SII_BOLETA_DTE_VERSION;
                         if ( file_exists( $script_path ) ) {
                                 $script_version .= '-' . filemtime( $script_path );
                         }
-																\wp_enqueue_script(
-																	'sii-boleta-generate-dte',
-																	SII_BOLETA_DTE_URL . $script_relative,
-																	array(),
-																	$script_version,
-																	true
-																);
-                    \wp_localize_script(
-                        'sii-boleta-generate-dte',
-                        'siiBoletaGenerate',
-                        array(
-                            'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-                            'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
-                            'previewAction' => 'sii_boleta_dte_generate_preview',
-                            'sendAction'    => 'sii_boleta_dte_send_document',
-                            'texts' => array(
-                                'previewReady' => __( 'Preview generated. Review the document below.', 'sii-boleta-dte' ),
-                                'previewError' => __( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ),
-                                'openNewTab'   => __( 'Open preview in a new tab', 'sii-boleta-dte' ),
-                                'loading'      => __( 'Generating preview…', 'sii-boleta-dte' ),
-                                'rutInvalid'   => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ),
-                                'rutRequired'  => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
-                                'sendError'    => __( 'Could not send the document. Please try again.', 'sii-boleta-dte' ),
-                                'sendSuccess'  => __( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ),
-                                'sending'      => __( 'Sending…', 'sii-boleta-dte' ),
-                                'viewPdf'      => __( 'Download PDF', 'sii-boleta-dte' ),
-                                'itemsDescLabel'   => __( 'Description', 'sii-boleta-dte' ),
-                                'itemsQtyLabel'    => __( 'Quantity', 'sii-boleta-dte' ),
-                                'itemsPriceLabel'  => __( 'Unit Price', 'sii-boleta-dte' ),
-                                'itemsActionsLabel' => __( 'Actions', 'sii-boleta-dte' ),
-                                'itemsRemoveLabel' => __( 'Remove item', 'sii-boleta-dte' ),
-                            ),
-                        )
-                    );
+
+                        \wp_enqueue_script(
+                                'sii-boleta-generate-dte',
+                                SII_BOLETA_DTE_URL . $script_relative,
+                                array(),
+                                $script_version,
+                                true
+                        );
+
+                        \wp_localize_script(
+                                'sii-boleta-generate-dte',
+                                'siiBoletaGenerate',
+                                array(
+                                        'nonce'         => \wp_create_nonce( 'sii_boleta_nonce' ),
+                                        'ajax'          => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                                        'previewAction' => 'sii_boleta_dte_generate_preview',
+                                        'sendAction'    => 'sii_boleta_dte_send_document',
+                                        'texts'         => array(
+                                                'previewReady'      => __( 'Preview generated. Review the document below.', 'sii-boleta-dte' ),
+                                                'previewError'      => __( 'Could not generate preview. Please try again.', 'sii-boleta-dte' ),
+                                                'openNewTab'        => __( 'Open preview in a new tab', 'sii-boleta-dte' ),
+                                                'loading'           => __( 'Generating preview…', 'sii-boleta-dte' ),
+                                                'rutInvalid'        => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ),
+                                                'rutRequired'       => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
+                                                'sendError'         => __( 'Could not send the document. Please try again.', 'sii-boleta-dte' ),
+                                                'sendSuccess'       => __( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ),
+                                                'sending'           => __( 'Sending…', 'sii-boleta-dte' ),
+                                                'viewPdf'           => __( 'Download PDF', 'sii-boleta-dte' ),
+                                                'itemsDescLabel'    => __( 'Description', 'sii-boleta-dte' ),
+                                                'itemsQtyLabel'     => __( 'Quantity', 'sii-boleta-dte' ),
+                                                'itemsPriceLabel'   => __( 'Unit Price', 'sii-boleta-dte' ),
+                                                'itemsActionsLabel' => __( 'Actions', 'sii-boleta-dte' ),
+                                                'itemsRemoveLabel'  => __( 'Remove item', 'sii-boleta-dte' ),
+                                        ),
+                                )
+                        );
+                }
+
+                if ( false !== strpos( $hook, 'sii-boleta-dte-settings' ) ) {
+                        \wp_enqueue_media();
+                        \wp_enqueue_style(
+                                'sii-boleta-admin-settings',
+                                SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/admin-settings.css',
+                                array(),
+                                SII_BOLETA_DTE_VERSION
+                        );
+                        \wp_enqueue_script(
+                                'sii-boleta-admin-settings',
+                                SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/admin-settings.js',
+                                array(),
+                                SII_BOLETA_DTE_VERSION,
+                                true
+                        );
+                        \wp_localize_script(
+                                'sii-boleta-admin-settings',
+                                'siiBoletaSettings',
+                                array(
+                                        'optionKey' => Settings::OPTION_NAME,
+                                        'texts'     => array(
+                                                'selectLogo' => \__( 'Select logo', 'sii-boleta-dte' ),
+                                                'useLogo'    => \__( 'Use logo', 'sii-boleta-dte' ),
+                                                'sending'    => \__( 'Sending…', 'sii-boleta-dte' ),
+                                                'sendFail'   => \__( 'Failed to send', 'sii-boleta-dte' ),
+                                        ),
+                                        'nonce'     => \wp_create_nonce( 'sii_boleta_nonce' ),
+                                )
+                        );
+                }
+
+                if ( false !== strpos( $hook, 'sii-boleta-dte-cafs' ) ) {
+                        $script_relative = 'src/Presentation/assets/js/caf-manager.js';
+                        $style_relative  = 'src/Presentation/assets/css/caf-manager.css';
+                        $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
+                        $style_path      = SII_BOLETA_DTE_PATH . $style_relative;
+                        $base_version    = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $script_path ) ) {
+                                $base_version .= '-' . filemtime( $script_path );
+                        }
+
+                        \wp_enqueue_style(
+                                'sii-boleta-caf-manager',
+                                SII_BOLETA_DTE_URL . $style_relative,
+                                array(),
+                                file_exists( $style_path ) ? $base_version : SII_BOLETA_DTE_VERSION
+                        );
+                        \wp_enqueue_script(
+                                'sii-boleta-caf-manager',
+                                SII_BOLETA_DTE_URL . $script_relative,
+                                array(),
+                                $base_version,
+                                true
+                        );
+                        \wp_localize_script(
+                                'sii-boleta-caf-manager',
+                                'siiBoletaCaf',
+                                array(
+                                        'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                                        'nonce' => \wp_create_nonce( 'sii_boleta_caf' ),
+                                        'texts' => array(
+                                                'addTitle'      => \__( 'Agregar rango de folios', 'sii-boleta-dte' ),
+                                                'editTitle'     => \__( 'Editar rango de folios', 'sii-boleta-dte' ),
+                                                'deleteConfirm' => \__( '¿Eliminar este rango de folios?', 'sii-boleta-dte' ),
+                                                'genericError'  => \__( 'Ha ocurrido un error. Inténtalo nuevamente.', 'sii-boleta-dte' ),
+                                                'saving'        => \__( 'Guardando…', 'sii-boleta-dte' ),
+                                                'noCaf'         => \__( 'Aún no se ha cargado un CAF.', 'sii-boleta-dte' ),
+                                                'currentCaf'    => \__( 'CAF actual: %s', 'sii-boleta-dte' ),
+                                                'uploadedOn'    => \__( '(última carga: %s)', 'sii-boleta-dte' ),
+                                        ),
+                                )
+                        );
+                }
         }
 
-        if ( false !== strpos( $hook, 'sii-boleta-dte-settings' ) ) {
-            \wp_enqueue_media();
-            \wp_enqueue_style(
-                'sii-boleta-admin-settings',
-                SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/admin-settings.css',
-                array(),
-                SII_BOLETA_DTE_VERSION
-            );
-            \wp_enqueue_script(
-                'sii-boleta-admin-settings',
-                SII_BOLETA_DTE_URL . 'src/Presentation/assets/js/admin-settings.js',
-                array(),
-                SII_BOLETA_DTE_VERSION,
-                true
-            );
-            \wp_localize_script(
-                'sii-boleta-admin-settings',
-                'siiBoletaSettings',
-                array(
-                    'optionKey' => Settings::OPTION_NAME,
-                    'texts'     => array(
-                        'selectLogo' => \__( 'Select logo', 'sii-boleta-dte' ),
-                        'useLogo'    => \__( 'Use logo', 'sii-boleta-dte' ),
-                        'sending'    => \__( 'Sending…', 'sii-boleta-dte' ),
-                        'sendFail'   => \__( 'Failed to send', 'sii-boleta-dte' ),
-                    ),
-                    'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-                )
-            );
-        }
+        private function enqueue_admin_surface_style(): void {
+                $style_relative = 'src/Presentation/assets/css/admin-surface.css';
+                $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
+                $style_version  = SII_BOLETA_DTE_VERSION;
+                if ( file_exists( $style_path ) ) {
+                        $style_version .= '-' . filemtime( $style_path );
+                }
 
-        if ( false !== strpos( $hook, 'sii-boleta-dte-cafs' ) ) {
-            $script_relative = 'src/Presentation/assets/js/caf-manager.js';
-            $style_relative  = 'src/Presentation/assets/css/caf-manager.css';
-            $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
-            $style_path      = SII_BOLETA_DTE_PATH . $style_relative;
-            $base_version    = SII_BOLETA_DTE_VERSION;
-            if ( file_exists( $script_path ) ) {
-                $base_version .= '-' . filemtime( $script_path );
-            }
-            \wp_enqueue_style(
-                'sii-boleta-caf-manager',
-                SII_BOLETA_DTE_URL . $style_relative,
-                array(),
-                file_exists( $style_path ) ? $base_version : SII_BOLETA_DTE_VERSION
-            );
-            \wp_enqueue_script(
-                'sii-boleta-caf-manager',
-                SII_BOLETA_DTE_URL . $script_relative,
-                array(),
-                $base_version,
-                true
-            );
-            \wp_localize_script(
-                'sii-boleta-caf-manager',
-                'siiBoletaCaf',
-                array(
-                    'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
-                    'nonce' => \wp_create_nonce( 'sii_boleta_caf' ),
-                    'texts' => array(
-                        'addTitle'      => \__( 'Agregar rango de folios', 'sii-boleta-dte' ),
-                        'editTitle'     => \__( 'Editar rango de folios', 'sii-boleta-dte' ),
-                        'deleteConfirm' => \__( '¿Eliminar este rango de folios?', 'sii-boleta-dte' ),
-                        'genericError'  => \__( 'Ha ocurrido un error. Inténtalo nuevamente.', 'sii-boleta-dte' ),
-                        'saving'        => \__( 'Guardando…', 'sii-boleta-dte' ),
-                        'noCaf'         => \__( 'Aún no se ha cargado un CAF.', 'sii-boleta-dte' ),
-                        'currentCaf'    => \__( 'CAF actual: %s', 'sii-boleta-dte' ),
-                        'uploadedOn'    => \__( '(última carga: %s)', 'sii-boleta-dte' ),
-                    ),
-                )
-            );
+                \wp_enqueue_style(
+                        'sii-boleta-admin-surface',
+                        SII_BOLETA_DTE_URL . $style_relative,
+                        array(),
+                        $style_version
+                );
         }
-        }
-}
 
 class_alias( Pages::class, 'Sii\\BoletaDte\\Admin\\Pages' );

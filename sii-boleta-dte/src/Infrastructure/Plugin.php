@@ -20,6 +20,7 @@ use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
+use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Infrastructure\Factory\Container;
 
@@ -31,7 +32,8 @@ class Plugin {
 	private RvdManager $rvd_manager;
 	private Endpoints $endpoints;
 	private ?Woo $woo = null;
-	private Metrics $metrics;
+        private Metrics $metrics;
+        private PdfGenerator $pdf_generator;
 	private ConsumoFolios $consumo_folios;
         private Queue $queue;
         private QueueProcessor $queue_processor;
@@ -61,6 +63,7 @@ class Plugin {
 		}
 			$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
 
+                        $this->pdf_generator   = new PdfGenerator( $this->engine, $this->settings );
                         $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
                         \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
 			$this->help = $help ?? new Help();
@@ -99,10 +102,14 @@ class Plugin {
 		return $this->rvd_manager; }
 	public function get_consumo_folios() {
 		return $this->consumo_folios; }
-	public function get_queue() {
-		return $this->queue; }
-	public function get_engine() {
-		return $this->engine; }
+        public function get_queue() {
+                return $this->queue; }
+        public function get_engine() {
+                return $this->engine; }
+
+        public function get_pdf_generator(): PdfGenerator {
+                return $this->pdf_generator;
+        }
 
         public function fluent_smtp_profiles( $profiles ) {
                 if ( class_exists( '\\FluentMail\\App\\Models\\Settings' ) ) {

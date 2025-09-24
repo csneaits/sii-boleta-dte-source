@@ -1,286 +1,199 @@
 <html>
 <head>
     <style>
-        :root {
-            --color-primary: #1f3c88;
-            --color-accent: #0ea5e9;
-            --color-text: #1f2937;
-            --color-muted: #475569;
-            --color-highlight: #ef4444;
-            --color-surface: #ffffff;
-            --color-surface-alt: #f8fafc;
-            --color-divider: rgba(148, 163, 184, 0.35);
-        }
+        {# Estilos globales #}
         html {
             height: 100%;
         }
         body {
-            margin: 0;
-            font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+            margin-top: 5px;
+            font-family: Arial, sans-serif;
             font-size: 10pt;
-            min-height: 100%;
-            background: linear-gradient(140deg, #eef2ff 0%, #f8fafc 100%);
-            color: var(--color-text);
+            height: 100%;
         }
         p {
-            margin: 4px 0;
-            color: var(--color-muted);
+            margin: 5px 0;
+        }
+        {# Estilo detalle #}
+        .label {
+            font-weight: bold;
+            width: 25%;
         }
         .bold {
-            font-weight: 700;
-            color: var(--color-text);
+            font-weight: bold;
         }
-        .label {
-            font-weight: 600;
-            color: var(--color-primary);
-            width: 28%;
-        }
-        .document-wrapper {
-            max-width: 960px;
-            margin: 0 auto;
-            background: var(--color-surface);
-            border-radius: 18px;
-            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12);
-            padding: 18mm;
-            display: flex;
-            flex-direction: column;
-            gap: 18pt;
-            min-height: 100%;
-            position: relative;
-            overflow: hidden;
-        }
-        .document-wrapper::before,
-        .document-wrapper::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
-        }
-        .document-wrapper::before {
-            inset: -160px auto auto -200px;
-            width: 380px;
-            height: 380px;
-            background: radial-gradient(circle at center, rgba(31, 60, 136, 0.22), transparent 70%);
-        }
-        .document-wrapper::after {
-            inset: auto -180px -220px auto;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle at center, rgba(14, 165, 233, 0.2), transparent 75%);
-        }
+        {# Contenedores generales #}
         .container {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 16pt;
             width: 100%;
         }
-        .container + .container {
-            padding-top: 12pt;
-            border-top: 1px solid var(--color-divider);
-        }
         .container-detalles {
-            margin-top: 18pt;
+            margin-top: 15pt;
             display: flex;
-            flex-direction: column;
-            gap: 12pt;
+            justify-content: space-between;
         }
         .container-montos-globales {
             display: flex;
             justify-content: flex-end;
-            margin-top: 12pt;
+            margin-top: 10px;
+            margin-left: auto;
         }
         .container-observacion {
             font-size: 9pt;
-            color: var(--color-muted);
-            display: flex;
+            bottom: 40mm;
             align-items: flex-end;
         }
+        {# Información del Emisor #}
         .emisor-info {
-            flex: 1.4;
+            float: left;
+            width: 60%;
+            text-align: left;
         }
         .emisor-logo {
-            max-width: 38mm;
+            max-width: 30mm;
             height: auto;
-            border-radius: 10px;
-            background: var(--color-surface);
-            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.18);
-            padding: 4px;
         }
         .emisor-razon-social {
-            color: var(--color-primary);
-            font-weight: 700;
-            font-size: 15pt;
-            margin-bottom: 3pt;
+            color: rgb(0, 64, 128);
+            font-weight: bold;
+            font-size: 14pt;
         }
         .emisor-giro {
-            color: var(--color-muted);
-            font-weight: 600;
-            font-size: 10pt;
+            color: black;
+            font-weight: bold;
+            font-size: 9pt;
         }
         .emisor-direccion {
-            color: var(--color-muted);
-            font-size: 9.5pt;
+            color: black;
         }
+        {# Información del DTE #}
         .container-dte {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12pt 16pt;
-            border-radius: 18px;
-            border: 1px solid rgba(31, 60, 136, 0.25);
-            background: linear-gradient(135deg, rgba(31, 60, 136, 0.12), rgba(14, 165, 233, 0.12));
+            text-align: center;
+            color: rgb(255, 0, 0);
+            font-weight: bold;
             text-transform: uppercase;
-            color: var(--color-primary);
-            gap: 6pt;
-            min-width: 70mm;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }
         .dte-informacion {
-            width: 100%;
-            border: 1px dashed rgba(31, 60, 136, 0.4);
-            border-radius: 12px;
-            padding: 6pt 10pt;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.85);
-            font-size: 11pt;
-        }
-        .dte-informacion p {
-            margin: 2pt 0;
-            color: var(--color-primary);
+            min-height: 20mm;
+            max-height: 40mm;
+            min-width: 50mm;
+            max-width: 90mm;
+            border: 0.7mm solid rgb(255, 0, 0);
+            font-size: 15pt;
         }
         .tipo-documento {
             font-size: 12pt;
-            font-weight: 700;
-            letter-spacing: 1px;
         }
         .sucursal-sii {
-            margin-top: 6pt;
-            font-size: 9pt;
-            letter-spacing: 1px;
-            color: var(--color-highlight);
-            font-weight: 600;
+            margin-top: 5px;
+            font-size: 10pt;
+            color: rgb(255, 0, 0);
         }
+        {# Información Receptor y Fechas #}
         .receptor-info {
-            flex: 2.2;
+            float: left;
+            width: 70%;
         }
         .fechas {
-            flex: 1;
+            float: right;
             text-align: right;
-            color: var(--color-muted);
         }
-        .fechas p {
-            color: var(--color-text);
-            font-weight: 500;
-        }
-        .tabla-receptor {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            font-size: 9.5pt;
-        }
-        .tabla-receptor td {
-            padding: 3pt 5pt;
-            border: none;
-            color: var(--color-muted);
-            word-break: break-word;
-            white-space: normal;
-        }
-        .tabla-receptor .label {
-            color: var(--color-primary);
-        }
+        {# Tablas Generales #}
         .tabla-detalles {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 18px;
-            overflow: hidden;
-            border: 1px solid var(--color-divider);
-            box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
-            background: rgba(255, 255, 255, 0.98);
-            font-size: 9.5pt;
+            font-size: 10pt;
+            border: 1px solid black;
         }
-        .tabla-detalles th {
-            background: linear-gradient(135deg, rgba(31, 60, 136, 0.2), rgba(14, 165, 233, 0.18));
-            color: var(--color-text);
-            font-weight: 700;
-            padding: 6pt 8pt;
-            text-align: left;
-            border-bottom: 1px solid var(--color-divider);
+        .tabla-detalles th, td {
             white-space: nowrap;
-        }
-        .tabla-detalles th:nth-child(n+3),
-        .tabla-detalles td:nth-child(n+3) {
+            padding: 2px;
+            border-left: 1px solid black;
+            border-right: 1px solid black;
             text-align: center;
         }
-        .tabla-detalles td {
-            padding: 5pt 6pt;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-            color: var(--color-text);
-            background: rgba(255, 255, 255, 0.96);
-            white-space: nowrap;
-        }
-        .tabla-detalles tbody tr:nth-child(even) td {
-            background: rgba(248, 250, 252, 0.95);
-        }
-        .tabla-detalles tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .tabla-montos {
-            width: 80%;
-            margin-left: auto;
-            border-collapse: collapse;
-            border-radius: 14px;
-            overflow: hidden;
-            background: rgba(248, 250, 252, 0.95);
-            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
-        }
-        .tabla-montos td {
-            padding: 5pt 8pt;
-            font-weight: 600;
-            color: var(--color-text);
-            text-align: right;
-        }
-        .tabla-montos td:first-child {
+        .tabla-detalles th {
+            background-color: #f2f2f2;
             text-align: left;
-            color: var(--color-muted);
+            font-weight: bold;
+            border-bottom: 1px solid black;
         }
+        {# Tablas Receptor #}
+        .tabla-receptor {
+            border: none;
+            border-collapse: collapse;
+            width: 100%;
+            text-align: left;
+            font-size: 10pt;
+            table-layout: fixed;
+        }
+        .tabla-receptor td {
+            padding: 2px 5px;
+            border: none;
+            text-align: left;
+            line-height: 1;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        {# Tabla montos globales #}
         .tabla-montos-global {
             border: none;
-            width: 60mm;
+            width: 50px;
             font-size: 11pt;
             margin-left: auto;
         }
         .tabla-montos-global td {
-            padding: 3pt 6pt;
-            font-weight: 700;
-            color: var(--color-text);
-            text-align: right;
             white-space: nowrap;
+            font-weight: bold;
+            padding: 2px 5px;
+            border: none;
+            text-align: right;
         }
-        .tabla-timbre {
+        {# Tabla de montos -#}
+        .tabla-montos {
+            border: none;
+            width: 80%;
+            font-size: 11pt;
             border-collapse: collapse;
+            margin-left: auto;
+        }
+        .tabla-montos td {
+            white-space: normal;
+            font-weight: bold;
+            padding: 2px 5px;
+            border: none;
+            text-align: right;
+        }
+        .tabla-montos td:nth-child(2) {
+            width: 40%;
+        }
+        {# Tabla timbre#}
+        .tabla-timbre {
             margin-right: auto;
+            border-collapse: collapse;
         }
         .tabla-timbre td {
             border: none;
-            text-align: center;
         }
         .tabla-timbre .timbre-text {
             font-size: 10pt;
-            color: var(--color-muted);
-            margin: 2pt 0;
+            margin: 2px;
+            text-align: center;
         }
         .tabla-timbre .img-timbre {
             margin: 0;
             padding: 0;
             height: auto;
         }
+        {# Tabla Bottom Element #}
         .tabla-bottom-element {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
+            position: relative;
             margin-top: auto;
+            bottom: 0;
+            table-layout: fixed;
         }
         .tabla-bottom-element > tbody > tr {
             height: 100%;
@@ -288,181 +201,162 @@
         .tabla-bottom-element td {
             border: none;
             vertical-align: top;
-            padding: 0 6pt;
         }
         .tabla-bottom-element-cell {
             width: 33%;
+            vertical-align: top;
         }
         .tabla-bottom-element-cell table {
+            max-height: auto;
+            overflow: hidden;
             border-collapse: collapse;
-            width: 100%;
         }
-        .informacion-bottom {
-            display: flex;
-            gap: 12pt;
-        }
+        {# Estilo de montos #}
         .montos {
             text-align: right;
-            width: 60%;
-            font-weight: 600;
+            width: 50%;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
             font-size: 11pt;
-            color: var(--color-text);
         }
         .montos div {
             margin-bottom: 5px;
         }
         .montos span {
             display: inline-block;
-            min-width: 110px;
+            min-width: 100px;
         }
+        {# Acuse recibo #}
         .acuse-recibo {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid var(--color-divider);
-            box-shadow: 0 15px 30px rgba(15, 23, 42, 0.12);
-            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid black;
         }
         .acuse-recibo td {
-            padding: 6pt 8pt;
+            padding: 5px;
             vertical-align: bottom;
+            border: none;
             text-align: left;
-            color: var(--color-text);
         }
         .acuse-recibo .acuse-title {
             text-align: center;
-            font-weight: 700;
-            font-size: 10pt;
-            color: var(--color-primary);
-            padding: 10pt 8pt;
+            font-weight: bold;
+            padding: 10px;
         }
         .acuse-recibo .acuse-recibo-label {
             text-align: justify;
-            width: 92%;
-            margin: 6pt auto 0;
-            font-size: 8.5pt;
-            color: var(--color-muted);
+            margin-top: 5px;
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 8pt;
         }
         .acuse-recibo .linea {
             width: 70%;
-            border-bottom: 1px solid var(--color-divider);
-            margin-top: 14pt;
+            text-align: left;
         }
         .graph-img {
-            border: 1px solid var(--color-divider);
-            border-radius: 12px;
+            border:1px solid black;
             height: 150px;
             text-align: center;
-            background: var(--color-surface-alt);
-            padding: 6pt;
-        }
-        .container-cedible {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 14pt;
         }
         .cedible {
             font-size: 15pt;
-            color: var(--color-primary);
-            letter-spacing: 4px;
-            font-weight: 700;
+            text-align: right;
+            font-weight: bold;
             margin-left: auto;
-        }
-        footer {
-            text-align: center;
-            font-weight: 600;
-            font-size: 9pt;
-            border-top: 1px solid var(--color-divider);
-            padding: 8pt 0;
-            margin-top: auto;
-            color: var(--color-muted);
-        }
-        footer a {
-            color: inherit;
-        }
-        @media screen {
-            body {
-                font-size: 11pt;
-                padding: 12px;
-            }
-            .document-wrapper {
-                padding: 24mm;
-            }
-            .tabla-detalles th,
-            .tabla-detalles td {
-                font-size: 10pt;
-            }
-            .container {
-                flex-wrap: wrap;
-            }
-            .container-dte {
-                margin-left: auto;
-            }
-            .dte-informacion p {
-                margin: 4pt 0;
-            }
-            .informacion-bottom {
-                width: 100%;
-            }
         }
         @media print {
             @page {
                 size: 216mm 279mm;
                 margin: 15mm;
             }
-            body {
-                background: #ffffff;
-                font-size: 10pt;
-                padding: 0;
-            }
-            .document-wrapper {
-                box-shadow: none;
-                border-radius: 0;
-                margin: 0;
-                padding: 0;
-                gap: 12pt;
-            }
-            .document-wrapper::before,
-            .document-wrapper::after {
-                display: none;
-            }
-            .container + .container {
-                border-top: none;
-                padding-top: 10pt;
-            }
-            .tabla-detalles {
-                box-shadow: none;
-            }
             .container-dte {
-                box-shadow: none;
-                background: transparent;
-                border-color: rgba(31, 60, 136, 0.35);
+                display: flex;
             }
-            .dte-informacion {
-                background: #ffffff;
+            .dte-informacion p {
+                padding: 1.5mm;
+                margin: 0;
+            }
+            .informacion-bottom {
+                position: absolute;
+                bottom: 30px;
+                left: 15mm;
+                right: 15mm;
+                width: auto;
             }
             .container-cedible {
                 position: fixed;
-                bottom: 0;
-                right: 0;
-                left: 0;
-                padding: 0 15mm 5mm;
+                bottom: 0px;
+            }
+            .img-timbre {
+                width: 60mm;
             }
             footer {
                 position: absolute;
                 bottom: 0;
                 left: 0;
-                right: 0;
-                background: #fff;
-                padding: 5mm 0;
+                width: 100%;
+                text-align: center;
+                font-weight: bold;
+                font-size: 8pt;
+                border-top: 1px solid #000;
+                padding: 5px 0;
                 margin: 0;
+                background-color: #fff;
+            }
+        }
+        @media screen {
+            body {
+                font-size: 12pt;
+                margin: 10px;
+                min-height: 100%;
+            }
+
+            .tabla-detalles th, .tabla-detalles td {
+                font-size: 11pt;
+                padding: 5px;
+            }
+            .container {
+                flex-wrap: wrap;
+            }
+            .container-dte {
+                min-width: 70mm;
+                height: auto;
+                margin: 0;
+            }
+            .dte-informacion p {
+                margin: 5px 0;
+            }
+            .sucursal-sii {
+                margin-top: 10px;
+                font-size: 10pt;
+                color: rgb(255, 0, 0);
+            }
+            .informacion-bottom {
+                margin: 8px 0;
+                width: 100%;
+            }
+            .img-timbre {
+                width: auto;
+            }
+            footer {
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                font-weight: bold;
+                font-size: 8pt;
+                border-top: 1px solid #000;
+                padding: 5px 0;
+                margin: 0;
+                background-color: #fff;
+                padding-top: 5px;
             }
         }
     </style>
 </head>
     <body>
-        <div class="document-wrapper">
         <div class="container">
             {# Información del Emisor #}
             <div class="emisor-info">
@@ -1119,6 +1013,5 @@
                 www.libredte.cl
             </a>
         </footer>
-        </div>
     </body>
 </html>

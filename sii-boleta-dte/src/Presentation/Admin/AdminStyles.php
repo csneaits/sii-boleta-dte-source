@@ -299,7 +299,7 @@ class AdminStyles {
     display: grid;
     grid-template-columns: 80px 1fr;
     gap: 1rem;
-    align-items: center;
+    align-items: flex-start;
 }
 .sii-admin-surface .sii-dte-logo-actions {
     display: flex;

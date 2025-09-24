@@ -187,7 +187,8 @@ class Woo {
                         update_post_meta( $order_id, $meta_prefix . '_track_id', $track_id );
                 }
 
-                $pdf = $engine->render_pdf( $xml );
+                $pdf_generator = $this->plugin->get_pdf_generator();
+                $pdf           = $pdf_generator->generate( $xml );
                 if ( is_string( $pdf ) && '' !== $pdf ) {
                         if ( function_exists( 'update_post_meta' ) ) {
                                 update_post_meta( $order_id, $meta_prefix . '_pdf', $pdf );

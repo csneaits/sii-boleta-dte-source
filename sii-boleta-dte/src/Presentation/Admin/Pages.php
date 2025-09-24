@@ -86,27 +86,54 @@ class Pages {
 								$this->help_page->register();
 	}
 
-	public function enqueue_assets( string $hook ): void {
-		if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
-						\wp_enqueue_style(
-							'sii-boleta-control-panel',
-							SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
-							array(),
-							SII_BOLETA_DTE_VERSION
-						);
-		}
+        public function enqueue_assets( string $hook ): void {
+                if ( false !== strpos( $hook, 'sii-boleta-dte' ) ) {
+                        $style_relative = 'src/Presentation/assets/css/admin-shared.css';
+                        $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
+                        $style_version  = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $style_path ) ) {
+                                $style_version .= '-' . filemtime( $style_path );
+                        }
+                        \wp_enqueue_style(
+                                'sii-boleta-admin-shared',
+                                SII_BOLETA_DTE_URL . $style_relative,
+                                array(),
+                                $style_version
+                        );
+                }
+
+                if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
+                                                \wp_enqueue_style(
+                                                        'sii-boleta-control-panel',
+                                                        SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
+                                                        array(),
+                                                        SII_BOLETA_DTE_VERSION
+                                                );
+                }
         if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
                         $script_relative = 'src/Presentation/assets/js/generate-dte.js';
+                        $style_relative  = 'src/Presentation/assets/css/generate-dte.css';
                         $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
+                        $style_path      = SII_BOLETA_DTE_PATH . $style_relative;
                         $script_version  = SII_BOLETA_DTE_VERSION;
                         if ( file_exists( $script_path ) ) {
                                 $script_version .= '-' . filemtime( $script_path );
                         }
-																\wp_enqueue_script(
-																	'sii-boleta-generate-dte',
-																	SII_BOLETA_DTE_URL . $script_relative,
-																	array(),
-																	$script_version,
+                        $style_version = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $style_path ) ) {
+                                $style_version .= '-' . filemtime( $style_path );
+                        }
+                        \wp_enqueue_style(
+                                'sii-boleta-generate-dte',
+                                SII_BOLETA_DTE_URL . $style_relative,
+                                array( 'sii-boleta-admin-shared' ),
+                                $style_version
+                        );
+                                                                                                                               \wp_enqueue_script(
+                                                                                                                               'sii-boleta-generate-dte',
+                                                                                                                               SII_BOLETA_DTE_URL . $script_relative,
+                                                                                                                               array(),
+                                                                                                                               $script_version,
 																	true
 																);
                     \wp_localize_script(

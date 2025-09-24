@@ -45,7 +45,8 @@ class AdminPagesTest extends TestCase {
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
-        $folio->method( 'get_next_folio' )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $_SERVER['REQUEST_METHOD'] = 'POST';

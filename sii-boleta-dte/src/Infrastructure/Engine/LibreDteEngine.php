@@ -275,6 +275,10 @@ class LibreDteEngine implements DteEngine {
                         try {
                                 $cafBag = $this->cafLoader->load( $cafXml );
                         } catch ( \Throwable $e ) {
+                                $this->debug_log( '[error] CAF load failed: ' . $e->getMessage() );
+                                if ( '' !== trim( $cafXml ) ) {
+                                        $this->debug_log( '[error] CAF xml=' . $cafXml );
+                                }
                                 return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
                         }
                 }
@@ -292,7 +296,23 @@ class LibreDteEngine implements DteEngine {
 		}
 
                 $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
-                $this->builder->build( $bag );
+                try {
+                        $this->builder->build( $bag );
+                } catch ( \Throwable $e ) {
+                        $context = array(
+                                'tipo'         => $tipo,
+                                'preview'      => $preview,
+                                'folio'        => $documentData['Encabezado']['IdDoc']['Folio'] ?? null,
+                                'environment'  => $environment,
+                                'caf_provided' => '' !== trim( $cafXml ),
+                        );
+                        $this->debug_log( '[error] Builder failed: ' . $e->getMessage() );
+                        $this->debug_log( '[error] Context=' . json_encode( $context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                        if ( '' !== trim( $cafXml ) ) {
+                                $this->debug_log( '[error] CAF xml=' . $cafXml );
+                        }
+                        throw $e;
+                }
 
                 $xmlString = $bag->getDocument()->saveXml();
                 if ( ! is_string( $xmlString ) ) {

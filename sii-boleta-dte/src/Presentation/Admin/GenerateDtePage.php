@@ -22,6 +22,14 @@ class GenerateDtePage {
         private FolioManager $folio_manager;
         private Queue $queue;
 
+        private const PREVIEW_TRANSIENT_PREFIX = 'sii_boleta_preview_';
+        private const PREVIEW_TTL              = 900;
+
+        /**
+         * @var array<string,array{path:string,expires:int}>
+         */
+        private static array $preview_cache = array();
+
         public function __construct( Settings $settings, TokenManager $token_manager, Api $api, DteEngine $engine, PdfGenerator $pdf, FolioManager $folio_manager, Queue $queue ) {
                 $this->settings      = $settings;
                 $this->token_manager = $token_manager;
@@ -866,7 +874,7 @@ class GenerateDtePage {
 
 		$folio = 0;
 		if ( ! $preview ) {
-			$next = $this->folio_manager->get_next_folio( $tipo );
+            $next = $this->folio_manager->get_next_folio( $tipo, false );
 			if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
 				return array( 'error' => $next->get_error_message() );
 			}
@@ -934,25 +942,29 @@ class GenerateDtePage {
 			}
 				return array( 'error' => $msg );
 		}
-				$pdf       = $this->pdf->generate( (string) $xml );
-				$pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
-				$pdf_url   = $this->store_preview_pdf(
-					$pdf,
-					array(
-						'label'        => $pdf_label,
-						'type'         => $tipo,
-						'folio'        => $folio,
-						'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
-						'rut_receptor' => $rut,
-					)
-				);
-		if ( $preview ) {
-				return array(
-					'preview' => true,
-					'pdf'     => $pdf,      // keep raw for tests
-					'pdf_url' => $pdf_url,  // public URL for iframe
-				);
-		}
+        $pdf       = $this->pdf->generate( (string) $xml );
+        $pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
+
+        $pdf_context = array(
+                'label'        => $pdf_label,
+                'type'         => $tipo,
+                'folio'        => $folio,
+                'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+                'rut_receptor' => $rut,
+        );
+
+        if ( $preview ) {
+                $pdf_url = $this->create_preview_pdf_link( $pdf, $pdf_context );
+                return array(
+                        'preview' => true,
+                        'pdf'     => $pdf,      // keep raw for tests
+                        'pdf_url' => $pdf_url,  // public URL for iframe
+                );
+        }
+
+        $this->folio_manager->mark_folio_used( $tipo, $folio );
+
+        $pdf_url = $this->store_persistent_pdf( $pdf, $pdf_context );
 
                                 $file = tempnam( sys_get_temp_dir(), 'dte' );
                                 file_put_contents( $file, (string) $xml );
@@ -1004,27 +1016,56 @@ class GenerateDtePage {
                                 );
         }
 
-		/**
-		 * Moves the generated PDF to uploads so it can be displayed via URL.
-		 * Returns a public URL or empty string on failure.
-		 *
-		 * @param array<string,mixed> $context Metadata used to build a friendly filename.
-		 */
-        private function store_preview_pdf( string $path, array $context = array() ): string {
+        /**
+         * Stores the preview PDF path temporarily and returns a signed URL to view it.
+         *
+         * @param array<string,mixed> $context Metadata used to build a friendly filename.
+         */
+        private function create_preview_pdf_link( string $path, array $context = array() ): string {
                 if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
                                 return '';
                 }
-			$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
-				'basedir' => sys_get_temp_dir(),
-				'baseurl' => '',
-			);
-			$base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
-			$dir     = $base . '/sii-boleta-dte/previews';
-			if ( function_exists( 'wp_mkdir_p' ) ) {
-					wp_mkdir_p( $dir );
-			} elseif ( ! is_dir( $dir ) ) {
-					@mkdir( $dir, 0755, true );
-			}
+
+                $filename  = $this->build_pdf_filename( $context, 'pdf' );
+                $name_only = pathinfo( $filename, PATHINFO_FILENAME );
+                if ( '' === (string) $name_only ) {
+                        $name_only = 'dte';
+                        $filename  = 'dte.pdf';
+                }
+
+                $key     = $filename;
+                $counter = 2;
+                while ( $this->preview_key_exists( $key ) ) {
+                        $key = $name_only . '-' . $counter . '.pdf';
+                        ++$counter;
+                }
+
+                $this->set_preview_entry( $key, $path );
+
+                return $this->build_viewer_url( $key, true );
+        }
+
+        /**
+         * Moves the generated PDF to uploads so it can be displayed via URL.
+         * Returns a public URL or empty string on failure.
+         *
+         * @param array<string,mixed> $context Metadata used to build a friendly filename.
+         */
+        private function store_persistent_pdf( string $path, array $context = array() ): string {
+                if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
+                                return '';
+                }
+                        $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
+                                'basedir' => sys_get_temp_dir(),
+                                'baseurl' => '',
+                        );
+                        $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
+                        $dir     = $base . '/sii-boleta-dte/previews';
+                        if ( function_exists( 'wp_mkdir_p' ) ) {
+                                        wp_mkdir_p( $dir );
+                        } elseif ( ! is_dir( $dir ) ) {
+                                        @mkdir( $dir, 0755, true );
+                        }
                         $filename  = $this->build_pdf_filename( $context, 'pdf' );
                         $name_only = pathinfo( $filename, PATHINFO_FILENAME );
                         if ( '' === (string) $name_only ) {
@@ -1036,24 +1077,110 @@ class GenerateDtePage {
                                         $dest = $dir . '/' . $name_only . '-' . $counter . '.pdf';
                                         ++$counter;
                         }
-			if ( ! @copy( $path, $dest ) ) {
-					return '';
-			}
-			@chmod( $dest, 0644 );
-			// Build an admin-ajax powered viewer URL so proxies (Cloudflare) or theme routing don't interfere.
-			if ( function_exists( 'admin_url' ) ) {
-					$nonce = function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '';
-					$url   = add_query_arg(
-						array(
-							'action'   => 'sii_boleta_dte_view_pdf',
-							'key'      => basename( $dest ),
-							'_wpnonce' => $nonce,
-						),
-						admin_url( 'admin-ajax.php' )
-					);
-                                        return $url;
+                        if ( ! @copy( $path, $dest ) ) {
+                                        return '';
                         }
+                        @chmod( $dest, 0644 );
+
+                return $this->build_viewer_url( basename( $dest ) );
+        }
+
+        private function build_viewer_url( string $key, bool $preview = false ): string {
+                if ( ! function_exists( 'admin_url' ) ) {
                         return '';
+                }
+
+                $args = array(
+                        'action'   => 'sii_boleta_dte_view_pdf',
+                        'key'      => $key,
+                        '_wpnonce' => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '',
+                );
+
+                if ( $preview ) {
+                        $args['preview'] = '1';
+                }
+
+                return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
+        }
+
+        private function preview_key_exists( string $key ): bool {
+                return null !== self::get_preview_entry( $key );
+        }
+
+        private function set_preview_entry( string $key, string $path ): void {
+                $data = array(
+                        'path'    => $path,
+                        'expires' => time() + self::PREVIEW_TTL,
+                );
+
+                if ( function_exists( 'set_transient' ) ) {
+                        set_transient( self::PREVIEW_TRANSIENT_PREFIX . $key, $data, self::PREVIEW_TTL );
+                }
+
+                self::$preview_cache[ $key ] = $data;
+        }
+
+        private static function get_preview_entry( string $key ): ?array {
+                $data = null;
+
+                if ( function_exists( 'get_transient' ) ) {
+                        $value = get_transient( self::PREVIEW_TRANSIENT_PREFIX . $key );
+                        if ( false !== $value && is_array( $value ) ) {
+                                $data = $value;
+                        }
+                }
+
+                if ( null === $data && isset( self::$preview_cache[ $key ] ) ) {
+                        $data = self::$preview_cache[ $key ];
+                }
+
+                if ( null === $data ) {
+                        return null;
+                }
+
+                $expires = isset( $data['expires'] ) ? (int) $data['expires'] : 0;
+                if ( $expires > 0 && $expires < time() ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                $path = isset( $data['path'] ) ? (string) $data['path'] : '';
+                if ( '' === $path ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                return array(
+                        'path'    => $path,
+                        'expires' => $expires,
+                );
+        }
+
+        private static function clear_preview_entry( string $key ): void {
+                if ( function_exists( 'delete_transient' ) ) {
+                        delete_transient( self::PREVIEW_TRANSIENT_PREFIX . $key );
+                }
+
+                unset( self::$preview_cache[ $key ] );
+        }
+
+        public static function resolve_preview_path( string $key ): ?string {
+                $entry = self::get_preview_entry( $key );
+                if ( null === $entry ) {
+                        return null;
+                }
+
+                $path = $entry['path'];
+                if ( ! file_exists( $path ) ) {
+                        self::clear_preview_entry( $key );
+                        return null;
+                }
+
+                return $path;
+        }
+
+        public static function clear_preview_path( string $key ): void {
+                self::clear_preview_entry( $key );
         }
 
                 /**

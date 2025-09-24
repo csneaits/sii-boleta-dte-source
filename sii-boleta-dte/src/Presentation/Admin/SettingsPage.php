@@ -188,13 +188,15 @@ class SettingsPage {
 			$url = (string) wp_get_attachment_url( $value );
 		}
 		$name = esc_attr( Settings::OPTION_NAME ) . '[pdf_logo]';
-		echo '<div class="sii-dte-logo-field">';
-		echo '<img id="sii-dte-logo-preview" src="' . esc_url( $url ) . '" alt="" />';
-		echo '<input type="hidden" id="sii_dte_logo_id" name="' . $name . '" value="' . esc_attr( (string) $value ) . '" />';
-		echo '<button type="button" class="button" id="sii-dte-select-logo">' . esc_html__( 'Select Logo', 'sii-boleta-dte' ) . '</button> ';
-		echo '<button type="button" class="button" id="sii-dte-remove-logo">' . esc_html__( 'Remove Logo', 'sii-boleta-dte' ) . '</button>';
-		echo '</div>';
-	}
+                echo '<div class="sii-dte-logo-field">';
+                echo '<img id="sii-dte-logo-preview" src="' . esc_url( $url ) . '" alt="" />';
+                echo '<div class="sii-dte-logo-actions">';
+                echo '<input type="hidden" id="sii_dte_logo_id" name="' . $name . '" value="' . esc_attr( (string) $value ) . '" />';
+                echo '<button type="button" class="button" id="sii-dte-select-logo">' . esc_html__( 'Select Logo', 'sii-boleta-dte' ) . '</button>';
+                echo '<button type="button" class="button" id="sii-dte-remove-logo">' . esc_html__( 'Remove Logo', 'sii-boleta-dte' ) . '</button>';
+                echo '</div>';
+                echo '</div>';
+        }
 
 	public function field_pdf_show_logo(): void {
 		$settings = $this->settings->get_settings();

@@ -35,13 +35,17 @@ class WooIntegrationTest extends TestCase {
         $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'T123' );
         $api->method( 'generate_token' )->willReturn( 'tok' );
+        $pdf = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( __FILE__ );
+
         $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
             ->disableOriginalConstructor()
-            ->onlyMethods( ['get_settings', 'get_engine', 'get_api'] )
+            ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
         $plugin->method( 'get_settings' )->willReturn( $settings );
         $plugin->method( 'get_engine' )->willReturn( $engine );
         $plugin->method( 'get_api' )->willReturn( $api );
+        $plugin->method( 'get_pdf_generator' )->willReturn( $pdf );
         $woo = new Woo( $plugin );
         $GLOBALS['meta'][1]['_sii_boleta_doc_type'] = '39';
         $woo->handle_order_completed( 1 );

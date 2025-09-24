@@ -26,6 +26,22 @@
         var sendSubmit = form ? form.querySelector('input[type="submit"][name="submit"]') : null;
         var rutInput = document.getElementById('sii-rut');
 
+        function getText(key, fallback){
+            if (texts && typeof texts[key] === 'string' && texts[key]){
+                return texts[key];
+            }
+            return fallback;
+        }
+
+        function escapeAttribute(value){
+            if (value === null || value === undefined){ return ''; }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
         function normalizeRutValue(value){
             if (typeof value !== 'string'){ return ''; }
             var rut = value.trim().toUpperCase();
@@ -100,6 +116,87 @@
             return true;
         }
 
+        function enhanceNumberField(input){
+            if (!input || input.__siiEnhanced){ return; }
+            var incAttr = input.getAttribute('data-increment');
+            var increment = incAttr ? parseFloat(incAttr) : 0;
+            if (!increment || Number.isNaN(increment)){ return; }
+            var decimalsAttr = input.getAttribute('data-decimals');
+            var decimals = decimalsAttr ? parseInt(decimalsAttr, 10) : 0;
+            if (Number.isNaN(decimals) || decimals < 0){ decimals = 0; }
+            var factor = Math.pow(10, decimals);
+            var min = null;
+            var max = null;
+            var minAttr = input.getAttribute('min');
+            if (minAttr !== null && minAttr !== ''){
+                var minVal = parseFloat(minAttr);
+                if (!Number.isNaN(minVal)){
+                    min = minVal;
+                }
+            }
+            var maxAttr = input.getAttribute('max');
+            if (maxAttr !== null && maxAttr !== ''){
+                var maxVal = parseFloat(maxAttr);
+                if (!Number.isNaN(maxVal)){
+                    max = maxVal;
+                }
+            }
+
+            function parseValue(raw){
+                if (typeof raw !== 'string'){ raw = raw !== undefined && raw !== null ? String(raw) : ''; }
+                raw = raw.replace(',', '.');
+                var num = parseFloat(raw);
+                return Number.isNaN(num) ? 0 : num;
+            }
+
+            function formatValue(value){
+                var normalized = Math.round(value * factor) / factor;
+                var result = decimals > 0 ? normalized.toFixed(decimals) : normalized.toString();
+                if (decimals > 0){
+                    result = result.replace(/\.0+$/, '').replace(/\.$/, '');
+                }
+                return result;
+            }
+
+            function dispatchUpdate(){
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function applyDelta(delta){
+                var current = parseValue(input.value);
+                var next = current + delta;
+                if (min !== null && next < min){ next = min; }
+                if (max !== null && next > max){ next = max; }
+                input.value = formatValue(next);
+                dispatchUpdate();
+            }
+
+            input.addEventListener('keydown', function(ev){
+                if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown'){
+                    ev.preventDefault();
+                    applyDelta(ev.key === 'ArrowUp' ? increment : -increment);
+                }
+            });
+
+            input.addEventListener('wheel', function(ev){
+                if (ev.ctrlKey || ev.metaKey || ev.shiftKey){ return; }
+                ev.preventDefault();
+                applyDelta(ev.deltaY < 0 ? increment : -increment);
+            }, { passive: false });
+
+            input.addEventListener('blur', function(){
+                if (input.value === ''){ return; }
+                var parsed = parseValue(input.value);
+                if (min !== null && parsed < min){ parsed = min; }
+                if (max !== null && parsed > max){ parsed = max; }
+                input.value = formatValue(parsed);
+                dispatchUpdate();
+            });
+
+            input.__siiEnhanced = true;
+        }
+
         function showNotice(type, message, link){
             if(!notices){return;}
             notices.innerHTML = '';
@@ -158,8 +255,11 @@
         }
         function initRow(row){
             var desc = row.querySelector('input[data-field="desc"]');
+            var qty = row.querySelector('input[data-field="qty"]');
             var price = row.querySelector('input[data-field="price"]');
             if(!desc){return;}
+            enhanceNumberField(qty);
+            enhanceNumberField(price);
             var listId = 'sii-prod-' + Math.random().toString(36).slice(2);
             var dl = document.createElement('datalist');
             dl.id = listId;
@@ -237,10 +337,15 @@
         function addRow(){
            if (!tableBody) return;
            var row = document.createElement('tr');
-            row.innerHTML = '<td><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></td>'+
-                            '<td><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" /></td>'+
-                            '<td><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" /></td>'+
-                            '<td><button type="button" class="button remove-item">×</button></td>';
+            var descLabel = escapeAttribute(getText('itemsDescLabel', 'Description'));
+            var qtyLabel = escapeAttribute(getText('itemsQtyLabel', 'Quantity'));
+            var priceLabel = escapeAttribute(getText('itemsPriceLabel', 'Unit Price'));
+            var actionsLabel = escapeAttribute(getText('itemsActionsLabel', 'Actions'));
+            var removeLabel = escapeAttribute(getText('itemsRemoveLabel', 'Remove item'));
+            row.innerHTML = '<td data-label="' + descLabel + '"><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></td>'+
+                            '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+
+                            '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+
+                            '<td data-label="' + actionsLabel + '"><button type="button" class="button remove-item" aria-label="' + removeLabel + '">×</button></td>';
            tableBody.appendChild(row);
            initRow(row);
             renumberRows();

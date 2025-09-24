@@ -301,6 +301,15 @@ class AdminStyles {
     gap: 1rem;
     align-items: center;
 }
+.sii-admin-surface .sii-dte-logo-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.sii-admin-surface .sii-dte-logo-actions .button {
+    margin: 0;
+}
 .sii-admin-surface .sii-dte-logo-field img {
     width: 80px;
     height: 80px;
@@ -356,6 +365,9 @@ class AdminStyles {
     }
     .sii-admin-surface .sii-dte-logo-field {
         grid-template-columns: 1fr;
+    }
+    .sii-admin-surface .sii-dte-logo-actions {
+        justify-content: flex-start;
     }
 }
 @media (prefers-color-scheme: dark) {

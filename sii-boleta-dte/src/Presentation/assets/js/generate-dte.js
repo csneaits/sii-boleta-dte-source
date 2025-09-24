@@ -337,11 +337,11 @@
         function addRow(){
            if (!tableBody) return;
            var row = document.createElement('tr');
-            var descLabel = escapeAttribute(getText('itemsDescLabel', 'Description'));
-            var qtyLabel = escapeAttribute(getText('itemsQtyLabel', 'Quantity'));
-            var priceLabel = escapeAttribute(getText('itemsPriceLabel', 'Unit Price'));
-            var actionsLabel = escapeAttribute(getText('itemsActionsLabel', 'Actions'));
-            var removeLabel = escapeAttribute(getText('itemsRemoveLabel', 'Remove item'));
+            var descLabel = escapeAttribute(getText('itemsDescLabel', 'Descripción'));
+            var qtyLabel = escapeAttribute(getText('itemsQtyLabel', 'Cantidad'));
+            var priceLabel = escapeAttribute(getText('itemsPriceLabel', 'Precio unitario'));
+            var actionsLabel = escapeAttribute(getText('itemsActionsLabel', 'Acciones'));
+            var removeLabel = escapeAttribute(getText('itemsRemoveLabel', 'Eliminar ítem'));
             row.innerHTML = '<td data-label="' + descLabel + '"><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></td>'+
                             '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+
                             '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+

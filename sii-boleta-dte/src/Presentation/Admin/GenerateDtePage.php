@@ -662,7 +662,7 @@ class GenerateDtePage {
 														</td>
 													</tr>
 													<tr>
-														<th scope="row"><label for="sii-rut"><?php esc_html_e( 'Customer RUT', 'sii-boleta-dte' ); ?></label></th>
+                                                <th scope="row"><label for="sii-rut"><?php esc_html_e( 'RUT del cliente', 'sii-boleta-dte' ); ?></label></th>
 														<td><input type="text" id="sii-rut" name="rut" required class="regular-text" value="<?php echo $val( 'rut' ); ?>" /></td>
 													</tr>
 													<tr>
@@ -687,27 +687,27 @@ class GenerateDtePage {
 														<td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val( 'ciudad_recep' ); ?>" /></td>
 													</tr>
 													<tr>
-														<th scope="row"><label for="sii-items"><?php esc_html_e( 'Items', 'sii-boleta-dte' ); ?></label></th>
+                                                <th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
 														<td>
 																<table id="sii-items-table" class="widefat">
 																		<thead>
 																				<tr>
-																						<th><?php esc_html_e( 'Description', 'sii-boleta-dte' ); ?></th>
-																						<th><?php esc_html_e( 'Quantity', 'sii-boleta-dte' ); ?></th>
-																						<th><?php esc_html_e( 'Unit Price', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
+                                                               <th><?php esc_html_e( 'Precio unitario', 'sii-boleta-dte' ); ?></th>
 																						<th></th>
 																				</tr>
 																		</thead>
 																<tbody>
                                                                                                                                <tr>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Description', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Quantity', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Unit Price', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-                                                                                                                               <td data-label="<?php esc_attr_e( 'Actions', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Remove item', 'sii-boleta-dte' ); ?>">×</button></td>
+                                                               <td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Cantidad', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Precio unitario', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Eliminar ítem', 'sii-boleta-dte' ); ?>">×</button></td>
                                                                                                                                </tr>
 																</tbody>
 															</table>
-															<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>
+                                                        <p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button></p>
 														</td>
 													</tr>
 													<!-- Reference section for credit/debit notes -->
@@ -740,26 +740,26 @@ class GenerateDtePage {
 																</tbody>
 																</table>
 																<div class="sii-generate-actions">
-																		<?php submit_button( __( 'Preview', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
-																		<?php submit_button( __( 'Send to SII', 'sii-boleta-dte' ) ); ?>
+                                                               <?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
+                                                               <?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
 										</form>
 								</div>
 								<aside class="sii-generate-dte-aside">
 										<div class="sii-generate-dte-card sii-generate-dte-card--accent">
-												<h2><?php esc_html_e( 'Workspace overview', 'sii-boleta-dte' ); ?></h2>
+                                                                                                <h2><?php esc_html_e( 'Resumen del espacio de trabajo', 'sii-boleta-dte' ); ?></h2>
 												<ul class="sii-generate-dte-summary">
-														<li><?php printf( esc_html__( 'Environment: %s', 'sii-boleta-dte' ), esc_html( $environment_label ) ); ?></li>
-														<li><?php echo esc_html( $rvd_automation ? __( 'Daily RVD automation is enabled.', 'sii-boleta-dte' ) : __( 'RVD automation is currently disabled.', 'sii-boleta-dte' ) ); ?></li>
-														<li><?php echo esc_html( $libro_automation ? __( 'Libro validation runs on schedule.', 'sii-boleta-dte' ) : __( 'Libro validation is configured manually.', 'sii-boleta-dte' ) ); ?></li>
+                                                                                                                <li><?php printf( esc_html__( 'Ambiente: %s', 'sii-boleta-dte' ), esc_html( $environment_label ) ); ?></li>
+                                                                                                                <li><?php echo esc_html( $rvd_automation ? __( 'La automatización diaria del RVD está habilitada.', 'sii-boleta-dte' ) : __( 'La automatización del RVD está deshabilitada actualmente.', 'sii-boleta-dte' ) ); ?></li>
+                                                                                                                <li><?php echo esc_html( $libro_automation ? __( 'La validación del libro se ejecuta de forma programada.', 'sii-boleta-dte' ) : __( 'La validación del libro está configurada de forma manual.', 'sii-boleta-dte' ) ); ?></li>
 												</ul>
-												<p><?php esc_html_e( 'Use the preview to review seals, folios and item totals before dispatching the document to the SII.', 'sii-boleta-dte' ); ?></p>
+                                                                                                <p><?php esc_html_e( 'Utiliza la previsualización para revisar timbres, folios y totales de ítems antes de enviar el documento al SII.', 'sii-boleta-dte' ); ?></p>
 										</div>
 										<div class="sii-generate-dte-card sii-generate-dte-card--tips">
-												<h2><?php esc_html_e( 'Helpful tips', 'sii-boleta-dte' ); ?></h2>
+                                                                                                <h2><?php esc_html_e( 'Consejos útiles', 'sii-boleta-dte' ); ?></h2>
 												<ol class="sii-generate-dte-tips">
-														<li><?php esc_html_e( 'Add clear item descriptions and keep unit prices in whole pesos for accurate totals.', 'sii-boleta-dte' ); ?></li>
-														<li><?php esc_html_e( 'When issuing invoices or guides, complete the receiver address fields to speed up logistics.', 'sii-boleta-dte' ); ?></li>
-														<li><?php esc_html_e( 'If your customer lacks a RUT for boletas, the system will apply the generic SII identifier automatically.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Agrega descripciones claras a los ítems y mantén precios unitarios en pesos enteros para totales precisos.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Al emitir facturas o guías, completa los campos de dirección del receptor para agilizar la logística.', 'sii-boleta-dte' ); ?></li>
+                                                                                                                <li><?php esc_html_e( 'Si tu cliente no tiene RUT para boletas, el sistema aplicará automáticamente el identificador genérico del SII.', 'sii-boleta-dte' ); ?></li>
 												</ol>
 										</div>
 								</aside>

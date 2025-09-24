@@ -29,6 +29,53 @@ flowchart LR
 
 El contenedor de dependencias `Infrastructure\Factory\Container` inicializa los servicios clave (ajustes, motor de timbraje, API del SII, gestor de colas, generador PDF, etc.) y los inyecta en las distintas páginas y casos de uso.【F:sii-boleta-dte/src/Infrastructure/Factory/Container.php†L17-L115】
 
+## Flujos de generación de DTE
+
+### Generación automática desde WooCommerce
+
+Cuando un pedido pasa a estado **Completado**, la integración con WooCommerce obtiene el tipo de documento configurado para la orden y ejecuta `generate_document_for_order()`. El método prepara la carga útil del DTE, genera el XML con el motor LibreDTE, solicita un token y envía el archivo al SII. Al recibir un `trackId`, guarda metadatos en el pedido, renderiza el PDF y notifica al cliente mediante correo electrónico.【F:sii-boleta-dte/src/Infrastructure/WooCommerce/Woo.php†L21-L213】【F:sii-boleta-dte/src/Infrastructure/Engine/LibreDteEngine.php†L89-L206】【F:sii-boleta-dte/src/Infrastructure/Rest/Api.php†L22-L60】
+
+```mermaid
+flowchart TD
+    A[Pedido completado<br/>en WooCommerce] --> B[handle_order_completed]
+    B --> C{¿Existe tipo de DTE?}
+    C -- No --> Z[Fin sin generar documento]
+    C -- Sí --> D[generate_document_for_order]
+    D --> E[prepare_order_data]
+    E --> F{¿Datos válidos?}
+    F -- No --> N[Nota en pedido:<br/>error al preparar datos]
+    F -- Sí --> G[LibreDteEngine::generate_dte_xml]
+    G --> H{¿XML generado?}
+    H -- No --> O[Nota en pedido:<br/>error al crear XML]
+    H -- Sí --> I[TokenManager::get_token]
+    I --> J[Api::send_dte_to_sii]
+    J --> K{¿Track ID válido?}
+    K -- No --> P[Nota en pedido:<br/>error informado por SII]
+    K -- Sí --> L[update_post_meta<br/>con track ID y PDF]
+    L --> M[render_pdf & send_document_email]
+    M --> Q[Nota de éxito en pedido]
+```
+
+### Envío diferido mediante la cola interna
+
+Los casos de uso pueden persistir un archivo XML firmado en la tabla `sii_boleta_dte_queue` para reenviarlo posteriormente. `Queue::enqueue_dte()` registra el trabajo con el token y ambiente, mientras que `QueueProcessor::process()` lee los pendientes, intenta el envío y registra el resultado o reintenta hasta tres veces antes de descartarlo.【F:sii-boleta-dte/src/Application/Queue.php†L7-L52】【F:sii-boleta-dte/src/Application/QueueProcessor.php†L10-L74】【F:sii-boleta-dte/src/Infrastructure/Rest/Api.php†L22-L138】
+
+```mermaid
+flowchart TD
+    A[Generación de XML<br/>/ archivo firmado] --> B[Queue::enqueue_dte]
+    B --> C[Tabla sii_boleta_dte_queue]
+    C --> D[Evento cron / acción manual]
+    D --> E[QueueProcessor::process]
+    E --> F{Tipo de trabajo}
+    F -- dte --> G[Api::send_dte_to_sii]
+    F -- libro / rvd --> H[Api::send_libro_to_sii]
+    G --> I{¿Respuesta WP_Error?}
+    H --> I
+    I -- Sí --> J[Incrementar intentos<br/>o descartar tras 3 fallos]
+    I -- No --> K[LogDb::add_entry con trackId]
+    K --> L[Eliminar trabajo de la cola]
+```
+
 ## Estructura del repositorio
 
 - `sii-boleta-dte/`

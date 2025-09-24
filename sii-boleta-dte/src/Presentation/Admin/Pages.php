@@ -86,16 +86,34 @@ class Pages {
 								$this->help_page->register();
 	}
 
-	public function enqueue_assets( string $hook ): void {
-		if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
-						\wp_enqueue_style(
-							'sii-boleta-control-panel',
-							SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
-							array(),
-							SII_BOLETA_DTE_VERSION
-						);
-		}
+        public function enqueue_assets( string $hook ): void {
+                if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
+                        $style_relative = 'src/Presentation/assets/css/control-panel.css';
+                        $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
+                        $style_version  = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $style_path ) ) {
+                                $style_version .= '-' . filemtime( $style_path );
+                        }
+                                                \wp_enqueue_style(
+                                                        'sii-boleta-control-panel',
+                                                        SII_BOLETA_DTE_URL . $style_relative,
+                                                        array(),
+                                                        $style_version
+                                                );
+                }
         if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
+                        $style_relative = 'src/Presentation/assets/css/generate-dte.css';
+                        $style_path     = SII_BOLETA_DTE_PATH . $style_relative;
+                        $style_version  = SII_BOLETA_DTE_VERSION;
+                        if ( file_exists( $style_path ) ) {
+                                $style_version .= '-' . filemtime( $style_path );
+                        }
+                                                \wp_enqueue_style(
+                                                        'sii-boleta-generate-dte',
+                                                        SII_BOLETA_DTE_URL . $style_relative,
+                                                        array(),
+                                                        $style_version
+                                                );
                         $script_relative = 'src/Presentation/assets/js/generate-dte.js';
                         $script_path     = SII_BOLETA_DTE_PATH . $script_relative;
                         $script_version  = SII_BOLETA_DTE_VERSION;

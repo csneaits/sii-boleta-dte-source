@@ -128,6 +128,11 @@ class Pages {
                                 'sendSuccess'  => __( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ),
                                 'sending'      => __( 'Sending…', 'sii-boleta-dte' ),
                                 'viewPdf'      => __( 'Download PDF', 'sii-boleta-dte' ),
+                                'itemsDescLabel'   => __( 'Description', 'sii-boleta-dte' ),
+                                'itemsQtyLabel'    => __( 'Quantity', 'sii-boleta-dte' ),
+                                'itemsPriceLabel'  => __( 'Unit Price', 'sii-boleta-dte' ),
+                                'itemsActionsLabel' => __( 'Actions', 'sii-boleta-dte' ),
+                                'itemsRemoveLabel' => __( 'Remove item', 'sii-boleta-dte' ),
                             ),
                         )
                     );

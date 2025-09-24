@@ -51,13 +51,15 @@ class FolioManager {
         return $next;
     }
 
-    public function mark_folio_used( int $type, int $folio ): void {
+    public function mark_folio_used( int $type, int $folio ): bool {
         if ( $folio <= 0 ) {
-            return;
+            return false;
         }
 
         $environment = $this->settings->get_environment();
-        Settings::update_last_folio_value( $type, $environment, $folio );
+        $expected    = max( 0, $folio - 1 );
+
+        return Settings::compare_and_update_last_folio_value( $type, $environment, $expected, $folio );
     }
 
 	/**

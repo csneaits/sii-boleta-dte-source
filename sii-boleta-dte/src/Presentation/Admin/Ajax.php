@@ -521,11 +521,21 @@ class Ajax {
             \status_header( 404 );
             exit;
         }
-        $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-        $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' ) . '/sii-boleta-dte/previews/';
-        $file    = realpath( $base . $key );
-        $realBase= realpath( $base ) ?: $base;
-        if ( false === $file || strncmp( $file, $realBase, strlen( $realBase ) ) !== 0 || ! file_exists( $file ) ) {
+        $is_preview = isset( $_GET['preview'] ) && '1' === (string) $_GET['preview']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+        if ( $is_preview ) {
+            $file = GenerateDtePage::resolve_preview_path( $key );
+        } else {
+            $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+            $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' ) . '/sii-boleta-dte/previews/';
+            $file    = realpath( $base . $key );
+            $realBase= realpath( $base ) ?: $base;
+            if ( false !== $file && strncmp( $file, $realBase, strlen( $realBase ) ) !== 0 ) {
+                $file = false;
+            }
+        }
+
+        if ( ! is_string( $file ) || ! file_exists( $file ) ) {
             \status_header( 404 );
             exit;
         }

@@ -92,7 +92,8 @@ class GenerateDtePageTest extends TestCase {
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
-        $folio->method( 'get_next_folio' )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $queue->expects( $this->never() )->method( 'enqueue_dte' );
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
@@ -123,6 +124,8 @@ class GenerateDtePageTest extends TestCase {
         $engine = $this->createMock( DteEngine::class );
         $pdf = $this->createMock( PdfGenerator::class );
         $folio = $this->createMock( FolioManager::class );
+        $folio->expects( $this->never() )->method( 'get_next_folio' );
+        $folio->expects( $this->never() )->method( 'mark_folio_used' );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array() );
@@ -178,12 +181,15 @@ class GenerateDtePageTest extends TestCase {
         parse_str( (string) parse_url( (string) $result['pdf_url'], PHP_URL_QUERY ), $query );
         $this->assertArrayHasKey( 'key', $query );
         $this->assertSame( 'boleta-n0-78103459-2.pdf', $query['key'] );
+        $this->assertSame( '1', $query['preview'] ?? null );
 
         $uploads = wp_upload_dir();
         $stored = rtrim( (string) $uploads['basedir'], '/\\' ) . '/sii-boleta-dte/previews/' . $query['key'];
-        if ( file_exists( $stored ) ) {
-            unlink( $stored );
-        }
+        $this->assertFalse( file_exists( $stored ) );
+        $this->assertSame( $tmpPdf, GenerateDtePage::resolve_preview_path( $query['key'] ) );
+
+        GenerateDtePage::clear_preview_path( $query['key'] );
+
         if ( file_exists( $tmpPdf ) ) {
             unlink( $tmpPdf );
         }
@@ -218,7 +224,8 @@ class GenerateDtePageTest extends TestCase {
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
-        $folio->method( 'get_next_folio' )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array(
@@ -256,7 +263,8 @@ class GenerateDtePageTest extends TestCase {
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
-        $folio->method( 'get_next_folio' )->willReturn( 10 );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 10 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 10 );
 
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $queue->expects( $this->once() )->method( 'enqueue_dte' )->with(

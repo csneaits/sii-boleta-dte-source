@@ -309,6 +309,22 @@ class FoliosDb {
     }
 
     /**
+     * Ensures a row contains a normalized CAF string regardless of storage backend.
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private static function normalize_row( array $row ): array {
+        if ( array_key_exists( 'caf', $row ) ) {
+            $row['caf'] = self::normalize_caf_keys( (string) $row['caf'] );
+        } elseif ( array_key_exists( 'caf_xml', $row ) ) {
+            $row['caf_xml'] = self::normalize_caf_keys( (string) $row['caf_xml'] );
+        }
+
+        return $row;
+    }
+
+    /**
      * Restores PEM line breaks for CAF keys before persisting them.
      */
     private static function normalize_caf_keys( string $caf_xml ): string {
@@ -410,7 +426,7 @@ class FoliosDb {
             self::ensure_columns();
             $row = $wpdb->get_row( $wpdb->prepare( 'SELECT id,tipo,folio_inicio,folio_fin,environment,created_at,updated_at FROM ' . self::table() . ' WHERE id = %d', $id ), 'ARRAY_A' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ( is_array( $row ) ) {
-                return array(
+                return self::normalize_row( array(
                     'id'         => (int) $row['id'],
                     'tipo'       => (int) $row['tipo'],
                     'desde'      => (int) $row['folio_inicio'],
@@ -421,12 +437,16 @@ class FoliosDb {
                     'caf_uploaded_at'=> isset( $row['caf_uploaded_at'] ) ? (string) $row['caf_uploaded_at'] : null,
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
-                );
+                ) );
             }
             return null;
         }
 
-        return self::$rows[ $id ] ?? null;
+        if ( isset( self::$rows[ $id ] ) ) {
+            return self::normalize_row( self::$rows[ $id ] );
+        }
+
+        return null;
     }
 
     /**
@@ -445,7 +465,7 @@ class FoliosDb {
             }
             $out = array();
             foreach ( $rows as $row ) {
-                $out[] = array(
+                $out[] = self::normalize_row( array(
                     'id'         => (int) $row['id'],
                     'tipo'       => (int) $row['tipo'],
                     'desde'      => (int) $row['folio_inicio'],
@@ -456,7 +476,7 @@ class FoliosDb {
                     'caf_uploaded_at'=> isset( $row['caf_uploaded_at'] ) ? (string) $row['caf_uploaded_at'] : null,
                     'created_at' => (string) $row['created_at'],
                     'updated_at' => (string) $row['updated_at'],
-                );
+                ) );
             }
             return $out;
         }
@@ -464,7 +484,7 @@ class FoliosDb {
         $out = array();
         foreach ( self::$rows as $row ) {
             if ( Settings::normalize_environment( (string) $row['environment'] ) === $env ) {
-                $out[] = $row;
+                $out[] = self::normalize_row( $row );
             }
         }
         return array_values( $out );
@@ -492,7 +512,7 @@ class FoliosDb {
                 return $a['desde'] <=> $b['desde'];
             }
         );
-        return $out;
+        return array_map( array( self::class, 'normalize_row' ), $out );
     }
 
     /**
@@ -520,7 +540,7 @@ class FoliosDb {
     public static function find_for_folio( int $tipo, int $folio, string $environment = '0' ): ?array {
         foreach ( self::for_type( $tipo, $environment ) as $row ) {
             if ( $folio >= $row['desde'] && $folio < $row['hasta'] ) {
-                return $row;
+                return self::normalize_row( $row );
             }
         }
         return null;

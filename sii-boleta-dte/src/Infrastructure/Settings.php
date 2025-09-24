@@ -104,6 +104,80 @@ class Settings {
         }
 
         /**
+         * Atomically updates the last used folio only when the stored value matches the expected one.
+         */
+        public static function compare_and_update_last_folio_value( int $type, string $environment, int $expected, int $value ): bool {
+                $key = self::last_folio_option_key( $type, $environment );
+
+                if ( function_exists( 'update_option' ) ) {
+                        global $wpdb;
+
+                        if ( isset( $wpdb ) && method_exists( $wpdb, 'prepare' ) && isset( $wpdb->options ) ) {
+                                $table = $wpdb->options;
+                                $query = $wpdb->prepare(
+                                        "UPDATE {$table} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+                                        $value,
+                                        $key,
+                                        $expected
+                                );
+                                $updated = $wpdb->query( $query );
+
+                                if ( false === $updated ) {
+                                        return false;
+                                }
+
+                                if ( $updated > 0 ) {
+                                        return true;
+                                }
+
+                                $current = get_option( $key, null );
+                                if ( null === $current && function_exists( 'add_option' ) ) {
+                                        return add_option( $key, $value, '', false );
+                                }
+
+                                return (int) $current === $value;
+                        }
+
+                        $current = get_option( $key, null );
+                        if ( null === $current ) {
+                                if ( function_exists( 'add_option' ) ) {
+                                        return add_option( $key, $value, '', false );
+                                }
+
+                                return update_option( $key, $value );
+                        }
+
+                        if ( (int) $current !== $expected ) {
+                                return (int) $current === $value;
+                        }
+
+                        return update_option( $key, $value );
+                }
+
+                if ( isset( $GLOBALS['test_options'] ) ) {
+                        $current = $GLOBALS['test_options'][ $key ] ?? null;
+                        if ( null !== $current && (int) $current !== $expected ) {
+                                return (int) $current === $value;
+                        }
+
+                        $GLOBALS['test_options'][ $key ] = $value;
+                        return true;
+                }
+
+                if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                        $GLOBALS['wp_options'] = array();
+                }
+
+                $current = $GLOBALS['wp_options'][ $key ] ?? null;
+                if ( null !== $current && (int) $current !== $expected ) {
+                        return (int) $current === $value;
+                }
+
+                $GLOBALS['wp_options'][ $key ] = $value;
+                return true;
+        }
+
+        /**
          * Builds the option key that stores the last execution for a scheduled task.
          */
         public static function schedule_option_key( string $task, string $environment ): string {

@@ -53,7 +53,7 @@ class Container {
 				}
 			);
 			self::bind( TokenManager::class, fn() => new TokenManager( self::get( Api::class ), self::get( Settings::class ) ) );
-						self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ) ) );
+                        self::bind( PdfGenerator::class, fn() => new PdfGenerator( self::get( DteEngine::class ), self::get( Settings::class ) ) );
 						self::bind( Cron::class, fn() => new Cron( self::get( Settings::class ) ) );
                         self::bind( Queue::class, fn() => new Queue() );
                         self::bind( RvdManager::class, fn() => new RvdManager( self::get( Settings::class ), self::get( Api::class ), self::get( Queue::class ) ) );

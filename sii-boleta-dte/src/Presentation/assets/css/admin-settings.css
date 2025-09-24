@@ -65,6 +65,14 @@ input.sii-input-wide[type="text"] {
     background: #d32f2f;
 }
 
+/* Ensure the preview and action buttons never overlap */
+.sii-dte-logo-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
 #sii-dte-logo-preview {
     display: block;
     margin-bottom: 10px;

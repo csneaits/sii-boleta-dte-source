@@ -472,16 +472,32 @@ class LibreDteEngine implements DteEngine {
          */
         public function render_pdf( string $xml, array $options = array() ): string {
                 $xml       = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
-                $options   = array(
-                        'parser'   => array( 'strategy' => 'default.xml' ),
-                        'renderer' => array( 'format' => 'pdf' ),
+                $overrides = array();
+
+                if ( isset( $options['document_overrides'] ) && is_array( $options['document_overrides'] ) ) {
+                        $overrides = $options['document_overrides'];
+                        unset( $options['document_overrides'] );
+                }
+
+                $options = array_replace_recursive(
+                        array(
+                                'parser'   => array( 'strategy' => 'default.xml' ),
+                                'renderer' => array( 'format' => 'pdf' ),
+                        ),
+                        $options
                 );
+
                 $parsedXml = $this->parse_document_data_from_xml( $xml );
 
                 if ( null !== $parsedXml ) {
-                        $parsedXml = $this->reset_total_before_rendering( $parsedXml );
-                        $options['normalizer'] = array( 'normalize' => false );
-                        $bag = new DocumentBag( parsedData: $parsedXml, options: $options );
+                        if ( ! empty( $overrides ) ) {
+                                foreach ( $overrides as $key => $value ) {
+                                        $parsedXml[ $key ] = $value;
+                                }
+                        }
+                        $parsedXml               = $this->reset_total_before_rendering( $parsedXml );
+                        $options['normalizer']   = array( 'normalize' => false );
+                        $bag                     = new DocumentBag( parsedData: $parsedXml, options: $options );
                         $bag->setNormalizedData( $parsedXml );
                 } else {
                         $bag = new DocumentBag( $xml, options: $options );

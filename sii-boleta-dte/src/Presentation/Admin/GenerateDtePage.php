@@ -105,14 +105,17 @@ class GenerateDtePage {
                 ?>
                                 <?php AdminStyles::open_container( 'sii-generate-dte' ); ?>
                                                 <style>
-                                                .sii-generate-dte {
-								position: relative;
-								padding: 2.5rem 2.2rem 3rem;
-								border-radius: 24px;
-								background: linear-gradient(140deg, #f5f7ff 0%, #ecfdfd 100%);
-								box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15);
-								overflow: hidden;
-						}
+                                            .sii-generate-dte {
+                                                                position: relative;
+                                                                padding: 2.5rem 2.2rem 3rem;
+                                                                border-radius: 24px;
+                                                                background: linear-gradient(140deg, #f5f7ff 0%, #ecfdfd 100%);
+                                                                box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15);
+                                                                overflow: hidden;
+                                                                max-width: 1180px;
+                                                                width: 100%;
+                                                                margin: 0 auto;
+                                                }
 						.sii-generate-dte::before {
 								content: '';
 								position: absolute;
@@ -148,14 +151,14 @@ class GenerateDtePage {
 								z-index: 1;
 								max-width: 720px;
 						}
-						.sii-generate-dte-layout {
-								position: relative;
-								z-index: 1;
-								display: grid;
-								grid-template-columns: minmax(0, 1fr) 320px;
-								gap: 1.5rem;
-								align-items: start;
-						}
+                                            .sii-generate-dte-layout {
+                                                                position: relative;
+                                                                z-index: 1;
+                                                                display: grid;
+                                                                grid-template-columns: minmax(0, 1.2fr) minmax(280px, 360px);
+                                                                gap: 1.5rem;
+                                                                align-items: start;
+                                                }
 						.sii-generate-dte-card {
 								background: rgba(255, 255, 255, 0.96);
 								border-radius: 20px;

@@ -209,25 +209,94 @@ class GenerateDtePage {
 								font-weight: 600;
 								color: #1f2937;
 						}
-						#sii-items-table {
-								border-radius: 16px;
-								overflow: hidden;
-								border: none;
-								box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
-								margin-top: 0.6rem;
-						}
-						#sii-items-table thead th {
-								background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.1));
-								padding: 0.85rem 1rem;
-								color: #0f172a;
-						}
-						#sii-items-table tbody td {
-								padding: 0.75rem 1rem;
-								background: rgba(255, 255, 255, 0.95);
-						}
-						#sii-items-table tbody tr:nth-child(even) td {
-								background: rgba(241, 245, 249, 0.9);
-						}
+                                                #sii-items-table {
+                                                                width: 100%;
+                                                                border-radius: 18px;
+                                                                overflow: hidden;
+                                                                border: none;
+                                                                box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
+                                                                margin-top: 0.75rem;
+                                                                border-spacing: 0;
+                                                                table-layout: fixed;
+                                                }
+                                                #sii-items-table thead th {
+                                                                background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.12));
+                                                                padding: 0.9rem 1.1rem;
+                                                                color: #0f172a;
+                                                                font-size: 0.78rem;
+                                                                letter-spacing: 0.08em;
+                                                                text-transform: uppercase;
+                                                                border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+                                                }
+                                                #sii-items-table thead th:first-child,
+                                                #sii-items-table tbody td:first-child {
+                                                                width: 46%;
+                                                }
+                                                #sii-items-table thead th:nth-child(2),
+                                                #sii-items-table tbody td:nth-child(2) {
+                                                                width: 18%;
+                                                                text-align: center;
+                                                }
+                                                #sii-items-table thead th:nth-child(3),
+                                                #sii-items-table tbody td:nth-child(3) {
+                                                                width: 22%;
+                                                                text-align: center;
+                                                }
+                                                #sii-items-table thead th:last-child,
+                                                #sii-items-table tbody td:last-child {
+                                                                width: 14%;
+                                                                text-align: right;
+                                                }
+                                                #sii-items-table tbody tr {
+                                                                background: rgba(255, 255, 255, 0.96);
+                                                                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                                                }
+                                                #sii-items-table tbody tr:hover {
+                                                                transform: translateY(-2px);
+                                                                box-shadow: 0 26px 50px rgba(15, 23, 42, 0.16);
+                                                }
+                                                #sii-items-table tbody td {
+                                                                padding: 0.85rem 1.1rem;
+                                                                border-bottom: 1px solid rgba(226, 232, 240, 0.65);
+                                                                background: transparent;
+                                                        }
+                                                #sii-items-table tbody tr:last-child td {
+                                                                border-bottom: none;
+                                                }
+                                                #sii-items-table tbody td:nth-child(2) input,
+                                                #sii-items-table tbody td:nth-child(3) input {
+                                                                max-width: 140px;
+                                                                margin: 0 auto;
+                                                                text-align: center;
+                                                }
+                                                #sii-items-table tbody td:last-child {
+                                                                padding-right: 1.5rem;
+                                                }
+                                                #sii-items-table .remove-item {
+                                                                border-radius: 12px;
+                                                                background: rgba(248, 113, 113, 0.15);
+                                                                color: #b91c1c;
+                                                                border: none;
+                                                                width: 38px;
+                                                                height: 38px;
+                                                                display: inline-flex;
+                                                                align-items: center;
+                                                                justify-content: center;
+                                                                font-size: 1.2rem;
+                                                                line-height: 1;
+                                                                padding: 0;
+                                                                transition: background 0.2s ease, transform 0.2s ease;
+                                                }
+                                                #sii-items-table .remove-item:hover,
+                                                #sii-items-table .remove-item:focus {
+                                                                background: rgba(239, 68, 68, 0.28);
+                                                                color: #991b1b;
+                                                                transform: translateY(-1px);
+                                                                outline: none;
+                                                }
+                                                #sii-items-table .remove-item:focus-visible {
+                                                                box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.35);
+                                                }
 						.sii-generate-actions {
 								display: flex;
 								gap: 0.75rem;
@@ -340,28 +409,69 @@ class GenerateDtePage {
 										grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 								}
 						}
-						@media (max-width: 782px) {
-								.sii-generate-dte {
-										padding: 2rem 1.2rem 2.4rem;
-								}
-								.sii-generate-dte-card {
-										padding: 1.6rem 1.35rem;
-								}
-								.sii-generate-dte-form table.form-table th {
-										width: 100%;
-										display: block;
-										padding-bottom: 0.4rem;
-								}
-								.sii-generate-dte-form table.form-table td {
-										display: block;
-										padding-bottom: 1.3rem;
-								}
-						}
-						@media (prefers-color-scheme: dark) {
-								.sii-generate-dte {
-										background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(14, 116, 144, 0.45) 100%);
-										box-shadow: 0 32px 70px rgba(2, 6, 23, 0.7);
-								}
+                                                @media (max-width: 782px) {
+                                                                .sii-generate-dte {
+                                                                                padding: 2rem 1.2rem 2.4rem;
+                                                                }
+                                                                .sii-generate-dte-card {
+                                                                                padding: 1.6rem 1.35rem;
+                                                                }
+                                                                .sii-generate-dte-form table.form-table th {
+                                                                                width: 100%;
+                                                                                display: block;
+                                                                                padding-bottom: 0.4rem;
+                                                                }
+                                                                .sii-generate-dte-form table.form-table td {
+                                                                                display: block;
+                                                                                padding-bottom: 1.3rem;
+                                                                }
+                                                }
+                                                @media (max-width: 880px) {
+                                                                #sii-items-table thead {
+                                                                                display: none;
+                                                                }
+                                                                #sii-items-table,
+                                                                #sii-items-table tbody,
+                                                                #sii-items-table tr,
+                                                                #sii-items-table td {
+                                                                                display: block;
+                                                                                width: 100%;
+                                                                }
+                                                                #sii-items-table tbody tr {
+                                                                                margin-bottom: 1.1rem;
+                                                                                padding: 1rem 1.2rem;
+                                                                                border-radius: 18px;
+                                                                                box-shadow: 0 22px 44px rgba(15, 23, 42, 0.16);
+                                                                }
+                                                                #sii-items-table tbody td {
+                                                                                padding: 0.4rem 0;
+                                                                                border: none;
+                                                                                display: flex;
+                                                                                gap: 0.75rem;
+                                                                                align-items: center;
+                                                                                justify-content: space-between;
+                                                                                font-size: 0.95rem;
+                                                                }
+                                                                #sii-items-table tbody td::before {
+                                                                                content: attr(data-label);
+                                                                                font-weight: 600;
+                                                                                color: #1f2937;
+                                                                }
+                                                                #sii-items-table tbody td:nth-child(2) input,
+                                                                #sii-items-table tbody td:nth-child(3) input {
+                                                                                margin: 0;
+                                                                                max-width: 160px;
+                                                                }
+                                                                #sii-items-table tbody td:last-child {
+                                                                                justify-content: flex-end;
+                                                                                padding-right: 0;
+                                                                }
+                                                }
+                                                @media (prefers-color-scheme: dark) {
+                                                                .sii-generate-dte {
+                                                                                background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(14, 116, 144, 0.45) 100%);
+                                                                                box-shadow: 0 32px 70px rgba(2, 6, 23, 0.7);
+                                                                }
 								.sii-generate-dte::before {
 										background: radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, transparent 70%);
 								}
@@ -392,15 +502,40 @@ class GenerateDtePage {
 										color: #f8fafc;
 										border-color: rgba(148, 163, 184, 0.55);
 								}
-								#sii-items-table tbody td {
-										background: rgba(15, 23, 42, 0.82);
-								}
-								#sii-items-table tbody tr:nth-child(even) td {
-										background: rgba(30, 41, 59, 0.78);
-								}
-								#sii-items-table thead th {
-										color: #f8fafc;
-								}
+                                                                #sii-items-table {
+                                                                                box-shadow: 0 26px 52px rgba(2, 6, 23, 0.65);
+                                                                }
+                                                                #sii-items-table thead th {
+                                                                                color: #e2e8f0;
+                                                                                background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(14, 165, 233, 0.28));
+                                                                                border-bottom-color: rgba(51, 65, 85, 0.75);
+                                                                }
+                                                                #sii-items-table tbody tr {
+                                                                                background: rgba(15, 23, 42, 0.82);
+                                                                                border-bottom-color: rgba(51, 65, 85, 0.75);
+                                                                }
+                                                                #sii-items-table tbody tr:hover {
+                                                                                box-shadow: 0 30px 58px rgba(2, 6, 23, 0.7);
+                                                                }
+                                                                #sii-items-table tbody td {
+                                                                                color: #f1f5f9;
+                                                                                border-bottom-color: rgba(71, 85, 105, 0.7);
+                                                                }
+                                                                #sii-items-table tbody tr:last-child td {
+                                                                                border-bottom-color: transparent;
+                                                                }
+                                                                #sii-items-table tbody td::before {
+                                                                                color: #cbd5f5;
+                                                                }
+                                                                #sii-items-table .remove-item {
+                                                                                background: rgba(248, 113, 113, 0.28);
+                                                                                color: #fecaca;
+                                                                }
+                                                                #sii-items-table .remove-item:hover,
+                                                                #sii-items-table .remove-item:focus {
+                                                                                background: rgba(248, 113, 113, 0.4);
+                                                                                color: #fee2e2;
+                                                                }
 								.sii-generate-dte .button,
 								.sii-generate-dte .button-primary {
 										box-shadow: 0 18px 32px rgba(14, 165, 233, 0.4);
@@ -556,12 +691,12 @@ class GenerateDtePage {
 																				</tr>
 																		</thead>
 																<tbody>
-																	<tr>
-																		<td><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
-																		<td><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" /></td>
-																		<td><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" /></td>
-																		<td><button type="button" class="button remove-item">×</button></td>
-																	</tr>
+                                                                                                                               <tr>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Description', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Quantity', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Unit Price', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Actions', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Remove item', 'sii-boleta-dte' ); ?>">×</button></td>
+                                                                                                                               </tr>
 																</tbody>
 															</table>
 															<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Add Item', 'sii-boleta-dte' ); ?></button></p>

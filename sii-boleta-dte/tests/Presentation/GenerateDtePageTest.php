@@ -93,7 +93,7 @@ class GenerateDtePageTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
-        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $queue->expects( $this->never() )->method( 'enqueue_dte' );
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
@@ -115,6 +115,50 @@ class GenerateDtePageTest extends TestCase {
         $this->assertSame( '123', $result['track_id'] );
         $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
         $this->assertSame( 'success', $result['notice_type'] );
+    }
+
+    public function test_process_post_handles_stale_folio_error(): void {
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Principal',
+                'giros'       => array( 'Principal', 'Alternativo' ),
+            )
+        );
+        $token = $this->createMock( TokenManager::class );
+        $token->method( 'get_token' )->willReturn( 'tok' );
+        $api = $this->createMock( Api::class );
+        $api->expects( $this->never() )->method( 'send_dte_to_sii' );
+        $engine = $this->createMock( DteEngine::class );
+        $engine->expects( $this->once() )
+            ->method( 'generate_dte_xml' )
+            ->willReturn( '<xml/>' );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $folio = $this->createMock( FolioManager::class );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 5 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 5 )->willReturn( false );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $queue->expects( $this->never() )->method( 'enqueue_dte' );
+
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        $result = $page->process_post( array(
+            'sii_boleta_generate_dte_nonce' => 'good',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        ) );
+
+        $this->assertArrayHasKey( 'error', $result );
     }
 
     public function test_process_post_invalid_nonce(): void {
@@ -225,7 +269,7 @@ class GenerateDtePageTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
-        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array(
@@ -264,7 +308,7 @@ class GenerateDtePageTest extends TestCase {
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 10 );
-        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 10 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 10 )->willReturn( true );
 
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $queue->expects( $this->once() )->method( 'enqueue_dte' )->with(

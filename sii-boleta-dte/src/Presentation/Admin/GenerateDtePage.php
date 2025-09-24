@@ -962,7 +962,11 @@ class GenerateDtePage {
                 );
         }
 
-        $this->folio_manager->mark_folio_used( $tipo, $folio );
+        if ( ! $this->folio_manager->mark_folio_used( $tipo, $folio ) ) {
+                return array(
+                        'error' => __( 'No se pudo reservar un folio único. Por favor, inténtalo nuevamente.', 'sii-boleta-dte' ),
+                );
+        }
 
         $pdf_url = $this->store_persistent_pdf( $pdf, $pdf_context );
 

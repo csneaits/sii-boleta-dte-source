@@ -17,7 +17,7 @@ class FolioManager {
 	/**
 	 * Gets next folio for a given type.
 	 */
-    public function get_next_folio( int $type ) {
+    public function get_next_folio( int $type, bool $consume = true ) {
         $environment = $this->settings->get_environment();
         $ranges      = FoliosDb::for_type( $type, $environment );
         if ( empty( $ranges ) ) {
@@ -44,9 +44,20 @@ class FolioManager {
             return $this->no_folio_error();
         }
 
-        Settings::update_last_folio_value( $type, $environment, $next );
+        if ( $consume ) {
+            Settings::update_last_folio_value( $type, $environment, $next );
+        }
 
         return $next;
+    }
+
+    public function mark_folio_used( int $type, int $folio ): void {
+        if ( $folio <= 0 ) {
+            return;
+        }
+
+        $environment = $this->settings->get_environment();
+        Settings::update_last_folio_value( $type, $environment, $folio );
     }
 
 	/**

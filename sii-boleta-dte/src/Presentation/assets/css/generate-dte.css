@@ -78,13 +78,14 @@
     border-spacing: 0;
 }
 .sii-generate-dte-form table.form-table th {
-    padding: 0 1rem 1.1rem 0;
+    padding: 0 0.85rem 0.85rem 0;
     text-align: left;
     color: #1e293b;
     width: 30%;
+    font-size: 0.9rem;
 }
 .sii-generate-dte-form table.form-table td {
-    padding: 0 0 1.1rem;
+    padding: 0 0 0.85rem;
 }
 .sii-generate-dte-form input[type="text"],
 .sii-generate-dte-form input[type="number"],
@@ -92,9 +93,10 @@
 .sii-generate-dte-form select,
 .sii-generate-dte-form textarea {
     width: 100%;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(148, 163, 184, 0.55);
-    padding: 0.6rem 0.75rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.9rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
     background: rgba(255, 255, 255, 0.92);
@@ -109,11 +111,13 @@
 .sii-generate-dte-form label {
     font-weight: 600;
     color: #1f2937;
+    font-size: 0.9rem;
+    line-height: 1.35;
 }
 .sii-generate-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.75rem 1.1rem;
+    gap: 0.65rem 1rem;
 }
 .sii-generate-grid label {
     display: flex;
@@ -121,10 +125,10 @@
     gap: 0.35rem;
 }
 .sii-item-advanced {
-    margin-top: 0.75rem;
+    margin-top: 0.65rem;
     background: rgba(15, 118, 110, 0.05);
-    border-radius: 14px;
-    padding: 0.55rem 0.75rem 0.75rem;
+    border-radius: 12px;
+    padding: 0.45rem 0.65rem 0.65rem;
     border: 1px solid rgba(45, 212, 191, 0.28);
 }
 .sii-item-advanced summary {
@@ -148,15 +152,16 @@
 .sii-item-advanced-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.65rem 0.85rem;
-    margin-top: 0.75rem;
+    gap: 0.55rem 0.75rem;
+    margin-top: 0.65rem;
 }
 .sii-item-advanced-grid label {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
     font-weight: 600;
     color: #0f172a;
+    font-size: 0.88rem;
 }
 .sii-item-advanced-grid textarea {
     min-height: 84px;
@@ -176,15 +181,16 @@
 }
 #sii-ref-table thead th {
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(16, 185, 129, 0.12));
-    padding: 0.7rem 0.85rem;
-    font-size: 0.74rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #0f172a;
 }
 #sii-ref-table tbody td {
-    padding: 0.75rem 0.9rem;
+    padding: 0.65rem 0.8rem;
     border-bottom: 1px solid rgba(226, 232, 240, 0.65);
+    font-size: 0.88rem;
 }
 #sii-ref-table tbody tr:last-child td {
     border-bottom: none;
@@ -231,9 +237,9 @@
 }
 #sii-items-table thead th {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.12));
-    padding: 0.9rem 1.1rem;
+    padding: 0.75rem 0.95rem;
     color: #0f172a;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     border-bottom: 1px solid rgba(148, 163, 184, 0.28);
@@ -266,9 +272,10 @@
     box-shadow: 0 26px 50px rgba(15, 23, 42, 0.16);
 }
 #sii-items-table tbody td {
-    padding: 0.85rem 1.1rem;
+    padding: 0.7rem 0.95rem;
     border-bottom: 1px solid rgba(226, 232, 240, 0.65);
     background: transparent;
+    font-size: 0.9rem;
 }
 #sii-items-table tbody tr:last-child td {
     border-bottom: none;

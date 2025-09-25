@@ -472,6 +472,7 @@
             var typeLabel = escapeAttribute(getText('referenceTypeLabel', 'Tipo'));
             var folioLabel = escapeAttribute(getText('referenceFolioLabel', 'Folio'));
             var dateLabel = escapeAttribute(getText('referenceDateLabel', 'Fecha'));
+            var codeLabel = escapeAttribute(getText('referenceCodeLabel', 'Código ref.'));
             var reasonLabel = escapeAttribute(getText('referenceReasonLabel', 'Razón / glosa'));
             var globalLabel = escapeAttribute(getText('referenceGlobalLabel', 'Global'));
             var actionsLabelRef = escapeAttribute(getText('referenceActionsLabel', 'Acciones'));
@@ -486,6 +487,7 @@
                 '</select></td>' +
                 '<td data-label="' + folioLabel + '"><input type="number" data-ref-field="folio" name="references[][folio]" step="1" /></td>' +
                 '<td data-label="' + dateLabel + '"><input type="date" data-ref-field="fecha" name="references[][fecha]" /></td>' +
+                '<td data-label="' + codeLabel + '"><select data-ref-field="codref" name="references[][codref]"><option value="">—</option><option value="1">Anula documento de referencia</option><option value="2">Corrige texto documento ref.</option><option value="3">Corrige montos</option><option value="4">Deja sin efecto parcialmente</option><option value="5">Corrige montos en más</option><option value="6">Corrige montos en menos</option><option value="7">Referencia a otro DTE</option></select></td>' +
                 '<td data-label="' + reasonLabel + '"><input type="text" data-ref-field="razon" name="references[][razon]" /></td>' +
                 '<td data-label="' + globalLabel + '" class="sii-ref-checkbox"><label><input type="checkbox" data-ref-field="global" name="references[][global]" value="1" /><span class="screen-reader-text">' + globalLabel + '</span></label></td>' +
                 '<td data-label="' + actionsLabelRef + '"><button type="button" class="button remove-reference" aria-label="' + removeLabel + '">×</button></td>';

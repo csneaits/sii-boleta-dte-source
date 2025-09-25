@@ -112,25 +112,60 @@ class LibreDteEngine implements DteEngine {
                         unset( $template['DscRcgGlobal'] );
                 }
 
+                $global_discount_data  = array();
+                $global_discount_items = array();
+                if ( isset( $data['DscRcgGlobal'] ) && is_array( $data['DscRcgGlobal'] ) ) {
+                        list( $global_discount_data, $global_discount_items ) = $this->normalize_global_discount_data(
+                                $data['DscRcgGlobal']
+                        );
+                }
+
                 $detalles = $data['Detalles'] ?? array();
                 $detalle  = array();
                 $i        = 1;
                 foreach ( $detalles as $d ) {
-                        $qty  = (float) ( $d['QtyItem'] ?? 1 );
-                        $prc  = (float) ( $d['PrcItem'] ?? 0 );
-                        $line = array(
-                                'NroLinDet' => $d['NroLinDet'] ?? $i,
-                                'NmbItem'   => $d['NmbItem'] ?? '',
-                                'QtyItem'   => $qty,
-                                'PrcItem'   => (int) round( $prc ),
-                        );
-                        $line['MontoItem'] = isset( $d['MontoItem'] )
-                                ? (int) round( $d['MontoItem'] )
-                                : (int) round( $qty * $prc );
-                        $is_exento = ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo;
+                        if ( ! is_array( $d ) ) {
+                                continue;
+                        }
+
+                        $line = $this->sanitize_section( $d );
+
+                        $qty = isset( $line['QtyItem'] ) ? (float) $line['QtyItem'] : (float) ( $d['QtyItem'] ?? 1 );
+                        if ( $qty <= 0 ) {
+                                $qty = 1.0;
+                        }
+
+                        $price = isset( $line['PrcItem'] ) ? (float) $line['PrcItem'] : (float) ( $d['PrcItem'] ?? 0 );
+                        if ( $price < 0 ) {
+                                $price = 0.0;
+                        }
+
+                        $line_number = isset( $line['NroLinDet'] ) ? (int) $line['NroLinDet'] : (int) ( $d['NroLinDet'] ?? $i );
+                        if ( $line_number <= 0 ) {
+                                $line_number = $i;
+                        }
+
+                        $line['NroLinDet'] = $line_number;
+                        $line['NmbItem']   = isset( $line['NmbItem'] ) ? (string) $line['NmbItem'] : ( $d['NmbItem'] ?? '' );
+                        $line['QtyItem']   = $qty;
+                        $line['PrcItem']   = (int) round( $price );
+
+                        if ( isset( $line['MontoItem'] ) ) {
+                                $line['MontoItem'] = (int) round( (float) $line['MontoItem'] );
+                        } else {
+                                $line['MontoItem'] = (int) round( $qty * (float) $line['PrcItem'] );
+                        }
+                        if ( $line['MontoItem'] < 0 ) {
+                                $line['MontoItem'] = 0;
+                        }
+
+                        $is_exento = ! empty( $line['IndExe'] ) || ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo;
                         if ( $is_exento ) {
                                 $line['IndExe'] = 1;
+                        } else {
+                                unset( $line['IndExe'] );
                         }
+
                         $detalle[] = $line;
                         ++$i;
                 }
@@ -205,6 +240,10 @@ class LibreDteEngine implements DteEngine {
                                'Detalle'    => $detalle,
                        )
                );
+
+                if ( ! empty( $global_discount_data ) ) {
+                        $documentData['DscRcgGlobal'] = $global_discount_data;
+                }
 
                 $rawReceptor = array();
                 if ( isset( $data['Receptor'] ) && is_array( $data['Receptor'] ) ) {
@@ -319,7 +358,13 @@ class LibreDteEngine implements DteEngine {
                         return '';
                 }
 
-                $xmlString = $this->adjust_totals_in_xml( $xmlString, $detalle, $tipo, $tasa_iva );
+                $xmlString = $this->adjust_totals_in_xml(
+                        $xmlString,
+                        $detalle,
+                        $tipo,
+                        $tasa_iva,
+                        $global_discount_items
+                );
 
                 $xmlString = $this->strip_placeholder_fields(
                         $xmlString,
@@ -363,6 +408,48 @@ class LibreDteEngine implements DteEngine {
                 }
 
                 return $clean;
+        }
+
+        /**
+         * Normalizes the DscRcgGlobal payload keeping the original shape for LibreDTE.
+         *
+         * @param array<string|int,mixed> $raw Raw discount/recargo data from the UI.
+         *
+         * @return array{0:array<mixed>,1:array<int,array<string,mixed>>}
+         */
+        private function normalize_global_discount_data( array $raw ): array {
+                if ( $this->is_list( $raw ) ) {
+                        $normalized = array();
+                        foreach ( $raw as $entry ) {
+                                if ( ! is_array( $entry ) ) {
+                                        continue;
+                                }
+                                $clean = $this->sanitize_section( $entry );
+                                if ( ! empty( $clean ) ) {
+                                        $normalized[] = $clean;
+                                }
+                        }
+
+                        return array( $normalized, $normalized );
+                }
+
+                $clean = $this->sanitize_section( $raw );
+                if ( empty( $clean ) ) {
+                        return array( array(), array() );
+                }
+
+                return array( $clean, array( $clean ) );
+        }
+
+        /**
+         * Checks if an array is a list with sequential numeric keys.
+         */
+        private function is_list( array $array ): bool {
+                if ( array() === $array ) {
+                        return true;
+                }
+
+                return array_keys( $array ) === range( 0, count( $array ) - 1 );
         }
 
         /**
@@ -594,15 +681,22 @@ class LibreDteEngine implements DteEngine {
         /**
          * Replaces totals in the generated XML so they match VAT-inclusive prices.
          *
-         * @param array<int,array<string,mixed>> $detalle Document detail lines.
+         * @param array<int,array<string,mixed>> $detalle           Document detail lines.
+         * @param array<int,array<string,mixed>> $global_discounts Global discounts/recargos rows.
          */
-        private function adjust_totals_in_xml( string $xml, array $detalle, int $tipo, ?float $tasa_iva ): string {
+        private function adjust_totals_in_xml(
+                string $xml,
+                array $detalle,
+                int $tipo,
+                ?float $tasa_iva,
+                array $global_discounts
+        ): string {
                 $affected = array( 33, 52, 56, 61 );
                 if ( ! in_array( $tipo, $affected, true ) ) {
                         return $xml;
                 }
 
-                $totals = $this->calculate_totals( $detalle, $tasa_iva );
+                $totals = $this->calculate_totals( $detalle, $tasa_iva, $global_discounts );
                 if ( empty( $totals ) ) {
                         return $xml;
                 }
@@ -675,20 +769,91 @@ class LibreDteEngine implements DteEngine {
         /**
          * Calculates totals using VAT-inclusive prices.
          *
-         * @param array<int,array<string,mixed>> $detalle Document detail lines.
+         * @param array<int,array<string,mixed>> $detalle           Document detail lines.
+         * @param array<int,array<string,mixed>> $global_discounts Global discounts/recargos rows.
          */
-        private function calculate_totals( array $detalle, ?float $tasa_iva ): array {
-                $taxable = 0;
-                $exempt  = 0;
+        private function calculate_totals( array $detalle, ?float $tasa_iva, array $global_discounts ): array {
+                $taxable = 0.0;
+                $exempt  = 0.0;
 
                 foreach ( $detalle as $line ) {
-                        $amount = (float) ( $line['MontoItem'] ?? 0 );
+                        $base_amount = (float) ( $line['MontoItem'] ?? 0 );
+                        if ( $base_amount < 0 ) {
+                                $base_amount = 0.0;
+                        }
+
+                        $amount = $base_amount;
+
+                        if ( isset( $line['DescuentoMonto'] ) ) {
+                                $amount -= (float) $line['DescuentoMonto'];
+                        } elseif ( isset( $line['DescuentoPct'] ) ) {
+                                $amount -= $base_amount * ( (float) $line['DescuentoPct'] / 100 );
+                        }
+
+                        if ( isset( $line['RecargoMonto'] ) ) {
+                                $amount += (float) $line['RecargoMonto'];
+                        } elseif ( isset( $line['RecargoPct'] ) ) {
+                                $amount += $base_amount * ( (float) $line['RecargoPct'] / 100 );
+                        }
+
+                        if ( $amount < 0 ) {
+                                $amount = 0.0;
+                        }
+
                         if ( ! empty( $line['IndExe'] ) ) {
                                 $exempt += $amount;
                                 continue;
                         }
 
                         $taxable += $amount;
+                }
+
+                foreach ( $global_discounts as $discount ) {
+                        if ( ! is_array( $discount ) ) {
+                                continue;
+                        }
+
+                        $movement = strtoupper( (string) ( $discount['TpoMov'] ?? '' ) );
+                        if ( ! in_array( $movement, array( 'D', 'R' ), true ) ) {
+                                continue;
+                        }
+
+                        $value_type = strtoupper( (string) ( $discount['TpoValor'] ?? '' ) );
+                        $raw_value  = (float) ( $discount['ValorDR'] ?? 0 );
+                        if ( $raw_value <= 0 ) {
+                                continue;
+                        }
+
+                        $indicator = isset( $discount['IndExeDR'] ) ? (int) $discount['IndExeDR'] : 0;
+                        if ( 1 === $indicator ) {
+                                $target =& $exempt;
+                        } else {
+                                $target =& $taxable;
+                        }
+
+                        if ( $target <= 0 ) {
+                                continue;
+                        }
+
+                        $base_amount = $target;
+                        if ( '%' === $value_type ) {
+                                $change = $base_amount * ( $raw_value / 100 );
+                        } else {
+                                $change = $raw_value;
+                        }
+
+                        if ( $change <= 0 ) {
+                                continue;
+                        }
+
+                        if ( 'D' === $movement ) {
+                                $target -= $change;
+                                if ( $target < 0 ) {
+                                        $target = 0.0;
+                                }
+                        } else {
+                                $target += $change;
+                        }
                 }
 
                 $taxable = (int) round( $taxable );

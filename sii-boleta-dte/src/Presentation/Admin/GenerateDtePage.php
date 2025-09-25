@@ -112,7 +112,10 @@ class GenerateDtePage {
                                 $ref0_folio           = isset( $ref0['folio'] ) ? esc_attr( (string) $ref0['folio'] ) : '';
                                 $ref0_fecha           = isset( $ref0['fecha'] ) ? esc_attr( (string) $ref0['fecha'] ) : '';
                                 $ref0_razon           = isset( $ref0['razon'] ) ? esc_attr( (string) $ref0['razon'] ) : '';
-                                $ref0_global          = isset( $ref0['global'] ) ? '1' : '';
+                $ref0_global          = isset( $ref0['global'] ) ? '1' : '';
+                $ref0_global_attr     = function_exists( 'checked' )
+                        ? \checked( '1', $ref0_global, false )
+                        : ( '1' === $ref0_global ? 'checked="checked"' : '' );
 				$modal_preview_url    = '';
 		if ( is_array( $result ) && ! empty( $result['preview'] ) ) {
 				$modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
@@ -249,9 +252,9 @@ class GenerateDtePage {
                                                                                                                                         <span><?php esc_html_e( 'Forma de pago', 'sii-boleta-dte' ); ?></span>
                                                                                                                                         <select id="sii-fma-pago" name="fma_pago">
                                                                                                                                                 <option value="">—</option>
-                                                                                                                                                <option value="1" <?php selected( $current_fma_pago, '1' ); ?>><?php esc_html_e( 'Contado', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="2" <?php selected( $current_fma_pago, '2' ); ?>><?php esc_html_e( 'Crédito', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="3" <?php selected( $current_fma_pago, '3' ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
+                <option value="1" <?php selected( $current_fma_pago, '1', true ); ?>><?php esc_html_e( 'Contado', 'sii-boleta-dte' ); ?></option>
+                <option value="2" <?php selected( $current_fma_pago, '2', true ); ?>><?php esc_html_e( 'Crédito', 'sii-boleta-dte' ); ?></option>
+                <option value="3" <?php selected( $current_fma_pago, '3', true ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
                                                                                                                                         </select>
                                                                                                                                 </label>
                                                                                                                                 <label>
@@ -266,9 +269,9 @@ class GenerateDtePage {
                                                                                                                                         <span><?php esc_html_e( 'Indicador de servicio', 'sii-boleta-dte' ); ?></span>
                                                                                                                                         <select name="ind_servicio">
                                                                                                                                                 <option value="">—</option>
-                                                                                                                                                <option value="1" <?php selected( $current_ind_servicio, '1' ); ?>><?php esc_html_e( 'Servicios periódicos domiciliarios', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="2" <?php selected( $current_ind_servicio, '2' ); ?>><?php esc_html_e( 'Facturación diaria', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="3" <?php selected( $current_ind_servicio, '3' ); ?>><?php esc_html_e( 'Otros servicios periódicos', 'sii-boleta-dte' ); ?></option>
+                <option value="1" <?php selected( $current_ind_servicio, '1', true ); ?>><?php esc_html_e( 'Servicios periódicos domiciliarios', 'sii-boleta-dte' ); ?></option>
+                <option value="2" <?php selected( $current_ind_servicio, '2', true ); ?>><?php esc_html_e( 'Facturación diaria', 'sii-boleta-dte' ); ?></option>
+                <option value="3" <?php selected( $current_ind_servicio, '3', true ); ?>><?php esc_html_e( 'Otros servicios periódicos', 'sii-boleta-dte' ); ?></option>
                                                                                                                                         </select>
                                                                                                                                 </label>
                                                                                                                         </div>
@@ -297,16 +300,16 @@ class GenerateDtePage {
                                                                                                                                         <span><?php esc_html_e( 'Movimiento', 'sii-boleta-dte' ); ?></span>
                                                                                                                                         <select id="sii-descuento-global" name="dsc_global_mov">
                                                                                                                                                 <option value="">—</option>
-                                                                                                                                                <option value="D" <?php selected( $current_dsc_mov, 'D' ); ?>><?php esc_html_e( 'Descuento', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="R" <?php selected( $current_dsc_mov, 'R' ); ?>><?php esc_html_e( 'Recargo', 'sii-boleta-dte' ); ?></option>
+                <option value="D" <?php selected( $current_dsc_mov, 'D', true ); ?>><?php esc_html_e( 'Descuento', 'sii-boleta-dte' ); ?></option>
+                <option value="R" <?php selected( $current_dsc_mov, 'R', true ); ?>><?php esc_html_e( 'Recargo', 'sii-boleta-dte' ); ?></option>
                                                                                                                                         </select>
                                                                                                                                 </label>
                                                                                                                                 <label>
                                                                                                                                         <span><?php esc_html_e( 'Tipo de valor', 'sii-boleta-dte' ); ?></span>
                                                                                                                                         <select name="dsc_global_tipo">
                                                                                                                                                 <option value="">—</option>
-                                                                                                                                                <option value="%" <?php selected( $current_dsc_tipo, '%' ); ?>><?php esc_html_e( 'Porcentaje', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                                <option value="$" <?php selected( $current_dsc_tipo, '$' ); ?>><?php esc_html_e( 'Monto', 'sii-boleta-dte' ); ?></option>
+                <option value="%" <?php selected( $current_dsc_tipo, '%', true ); ?>><?php esc_html_e( 'Porcentaje', 'sii-boleta-dte' ); ?></option>
+                <option value="$" <?php selected( $current_dsc_tipo, '$', true ); ?>><?php esc_html_e( 'Monto', 'sii-boleta-dte' ); ?></option>
                                                                                                                                         </select>
                                                                                                                                 </label>
                                                                                                                                 <label>
@@ -403,11 +406,11 @@ class GenerateDtePage {
                                                                                 <td data-label="<?php esc_attr_e( 'Tipo', 'sii-boleta-dte' ); ?>">
                                                                                         <select name="references[0][tipo]" data-ref-field="tipo">
                                                                                                 <option value="">—</option>
-                                                                                                <option value="33" <?php selected( $ref0_tipo, '33' ); ?>><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
-                                                                                                <option value="34" <?php selected( $ref0_tipo, '34' ); ?>><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
-                                                                                                <option value="39" <?php selected( $ref0_tipo, '39' ); ?>><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
-                                                                                                <option value="41" <?php selected( $ref0_tipo, '41' ); ?>><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
-                                                                                                <option value="52" <?php selected( $ref0_tipo, '52' ); ?>><?php esc_html_e( 'Guía de despacho', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="33" <?php selected( $ref0_tipo, '33', true ); ?>><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="34" <?php selected( $ref0_tipo, '34', true ); ?>><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="39" <?php selected( $ref0_tipo, '39', true ); ?>><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="41" <?php selected( $ref0_tipo, '41', true ); ?>><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="52" <?php selected( $ref0_tipo, '52', true ); ?>><?php esc_html_e( 'Guía de despacho', 'sii-boleta-dte' ); ?></option>
                                                                                         </select>
                                                                                 </td>
                                                                                 <td data-label="<?php esc_attr_e( 'Folio', 'sii-boleta-dte' ); ?>"><input type="number" name="references[0][folio]" data-ref-field="folio" value="<?php echo $ref0_folio; ?>" step="1" /></td>
@@ -415,7 +418,7 @@ class GenerateDtePage {
                                                                                 <td data-label="<?php esc_attr_e( 'Razón / glosa', 'sii-boleta-dte' ); ?>"><input type="text" name="references[0][razon]" data-ref-field="razon" value="<?php echo $ref0_razon; ?>" /></td>
                                                                                 <td data-label="<?php esc_attr_e( 'Global', 'sii-boleta-dte' ); ?>" class="sii-ref-checkbox">
                                                                                         <label>
-                                                                                                <input type="checkbox" name="references[0][global]" data-ref-field="global" value="1" <?php checked( '1', $ref0_global ); ?> />
+                                                                                                <input type="checkbox" name="references[0][global]" data-ref-field="global" value="1" <?php echo $ref0_global_attr; ?> />
                                                                                                 <span class="screen-reader-text"><?php esc_html_e( 'Referencia global', 'sii-boleta-dte' ); ?></span>
                                                                                         </label>
                                                                                 </td>

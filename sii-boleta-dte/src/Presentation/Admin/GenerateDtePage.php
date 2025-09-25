@@ -277,6 +277,13 @@ class GenerateDtePage {
                                                                                                                         </div>
                                                                                                                 </td>
                                                                                                         </tr>
+                                                                                                        <tr class="dte-section" data-types="39,41" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-term-pago-glosa-boleta"><?php esc_html_e( 'Glosa / condiciones', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <input type="text" id="sii-term-pago-glosa-boleta" name="term_pago_glosa" class="large-text" value="<?php echo $val( 'term_pago_glosa' ); ?>" />
+                                                                                                                        <p class="description"><?php esc_html_e( 'Se envía como observación opcional en la boleta.', 'sii-boleta-dte' ); ?></p>
+                                                                                                                </td>
+                                                                                                        </tr>
                                                                                                         <tr class="dte-section" data-types="33" style="display:none">
                                                                                                                 <th scope="row"><label for="sii-contacto-recep"><?php esc_html_e( 'Contacto del receptor', 'sii-boleta-dte' ); ?></label></th>
                                                                                                                 <td>
@@ -292,7 +299,7 @@ class GenerateDtePage {
                                                                                                                         </div>
                                                                                                                 </td>
                                                                                                         </tr>
-                                                                                                        <tr class="dte-section" data-types="33" style="display:none">
+                                                                                                        <tr class="dte-section" data-types="33,39,41" style="display:none">
                                                                                                                 <th scope="row"><label for="sii-descuento-global"><?php esc_html_e( 'Descuentos o recargos globales', 'sii-boleta-dte' ); ?></label></th>
                                                                                                                 <td>
                                                                                                                         <div class="sii-generate-grid">

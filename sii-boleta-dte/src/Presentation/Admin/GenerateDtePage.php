@@ -90,10 +90,29 @@ class GenerateDtePage {
 				$current_emitter_giro = isset( $_POST['giro_emisor'] )
 						? (string) $_POST['giro_emisor'] // phpcs:ignore WordPress.Security.NonceVerification.Missing
 						: $default_emitter_giro;
-				$item0                = isset( $_POST['items'][0] ) && is_array( $_POST['items'][0] ) ? (array) $_POST['items'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-				$i0d                  = isset( $item0['desc'] ) ? esc_attr( (string) $item0['desc'] ) : '';
-				$i0q                  = isset( $item0['qty'] ) ? esc_attr( (string) $item0['qty'] ) : '1';
-				$i0p                  = isset( $item0['price'] ) ? esc_attr( (string) $item0['price'] ) : '0';
+                                $item0                = isset( $_POST['items'][0] ) && is_array( $_POST['items'][0] ) ? (array) $_POST['items'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $i0d                  = isset( $item0['desc'] ) ? esc_attr( (string) $item0['desc'] ) : '';
+                                $i0q                  = isset( $item0['qty'] ) ? esc_attr( (string) $item0['qty'] ) : '1';
+                                $i0p                  = isset( $item0['price'] ) ? esc_attr( (string) $item0['price'] ) : '0';
+                                $i0code_type          = isset( $item0['code_type'] ) ? esc_attr( (string) $item0['code_type'] ) : '';
+                                $i0code_value         = isset( $item0['code_value'] ) ? esc_attr( (string) $item0['code_value'] ) : '';
+                                $i0extra_desc         = isset( $item0['extra_desc'] ) ? esc_textarea( (string) $item0['extra_desc'] ) : '';
+                                $i0unit_item          = isset( $item0['unit_item'] ) ? esc_attr( (string) $item0['unit_item'] ) : '';
+                                $i0unit_ref           = isset( $item0['unit_ref'] ) ? esc_attr( (string) $item0['unit_ref'] ) : '';
+                                $i0discount_pct       = isset( $item0['discount_pct'] ) ? esc_attr( (string) $item0['discount_pct'] ) : '';
+                                $i0discount_amount    = isset( $item0['discount_amount'] ) ? esc_attr( (string) $item0['discount_amount'] ) : '';
+                                $i0tax_code           = isset( $item0['tax_code'] ) ? esc_attr( (string) $item0['tax_code'] ) : '';
+                                $i0retained_indicator = isset( $item0['retained_indicator'] ) ? esc_attr( (string) $item0['retained_indicator'] ) : '';
+                                $current_fma_pago     = isset( $_POST['fma_pago'] ) ? (string) $_POST['fma_pago'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $current_ind_servicio = isset( $_POST['ind_servicio'] ) ? (string) $_POST['ind_servicio'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $current_dsc_mov      = isset( $_POST['dsc_global_mov'] ) ? (string) $_POST['dsc_global_mov'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $current_dsc_tipo     = isset( $_POST['dsc_global_tipo'] ) ? (string) $_POST['dsc_global_tipo'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $ref0                 = isset( $_POST['references'][0] ) && is_array( $_POST['references'][0] ) ? (array) $_POST['references'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $ref0_tipo            = isset( $ref0['tipo'] ) ? esc_attr( (string) $ref0['tipo'] ) : '';
+                                $ref0_folio           = isset( $ref0['folio'] ) ? esc_attr( (string) $ref0['folio'] ) : '';
+                                $ref0_fecha           = isset( $ref0['fecha'] ) ? esc_attr( (string) $ref0['fecha'] ) : '';
+                                $ref0_razon           = isset( $ref0['razon'] ) ? esc_attr( (string) $ref0['razon'] ) : '';
+                                $ref0_global          = isset( $ref0['global'] ) ? '1' : '';
 				$modal_preview_url    = '';
 		if ( is_array( $result ) && ! empty( $result['preview'] ) ) {
 				$modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
@@ -210,18 +229,93 @@ class GenerateDtePage {
 														<td><input type="text" id="sii-giro" name="giro" class="regular-text" value="<?php echo $val( 'giro' ); ?>" /></td>
 													</tr>
 													<!-- Receptor address for invoice/guide types -->
-													<tr class="dte-section" data-types="33,34,43,46,52,110" style="display:none">
-														<th scope="row"><label for="sii-dir-recep"><?php esc_html_e( 'Dirección Receptor', 'sii-boleta-dte' ); ?></label></th>
-														<td><input type="text" id="sii-dir-recep" name="dir_recep" class="regular-text" value="<?php echo $val( 'dir_recep' ); ?>" /></td>
-													</tr>
+                                                                                                        <tr class="dte-section" data-types="33,34,43,46,52,110" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-dir-recep"><?php esc_html_e( 'Dirección Receptor', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td><input type="text" id="sii-dir-recep" name="dir_recep" class="regular-text" value="<?php echo $val( 'dir_recep' ); ?>" /></td>
+                                                                                                        </tr>
 													<tr class="dte-section" data-types="33,34,43,46,52,110" style="display:none">
 														<th scope="row"><label for="sii-cmna-recep"><?php esc_html_e( 'Comuna Receptor', 'sii-boleta-dte' ); ?></label></th>
 														<td><input type="text" id="sii-cmna-recep" name="cmna_recep" class="regular-text" value="<?php echo $val( 'cmna_recep' ); ?>" /></td>
 													</tr>
 													<tr class="dte-section" data-types="33,34,43,46,52,110" style="display:none">
 														<th scope="row"><label for="sii-ciudad-recep"><?php esc_html_e( 'Ciudad Receptor', 'sii-boleta-dte' ); ?></label></th>
-														<td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val( 'ciudad_recep' ); ?>" /></td>
-													</tr>
+                                                                                                                <td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val( 'ciudad_recep' ); ?>" /></td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="33" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-fma-pago"><?php esc_html_e( 'Condiciones de pago', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <div class="sii-generate-grid">
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Forma de pago', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <select id="sii-fma-pago" name="fma_pago">
+                                                                                                                                                <option value="">—</option>
+                                                                                                                                                <option value="1" <?php selected( $current_fma_pago, '1' ); ?>><?php esc_html_e( 'Contado', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="2" <?php selected( $current_fma_pago, '2' ); ?>><?php esc_html_e( 'Crédito', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="3" <?php selected( $current_fma_pago, '3' ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                        </select>
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Glosa / condiciones', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="term_pago_glosa" value="<?php echo $val( 'term_pago_glosa' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Fecha de vencimiento', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="date" name="fch_venc" value="<?php echo $val( 'fch_venc' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Indicador de servicio', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <select name="ind_servicio">
+                                                                                                                                                <option value="">—</option>
+                                                                                                                                                <option value="1" <?php selected( $current_ind_servicio, '1' ); ?>><?php esc_html_e( 'Servicios periódicos domiciliarios', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="2" <?php selected( $current_ind_servicio, '2' ); ?>><?php esc_html_e( 'Facturación diaria', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="3" <?php selected( $current_ind_servicio, '3' ); ?>><?php esc_html_e( 'Otros servicios periódicos', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                        </select>
+                                                                                                                                </label>
+                                                                                                                        </div>
+                                                                                                                </td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="33" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-contacto-recep"><?php esc_html_e( 'Contacto del receptor', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <div class="sii-generate-grid">
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Correo electrónico', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="email" id="sii-correo-recep" name="correo_recep" value="<?php echo $val( 'correo_recep' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Contacto / teléfono', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" id="sii-contacto-recep" name="contacto_recep" value="<?php echo $val( 'contacto_recep' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                        </div>
+                                                                                                                </td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="33" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-descuento-global"><?php esc_html_e( 'Descuentos o recargos globales', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <div class="sii-generate-grid">
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Movimiento', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <select id="sii-descuento-global" name="dsc_global_mov">
+                                                                                                                                                <option value="">—</option>
+                                                                                                                                                <option value="D" <?php selected( $current_dsc_mov, 'D' ); ?>><?php esc_html_e( 'Descuento', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="R" <?php selected( $current_dsc_mov, 'R' ); ?>><?php esc_html_e( 'Recargo', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                        </select>
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Tipo de valor', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <select name="dsc_global_tipo">
+                                                                                                                                                <option value="">—</option>
+                                                                                                                                                <option value="%" <?php selected( $current_dsc_tipo, '%' ); ?>><?php esc_html_e( 'Porcentaje', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                <option value="$" <?php selected( $current_dsc_tipo, '$' ); ?>><?php esc_html_e( 'Monto', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                        </select>
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Valor', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="number" name="dsc_global_valor" step="0.01" inputmode="decimal" value="<?php echo $val( 'dsc_global_valor' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                        </div>
+                                                                                                                </td>
+                                                                                                        </tr>
 													<tr>
                                                 <th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
 														<td>
@@ -236,43 +330,104 @@ class GenerateDtePage {
 																		</thead>
 																<tbody>
                                                                                                                                <tr>
-                                                               <td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>"><input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" /></td>
+                                                               <td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>">
+                                                                       <input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" />
+                                                                       <details class="sii-item-advanced dte-section" data-types="33,34,43,46,52,56,61,110,111,112" style="display:none">
+                                                                               <summary><?php esc_html_e( 'Opciones avanzadas del ítem', 'sii-boleta-dte' ); ?></summary>
+                                                                               <div class="sii-item-advanced-grid">
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Tipo de código', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][code_type]" data-field="code_type" value="<?php echo $i0code_type; ?>" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Código', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][code_value]" data-field="code_value" value="<?php echo $i0code_value; ?>" />
+                                                                                       </label>
+                                                                                       <label class="sii-item-advanced-wide">
+                                                                                               <span><?php esc_html_e( 'Descripción adicional', 'sii-boleta-dte' ); ?></span>
+                                                                                               <textarea name="items[0][extra_desc]" data-field="extra_desc" rows="3"><?php echo $i0extra_desc; ?></textarea>
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Unidad del ítem', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][unit_item]" data-field="unit_item" value="<?php echo $i0unit_item; ?>" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Unidad de referencia', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][unit_ref]" data-field="unit_ref" value="<?php echo $i0unit_ref; ?>" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Descuento %', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="number" name="items[0][discount_pct]" data-field="discount_pct" value="<?php echo $i0discount_pct; ?>" step="0.01" inputmode="decimal" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Descuento $', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="number" name="items[0][discount_amount]" data-field="discount_amount" value="<?php echo $i0discount_amount; ?>" step="0.01" inputmode="decimal" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Impuesto adicional', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][tax_code]" data-field="tax_code" value="<?php echo $i0tax_code; ?>" />
+                                                                                       </label>
+                                                                                       <label>
+                                                                                               <span><?php esc_html_e( 'Indicador retenedor', 'sii-boleta-dte' ); ?></span>
+                                                                                               <input type="text" name="items[0][retained_indicator]" data-field="retained_indicator" value="<?php echo $i0retained_indicator; ?>" />
+                                                                                       </label>
+                                                                               </div>
+                                                                       </details>
+                                                               </td>
                                                                <td data-label="<?php esc_attr_e( 'Cantidad', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
                                                                <td data-label="<?php esc_attr_e( 'Precio unitario', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
                                                                <td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Eliminar ítem', 'sii-boleta-dte' ); ?>">×</button></td>
-                                                                                                                               </tr>
-																</tbody>
+                                                                                                                              </tr>
+                                                                                                                              </tbody>
 															</table>
                                                         <p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button></p>
 														</td>
 													</tr>
-													<!-- Reference section for credit/debit notes -->
-													<tr class="dte-section" data-types="56,61,111,112" style="display:none">
-														<th scope="row"><label for="sii-ref-folio"><?php esc_html_e( 'Referencia', 'sii-boleta-dte' ); ?></label></th>
-														<td>
-															<label><?php esc_html_e( 'Tipo Doc Ref', 'sii-boleta-dte' ); ?>
-																<select name="ref_tipo">
-																	<option value="33">Factura</option>
-																	<option value="34">Factura Exenta</option>
-																	<option value="39">Boleta</option>
-																	<option value="41">Boleta Exenta</option>
-																	<option value="52">Guía</option>
-																</select>
-															</label>
-															&nbsp; 
-															<label><?php esc_html_e( 'Folio', 'sii-boleta-dte' ); ?>
-																<input type="number" name="ref_folio" id="sii-ref-folio" min="1" step="1" value="<?php echo $val( 'ref_folio' ); ?>" />
-															</label>
-															&nbsp; 
-															<label><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?>
-																<input type="date" name="ref_fecha" value="<?php echo $val( 'ref_fecha' ); ?>" />
-															</label>
-															&nbsp; 
-															<label><?php esc_html_e( 'Razón', 'sii-boleta-dte' ); ?>
-																<input type="text" name="ref_razon" class="regular-text" placeholder="Anula/rebaja, etc." value="<?php echo $val( 'ref_razon' ); ?>" />
-															</label>
-														</td>
-													</tr>
+                                        <!-- Reference section for invoices, guides and notes -->
+                                        <tr class="dte-section" data-types="33,34,43,46,52,56,61,110,111,112" style="display:none">
+                                                <th scope="row"><label for="sii-ref-table"><?php esc_html_e( 'Referencias', 'sii-boleta-dte' ); ?></label></th>
+                                                <td>
+                                                        <table id="sii-ref-table" class="widefat">
+                                                                <thead>
+                                                                        <tr>
+                                                                                <th><?php esc_html_e( 'Tipo', 'sii-boleta-dte' ); ?></th>
+                                                                                <th><?php esc_html_e( 'Folio', 'sii-boleta-dte' ); ?></th>
+                                                                                <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                                                                                <th><?php esc_html_e( 'Razón / glosa', 'sii-boleta-dte' ); ?></th>
+                                                                                <th><?php esc_html_e( 'Global', 'sii-boleta-dte' ); ?></th>
+                                                                                <th></th>
+                                                                        </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                        <tr data-ref-row="0">
+                                                                                <td data-label="<?php esc_attr_e( 'Tipo', 'sii-boleta-dte' ); ?>">
+                                                                                        <select name="references[0][tipo]" data-ref-field="tipo">
+                                                                                                <option value="">—</option>
+                                                                                                <option value="33" <?php selected( $ref0_tipo, '33' ); ?>><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="34" <?php selected( $ref0_tipo, '34' ); ?>><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="39" <?php selected( $ref0_tipo, '39' ); ?>><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="41" <?php selected( $ref0_tipo, '41' ); ?>><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="52" <?php selected( $ref0_tipo, '52' ); ?>><?php esc_html_e( 'Guía de despacho', 'sii-boleta-dte' ); ?></option>
+                                                                                        </select>
+                                                                                </td>
+                                                                                <td data-label="<?php esc_attr_e( 'Folio', 'sii-boleta-dte' ); ?>"><input type="number" name="references[0][folio]" data-ref-field="folio" value="<?php echo $ref0_folio; ?>" step="1" /></td>
+                                                                                <td data-label="<?php esc_attr_e( 'Fecha', 'sii-boleta-dte' ); ?>"><input type="date" name="references[0][fecha]" data-ref-field="fecha" value="<?php echo $ref0_fecha; ?>" /></td>
+                                                                                <td data-label="<?php esc_attr_e( 'Razón / glosa', 'sii-boleta-dte' ); ?>"><input type="text" name="references[0][razon]" data-ref-field="razon" value="<?php echo $ref0_razon; ?>" /></td>
+                                                                                <td data-label="<?php esc_attr_e( 'Global', 'sii-boleta-dte' ); ?>" class="sii-ref-checkbox">
+                                                                                        <label>
+                                                                                                <input type="checkbox" name="references[0][global]" data-ref-field="global" value="1" <?php checked( '1', $ref0_global ); ?> />
+                                                                                                <span class="screen-reader-text"><?php esc_html_e( 'Referencia global', 'sii-boleta-dte' ); ?></span>
+                                                                                        </label>
+                                                                                </td>
+                                                                                <td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>">
+                                                                                        <button type="button" class="button remove-reference" aria-label="<?php esc_attr_e( 'Eliminar referencia', 'sii-boleta-dte' ); ?>">×</button>
+                                                                                </td>
+                                                                        </tr>
+                                                                </tbody>
+                                                        </table>
+                                                        <p><button type="button" class="button" id="sii-add-reference"><?php esc_html_e( 'Agregar referencia', 'sii-boleta-dte' ); ?></button></p>
+                                                </td>
+                                        </tr>
 																</tbody>
 																</table>
 																<div class="sii-generate-actions">
@@ -360,9 +515,19 @@ class GenerateDtePage {
 		} elseif ( $requires_rut ) {
 				return array( 'error' => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ) );
 		}
-				$dir_recep    = sanitize_text_field( (string) ( $post['dir_recep'] ?? '' ) );
-				$cmna_recep   = sanitize_text_field( (string) ( $post['cmna_recep'] ?? '' ) );
-				$ciudad_recep = sanitize_text_field( (string) ( $post['ciudad_recep'] ?? '' ) );
+                                $dir_recep       = sanitize_text_field( (string) ( $post['dir_recep'] ?? '' ) );
+                                $cmna_recep      = sanitize_text_field( (string) ( $post['cmna_recep'] ?? '' ) );
+                                $ciudad_recep    = sanitize_text_field( (string) ( $post['ciudad_recep'] ?? '' ) );
+                                $fma_pago        = isset( $post['fma_pago'] ) ? trim( (string) $post['fma_pago'] ) : '';
+                                $term_pago_glosa = sanitize_text_field( (string) ( $post['term_pago_glosa'] ?? '' ) );
+                                $fch_venc        = trim( (string) ( $post['fch_venc'] ?? '' ) );
+                                $ind_servicio    = isset( $post['ind_servicio'] ) ? trim( (string) $post['ind_servicio'] ) : '';
+                                $correo_recep    = isset( $post['correo_recep'] ) ? sanitize_email( (string) $post['correo_recep'] ) : '';
+                                $contacto_recep  = sanitize_text_field( (string) ( $post['contacto_recep'] ?? '' ) );
+                                $dsc_global_mov  = isset( $post['dsc_global_mov'] ) ? strtoupper( substr( sanitize_text_field( (string) $post['dsc_global_mov'] ), 0, 1 ) ) : '';
+                                $dsc_global_tipo = isset( $post['dsc_global_tipo'] ) ? substr( sanitize_text_field( (string) $post['dsc_global_tipo'] ), 0, 1 ) : '';
+                                $dsc_global_raw  = $post['dsc_global_valor'] ?? '';
+                                $dsc_global_val  = $this->parse_amount( $dsc_global_raw );
 				$items        = array();
 				$n            = 1;
 		$raw                  = $post['items'] ?? array();
@@ -388,18 +553,64 @@ class GenerateDtePage {
 				if ( $price < 0 ) {
 						$price = 0;
 				}
-								$line_total = (int) round( $qty * $price );
+                                                                $line_total = (int) round( $qty * $price );
 
-								$items[] = array(
-									'NroLinDet' => $n++,
-									'NmbItem'   => $desc,
-									'QtyItem'   => $qty,
-									'PrcItem'   => $price,
-									'MontoItem' => $line_total,
-									'IndExe'    => 0,
-								);
-			}
-		}
+                                                                $line = array(
+                                                                        'NroLinDet' => $n++,
+                                                                        'NmbItem'   => $desc,
+                                                                        'QtyItem'   => $qty,
+                                                                        'PrcItem'   => $price,
+                                                                        'MontoItem' => $line_total,
+                                                                        'IndExe'    => 0,
+                                                                );
+
+                                                                $code_type  = isset( $item['code_type'] ) ? sanitize_text_field( (string) $item['code_type'] ) : '';
+                                                                $code_value = isset( $item['code_value'] ) ? sanitize_text_field( (string) $item['code_value'] ) : '';
+                                if ( '' !== $code_type || '' !== $code_value ) {
+                                        $line['CdgItem'] = array(
+                                                'TpoCodigo' => $code_type,
+                                                'VlrCodigo' => $code_value,
+                                        );
+                                }
+
+                                                                $extra_desc = isset( $item['extra_desc'] ) ? sanitize_textarea_field( (string) $item['extra_desc'] ) : '';
+                                if ( '' !== $extra_desc ) {
+                                                $line['DscItem'] = $extra_desc;
+                                }
+
+                                                                $unit_item = isset( $item['unit_item'] ) ? sanitize_text_field( (string) $item['unit_item'] ) : '';
+                                if ( '' !== $unit_item ) {
+                                                $line['UnmdItem'] = $unit_item;
+                                }
+
+                                                                $unit_ref = isset( $item['unit_ref'] ) ? sanitize_text_field( (string) $item['unit_ref'] ) : '';
+                                if ( '' !== $unit_ref ) {
+                                                $line['UnmdRef'] = $unit_ref;
+                                }
+
+                                                                $discount_pct = isset( $item['discount_pct'] ) ? $this->parse_amount( $item['discount_pct'] ) : 0.0;
+                                if ( $discount_pct > 0 ) {
+                                                $line['DescuentoPct'] = $discount_pct;
+                                }
+
+                                                                $discount_amount = isset( $item['discount_amount'] ) ? $this->parse_amount( $item['discount_amount'] ) : 0.0;
+                                if ( $discount_amount > 0 ) {
+                                                $line['DescuentoMonto'] = (int) round( $discount_amount );
+                                }
+
+                                                                $tax_code = isset( $item['tax_code'] ) ? sanitize_text_field( (string) $item['tax_code'] ) : '';
+                                if ( '' !== $tax_code ) {
+                                                $line['CodImpAdic'] = $tax_code;
+                                }
+
+                                                                $retainer = isset( $item['retained_indicator'] ) ? sanitize_text_field( (string) $item['retained_indicator'] ) : '';
+                                if ( '' !== $retainer ) {
+                                                $line['Retenedor'] = array( 'IndAgente' => $retainer );
+                                }
+
+                                                                $items[] = $line;
+                        }
+                }
 		if ( $preview ) {
 			$this->debug_log( '[preview] parsed items=' . wp_json_encode( $items ) );
 		}
@@ -423,49 +634,103 @@ class GenerateDtePage {
 			}
 		}
 
-		$data = array(
-			'Folio'    => $folio,
-			'FchEmis'  => gmdate( 'Y-m-d' ),
-			'Receptor' => array(
-				'RUTRecep'    => $rut,
-				'RznSocRecep' => $razon,
-				'GiroRecep'   => $giro,
-			),
-			'Detalles' => $items,
-		);
-		if ( '' !== $giro_emisor ) {
-				$data['Encabezado'] = array(
-					'Emisor' => array(
-						'GiroEmisor' => $giro_emisor,
-						'GiroEmis'   => $giro_emisor,
-					),
-				);
-		}
-		if ( '' !== $dir_recep ) {
-			$data['Receptor']['DirRecep'] = $dir_recep; }
-		if ( '' !== $cmna_recep ) {
-			$data['Receptor']['CmnaRecep'] = $cmna_recep; }
-		if ( '' !== $ciudad_recep ) {
-			$data['Receptor']['CiudadRecep'] = $ciudad_recep; }
+                $data = array(
+                        'Folio'    => $folio,
+                        'FchEmis'  => gmdate( 'Y-m-d' ),
+                        'Receptor' => array(
+                                'RUTRecep'    => $rut,
+                                'RznSocRecep' => $razon,
+                                'GiroRecep'   => $giro,
+                        ),
+                        'Detalles' => $items,
+                );
+                if ( '' !== $dir_recep ) {
+                        $data['Receptor']['DirRecep'] = $dir_recep; }
+                if ( '' !== $cmna_recep ) {
+                        $data['Receptor']['CmnaRecep'] = $cmna_recep; }
+                if ( '' !== $ciudad_recep ) {
+                        $data['Receptor']['CiudadRecep'] = $ciudad_recep; }
+                if ( '' !== $correo_recep ) {
+                        $data['Receptor']['CorreoRecep'] = $correo_recep; }
+                if ( '' !== $contacto_recep ) {
+                        $data['Receptor']['Contacto'] = $contacto_recep; }
 
-		// Reference data for credit/debit notes
-		if ( in_array( $tipo, array( 56, 61, 111, 112 ), true ) ) {
-				$ref_tipo  = (int) ( $post['ref_tipo'] ?? 0 );
-				$ref_folio = trim( (string) ( $post['ref_folio'] ?? '' ) );
-				$ref_fecha = trim( (string) ( $post['ref_fecha'] ?? '' ) );
-				$ref_razon = sanitize_text_field( (string) ( $post['ref_razon'] ?? '' ) );
-			if ( '' !== $ref_folio ) {
-							$ref = array(
-								'TpoDocRef' => 0 !== $ref_tipo ? $ref_tipo : 39,
-								'FolioRef'  => $ref_folio,
-							);
-							if ( '' !== $ref_fecha ) {
-								$ref['FchRef'] = $ref_fecha; }
-							if ( '' !== $ref_razon ) {
-								$ref['RazonRef'] = $ref_razon; }
-							$data['Referencias'] = array( $ref );
-			}
-		}
+                $encabezado = array(
+                        'IdDoc'    => array(
+                                'TipoDTE' => $tipo,
+                                'Folio'   => $folio,
+                                'FchEmis' => $data['FchEmis'],
+                        ),
+                        'Receptor' => $data['Receptor'],
+                );
+
+                if ( '' !== $giro_emisor ) {
+                        $encabezado['Emisor'] = array(
+                                'GiroEmisor' => $giro_emisor,
+                                'GiroEmis'   => $giro_emisor,
+                        );
+                }
+
+                if ( '' !== $fma_pago ) {
+                        $encabezado['IdDoc']['FmaPago'] = $fma_pago; }
+                if ( '' !== $term_pago_glosa ) {
+                        $encabezado['IdDoc']['TermPagoGlosa'] = $term_pago_glosa; }
+                if ( '' !== $fch_venc ) {
+                        $encabezado['IdDoc']['FchVenc'] = $fch_venc; }
+                if ( '' !== $ind_servicio ) {
+                        $encabezado['IdDoc']['IndServicio'] = $ind_servicio; }
+
+                $data['Encabezado'] = $encabezado;
+
+                if ( '' !== $dsc_global_mov && '' !== $dsc_global_tipo && $dsc_global_val > 0 ) {
+                        $valor_dr = ( '%' === $dsc_global_tipo ) ? $dsc_global_val : (int) round( $dsc_global_val );
+                        $data['DscRcgGlobal'] = array(
+                                'TpoMov'   => $dsc_global_mov,
+                                'TpoValor' => $dsc_global_tipo,
+                                'ValorDR'  => $valor_dr,
+                        );
+                }
+
+                $references = array();
+                if ( isset( $post['references'] ) && is_array( $post['references'] ) ) {
+                        foreach ( $post['references'] as $reference ) {
+                                if ( ! is_array( $reference ) ) {
+                                        continue;
+                                }
+                                $ref_tipo  = isset( $reference['tipo'] ) ? (int) $reference['tipo'] : 0;
+                                $ref_folio = isset( $reference['folio'] ) ? trim( (string) $reference['folio'] ) : '';
+                                $ref_fecha = isset( $reference['fecha'] ) ? trim( (string) $reference['fecha'] ) : '';
+                                $ref_razon = isset( $reference['razon'] ) ? sanitize_text_field( (string) $reference['razon'] ) : '';
+                                $ref_global = ! empty( $reference['global'] );
+
+                                if ( 0 === $ref_tipo && '' === $ref_folio && '' === $ref_fecha && '' === $ref_razon && ! $ref_global ) {
+                                        continue;
+                                }
+
+                                $entry = array();
+                                if ( 0 !== $ref_tipo ) {
+                                        $entry['TpoDocRef'] = $ref_tipo;
+                                }
+                                if ( '' !== $ref_folio || '0' === $ref_folio ) {
+                                        $entry['FolioRef'] = $ref_folio;
+                                }
+                                if ( '' !== $ref_fecha ) {
+                                        $entry['FchRef'] = $ref_fecha;
+                                }
+                                if ( '' !== $ref_razon ) {
+                                        $entry['RazonRef'] = $ref_razon;
+                                }
+                                if ( $ref_global ) {
+                                        $entry['IndGlobal'] = 1;
+                                }
+
+                                if ( ! empty( $entry ) ) {
+                                        $references[] = $entry;
+                                }
+                        }
+                }
+                if ( ! empty( $references ) ) {
+                        $data['Referencias'] = $references; }
 				$xml = $this->engine->generate_dte_xml( $data, $tipo, $preview );
 		if ( is_wp_error( $xml ) ) {
 				$code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';

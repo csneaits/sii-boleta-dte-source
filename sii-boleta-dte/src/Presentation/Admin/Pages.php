@@ -160,6 +160,7 @@ class Pages {
                                 'itemsPriceLabel'  => __( 'Unit Price', 'sii-boleta-dte' ),
                                 'itemsActionsLabel' => __( 'Actions', 'sii-boleta-dte' ),
                                 'itemsRemoveLabel' => __( 'Remove item', 'sii-boleta-dte' ),
+                                'referenceCodeLabel' => __( 'Reference code', 'sii-boleta-dte' ),
                             ),
                         )
                     );

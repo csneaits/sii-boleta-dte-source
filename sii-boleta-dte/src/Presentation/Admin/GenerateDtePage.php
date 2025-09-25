@@ -105,12 +105,15 @@ class GenerateDtePage {
                                 $i0retained_indicator = isset( $item0['retained_indicator'] ) ? esc_attr( (string) $item0['retained_indicator'] ) : '';
                                 $current_fma_pago     = isset( $_POST['fma_pago'] ) ? (string) $_POST['fma_pago'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                                 $current_ind_servicio = isset( $_POST['ind_servicio'] ) ? (string) $_POST['ind_servicio'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $current_tipo_despacho = isset( $_POST['tipo_despacho'] ) ? (string) $_POST['tipo_despacho'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                $current_ind_traslado  = isset( $_POST['ind_traslado'] ) ? (string) $_POST['ind_traslado'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                                 $current_dsc_mov      = isset( $_POST['dsc_global_mov'] ) ? (string) $_POST['dsc_global_mov'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                                 $current_dsc_tipo     = isset( $_POST['dsc_global_tipo'] ) ? (string) $_POST['dsc_global_tipo'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                                 $ref0                 = isset( $_POST['references'][0] ) && is_array( $_POST['references'][0] ) ? (array) $_POST['references'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
                                 $ref0_tipo            = isset( $ref0['tipo'] ) ? esc_attr( (string) $ref0['tipo'] ) : '';
                                 $ref0_folio           = isset( $ref0['folio'] ) ? esc_attr( (string) $ref0['folio'] ) : '';
                                 $ref0_fecha           = isset( $ref0['fecha'] ) ? esc_attr( (string) $ref0['fecha'] ) : '';
+                                $ref0_codref          = isset( $ref0['codref'] ) ? esc_attr( (string) $ref0['codref'] ) : '';
                                 $ref0_razon           = isset( $ref0['razon'] ) ? esc_attr( (string) $ref0['razon'] ) : '';
                 $ref0_global          = isset( $ref0['global'] ) ? '1' : '';
                 $ref0_global_attr     = function_exists( 'checked' )
@@ -244,7 +247,64 @@ class GenerateDtePage {
 														<th scope="row"><label for="sii-ciudad-recep"><?php esc_html_e( 'Ciudad Receptor', 'sii-boleta-dte' ); ?></label></th>
                                                                                                                 <td><input type="text" id="sii-ciudad-recep" name="ciudad_recep" class="regular-text" value="<?php echo $val( 'ciudad_recep' ); ?>" /></td>
                                                                                                         </tr>
-                                                                                                        <tr class="dte-section" data-types="33" style="display:none">
+                                                                                                        <tr class="dte-section" data-types="52" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-tipo-despacho"><?php esc_html_e( 'Tipo de despacho', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <select id="sii-tipo-despacho" name="tipo_despacho">
+                                                                                                                                <option value="">—</option>
+                                                                                                                                <option value="1" <?php selected( $current_tipo_despacho, '1', true ); ?>><?php esc_html_e( 'Por cuenta del vendedor', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="2" <?php selected( $current_tipo_despacho, '2', true ); ?>><?php esc_html_e( 'Por cuenta del comprador', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="3" <?php selected( $current_tipo_despacho, '3', true ); ?>><?php esc_html_e( 'Por cuenta de un tercero', 'sii-boleta-dte' ); ?></option>
+                                                                                                                        </select>
+                                                                                                                        <p class="description"><?php esc_html_e( 'Indica quién realiza el despacho cuando la guía acompaña mercaderías.', 'sii-boleta-dte' ); ?></p>
+                                                                                                                </td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="52" style="display:none">
+                                                                                                                <th scope="row"><label for="sii-ind-traslado"><?php esc_html_e( 'Indicador de traslado', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
+                                                                                                                        <select id="sii-ind-traslado" name="ind_traslado" required>
+                                                                                                                                <option value="">—</option>
+                                                                                                                                <option value="1" <?php selected( $current_ind_traslado, '1', true ); ?>><?php esc_html_e( 'Constituye venta', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="2" <?php selected( $current_ind_traslado, '2', true ); ?>><?php esc_html_e( 'Venta por efectuar', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="4" <?php selected( $current_ind_traslado, '4', true ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="5" <?php selected( $current_ind_traslado, '5', true ); ?>><?php esc_html_e( 'Traslado interno', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                <option value="7" <?php selected( $current_ind_traslado, '7', true ); ?>><?php esc_html_e( 'Guía de devolución', 'sii-boleta-dte' ); ?></option>
+                                                                                                                        </select>
+                                                                                                                        <p class="description"><?php esc_html_e( 'Define el motivo del movimiento de mercancías.', 'sii-boleta-dte' ); ?></p>
+                                                                                                                </td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="52" style="display:none">
+                                                                                                                <th scope="row"><?php esc_html_e( 'Datos de transporte', 'sii-boleta-dte' ); ?></th>
+                                                                                                                <td>
+                                                                                                                        <div class="sii-generate-grid">
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Patente del vehículo', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_patente" value="<?php echo $val( 'transporte_patente' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'RUT transportista', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_rut" value="<?php echo $val( 'transporte_rut' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'RUT chofer', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_chofer_rut" value="<?php echo $val( 'transporte_chofer_rut' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Nombre chofer', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_chofer_nombre" value="<?php echo $val( 'transporte_chofer_nombre' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Dirección destino', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_dir_dest" value="<?php echo $val( 'transporte_dir_dest' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                                <label>
+                                                                                                                                        <span><?php esc_html_e( 'Comuna destino', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                        <input type="text" name="transporte_cmna_dest" value="<?php echo $val( 'transporte_cmna_dest' ); ?>" />
+                                                                                                                                </label>
+                                                                                                                        </div>
+                                                                                                                </td>
+                                                                                                        </tr>
+                                                                                                        <tr class="dte-section" data-types="33,52" style="display:none">
                                                                                                                 <th scope="row"><label for="sii-fma-pago"><?php esc_html_e( 'Condiciones de pago', 'sii-boleta-dte' ); ?></label></th>
                                                                                                                 <td>
                                                                                                                         <div class="sii-generate-grid">
@@ -403,6 +463,7 @@ class GenerateDtePage {
                                                                                 <th><?php esc_html_e( 'Tipo', 'sii-boleta-dte' ); ?></th>
                                                                                 <th><?php esc_html_e( 'Folio', 'sii-boleta-dte' ); ?></th>
                                                                                 <th><?php esc_html_e( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                                                                                <th><?php esc_html_e( 'Código ref.', 'sii-boleta-dte' ); ?></th>
                                                                                 <th><?php esc_html_e( 'Razón / glosa', 'sii-boleta-dte' ); ?></th>
                                                                                 <th><?php esc_html_e( 'Global', 'sii-boleta-dte' ); ?></th>
                                                                                 <th></th>
@@ -422,6 +483,18 @@ class GenerateDtePage {
                                                                                 </td>
                                                                                 <td data-label="<?php esc_attr_e( 'Folio', 'sii-boleta-dte' ); ?>"><input type="number" name="references[0][folio]" data-ref-field="folio" value="<?php echo $ref0_folio; ?>" step="1" /></td>
                                                                                 <td data-label="<?php esc_attr_e( 'Fecha', 'sii-boleta-dte' ); ?>"><input type="date" name="references[0][fecha]" data-ref-field="fecha" value="<?php echo $ref0_fecha; ?>" /></td>
+                                                                                <td data-label="<?php esc_attr_e( 'Código ref.', 'sii-boleta-dte' ); ?>">
+                                                                                        <select name="references[0][codref]" data-ref-field="codref">
+                                                                                                <option value="">—</option>
+                                                                                                <option value="1" <?php selected( $ref0_codref, '1', true ); ?>><?php esc_html_e( 'Anula documento de referencia', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="2" <?php selected( $ref0_codref, '2', true ); ?>><?php esc_html_e( 'Corrige texto documento ref.', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="3" <?php selected( $ref0_codref, '3', true ); ?>><?php esc_html_e( 'Corrige montos', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="4" <?php selected( $ref0_codref, '4', true ); ?>><?php esc_html_e( 'Deja sin efecto parcialmente', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="5" <?php selected( $ref0_codref, '5', true ); ?>><?php esc_html_e( 'Corrige montos en más', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="6" <?php selected( $ref0_codref, '6', true ); ?>><?php esc_html_e( 'Corrige montos en menos', 'sii-boleta-dte' ); ?></option>
+                                                                                                <option value="7" <?php selected( $ref0_codref, '7', true ); ?>><?php esc_html_e( 'Referencia a otro DTE', 'sii-boleta-dte' ); ?></option>
+                                                                                        </select>
+                                                                                </td>
                                                                                 <td data-label="<?php esc_attr_e( 'Razón / glosa', 'sii-boleta-dte' ); ?>"><input type="text" name="references[0][razon]" data-ref-field="razon" value="<?php echo $ref0_razon; ?>" /></td>
                                                                                 <td data-label="<?php esc_attr_e( 'Global', 'sii-boleta-dte' ); ?>" class="sii-ref-checkbox">
                                                                                         <label>
@@ -525,9 +598,62 @@ class GenerateDtePage {
 		} elseif ( $requires_rut ) {
 				return array( 'error' => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ) );
 		}
-                                $dir_recep       = sanitize_text_field( (string) ( $post['dir_recep'] ?? '' ) );
-                                $cmna_recep      = sanitize_text_field( (string) ( $post['cmna_recep'] ?? '' ) );
-                                $ciudad_recep    = sanitize_text_field( (string) ( $post['ciudad_recep'] ?? '' ) );
+                $dir_recep       = sanitize_text_field( (string) ( $post['dir_recep'] ?? '' ) );
+                $cmna_recep      = sanitize_text_field( (string) ( $post['cmna_recep'] ?? '' ) );
+                $ciudad_recep    = sanitize_text_field( (string) ( $post['ciudad_recep'] ?? '' ) );
+                $tipo_despacho   = isset( $post['tipo_despacho'] ) ? trim( (string) $post['tipo_despacho'] ) : '';
+                if ( ! in_array( $tipo_despacho, array( '1', '2', '3' ), true ) ) {
+                                $tipo_despacho = '';
+                }
+                if ( '' !== $tipo_despacho ) {
+                                $_POST['tipo_despacho'] = $tipo_despacho; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $ind_traslado = isset( $post['ind_traslado'] ) ? trim( (string) $post['ind_traslado'] ) : '';
+                if ( ! in_array( $ind_traslado, array( '1', '2', '4', '5', '7' ), true ) ) {
+                                $ind_traslado = '';
+                }
+                if ( '' !== $ind_traslado ) {
+                                $_POST['ind_traslado'] = $ind_traslado; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_patente = sanitize_text_field( (string) ( $post['transporte_patente'] ?? '' ) );
+                if ( '' !== $transporte_patente ) {
+                                $_POST['transporte_patente'] = $transporte_patente; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_rut_raw = isset( $post['transporte_rut'] ) ? (string) $post['transporte_rut'] : '';
+                $transporte_rut     = '';
+                if ( '' !== trim( $transporte_rut_raw ) ) {
+                        $normalized = $this->normalize_rut( $transporte_rut_raw );
+                        if ( '' === $normalized || ! $this->is_valid_rut( $normalized ) ) {
+                                                return array( 'error' => __( 'El RUT del transportista no es válido.', 'sii-boleta-dte' ) );
+                        }
+                        $transporte_rut               = $normalized;
+                        $_POST['transporte_rut'] = $transporte_rut; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_chofer_rut_raw = isset( $post['transporte_chofer_rut'] ) ? (string) $post['transporte_chofer_rut'] : '';
+                $transporte_chofer_rut     = '';
+                if ( '' !== trim( $transporte_chofer_rut_raw ) ) {
+                        $normalized = $this->normalize_rut( $transporte_chofer_rut_raw );
+                        if ( '' === $normalized || ! $this->is_valid_rut( $normalized ) ) {
+                                                return array( 'error' => __( 'El RUT del chofer no es válido.', 'sii-boleta-dte' ) );
+                        }
+                        $transporte_chofer_rut               = $normalized;
+                        $_POST['transporte_chofer_rut'] = $transporte_chofer_rut; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_chofer_nombre = sanitize_text_field( (string) ( $post['transporte_chofer_nombre'] ?? '' ) );
+                if ( '' !== $transporte_chofer_nombre ) {
+                                $_POST['transporte_chofer_nombre'] = $transporte_chofer_nombre; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_dir_dest = sanitize_text_field( (string) ( $post['transporte_dir_dest'] ?? '' ) );
+                if ( '' !== $transporte_dir_dest ) {
+                                $_POST['transporte_dir_dest'] = $transporte_dir_dest; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                $transporte_cmna_dest = sanitize_text_field( (string) ( $post['transporte_cmna_dest'] ?? '' ) );
+                if ( '' !== $transporte_cmna_dest ) {
+                                $_POST['transporte_cmna_dest'] = $transporte_cmna_dest; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                }
+                if ( 52 === $tipo && '' === $ind_traslado ) {
+                                return array( 'error' => __( 'Debes seleccionar el indicador de traslado para la guía de despacho.', 'sii-boleta-dte' ) );
+                }
                                 $fma_pago        = isset( $post['fma_pago'] ) ? trim( (string) $post['fma_pago'] ) : '';
                                 $term_pago_glosa = sanitize_text_field( (string) ( $post['term_pago_glosa'] ?? '' ) );
                                 $fch_venc        = trim( (string) ( $post['fch_venc'] ?? '' ) );
@@ -681,6 +807,40 @@ class GenerateDtePage {
                         );
                 }
 
+                if ( '' !== $tipo_despacho ) {
+                        $encabezado['IdDoc']['TipoDespacho'] = (int) $tipo_despacho;
+                }
+                if ( '' !== $ind_traslado ) {
+                        $encabezado['IdDoc']['IndTraslado'] = (int) $ind_traslado;
+                }
+
+                $transporte = array();
+                if ( '' !== $transporte_patente ) {
+                        $transporte['Patente'] = $transporte_patente;
+                }
+                if ( '' !== $transporte_rut ) {
+                        $transporte['RUTTrans'] = $transporte_rut;
+                }
+                $transporte_chofer = array();
+                if ( '' !== $transporte_chofer_nombre ) {
+                        $transporte_chofer['NombreChofer'] = $transporte_chofer_nombre;
+                }
+                if ( '' !== $transporte_chofer_rut ) {
+                        $transporte_chofer['RUTChofer'] = $transporte_chofer_rut;
+                }
+                if ( ! empty( $transporte_chofer ) ) {
+                        $transporte['Chofer'] = $transporte_chofer;
+                }
+                if ( '' !== $transporte_dir_dest ) {
+                        $transporte['DirDest'] = $transporte_dir_dest;
+                }
+                if ( '' !== $transporte_cmna_dest ) {
+                        $transporte['CmnaDest'] = $transporte_cmna_dest;
+                }
+                if ( ! empty( $transporte ) ) {
+                        $encabezado['Transporte'] = $transporte;
+                }
+
                 if ( '' !== $fma_pago ) {
                         $encabezado['IdDoc']['FmaPago'] = $fma_pago; }
                 if ( '' !== $term_pago_glosa ) {
@@ -703,7 +863,7 @@ class GenerateDtePage {
 
                 $references = array();
                 if ( isset( $post['references'] ) && is_array( $post['references'] ) ) {
-                        foreach ( $post['references'] as $reference ) {
+                        foreach ( $post['references'] as $ref_index => $reference ) {
                                 if ( ! is_array( $reference ) ) {
                                         continue;
                                 }
@@ -711,9 +871,16 @@ class GenerateDtePage {
                                 $ref_folio = isset( $reference['folio'] ) ? trim( (string) $reference['folio'] ) : '';
                                 $ref_fecha = isset( $reference['fecha'] ) ? trim( (string) $reference['fecha'] ) : '';
                                 $ref_razon = isset( $reference['razon'] ) ? sanitize_text_field( (string) $reference['razon'] ) : '';
+                                $ref_codref = isset( $reference['codref'] ) ? trim( (string) $reference['codref'] ) : '';
+                                if ( ! in_array( $ref_codref, array( '1', '2', '3', '4', '5', '6', '7' ), true ) ) {
+                                        $ref_codref = '';
+                                }
+                                if ( isset( $_POST['references'][ $ref_index ] ) && is_array( $_POST['references'][ $ref_index ] ) ) {
+                                        $_POST['references'][ $ref_index ]['codref'] = $ref_codref; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                                }
                                 $ref_global = ! empty( $reference['global'] );
 
-                                if ( 0 === $ref_tipo && '' === $ref_folio && '' === $ref_fecha && '' === $ref_razon && ! $ref_global ) {
+                                if ( 0 === $ref_tipo && '' === $ref_folio && '' === $ref_fecha && '' === $ref_codref && '' === $ref_razon && ! $ref_global ) {
                                         continue;
                                 }
 
@@ -726,6 +893,9 @@ class GenerateDtePage {
                                 }
                                 if ( '' !== $ref_fecha ) {
                                         $entry['FchRef'] = $ref_fecha;
+                                }
+                                if ( '' !== $ref_codref ) {
+                                        $entry['CodRef'] = $ref_codref;
                                 }
                                 if ( '' !== $ref_razon ) {
                                         $entry['RazonRef'] = $ref_razon;

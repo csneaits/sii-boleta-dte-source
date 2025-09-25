@@ -265,10 +265,12 @@ class GenerateDtePage {
                                                                                                                         <select id="sii-ind-traslado" name="ind_traslado" required>
                                                                                                                                 <option value="">—</option>
                                                                                                                                 <option value="1" <?php selected( $current_ind_traslado, '1', true ); ?>><?php esc_html_e( 'Constituye venta', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                <option value="2" <?php selected( $current_ind_traslado, '2', true ); ?>><?php esc_html_e( 'Venta por efectuar', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                <option value="4" <?php selected( $current_ind_traslado, '4', true ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                <option value="5" <?php selected( $current_ind_traslado, '5', true ); ?>><?php esc_html_e( 'Traslado interno', 'sii-boleta-dte' ); ?></option>
-                                                                                                                                <option value="7" <?php selected( $current_ind_traslado, '7', true ); ?>><?php esc_html_e( 'Guía de devolución', 'sii-boleta-dte' ); ?></option>
+<option value="2" <?php selected( $current_ind_traslado, '2', true ); ?>><?php esc_html_e( 'Venta por efectuar', 'sii-boleta-dte' ); ?></option>
+<option value="3" <?php selected( $current_ind_traslado, '3', true ); ?>><?php esc_html_e( 'Consignación', 'sii-boleta-dte' ); ?></option>
+<option value="4" <?php selected( $current_ind_traslado, '4', true ); ?>><?php esc_html_e( 'Entrega gratuita', 'sii-boleta-dte' ); ?></option>
+<option value="5" <?php selected( $current_ind_traslado, '5', true ); ?>><?php esc_html_e( 'Traslado interno', 'sii-boleta-dte' ); ?></option>
+<option value="6" <?php selected( $current_ind_traslado, '6', true ); ?>><?php esc_html_e( 'Otros traslados no venta', 'sii-boleta-dte' ); ?></option>
+<option value="7" <?php selected( $current_ind_traslado, '7', true ); ?>><?php esc_html_e( 'Guía de devolución', 'sii-boleta-dte' ); ?></option>
                                                                                                                         </select>
                                                                                                                         <p class="description"><?php esc_html_e( 'Define el motivo del movimiento de mercancías.', 'sii-boleta-dte' ); ?></p>
                                                                                                                 </td>
@@ -609,7 +611,7 @@ class GenerateDtePage {
                                 $_POST['tipo_despacho'] = $tipo_despacho; // phpcs:ignore WordPress.Security.NonceVerification.Missing
                 }
                 $ind_traslado = isset( $post['ind_traslado'] ) ? trim( (string) $post['ind_traslado'] ) : '';
-                if ( ! in_array( $ind_traslado, array( '1', '2', '4', '5', '7' ), true ) ) {
+                if ( ! in_array( $ind_traslado, array( '1', '2', '3', '4', '5', '6', '7' ), true ) ) {
                                 $ind_traslado = '';
                 }
                 if ( '' !== $ind_traslado ) {

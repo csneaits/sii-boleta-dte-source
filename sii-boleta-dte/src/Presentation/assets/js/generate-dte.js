@@ -257,9 +257,13 @@
             var desc = row.querySelector('input[data-field="desc"]');
             var qty = row.querySelector('input[data-field="qty"]');
             var price = row.querySelector('input[data-field="price"]');
+            var discountPct = row.querySelector('input[data-field="discount_pct"]');
+            var discountAmount = row.querySelector('input[data-field="discount_amount"]');
             if(!desc){return;}
             enhanceNumberField(qty);
             enhanceNumberField(price);
+            enhanceNumberField(discountPct);
+            enhanceNumberField(discountAmount);
             var listId = 'sii-prod-' + Math.random().toString(36).slice(2);
             var dl = document.createElement('datalist');
             dl.id = listId;
@@ -325,11 +329,10 @@
             if (!tableBody){ return; }
             var rows = tableBody.querySelectorAll('tr');
             Array.prototype.forEach.call(rows, function(row, index){
-                ['desc','qty','price'].forEach(function(field){
-                    var input = row.querySelector('input[data-field="' + field + '"]');
-                    if (input){
-                        input.name = 'items[' + index + '][' + field + ']';
-                    }
+                row.querySelectorAll('[data-field]').forEach(function(input){
+                    var field = input.getAttribute('data-field');
+                    if (!field){ return; }
+                    input.name = 'items[' + index + '][' + field + ']';
                 });
             });
         }
@@ -342,10 +345,36 @@
             var priceLabel = escapeAttribute(getText('itemsPriceLabel', 'Precio unitario'));
             var actionsLabel = escapeAttribute(getText('itemsActionsLabel', 'Acciones'));
             var removeLabel = escapeAttribute(getText('itemsRemoveLabel', 'Eliminar ítem'));
-            row.innerHTML = '<td data-label="' + descLabel + '"><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></td>'+
-                            '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+
-                            '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>'+
-                            '<td data-label="' + actionsLabel + '"><button type="button" class="button remove-item" aria-label="' + removeLabel + '">×</button></td>';
+            var advancedSummary = escapeAttribute(getText('itemsAdvancedSummary', 'Opciones avanzadas del ítem'));
+            var codeTypeLabel = escapeAttribute(getText('itemsCodeTypeLabel', 'Tipo de código'));
+            var codeValueLabel = escapeAttribute(getText('itemsCodeValueLabel', 'Código'));
+            var extraDescLabel = escapeAttribute(getText('itemsExtraDescLabel', 'Descripción adicional'));
+            var unitLabel = escapeAttribute(getText('itemsUnitLabel', 'Unidad del ítem'));
+            var unitRefLabel = escapeAttribute(getText('itemsUnitRefLabel', 'Unidad de referencia'));
+            var discountPctLabel = escapeAttribute(getText('itemsDiscountPctLabel', 'Descuento %'));
+            var discountAmtLabel = escapeAttribute(getText('itemsDiscountAmtLabel', 'Descuento $'));
+            var taxCodeLabel = escapeAttribute(getText('itemsTaxCodeLabel', 'Impuesto adicional'));
+            var retainerLabel = escapeAttribute(getText('itemsRetainerLabel', 'Indicador retenedor'));
+            row.innerHTML = '<td data-label="' + descLabel + '">' +
+                                '<input type="text" data-field="desc" name="items[][desc]" class="regular-text" />' +
+                                '<details class="sii-item-advanced dte-section" data-types="33,34,43,46,52,56,61,110,111,112" style="display:none">' +
+                                        '<summary>' + advancedSummary + '</summary>' +
+                                        '<div class="sii-item-advanced-grid">' +
+                                                '<label><span>' + codeTypeLabel + '</span><input type="text" data-field="code_type" name="items[][code_type]" /></label>' +
+                                                '<label><span>' + codeValueLabel + '</span><input type="text" data-field="code_value" name="items[][code_value]" /></label>' +
+                                                '<label class="sii-item-advanced-wide"><span>' + extraDescLabel + '</span><textarea data-field="extra_desc" name="items[][extra_desc]" rows="3"></textarea></label>' +
+                                                '<label><span>' + unitLabel + '</span><input type="text" data-field="unit_item" name="items[][unit_item]" /></label>' +
+                                                '<label><span>' + unitRefLabel + '</span><input type="text" data-field="unit_ref" name="items[][unit_ref]" /></label>' +
+                                                '<label><span>' + discountPctLabel + '</span><input type="number" data-field="discount_pct" name="items[][discount_pct]" value="0" step="0.01" data-increment="0.1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                                '<label><span>' + discountAmtLabel + '</span><input type="number" data-field="discount_amount" name="items[][discount_amount]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                                '<label><span>' + taxCodeLabel + '</span><input type="text" data-field="tax_code" name="items[][tax_code]" /></label>' +
+                                                '<label><span>' + retainerLabel + '</span><input type="text" data-field="retained_indicator" name="items[][retained_indicator]" /></label>' +
+                                        '</div>' +
+                                '</details>' +
+                        '</td>' +
+                        '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
+                        '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
+                        '<td data-label="' + actionsLabel + '"><button type="button" class="button remove-item" aria-label="' + removeLabel + '">×</button></td>';
            tableBody.appendChild(row);
            initRow(row);
             renumberRows();
@@ -408,6 +437,81 @@
                     renumberRows();
                 }
             });
+        }
+
+        var refTable = document.getElementById('sii-ref-table');
+        var refBody = refTable ? (refTable.tBodies && refTable.tBodies[0] ? refTable.tBodies[0] : refTable.appendChild(document.createElement('tbody'))) : null;
+        var addRefBtn = document.getElementById('sii-add-reference');
+
+        function renumberReferences(){
+            if (!refBody){ return; }
+            var rows = refBody.querySelectorAll('tr');
+            Array.prototype.forEach.call(rows, function(row, index){
+                row.setAttribute('data-ref-row', index);
+                row.querySelectorAll('[data-ref-field]').forEach(function(input){
+                    var field = input.getAttribute('data-ref-field');
+                    if (!field){ return; }
+                    input.name = 'references[' + index + '][' + field + ']';
+                });
+            });
+        }
+
+        function clearReferenceRow(row){
+            row.querySelectorAll('[data-ref-field]').forEach(function(input){
+                if (input.type === 'checkbox'){
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+        }
+
+        function addReferenceRow(){
+            if (!refBody){ return; }
+            var row = document.createElement('tr');
+            var typeLabel = escapeAttribute(getText('referenceTypeLabel', 'Tipo'));
+            var folioLabel = escapeAttribute(getText('referenceFolioLabel', 'Folio'));
+            var dateLabel = escapeAttribute(getText('referenceDateLabel', 'Fecha'));
+            var reasonLabel = escapeAttribute(getText('referenceReasonLabel', 'Razón / glosa'));
+            var globalLabel = escapeAttribute(getText('referenceGlobalLabel', 'Global'));
+            var actionsLabelRef = escapeAttribute(getText('referenceActionsLabel', 'Acciones'));
+            var removeLabel = escapeAttribute(getText('referenceRemoveLabel', 'Eliminar referencia'));
+            row.innerHTML = '<td data-label="' + typeLabel + '"><select data-ref-field="tipo" name="references[][tipo]">' +
+                    '<option value="">—</option>' +
+                    '<option value="33">Factura</option>' +
+                    '<option value="34">Factura Exenta</option>' +
+                    '<option value="39">Boleta</option>' +
+                    '<option value="41">Boleta Exenta</option>' +
+                    '<option value="52">Guía de despacho</option>' +
+                '</select></td>' +
+                '<td data-label="' + folioLabel + '"><input type="number" data-ref-field="folio" name="references[][folio]" step="1" /></td>' +
+                '<td data-label="' + dateLabel + '"><input type="date" data-ref-field="fecha" name="references[][fecha]" /></td>' +
+                '<td data-label="' + reasonLabel + '"><input type="text" data-ref-field="razon" name="references[][razon]" /></td>' +
+                '<td data-label="' + globalLabel + '" class="sii-ref-checkbox"><label><input type="checkbox" data-ref-field="global" name="references[][global]" value="1" /><span class="screen-reader-text">' + globalLabel + '</span></label></td>' +
+                '<td data-label="' + actionsLabelRef + '"><button type="button" class="button remove-reference" aria-label="' + removeLabel + '">×</button></td>';
+            refBody.appendChild(row);
+            renumberReferences();
+        }
+
+        if (addRefBtn && refBody){
+            addRefBtn.addEventListener('click', function(event){
+                event.preventDefault();
+                addReferenceRow();
+            });
+            refBody.addEventListener('click', function(event){
+                if (event.target.classList.contains('remove-reference')){
+                    event.preventDefault();
+                    var row = event.target.closest('tr');
+                    if (!row){ return; }
+                    if (refBody.querySelectorAll('tr').length === 1){
+                        clearReferenceRow(row);
+                        return;
+                    }
+                    row.remove();
+                    renumberReferences();
+                }
+            });
+            renumberReferences();
         }
 
         var triggerPreview = null;

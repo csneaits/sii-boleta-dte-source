@@ -157,10 +157,29 @@ class Woo {
                         return;
                 }
 
+                $preview_mode = $this->should_preview_only();
+
                 $engine = $this->plugin->get_engine();
-                $xml    = $engine->generate_dte_xml( $data, $document_type );
+                $xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );
                 if ( ! is_string( $xml ) || '' === trim( $xml ) ) {
                         $this->add_order_note( $order, __( 'No fue posible generar el XML del documento tributario.', 'sii-boleta-dte' ) );
+                        return;
+                }
+
+                if ( $preview_mode ) {
+                        $pdf_generator = $this->plugin->get_pdf_generator();
+                        $pdf           = $pdf_generator->generate( $xml );
+                        if ( ! is_string( $pdf ) || '' === $pdf ) {
+                                $this->add_order_note( $order, __( 'No fue posible generar el PDF de previsualización.', 'sii-boleta-dte' ) );
+                                return;
+                        }
+
+                        if ( function_exists( 'update_post_meta' ) ) {
+                                update_post_meta( $order_id, $meta_prefix . '_pdf', $pdf );
+                                update_post_meta( $order_id, $meta_prefix . '_track_id', '' );
+                        }
+
+                        $this->add_order_note( $order, __( 'Se generó una previsualización del documento sin enviarlo al SII (modo prueba).', 'sii-boleta-dte' ) );
                         return;
                 }
 
@@ -367,6 +386,19 @@ class Woo {
                 if ( $order && method_exists( $order, 'add_order_note' ) ) {
                         $order->add_order_note( $message );
                 }
+        }
+
+        private function should_preview_only(): bool {
+                $settings = $this->plugin->get_settings();
+                if ( ! is_object( $settings ) ) {
+                        return false;
+                }
+
+                if ( method_exists( $settings, 'is_woocommerce_preview_only_enabled' ) ) {
+                        return (bool) $settings->is_woocommerce_preview_only_enabled();
+                }
+
+                return false;
         }
 }
 

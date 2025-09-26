@@ -32,6 +32,18 @@ class Settings {
         }
 
         /**
+         * Determines if WooCommerce orders should only generate preview PDFs while testing.
+         */
+        public function is_woocommerce_preview_only_enabled(): bool {
+                $settings = $this->get_settings();
+                if ( empty( $settings['woocommerce_preview_only'] ) ) {
+                        return false;
+                }
+
+                return '0' === $this->get_environment();
+        }
+
+        /**
          * Builds the option key used to persist the last used folio for a type.
          */
         public static function last_folio_option_key( int $type, string $environment ): string {

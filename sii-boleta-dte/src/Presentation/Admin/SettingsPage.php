@@ -46,7 +46,8 @@ class SettingsPage {
 		// Environment and document types.
 		add_settings_section( 'sii_boleta_env', __( 'Environment', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
 		add_settings_field( 'environment', __( 'Environment', 'sii-boleta-dte' ), array( $this, 'field_environment' ), 'sii-boleta-dte', 'sii_boleta_env' );
-		add_settings_field( 'enabled_types', __( 'Enabled DTE Types', 'sii-boleta-dte' ), array( $this, 'field_enabled_types' ), 'sii-boleta-dte', 'sii_boleta_env' );
+                add_settings_field( 'enabled_types', __( 'Enabled DTE Types', 'sii-boleta-dte' ), array( $this, 'field_enabled_types' ), 'sii-boleta-dte', 'sii_boleta_env' );
+                add_settings_field( 'woocommerce_preview_only', __( 'WooCommerce test preview', 'sii-boleta-dte' ), array( $this, 'field_woocommerce_preview_only' ), 'sii-boleta-dte', 'sii_boleta_env' );
 
 		// PDF Options.
 		add_settings_section( 'sii_boleta_pdf', __( 'PDF Options', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
@@ -157,18 +158,32 @@ class SettingsPage {
 		echo '</select>';
 	}
 
-	public function field_enabled_types(): void {
-		$settings = $this->settings->get_settings();
-		$enabled  = $settings['enabled_types'] ?? array();
-		$name     = esc_attr( Settings::OPTION_NAME ) . '[enabled_types]';
-		$types    = array(
+        public function field_enabled_types(): void {
+                $settings = $this->settings->get_settings();
+                $enabled  = $settings['enabled_types'] ?? array();
+                $name     = esc_attr( Settings::OPTION_NAME ) . '[enabled_types]';
+                $types    = array(
 			33 => __( 'Factura', 'sii-boleta-dte' ),
 			39 => __( 'Boleta', 'sii-boleta-dte' ),
 		);
 		foreach ( $types as $code => $label ) {
 			echo '<label><input type="checkbox" name="' . $name . '[' . esc_attr( (string) $code ) . ']" value="1"' . ( in_array( $code, $enabled, true ) ? ' checked' : '' ) . '/>' . esc_html( $label ) . '</label><br />';
-		}
-	}
+                }
+        }
+
+        public function field_woocommerce_preview_only(): void {
+                $settings    = $this->settings->get_settings();
+                $checked     = ! empty( $settings['woocommerce_preview_only'] );
+                $name        = esc_attr( Settings::OPTION_NAME ) . '[woocommerce_preview_only]';
+                $environment = $this->settings->get_environment();
+                $disabled    = '0' === $environment ? '' : ' disabled="disabled"';
+                echo '<label><input type="checkbox" name="' . $name . '" value="1"' . ( $checked ? ' checked' : '' ) . $disabled . ' /> ' . esc_html__( 'Skip SII submission for WooCommerce orders while testing', 'sii-boleta-dte' ) . '</label>';
+                if ( '0' === $environment ) {
+                        echo '<p class="description">' . esc_html__( 'Cuando está activo, los pedidos sólo generan un PDF de previsualización y no consumen folios ni se envían al SII.', 'sii-boleta-dte' ) . '</p>';
+                } else {
+                        echo '<p class="description">' . esc_html__( 'Disponible únicamente en el ambiente de certificación.', 'sii-boleta-dte' ) . '</p>';
+                }
+        }
 
 	public function field_pdf_format(): void {
 		$settings = $this->settings->get_settings();
@@ -313,8 +328,22 @@ class SettingsPage {
 	 * @return array<string,mixed>
 	 */
 	public function sanitize_settings( array $input ): array {
-			$current = function_exists( 'get_option' ) ? get_option( Settings::OPTION_NAME, array() ) : array();
-			$output  = is_array( $current ) ? $current : array();
+                        $current = function_exists( 'get_option' ) ? get_option( Settings::OPTION_NAME, array() ) : array();
+                        $output  = is_array( $current ) ? $current : array();
+
+                if ( isset( $output['environment'] ) ) {
+                        $saved_environment = Settings::normalize_environment( (string) $output['environment'] );
+                } else {
+                        $saved_environment = $this->settings->get_environment();
+                }
+
+                if ( isset( $input['environment'] ) ) {
+                        $requested_environment = Settings::normalize_environment( (string) $input['environment'] );
+                } else {
+                        $requested_environment = $saved_environment;
+                }
+
+                $output['woocommerce_preview_only'] = '0' === $requested_environment && ! empty( $input['woocommerce_preview_only'] ) ? 1 : 0;
 
 		if ( isset( $input['rut_emisor'] ) ) {
 			$rut = sanitize_text_field( $input['rut_emisor'] );

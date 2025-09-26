@@ -25,6 +25,15 @@
         var supportsAjax = typeof window.fetch === 'function' && typeof window.URLSearchParams !== 'undefined';
         var sendSubmit = form ? form.querySelector('input[type="submit"][name="submit"]') : null;
         var rutInput = document.getElementById('sii-rut');
+        var refTable = document.getElementById('sii-ref-table');
+        var refBody = refTable ? (refTable.tBodies && refTable.tBodies.length ? refTable.tBodies[0] : refTable.appendChild(document.createElement('tbody'))) : null;
+        var addRefBtn = document.getElementById('sii-add-reference');
+        var ncMotivoSelect = document.getElementById('sii-nc-motivo');
+        var ncReferenceHint = document.getElementById('sii-nc-reference-hint');
+        var ncZeroNotice = document.getElementById('sii-nc-zero-notice');
+        var ncGlobalNote = document.getElementById('sii-nc-global-note');
+        var tipsList = document.querySelector('.sii-generate-dte-tips');
+        var tipItems = tipsList ? tipsList.querySelectorAll('[data-tip-type]') : null;
 
         function getText(key, fallback){
             if (texts && typeof texts[key] === 'string' && texts[key]){
@@ -195,6 +204,195 @@
             });
 
             input.__siiEnhanced = true;
+        }
+
+        function isCreditNote(){
+            if (!tipoSelect){ return false; }
+            var current = parseInt(tipoSelect.value || '0', 10);
+            return current === 61;
+        }
+
+        function getNcMotivo(){
+            if (!ncMotivoSelect){ return ''; }
+            return ncMotivoSelect.value || '';
+        }
+
+        function getNcRequiredCode(){
+            var motive = getNcMotivo();
+            if (motive === 'anula'){ return '1'; }
+            if (motive === 'texto'){ return '2'; }
+            if (motive === 'montos'){ return '3'; }
+            return '';
+        }
+
+        function applyTextCorrectionLock(enable){
+            if (!tableBody){ return; }
+            Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), function(row){
+                var qtyInput = row.querySelector('input[data-field="qty"]');
+                var priceInput = row.querySelector('input[data-field="price"]');
+                if (qtyInput){
+                    if (enable){
+                        qtyInput.value = '1';
+                        qtyInput.setAttribute('readonly', 'readonly');
+                    } else {
+                        qtyInput.removeAttribute('readonly');
+                    }
+                }
+                if (priceInput){
+                    if (enable){
+                        priceInput.value = '0';
+                        priceInput.setAttribute('readonly', 'readonly');
+                    } else {
+                        priceInput.removeAttribute('readonly');
+                    }
+                }
+            });
+        }
+
+        function updateCreditNoteUi(){
+            var isNc = isCreditNote();
+            var motive = getNcMotivo();
+            if (isNc && ncMotivoSelect && !motive){
+                ncMotivoSelect.value = 'anula';
+                motive = 'anula';
+            }
+            var placeholder = form && form.dataset ? (form.dataset.ncReasonPlaceholder || '') : '';
+            if (ncReferenceHint){
+                var hints = {
+                    anula: ncReferenceHint.getAttribute('data-hint-anula') || '',
+                    texto: ncReferenceHint.getAttribute('data-hint-texto') || '',
+                    montos: ncReferenceHint.getAttribute('data-hint-montos') || ''
+                };
+                var hintMessage = hints[motive] || hints.anula || '';
+                if (isNc && hintMessage){
+                    ncReferenceHint.textContent = hintMessage;
+                    ncReferenceHint.style.display = '';
+                } else {
+                    ncReferenceHint.style.display = 'none';
+                }
+            }
+            if (ncGlobalNote){
+                ncGlobalNote.style.display = isNc ? '' : 'none';
+            }
+            if (ncZeroNotice){
+                ncZeroNotice.style.display = (isNc && motive === 'texto') ? '' : 'none';
+            }
+            if (refBody){
+                Array.prototype.forEach.call(refBody.querySelectorAll('tr'), function(row){
+                    var codref = row.querySelector('[data-ref-field="codref"]');
+                    var globalChk = row.querySelector('[data-ref-field="global"]');
+                    var reasonInput = row.querySelector('[data-ref-field="razon"]');
+                    var tipoField = row.querySelector('[data-ref-field="tipo"]');
+                    var folioField = row.querySelector('[data-ref-field="folio"]');
+                    var fechaField = row.querySelector('[data-ref-field="fecha"]');
+                    var hasCoreData = false;
+                    if (tipoField && tipoField.value){ hasCoreData = true; }
+                    if (folioField && folioField.value){ hasCoreData = true; }
+                    if (fechaField && fechaField.value){ hasCoreData = true; }
+                    if (codref){
+                        if (isNc){
+                            var requiredCode = getNcRequiredCode();
+                            if (requiredCode){
+                                codref.value = requiredCode;
+                            }
+                            codref.setAttribute('disabled', 'disabled');
+                        } else {
+                            codref.removeAttribute('disabled');
+                        }
+                    }
+                    if (globalChk){
+                        if (isNc){
+                            globalChk.checked = false;
+                            globalChk.setAttribute('disabled', 'disabled');
+                        } else {
+                            globalChk.removeAttribute('disabled');
+                        }
+                    }
+                    if (reasonInput){
+                        if (isNc && motive === 'texto'){
+                            if (placeholder){
+                                reasonInput.setAttribute('placeholder', placeholder);
+                            }
+                            if (hasCoreData){
+                                reasonInput.setAttribute('required', 'required');
+                            } else {
+                                reasonInput.removeAttribute('required');
+                            }
+                        } else {
+                            if (placeholder && reasonInput.getAttribute('placeholder') === placeholder){
+                                reasonInput.removeAttribute('placeholder');
+                            }
+                            reasonInput.removeAttribute('required');
+                        }
+                    }
+                });
+            }
+            applyTextCorrectionLock(isNc && motive === 'texto');
+        }
+
+        function updateTips(){
+            if (!tipItems || !tipItems.length){ return; }
+            var current = tipoSelect ? parseInt(tipoSelect.value || '0', 10) : 0;
+            Array.prototype.forEach.call(tipItems, function(item){
+                var attr = item.getAttribute('data-tip-type') || '';
+                if (!attr || attr === '*'){
+                    item.style.display = '';
+                    return;
+                }
+                var shouldShow = attr.split(',').some(function(part){
+                    var trimmed = part.trim();
+                    if (trimmed === '*'){ return true; }
+                    var parsed = parseInt(trimmed, 10);
+                    return !Number.isNaN(parsed) && parsed === current;
+                });
+                item.style.display = shouldShow ? '' : 'none';
+            });
+        }
+
+        function validateCreditNote(){
+            if (!isCreditNote()){ return true; }
+            if (!refBody){ return true; }
+            var rows = refBody.querySelectorAll('tr');
+            var hasReference = false;
+            var incomplete = false;
+            var missingReason = false;
+            var motive = getNcMotivo();
+            Array.prototype.forEach.call(rows, function(row){
+                var tipoField = row.querySelector('[data-ref-field="tipo"]');
+                var folioField = row.querySelector('[data-ref-field="folio"]');
+                var fechaField = row.querySelector('[data-ref-field="fecha"]');
+                var reasonField = row.querySelector('[data-ref-field="razon"]');
+                var tipoVal = tipoField ? tipoField.value.trim() : '';
+                var folioVal = folioField ? folioField.value.trim() : '';
+                var fechaVal = fechaField ? fechaField.value.trim() : '';
+                var reasonVal = reasonField ? reasonField.value.trim() : '';
+                if (!tipoVal && !folioVal && !fechaVal && !reasonVal){
+                    return;
+                }
+                hasReference = true;
+                if (!tipoVal || !folioVal || !fechaVal){
+                    incomplete = true;
+                }
+                if (motive === 'texto' && tipoVal && folioVal && fechaVal && !reasonVal){
+                    missingReason = true;
+                }
+            });
+            if (!hasReference){
+                var msgRequired = form && form.dataset ? form.dataset.ncRequired : '';
+                if (msgRequired){ showNotice('error', msgRequired); }
+                return false;
+            }
+            if (incomplete){
+                var msgIncomplete = form && form.dataset ? form.dataset.ncIncomplete : '';
+                if (msgIncomplete){ showNotice('error', msgIncomplete); }
+                return false;
+            }
+            if (missingReason){
+                var msgReason = form && form.dataset ? form.dataset.ncReason : '';
+                if (msgReason){ showNotice('error', msgReason); }
+                return false;
+            }
+            return true;
         }
 
         function showNotice(type, message, link){
@@ -412,22 +610,32 @@
                 });
             }
             validateRutField(false);
+            updateCreditNoteUi();
+            updateTips();
         }
 
         if (tipoSelect){
             tipoSelect.addEventListener('change', toggleSections);
             // Run on load
             toggleSections();
+            updateCreditNoteUi();
+            updateTips();
+        }
+
+        if (ncMotivoSelect){
+            ncMotivoSelect.addEventListener('change', updateCreditNoteUi);
         }
 
        if (tableBody){
             Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), initRow);
             renumberRows();
+            updateCreditNoteUi();
         }
        if (addBtn && tableBody){
             addBtn.addEventListener('click', function(e){
                 e.preventDefault();
                 addRow();
+                updateCreditNoteUi();
             });
             tableBody.addEventListener('click', function(e){
                 if (e.target.classList.contains('remove-item')){
@@ -435,13 +643,10 @@
                     var tr = e.target.closest('tr');
                     if (tr){ tr.remove(); }
                     renumberRows();
+                    updateCreditNoteUi();
                 }
             });
         }
-
-        var refTable = document.getElementById('sii-ref-table');
-        var refBody = refTable ? (refTable.tBodies && refTable.tBodies[0] ? refTable.tBodies[0] : refTable.appendChild(document.createElement('tbody'))) : null;
-        var addRefBtn = document.getElementById('sii-add-reference');
 
         function renumberReferences(){
             if (!refBody){ return; }
@@ -464,6 +669,7 @@
                     input.value = '';
                 }
             });
+            updateCreditNoteUi();
         }
 
         function addReferenceRow(){
@@ -493,12 +699,14 @@
                 '<td data-label="' + actionsLabelRef + '"><button type="button" class="button remove-reference" aria-label="' + removeLabel + '">×</button></td>';
             refBody.appendChild(row);
             renumberReferences();
+            updateCreditNoteUi();
         }
 
         if (addRefBtn && refBody){
             addRefBtn.addEventListener('click', function(event){
                 event.preventDefault();
                 addReferenceRow();
+                updateCreditNoteUi();
             });
             refBody.addEventListener('click', function(event){
                 if (event.target.classList.contains('remove-reference')){
@@ -507,13 +715,26 @@
                     if (!row){ return; }
                     if (refBody.querySelectorAll('tr').length === 1){
                         clearReferenceRow(row);
+                        updateCreditNoteUi();
                         return;
                     }
                     row.remove();
                     renumberReferences();
+                    updateCreditNoteUi();
                 }
             });
             renumberReferences();
+            updateCreditNoteUi();
+        }
+
+        if (refBody){
+            refBody.addEventListener('input', function(event){
+                var target = event && event.target ? event.target : null;
+                if (!target){ return; }
+                if (target.hasAttribute('data-ref-field')){
+                    updateCreditNoteUi();
+                }
+            });
         }
 
         var triggerPreview = null;
@@ -522,6 +743,10 @@
         if (form && previewSubmit && supportsAjax){
             triggerPreview = function(event, submitter){
                 if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)){
+                    return;
+                }
+                if (!validateCreditNote()){
+                    if (event){ event.preventDefault(); }
                     return;
                 }
                 if (event){ event.preventDefault(); }
@@ -601,6 +826,10 @@
         if (form && supportsAjax){
             triggerSend = function(event, submitter){
                 if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)){
+                    return;
+                }
+                if (!validateCreditNote()){
+                    if (event){ event.preventDefault(); }
                     return;
                 }
                 if (event){ event.preventDefault(); }
@@ -708,6 +937,10 @@
             form.addEventListener('submit', function(e){
                 var submitter = e.submitter || document.activeElement;
                 var isPreview = submitter && submitter.name === 'preview';
+                if (!validateCreditNote()){
+                    e.preventDefault();
+                    return;
+                }
                 if (!validateRutField(true)){
                     e.preventDefault();
                     return;

@@ -770,10 +770,14 @@ class GenerateDtePage {
 		$dsc_global_tipo                         = isset( $post['dsc_global_tipo'] ) ? substr( sanitize_text_field( (string) $post['dsc_global_tipo'] ), 0, 1 ) : '';
 		$dsc_global_raw                          = $post['dsc_global_valor'] ?? '';
 		$dsc_global_val                          = $this->parse_amount( $dsc_global_raw );
-		$dsc_global_ind_exe                      = isset( $post['dsc_global_ind_exe'] ) ? (int) $post['dsc_global_ind_exe'] : 0;
-		if ( ! in_array( $dsc_global_ind_exe, array( 1, 2 ), true ) ) {
-			$dsc_global_ind_exe = 0;
-		}
+                $has_dsc_global_ind_exe                  = array_key_exists( 'dsc_global_ind_exe', $post );
+                $dsc_global_ind_exe                      = $has_dsc_global_ind_exe ? (int) $post['dsc_global_ind_exe'] : 0;
+                if ( ! in_array( $dsc_global_ind_exe, array( 1, 2 ), true ) ) {
+                        $dsc_global_ind_exe = 0;
+                }
+                if ( 0 === $dsc_global_ind_exe && ! $has_dsc_global_ind_exe && in_array( $tipo, array( 34, 41 ), true ) ) {
+                        $dsc_global_ind_exe = 1;
+                }
 		$periodo_desde = isset( $post['periodo_desde'] ) ? sanitize_text_field( (string) $post['periodo_desde'] ) : '';
 		$periodo_hasta = isset( $post['periodo_hasta'] ) ? sanitize_text_field( (string) $post['periodo_hasta'] ) : '';
 		$cod_int_recep = isset( $post['cod_int_recep'] ) ? sanitize_text_field( (string) $post['cod_int_recep'] ) : '';

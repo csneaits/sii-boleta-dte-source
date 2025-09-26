@@ -6,6 +6,8 @@ use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use libredte\lib\Core\Application;
 
 class Ajax {
@@ -25,6 +27,122 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_send_document', array( $this, 'send_document' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_save_folio_range', array( $this, 'save_folio_range' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_delete_folio_range', array( $this, 'delete_folio_range' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_control_panel_data', array( $this, 'control_panel_data' ) );
+    }
+
+    public function control_panel_data(): void {
+        \check_ajax_referer( 'sii_boleta_control_panel', 'nonce' );
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+        }
+
+        $logs      = LogDb::get_logs( array( 'limit' => 5 ) );
+        $jobs      = QueueDb::get_pending_jobs();
+        $logs_html = $this->render_logs_rows( $logs );
+        $queue     = $this->render_queue_rows( $jobs );
+
+        \wp_send_json_success(
+            array(
+                'logsHtml'     => $logs_html,
+                'queueHtml'    => $queue['rows'],
+                'queueHasJobs' => $queue['has_jobs'],
+            )
+        );
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $logs Log rows.
+     */
+    private function render_logs_rows( array $logs ): string {
+        ob_start();
+        if ( empty( $logs ) ) {
+            echo '<tr class="sii-control-empty-row"><td colspan="2">' . esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ) . '</td></tr>';
+        } else {
+            foreach ( $logs as $row ) {
+                $track  = isset( $row['track_id'] ) ? (string) $row['track_id'] : '';
+                $status = isset( $row['status'] ) ? (string) $row['status'] : '';
+                echo '<tr>';
+                echo '<td>' . esc_html( $track ) . '</td>';
+                echo '<td>' . esc_html( $this->translate_log_status( $status ) ) . '</td>';
+                echo '</tr>';
+            }
+        }
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $jobs Queue items.
+     * @return array{rows:string,has_jobs:bool}
+     */
+    private function render_queue_rows( array $jobs ): array {
+        $has_jobs = ! empty( $jobs );
+        ob_start();
+        if ( ! $has_jobs ) {
+            echo '<tr class="sii-control-empty-row"><td colspan="4">' . esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ) . '</td></tr>';
+        } else {
+            foreach ( $jobs as $job ) {
+                $id        = isset( $job['id'] ) ? (int) $job['id'] : 0;
+                $type      = isset( $job['type'] ) ? (string) $job['type'] : '';
+                $attempts  = isset( $job['attempts'] ) ? (int) $job['attempts'] : 0;
+                echo '<tr>';
+                echo '<td>' . (int) $id . '</td>';
+                echo '<td>' . esc_html( $this->translate_queue_type( $type ) ) . '</td>';
+                echo '<td>' . (int) $attempts . '</td>';
+                echo '<td>' . $this->render_queue_actions( $id ) . '</td>';
+                echo '</tr>';
+            }
+        }
+        return array(
+            'rows'     => (string) ob_get_clean(),
+            'has_jobs' => $has_jobs,
+        );
+    }
+
+    private function render_queue_actions( int $id ): string {
+        $nonce = $this->nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' );
+        $id    = max( 0, $id );
+        $html  = '<form method="post" class="sii-inline-form">';
+        $html .= '<input type="hidden" name="job_id" value="' . $id . '" />';
+        $html .= $nonce;
+        $html .= '<button class="button" name="queue_action" value="process">' . esc_html__( 'Procesar', 'sii-boleta-dte' ) . '</button>';
+        $html .= '<button class="button" name="queue_action" value="requeue">' . esc_html__( 'Reintentar', 'sii-boleta-dte' ) . '</button>';
+        $html .= '<button class="button" name="queue_action" value="cancel">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</button>';
+        $html .= '</form>';
+        return $html;
+    }
+
+    private function nonce_field( string $action, string $name ): string {
+        if ( function_exists( 'wp_nonce_field' ) ) {
+            return (string) \wp_nonce_field( $action, $name, true, false );
+        }
+        $action_attr = htmlspecialchars( $action, ENT_QUOTES, 'UTF-8' );
+        $name_attr   = htmlspecialchars( $name, ENT_QUOTES, 'UTF-8' );
+        return '<input type="hidden" name="' . $name_attr . '" value="' . $action_attr . '" />';
+    }
+
+    private function translate_queue_type( string $type ): string {
+        $map = array(
+            'dte'   => __( 'DTE', 'sii-boleta-dte' ),
+            'libro' => __( 'Libro', 'sii-boleta-dte' ),
+            'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
+        );
+        return $map[ $type ] ?? $type;
+    }
+
+    private function translate_log_status( string $status ): string {
+        $normalized = strtolower( trim( $status ) );
+        $map        = array(
+            'accepted'   => __( 'Aceptado', 'sii-boleta-dte' ),
+            'sent'       => __( 'Enviado (en espera)', 'sii-boleta-dte' ),
+            'pending'    => __( 'Pendiente', 'sii-boleta-dte' ),
+            'rejected'   => __( 'Rechazado', 'sii-boleta-dte' ),
+            'processing' => __( 'Procesando', 'sii-boleta-dte' ),
+            'queued'     => __( 'En cola', 'sii-boleta-dte' ),
+            'failed'     => __( 'Fallido', 'sii-boleta-dte' ),
+            'error'      => __( 'Error', 'sii-boleta-dte' ),
+            'draft'      => __( 'Borrador', 'sii-boleta-dte' ),
+        );
+        return $map[ $normalized ] ?? $status;
     }
 
     public function save_folio_range(): void {

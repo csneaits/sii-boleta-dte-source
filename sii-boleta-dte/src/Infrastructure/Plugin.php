@@ -17,6 +17,8 @@ use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Presentation\Admin\Help;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\FacturaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
@@ -55,13 +57,18 @@ class Plugin {
 			$this->metrics        = $metrics ?? new Metrics();
 			$this->consumo_folios = $consumo_folios ?? new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
 
-		try {
-				$default_engine = new LibreDteEngine( $this->settings );
-		} catch ( \RuntimeException $e ) {
-				$this->libredte_missing = true;
-				$default_engine         = new NullEngine();
-		}
-			$this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
+                try {
+                                $default_engine = new LibreDteEngine( $this->settings );
+                                $this->register_document_factories( $default_engine );
+                } catch ( \RuntimeException $e ) {
+                                $this->libredte_missing = true;
+                                $default_engine         = new NullEngine();
+                }
+                        $this->engine = \apply_filters( 'sii_boleta_dte_engine', $default_engine );
+
+                if ( $this->engine instanceof LibreDteEngine && $this->engine !== $default_engine ) {
+                        $this->register_document_factories( $this->engine );
+                }
 
                         $this->pdf_generator   = new PdfGenerator( $this->engine, $this->settings );
                         $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
@@ -123,12 +130,27 @@ class Plugin {
                 return $profiles;
         }
 
-	public function fluent_smtp_setup_mailer( $phpmailer, $profile ) {
-		\do_action( 'fluentmail_before_sending_email', $phpmailer, $profile );
-	}
+        public function fluent_smtp_setup_mailer( $phpmailer, $profile ) {
+                \do_action( 'fluentmail_before_sending_email', $phpmailer, $profile );
+        }
 
-	public function add_environment_indicator( $wp_admin_bar ) {
-		if ( $this->libredte_missing ) {
+        private function register_document_factories( LibreDteEngine $engine ): void {
+                $templates_root = dirname( __DIR__, 2 ) . '/resources/yaml/';
+
+                $boleta_factory  = new BoletaDteDocumentFactory( $templates_root );
+                $factura_factory = new FacturaDteDocumentFactory( $templates_root );
+
+                foreach ( array( 39, 41 ) as $tipo_boleta ) {
+                        $engine->register_document_factory( $tipo_boleta, $boleta_factory );
+                }
+
+                foreach ( array( 33, 34, 46 ) as $tipo_factura ) {
+                        $engine->register_document_factory( $tipo_factura, $factura_factory );
+                }
+        }
+
+        public function add_environment_indicator( $wp_admin_bar ) {
+                if ( $this->libredte_missing ) {
 			$wp_admin_bar->add_node(
 				array(
 					'id'    => 'sii-boleta-env',

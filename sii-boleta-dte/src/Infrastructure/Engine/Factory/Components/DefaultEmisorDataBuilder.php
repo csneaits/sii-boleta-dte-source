@@ -2,7 +2,7 @@
 
 namespace Sii\BoletaDte\Infrastructure\Engine\Factory\Components;
 
-class DefaultEmisorDataBuilder implements EmisorDataBuilder {
+class DefaultEmisorDataBuilder implements EmisorDataBuilderInterface {
         public function build( array $payload, array $settings ): array {
                 $emisorData = array();
                 if ( isset( $payload['Encabezado']['Emisor'] ) && is_array( $payload['Encabezado']['Emisor'] ) ) {

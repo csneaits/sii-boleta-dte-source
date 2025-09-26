@@ -2,7 +2,7 @@
 
 namespace Sii\BoletaDte\Infrastructure\Engine\Factory\Components;
 
-class DefaultDetailNormalizer implements DetailNormalizer {
+class DefaultDetailNormalizer implements DetailNormalizerInterface {
         private SectionSanitizer $sectionSanitizer;
 
         public function __construct( SectionSanitizer $sectionSanitizer ) {

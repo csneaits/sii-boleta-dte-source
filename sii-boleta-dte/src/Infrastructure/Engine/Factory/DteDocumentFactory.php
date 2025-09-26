@@ -2,20 +2,23 @@
 
 namespace Sii\BoletaDte\Infrastructure\Engine\Factory;
 
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DetailNormalizer;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\EmisorDataBuilder;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\ReceptorSanitizer;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\TemplateLoader;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DetailNormalizerInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\EmisorDataBuilderInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\ReceptorSanitizerInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\TemplateLoaderInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\TotalsAdjusterInterface;
 
 /**
  * Abstract factory that groups the collaborators required to build a DTE.
  */
 interface DteDocumentFactory {
-        public function createTemplateLoader(): TemplateLoader;
+        public function createTemplateLoader(): TemplateLoaderInterface;
 
-        public function createDetailNormalizer(): DetailNormalizer;
+        public function createDetailNormalizer(): DetailNormalizerInterface;
 
-        public function createEmisorDataBuilder(): EmisorDataBuilder;
+        public function createEmisorDataBuilder(): EmisorDataBuilderInterface;
 
-        public function createReceptorSanitizer(): ReceptorSanitizer;
+        public function createReceptorSanitizer(): ReceptorSanitizerInterface;
+
+        public function createTotalsAdjuster(): TotalsAdjusterInterface;
 }

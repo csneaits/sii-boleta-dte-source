@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Engine\Xml;
 
-class VatInclusiveTotalsAdjuster implements XmlTotalsAdjuster {
+class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
         /**
          * @param array<int,array<string,mixed>> $detalle
          * @param array<int,array<string,mixed>> $globalDiscounts

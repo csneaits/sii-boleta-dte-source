@@ -594,6 +594,7 @@
            initRow(row);
             renumberRows();
             applyIndicatorDefaults();
+            toggleSections();
         }
         function applyIndicatorDefaults(){
             if (!tableBody){ return; }

@@ -142,7 +142,7 @@ $tabs = array(
 <table class="widefat striped">
 <thead>
 <tr>
-<th><?php echo esc_html__( 'ID de seguimiento', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
 </tr>
 </thead>
@@ -704,7 +704,7 @@ $this->add_notice( sprintf( __( 'Error al enviar el RVD: %s', 'sii-boleta-dte' )
 
 $message = __( 'RVD enviado correctamente.', 'sii-boleta-dte' );
 if ( '' !== $track ) {
-$message .= ' ' . sprintf( __( 'ID de seguimiento: %s', 'sii-boleta-dte' ), $track );
+                $message .= ' ' . sprintf( __( 'Track ID: %s', 'sii-boleta-dte' ), $track );
 		}
 
 		$this->add_notice( $message );

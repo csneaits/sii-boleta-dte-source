@@ -174,10 +174,8 @@ class Woo {
                                 return;
                         }
 
-                        if ( function_exists( 'update_post_meta' ) ) {
-                                update_post_meta( $order_id, $meta_prefix . '_pdf', $pdf );
-                                update_post_meta( $order_id, $meta_prefix . '_track_id', '' );
-                        }
+                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf', $pdf );
+                        $this->update_order_meta( $order_id, $meta_prefix . '_track_id', '' );
 
                         $this->add_order_note( $order, __( 'Se generó una previsualización del documento sin enviarlo al SII (modo prueba).', 'sii-boleta-dte' ) );
                         return;
@@ -202,16 +200,14 @@ class Woo {
                         $error_message = __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' );
                 }
 
-                if ( '' === $error_message && function_exists( 'update_post_meta' ) ) {
-                        update_post_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                if ( '' === $error_message ) {
+                        $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
                 }
 
                 $pdf_generator = $this->plugin->get_pdf_generator();
                 $pdf           = $pdf_generator->generate( $xml );
                 if ( is_string( $pdf ) && '' !== $pdf ) {
-                        if ( function_exists( 'update_post_meta' ) ) {
-                                update_post_meta( $order_id, $meta_prefix . '_pdf', $pdf );
-                        }
+                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf', $pdf );
                         $this->send_document_email( $order, $pdf, $document_type );
                 }
 
@@ -352,6 +348,23 @@ class Woo {
                 }
 
                 return $data;
+        }
+
+        private function update_order_meta( int $order_id, string $meta_key, $value ): void {
+                if ( function_exists( 'update_post_meta' ) ) {
+                        update_post_meta( $order_id, $meta_key, $value );
+                }
+
+                global $meta; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+                if ( ! is_array( $meta ) ) {
+                        $meta = array();
+                }
+
+                if ( ! isset( $meta[ $order_id ] ) || ! is_array( $meta[ $order_id ] ) ) {
+                        $meta[ $order_id ] = array();
+                }
+
+                $meta[ $order_id ][ $meta_key ] = $value;
         }
 
         private function send_document_email( $order, string $pdf_path, int $document_type ): void {

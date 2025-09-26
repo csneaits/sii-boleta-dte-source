@@ -7,9 +7,32 @@ if ( ! function_exists( 'add_action' ) ) { function add_action( $hook, $cb ) {} 
 if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
+if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
 if ( ! function_exists( 'update_post_meta' ) ) { function update_post_meta( $id, $key, $value ) { $GLOBALS['meta'][ $id ][ $key ] = $value; } }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $key, $single ) { return $GLOBALS['meta'][ $id ][ $key ] ?? ''; } }
+if ( ! function_exists( 'wp_upload_dir' ) ) {
+    function wp_upload_dir() {
+        return array(
+            'basedir' => sys_get_temp_dir(),
+            'baseurl' => 'https://example.com/wp-content/uploads',
+        );
+    }
+}
+if ( ! function_exists( 'wp_mkdir_p' ) ) {
+    function wp_mkdir_p( $dir ) {
+        if ( ! is_dir( $dir ) ) {
+            mkdir( $dir, 0777, true );
+        }
+        return true;
+    }
+}
+if ( ! function_exists( 'wp_mail' ) ) {
+    function wp_mail( $to, $subject, $message, $headers = array(), $attachments = array() ) {
+        $GLOBALS['mail'][] = compact( 'to', 'subject', 'message', 'headers', 'attachments' );
+        return true;
+    }
+}
 if ( ! function_exists( 'wc_get_order' ) ) {
     class DummyOrder {
         private $id;
@@ -24,6 +47,10 @@ if ( ! function_exists( 'wc_get_order' ) ) {
 
         public function get_order_number() {
             return (string) $this->id;
+        }
+
+        public function get_billing_email() {
+            return 'customer@example.com';
         }
 
         public function add_order_note( $message ) {
@@ -49,6 +76,7 @@ class WooIntegrationTest extends TestCase {
         parent::setUp();
         $GLOBALS['meta']  = array();
         $GLOBALS['notes'] = array();
+        $GLOBALS['mail']  = array();
     }
 
     public function test_generates_dte_and_saves_track_id(): void {
@@ -74,7 +102,19 @@ class WooIntegrationTest extends TestCase {
         $woo = new Woo( $plugin );
         $GLOBALS['meta'][1]['_sii_boleta_doc_type'] = '39';
         $woo->handle_order_completed( 1 );
-        $this->assertTrue( true );
+
+        $this->assertSame( 'T123', $GLOBALS['meta'][1]['_sii_boleta_track_id'] ?? null );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
+        $this->assertFileExists( $GLOBALS['meta'][1]['_sii_boleta_pdf_path'] );
+        $this->assertNotEmpty( $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
+        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
+
+        $this->assertNotEmpty( $GLOBALS['mail'] );
+        $email = $GLOBALS['mail'][0];
+        $this->assertSame( 'customer@example.com', $email['to'] );
+        $this->assertNotEmpty( $email['attachments'][0] ?? '' );
+        $this->assertFileExists( $email['attachments'][0] );
+        $this->assertStringContainsString( 'Documento tributario electrónico', $email['subject'] );
     }
 
     public function test_preview_mode_skips_sii_submission(): void {
@@ -106,8 +146,16 @@ class WooIntegrationTest extends TestCase {
         $woo->handle_order_completed( 1 );
 
         $this->assertSame( '', $GLOBALS['meta'][1]['_sii_boleta_track_id'] ?? null );
-        $this->assertSame( __FILE__, $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? null );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
+        $this->assertFileExists( $GLOBALS['meta'][1]['_sii_boleta_pdf_path'] );
+        $this->assertNotEmpty( $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
+        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
         $this->assertNotEmpty( $GLOBALS['notes'][1] ?? array() );
         $this->assertStringContainsString( 'previsualización', $GLOBALS['notes'][1][0] ?? '' );
+        $this->assertNotEmpty( $GLOBALS['mail'] );
+        $email = $GLOBALS['mail'][0];
+        $this->assertStringContainsString( 'Previsualización', $email['subject'] );
+        $this->assertNotEmpty( $email['attachments'][0] ?? '' );
+        $this->assertFileExists( $email['attachments'][0] );
     }
 }

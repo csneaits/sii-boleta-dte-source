@@ -479,26 +479,30 @@ class GenerateDtePage {
 <option value="2" <?php selected( $current_dsc_ind_exe, '2', true ); ?>><?php esc_html_e( 'No facturable', 'sii-boleta-dte' ); ?></option>
 </select>
 </label>
-<label>
-																								<span><?php esc_html_e( 'Tipo de código', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][code_type]" data-field="code_type" value="<?php echo $i0code_type; ?>" />
-																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Código', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][code_value]" data-field="code_value" value="<?php echo $i0code_value; ?>" />
-																						</label>
+                                            <label>
+                                                <span><?php esc_html_e( 'Tipo de código', 'sii-boleta-dte' ); ?></span>
+                                                <input type="text" name="items[0][code_type]" data-field="code_type" value="<?php echo $i0code_type; ?>" />
+                                                <p class="description"><?php esc_html_e( 'Ejemplo: SKU, EAN13 u otro identificador definido por tu negocio.', 'sii-boleta-dte' ); ?></p>
+                                            </label>
+                                            <label>
+                                                <span><?php esc_html_e( 'Código', 'sii-boleta-dte' ); ?></span>
+                                                <input type="text" name="items[0][code_value]" data-field="code_value" value="<?php echo $i0code_value; ?>" />
+                                                <p class="description"><?php esc_html_e( 'Ejemplo: 123456789 o el código que usas en tu sistema para el producto.', 'sii-boleta-dte' ); ?></p>
+                                            </label>
 																						<label class="sii-item-advanced-wide">
 																								<span><?php esc_html_e( 'Descripción adicional', 'sii-boleta-dte' ); ?></span>
 																								<textarea name="items[0][extra_desc]" data-field="extra_desc" rows="3"><?php echo $i0extra_desc; ?></textarea>
 																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Unidad del ítem', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][unit_item]" data-field="unit_item" value="<?php echo $i0unit_item; ?>" />
-																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Unidad de referencia', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][unit_ref]" data-field="unit_ref" value="<?php echo $i0unit_ref; ?>" />
-																						</label>
+                                            <label>
+                                                <span><?php esc_html_e( 'Unidad del ítem', 'sii-boleta-dte' ); ?></span>
+                                                <input type="text" name="items[0][unit_item]" data-field="unit_item" value="<?php echo $i0unit_item; ?>" />
+                                                <p class="description"><?php esc_html_e( 'Ejemplo: UND, KG, CAJA. Corresponde a cómo vendes el producto en la línea del documento.', 'sii-boleta-dte' ); ?></p>
+                                            </label>
+                                            <label>
+                                                <span><?php esc_html_e( 'Unidad de referencia', 'sii-boleta-dte' ); ?></span>
+                                                <input type="text" name="items[0][unit_ref]" data-field="unit_ref" value="<?php echo $i0unit_ref; ?>" />
+                                                <p class="description"><?php esc_html_e( 'Úsalo sólo si necesitas informar una unidad alternativa (por ejemplo, paquete de 12 UND).', 'sii-boleta-dte' ); ?></p>
+                                            </label>
 																						<label>
 																								<span><?php esc_html_e( 'Descuento %', 'sii-boleta-dte' ); ?></span>
 																								<input type="number" name="items[0][discount_pct]" data-field="discount_pct" value="<?php echo $i0discount_pct; ?>" step="0.01" inputmode="decimal" />

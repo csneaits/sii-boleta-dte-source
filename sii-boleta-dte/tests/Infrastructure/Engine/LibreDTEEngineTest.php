@@ -1,6 +1,9 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\DefaultDteDocumentFactory;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
@@ -145,6 +148,32 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertIsString($xml);
         $this->assertNotSame('', $xml);
         $this->assertStringContainsString('<CAF', $xml);
+    }
+
+    public function test_register_document_factory_overrides_factory_for_tipo(): void {
+        $settings = new Dummy_Settings([]);
+        $engine   = new LibreDteEngine($settings);
+
+        $reflection = new \ReflectionClass(LibreDteEngine::class);
+        $registryProperty = $reflection->getProperty('documentFactoryRegistry');
+        $registryProperty->setAccessible(true);
+
+        $registry = $registryProperty->getValue($engine);
+
+        $this->assertInstanceOf(DteDocumentFactoryRegistry::class, $registry);
+
+        $defaultFactory = $registry->getFactory(39);
+        $this->assertInstanceOf(DefaultDteDocumentFactory::class, $defaultFactory);
+
+        $templatesRoot = dirname(__DIR__, 3) . '/resources/yaml/';
+        $boletaFactory = new BoletaDteDocumentFactory($templatesRoot);
+
+        $engine->register_document_factory(39, $boletaFactory);
+
+        $this->assertSame($boletaFactory, $registry->getFactory(39));
+
+        $template = $boletaFactory->createTemplateLoader()->load(39);
+        $this->assertSame(39, $template['Encabezado']['IdDoc']['TipoDTE'] ?? null);
     }
 
     public function test_generate_xml_with_flattened_caf_is_normalized(): void {

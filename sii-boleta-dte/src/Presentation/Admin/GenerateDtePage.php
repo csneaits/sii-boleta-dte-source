@@ -770,8 +770,10 @@ class GenerateDtePage {
 		$dsc_global_tipo                         = isset( $post['dsc_global_tipo'] ) ? substr( sanitize_text_field( (string) $post['dsc_global_tipo'] ), 0, 1 ) : '';
 		$dsc_global_raw                          = $post['dsc_global_valor'] ?? '';
 		$dsc_global_val                          = $this->parse_amount( $dsc_global_raw );
-                $has_dsc_global_ind_exe                  = array_key_exists( 'dsc_global_ind_exe', $post );
-                $dsc_global_ind_exe                      = $has_dsc_global_ind_exe ? (int) $post['dsc_global_ind_exe'] : 0;
+               $has_dsc_global_ind_exe                  = array_key_exists( 'dsc_global_ind_exe', $post );
+               $dsc_global_ind_exe_raw                  = $has_dsc_global_ind_exe ? trim( (string) $post['dsc_global_ind_exe'] ) : '';
+               $has_dsc_global_ind_exe                  = '' !== $dsc_global_ind_exe_raw;
+               $dsc_global_ind_exe                      = $has_dsc_global_ind_exe ? (int) $dsc_global_ind_exe_raw : 0;
                 if ( ! in_array( $dsc_global_ind_exe, array( 1, 2 ), true ) ) {
                         $dsc_global_ind_exe = 0;
                 }

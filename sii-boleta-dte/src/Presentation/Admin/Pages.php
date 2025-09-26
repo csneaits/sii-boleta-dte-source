@@ -102,14 +102,41 @@ class Pages {
                         );
                 }
 
-                if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
-                                                \wp_enqueue_style(
-                                                        'sii-boleta-control-panel',
-                                                        SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
-                                                        array(),
-                                                        SII_BOLETA_DTE_VERSION
-                                                );
-                }
+if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_page_sii-boleta-dte' ), true ) ) {
+		\wp_enqueue_style(
+			'sii-boleta-control-panel',
+			SII_BOLETA_DTE_URL . 'src/Presentation/assets/css/control-panel.css',
+			array(),
+			SII_BOLETA_DTE_VERSION
+		);
+		$script_relative = 'src/Presentation/assets/js/control-panel.js';
+		$script_path     = SII_BOLETA_DTE_PATH . $script_relative;
+		$script_version  = SII_BOLETA_DTE_VERSION;
+		if ( file_exists( $script_path ) ) {
+			$script_version .= '-' . filemtime( $script_path );
+		}
+		\wp_enqueue_script(
+			'sii-boleta-control-panel',
+			SII_BOLETA_DTE_URL . $script_relative,
+			array(),
+			$script_version,
+			true
+		);
+		\wp_localize_script(
+			'sii-boleta-control-panel',
+			'siiBoletaControlPanel',
+			array(
+				'ajax'            => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+				'action'          => 'sii_boleta_dte_control_panel_data',
+				'nonce'           => function_exists( 'wp_create_nonce' ) ? \wp_create_nonce( 'sii_boleta_control_panel' ) : '',
+				'refreshInterval' => 30,
+				'texts'           => array(
+					'noLogs'  => __( 'Sin DTE recientes.', 'sii-boleta-dte' ),
+					'noQueue' => __( 'No hay elementos en la cola.', 'sii-boleta-dte' ),
+				),
+			)
+		);
+}
         if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
                         $script_relative = 'src/Presentation/assets/js/generate-dte.js';
                         $style_relative  = 'src/Presentation/assets/css/generate-dte.css';

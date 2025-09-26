@@ -4,7 +4,7 @@ namespace Sii\BoletaDte\Infrastructure\Engine\Factory\Components;
 
 use Symfony\Component\Yaml\Yaml;
 
-class YamlTemplateLoader implements TemplateLoader {
+class YamlTemplateLoader implements TemplateLoaderInterface {
         private string $rootPath;
 
         public function __construct( string $rootPath ) {

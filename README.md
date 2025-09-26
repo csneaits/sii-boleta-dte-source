@@ -76,6 +76,14 @@ flowchart TD
     K --> L[Eliminar trabajo de la cola]
 ```
 
+## Extender el motor LibreDTE
+
+`LibreDteEngine` actúa como orquestador: delega la preparación de la carga útil a un `DocumentPreparationPipelineInterface`, resuelve CAF y certificados mediante colaboradores inyectables y aplica un `TotalsAdjusterInterface` obtenido desde la fábrica asociada al tipo de documento.【F:sii-boleta-dte/src/Infrastructure/Engine/LibreDteEngine.php†L13-L218】【F:sii-boleta-dte/src/Infrastructure/Engine/Preparation/FactoryBackedDocumentPreparationPipeline.php†L11-L122】【F:sii-boleta-dte/src/Infrastructure/Engine/Factory/DteDocumentFactory.php†L7-L23】
+
+Cada implementación de `DteDocumentFactory` registra su `TemplateLoaderInterface`, `DetailNormalizerInterface`, `ReceptorSanitizerInterface`, `EmisorDataBuilderInterface` y el `TotalsAdjusterInterface` que corresponda al tipo de DTE. Basta con crear la clase y registrarla mediante `register_document_factory()` o inyectar un `DteDocumentFactoryRegistry` personalizado en el constructor del motor.【F:sii-boleta-dte/src/Infrastructure/Engine/Factory/BoletaDteDocumentFactory.php†L19-L60】【F:sii-boleta-dte/src/Infrastructure/Plugin.php†L58-L91】
+
+Los integradores que necesiten sustituir el flujo completo pueden engancharse al filtro `sii_boleta_dte_engine`, construir su propia instancia de `LibreDteEngine` (o un motor alternativo) y proporcionar implementaciones para `DocumentPreparationPipelineInterface`, `CafProviderInterface`, `CertificateProviderInterface` o `XmlPlaceholderCleaner` sin modificar el núcleo.【F:sii-boleta-dte/src/Infrastructure/Engine/LibreDteEngine.php†L33-L120】【F:sii-boleta-dte/src/Infrastructure/Plugin.php†L58-L93】
+
 ## Estructura del repositorio
 
 - `sii-boleta-dte/`

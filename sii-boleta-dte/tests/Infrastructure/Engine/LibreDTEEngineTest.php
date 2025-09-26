@@ -1,6 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\Caf\CafProviderInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DefaultDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
@@ -191,15 +192,15 @@ class LibreDTEEngineTest extends TestCase {
 
         $engine = new LibreDteEngine($settings);
 
-        $reflection = new \ReflectionClass(LibreDteEngine::class);
-        $cafFakerProp = $reflection->getProperty('cafFaker');
-        $cafFakerProp->setAccessible(true);
-        $cafFaker = $cafFakerProp->getValue($engine);
+        $reflection    = new \ReflectionClass(LibreDteEngine::class);
+        $providerProp  = $reflection->getProperty('cafProvider');
+        $providerProp->setAccessible(true);
+        $cafProvider = $providerProp->getValue($engine);
 
-        $this->assertIsObject($cafFaker);
+        $this->assertInstanceOf(CafProviderInterface::class, $cafProvider);
 
         $emisorEntity = new Emisor('76192083-9', 'Empresa de Prueba');
-        $cafBag       = $cafFaker->create($emisorEntity, 39, 1, 20);
+        $cafBag       = $cafProvider->resolve(39, 1, true, $emisorEntity, 'test');
         $cafXml       = $cafBag->getCaf()->getXml();
 
         $pattern = '/<(RSASK|RSAPUBK)>(.*?)<\/\1>/s';
@@ -288,14 +289,14 @@ class LibreDTEEngineTest extends TestCase {
         $engine = new LibreDteEngine($settings);
 
         $reflection    = new \ReflectionClass(LibreDteEngine::class);
-        $cafFakerProp  = $reflection->getProperty('cafFaker');
-        $cafFakerProp->setAccessible(true);
-        $cafFaker      = $cafFakerProp->getValue($engine);
+        $providerProp  = $reflection->getProperty('cafProvider');
+        $providerProp->setAccessible(true);
+        $cafProvider   = $providerProp->getValue($engine);
 
-        $this->assertIsObject($cafFaker);
+        $this->assertInstanceOf(CafProviderInterface::class, $cafProvider);
 
         $emisorEntity = new Emisor('76192083-9', 'Empresa de Prueba');
-        $cafBag       = $cafFaker->create($emisorEntity, 39, 1, 10);
+        $cafBag       = $cafProvider->resolve(39, 1, true, $emisorEntity, 'test');
         $cafXml       = $cafBag->getCaf()->getXml();
 
         $pattern = '/<(RSASK|RSAPUBK)>(.*?)<\/\1>/s';

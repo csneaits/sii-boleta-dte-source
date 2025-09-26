@@ -6,9 +6,15 @@ use Derafu\Certificate\Service\CertificateLoader;
 use JsonException;
 use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
+use Sii\BoletaDte\Infrastructure\Engine\Builder\DocumentPayloadBuilder;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\SectionSanitizer;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\NullTotalsAdjuster;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\ReceptorPlaceholderCleaner;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\VatInclusiveTotalsAdjuster;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlPlaceholderCleaner;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlTotalsAdjuster;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Settings;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
@@ -34,6 +40,11 @@ class LibreDteEngine implements DteEngine {
         private CertificateLoader $certificateLoader;
         private DteDocumentFactoryRegistry $documentFactoryRegistry;
         private SectionSanitizer $sectionSanitizer;
+        /**
+         * @var array<int,XmlTotalsAdjuster>
+         */
+        private array $totalsAdjusters;
+        private XmlPlaceholderCleaner $placeholderCleaner;
 
         public function __construct( Settings $settings, ?DteDocumentFactoryRegistry $factoryRegistry = null, ?SectionSanitizer $sectionSanitizer = null ) {
                 $this->settings          = $settings;
@@ -51,6 +62,11 @@ class LibreDteEngine implements DteEngine {
                 $this->cafFaker                  = $identifier->getCafFakerWorker();
                                 $this->certificateLoader = new CertificateLoader();
                                 $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
+                $this->totalsAdjusters = array(
+                        new VatInclusiveTotalsAdjuster(),
+                        new NullTotalsAdjuster(),
+                );
+                $this->placeholderCleaner = new ReceptorPlaceholderCleaner();
         }
 
         public function register_document_factory( int $tipo, DteDocumentFactory $factory ): void {
@@ -147,25 +163,12 @@ class LibreDteEngine implements DteEngine {
                         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
                 }
 
-                $documentData = array_replace_recursive(
-                        $template,
-                        array(
-                                'Encabezado' => array(
-                                        'IdDoc'    => array(
-                                                'TipoDTE' => $tipo,
-                                               'Folio'   => $data['Folio'] ?? 0,
-                                               'FchEmis' => $data['FchEmis'] ?? '',
-                                       ),
-                                       'Emisor'   => $emisor,
-                                       'Receptor' => $data['Receptor'] ?? array(),
-                               ),
-                               'Detalle'    => $detalle,
-                       )
-               );
-
-                if ( ! empty( $global_discount_data ) ) {
-                        $documentData['DscRcgGlobal'] = $global_discount_data;
-                }
+                $payloadBuilder = new DocumentPayloadBuilder( $template );
+                $payloadBuilder
+                        ->withDocumentIdentification( $tipo, $data )
+                        ->withEmisor( $emisor )
+                        ->withDetalle( $detalle )
+                        ->withGlobalDiscount( $global_discount_data );
 
                 $rawReceptor = array();
                 if ( isset( $data['Receptor'] ) && is_array( $data['Receptor'] ) ) {
@@ -174,19 +177,16 @@ class LibreDteEngine implements DteEngine {
                         $rawReceptor = $data['Encabezado']['Receptor'];
                 }
 
-                if ( isset( $documentData['Encabezado']['Receptor'] ) ) {
-                        $receptorSanitizer = $factory->createReceptorSanitizer();
-                        if ( ! empty( $rawReceptor ) ) {
-                                $documentData['Encabezado']['Receptor'] = $receptorSanitizer->sanitize( $rawReceptor );
-                        } else {
-                                $documentData['Encabezado']['Receptor'] = $receptorSanitizer->sanitize( (array) $documentData['Encabezado']['Receptor'] );
-                        }
+                $receptorSanitizer = $factory->createReceptorSanitizer();
+                if ( ! empty( $rawReceptor ) ) {
+                        $sanitizedReceptor = $receptorSanitizer->sanitize( $rawReceptor );
+                } elseif ( isset( $template['Encabezado']['Receptor'] ) && is_array( $template['Encabezado']['Receptor'] ) ) {
+                        $sanitizedReceptor = $receptorSanitizer->sanitize( $template['Encabezado']['Receptor'] );
+                } else {
+                        $sanitizedReceptor = $receptorSanitizer->sanitize( array() );
                 }
 
-                if ( $preview ) {
-                        $this->debug_log( '[preview] emisor=' . json_encode( $documentData['Encabezado']['Emisor'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                        $this->debug_log( '[preview] detalle=' . json_encode( $documentData['Detalle'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                }
+                $payloadBuilder->withReceptor( $sanitizedReceptor, $rawReceptor );
 
                 $tasa_iva = null;
                 if ( isset( $data['Encabezado']['Totales']['TasaIVA'] ) ) {
@@ -197,18 +197,22 @@ class LibreDteEngine implements DteEngine {
                 if ( null === $tasa_iva && in_array( $tipo, array( 33, 39, 43, 46 ), true ) ) {
                         $tasa_iva = 19.0;
                 }
-                if ( ! isset( $documentData['Encabezado'] ) ) {
-                        $documentData['Encabezado'] = array();
+
+                $payloadBuilder->withTotalsSkeleton( $tasa_iva );
+
+                if ( isset( $data['Referencias'] ) && is_array( $data['Referencias'] ) ) {
+                        $payloadBuilder->withReferences( $data['Referencias'] );
+                } else {
+                        $payloadBuilder->withReferences( array() );
                 }
-                $documentData['Encabezado']['Totales'] = array( 'MntTotal' => 0 );
-                if ( null !== $tasa_iva ) {
-                        $documentData['Encabezado']['Totales']['TasaIVA'] = $tasa_iva;
-                }
 
+                $payload      = $payloadBuilder->build();
+                $documentData = $payload->getDocument();
+                $rawReceptor  = $payload->getRawReceptor();
 
-
-                if ( ! empty( $data['Referencias'] ) ) {
-                        $documentData['Referencia'] = $data['Referencias'];
+                if ( $preview ) {
+                        $this->debug_log( '[preview] emisor=' . json_encode( $documentData['Encabezado']['Emisor'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                        $this->debug_log( '[preview] detalle=' . json_encode( $documentData['Detalle'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
                 }
 
                                 $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
@@ -281,18 +285,13 @@ class LibreDteEngine implements DteEngine {
                         return '';
                 }
 
-                $xmlString = $this->adjust_totals_in_xml(
-                        $xmlString,
-                        $detalle,
-                        $tipo,
-                        $tasa_iva,
-                        $global_discount_items
-                );
+                $adjuster  = $this->resolveTotalsAdjuster( $tipo );
+                $xmlString = $adjuster->adjust( $xmlString, $detalle, $tipo, $tasa_iva, $global_discount_items );
 
-                $xmlString = $this->strip_placeholder_fields(
+                $xmlString = $this->placeholderCleaner->clean(
                         $xmlString,
                         $rawReceptor,
-                        ! empty( $data['Referencias'] )
+                        $payload->hasReferences()
                 );
 
                 return $xmlString;
@@ -340,83 +339,14 @@ class LibreDteEngine implements DteEngine {
                 return array_keys( $array ) === range( 0, count( $array ) - 1 );
         }
 
-        /**
-         * Strips automatically populated nodes that were not requested by the caller.
-         */
-        private function strip_placeholder_fields( string $xml, array $rawReceptor, bool $hasReferences ): string {
-                $previous = libxml_use_internal_errors( true );
-                $document = new \DOMDocument();
-
-                if ( ! $document->loadXML( $xml ) ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return $xml;
-                }
-
-                $xpath = new \DOMXPath( $document );
-                $xpath->registerNamespace( 'dte', 'http://www.sii.cl/SiiDte' );
-
-                $providedKeys = array();
-                foreach ( $rawReceptor as $key => $value ) {
-                        if ( is_string( $value ) ) {
-                                $value = trim( $value );
-                        }
-                        if ( '' === $value || null === $value ) {
-                                continue;
-                        }
-                        $providedKeys[ $key ] = true;
-                }
-
-                $optionalFields = array(
-                        'DirRecep',
-                        'CmnaRecep',
-                        'CiudadRecep',
-                        'Contacto',
-                        'CorreoRecep',
-                        'DirPostal',
-                        'CmnaPostal',
-                        'CiudadPostal',
-                        'CdgIntRecep',
-                        'Telefono',
-                        'TelRecep',
-                );
-
-                $receptorNodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Encabezado/dte:Receptor' );
-                if ( $receptorNodes instanceof \DOMNodeList && $receptorNodes->length > 0 ) {
-                        $receptor = $receptorNodes->item( 0 );
-                        foreach ( $optionalFields as $field ) {
-                                if ( isset( $providedKeys[ $field ] ) ) {
-                                        continue;
-                                }
-                                $fieldNodes = $xpath->query( 'dte:' . $field, $receptor );
-                                if ( ! ( $fieldNodes instanceof \DOMNodeList ) ) {
-                                        continue;
-                                }
-                                for ( $i = $fieldNodes->length - 1; $i >= 0; --$i ) {
-                                        $node = $fieldNodes->item( $i );
-                                        if ( $node instanceof \DOMNode && $node->parentNode === $receptor ) {
-                                                $receptor->removeChild( $node );
-                                        }
-                                }
+        private function resolveTotalsAdjuster( int $tipo ): XmlTotalsAdjuster {
+                foreach ( $this->totalsAdjusters as $adjuster ) {
+                        if ( $adjuster->supports( $tipo ) ) {
+                                return $adjuster;
                         }
                 }
 
-                if ( ! $hasReferences ) {
-                        $refNodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Referencia' );
-                        if ( $refNodes instanceof \DOMNodeList ) {
-                                for ( $i = $refNodes->length - 1; $i >= 0; --$i ) {
-                                        $node = $refNodes->item( $i );
-                                        if ( $node instanceof \DOMNode && $node->parentNode instanceof \DOMNode ) {
-                                                $node->parentNode->removeChild( $node );
-                                        }
-                                }
-                        }
-                }
-
-                $result = $document->saveXML() ?: $xml;
-                libxml_clear_errors();
-                libxml_use_internal_errors( $previous );
-                return $result;
+                return new NullTotalsAdjuster();
         }
 
         /**
@@ -541,216 +471,6 @@ class LibreDteEngine implements DteEngine {
                 return $values;
         }
 
-        /**
-         * Replaces totals in the generated XML so they match VAT-inclusive prices.
-         *
-         * @param array<int,array<string,mixed>> $detalle           Document detail lines.
-         * @param array<int,array<string,mixed>> $global_discounts Global discounts/recargos rows.
-         */
-        private function adjust_totals_in_xml(
-                string $xml,
-                array $detalle,
-                int $tipo,
-                ?float $tasa_iva,
-                array $global_discounts
-        ): string {
-                $affected = array( 33, 52, 56, 61 );
-                if ( ! in_array( $tipo, $affected, true ) ) {
-                        return $xml;
-                }
-
-                $totals = $this->calculate_totals( $detalle, $tasa_iva, $global_discounts );
-                if ( empty( $totals ) ) {
-                        return $xml;
-                }
-
-                $previous = libxml_use_internal_errors( true );
-                $document = new \DOMDocument();
-
-                if ( ! $document->loadXML( $xml ) ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return $xml;
-                }
-
-                $xpath = new \DOMXPath( $document );
-                $xpath->registerNamespace( 'dte', 'http://www.sii.cl/SiiDte' );
-                $nodes = $xpath->query( '/dte:DTE/dte:Documento/dte:Encabezado/dte:Totales' );
-                if ( ! ( $nodes instanceof \DOMNodeList ) || 0 === $nodes->length ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return $xml;
-                }
-
-                $totalsNode = $nodes->item( 0 );
-                if ( ! ( $totalsNode instanceof \DOMElement ) ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return $xml;
-                }
-
-                $fields = array( 'MntNeto', 'MntExe', 'IVA', 'MntTotal', 'TasaIVA' );
-                foreach ( $fields as $field ) {
-                        $childNodes = $xpath->query( 'dte:' . $field, $totalsNode );
-                        if ( ! ( $childNodes instanceof \DOMNodeList ) ) {
-                                continue;
-                        }
-                        for ( $i = $childNodes->length - 1; $i >= 0; --$i ) {
-                                $node = $childNodes->item( $i );
-                                if ( $node instanceof \DOMNode ) {
-                                        $totalsNode->removeChild( $node );
-                                }
-                        }
-                }
-
-                $namespace = 'http://www.sii.cl/SiiDte';
-                foreach ( $fields as $field ) {
-                        if ( ! array_key_exists( $field, $totals ) ) {
-                                continue;
-                        }
-
-                        $value = $totals[ $field ];
-                        if ( null === $value ) {
-                                continue;
-                        }
-
-                        $text = 'TasaIVA' === $field
-                                ? $this->format_tax_rate( (float) $value )
-                                : (string) $value;
-
-                        $element = $document->createElementNS( $namespace, $field, $text );
-                        $totalsNode->appendChild( $element );
-                }
-
-                $result = $document->saveXML() ?: $xml;
-                libxml_clear_errors();
-                libxml_use_internal_errors( $previous );
-
-                return $result;
-        }
-
-        /**
-         * Calculates totals using VAT-inclusive prices.
-         *
-         * @param array<int,array<string,mixed>> $detalle           Document detail lines.
-         * @param array<int,array<string,mixed>> $global_discounts Global discounts/recargos rows.
-         */
-        private function calculate_totals( array $detalle, ?float $tasa_iva, array $global_discounts ): array {
-                $taxable = 0.0;
-                $exempt  = 0.0;
-
-                foreach ( $detalle as $line ) {
-                        $base_amount = (float) ( $line['MontoItem'] ?? 0 );
-                        if ( $base_amount < 0 ) {
-                                $base_amount = 0.0;
-                        }
-
-                        $amount = $base_amount;
-
-                        if ( isset( $line['DescuentoMonto'] ) ) {
-                                $amount -= (float) $line['DescuentoMonto'];
-                        } elseif ( isset( $line['DescuentoPct'] ) ) {
-                                $amount -= $base_amount * ( (float) $line['DescuentoPct'] / 100 );
-                        }
-
-                        if ( isset( $line['RecargoMonto'] ) ) {
-                                $amount += (float) $line['RecargoMonto'];
-                        } elseif ( isset( $line['RecargoPct'] ) ) {
-                                $amount += $base_amount * ( (float) $line['RecargoPct'] / 100 );
-                        }
-
-                        if ( $amount < 0 ) {
-                                $amount = 0.0;
-                        }
-
-                        if ( ! empty( $line['IndExe'] ) ) {
-                                $exempt += $amount;
-                                continue;
-                        }
-
-                        $taxable += $amount;
-                }
-
-                foreach ( $global_discounts as $discount ) {
-                        if ( ! is_array( $discount ) ) {
-                                continue;
-                        }
-
-                        $movement = strtoupper( (string) ( $discount['TpoMov'] ?? '' ) );
-                        if ( ! in_array( $movement, array( 'D', 'R' ), true ) ) {
-                                continue;
-                        }
-
-                        $value_type = strtoupper( (string) ( $discount['TpoValor'] ?? '' ) );
-                        $raw_value  = (float) ( $discount['ValorDR'] ?? 0 );
-                        if ( $raw_value <= 0 ) {
-                                continue;
-                        }
-
-                        $indicator = isset( $discount['IndExeDR'] ) ? (int) $discount['IndExeDR'] : 0;
-                        if ( 1 === $indicator ) {
-                                $target =& $exempt;
-                        } else {
-                                $target =& $taxable;
-                        }
-
-                        if ( $target <= 0 ) {
-                                continue;
-                        }
-
-                        $base_amount = $target;
-                        if ( '%' === $value_type ) {
-                                $change = $base_amount * ( $raw_value / 100 );
-                        } else {
-                                $change = $raw_value;
-                        }
-
-                        if ( $change <= 0 ) {
-                                continue;
-                        }
-
-                        if ( 'D' === $movement ) {
-                                $target -= $change;
-                                if ( $target < 0 ) {
-                                        $target = 0.0;
-                                }
-                        } else {
-                                $target += $change;
-                        }
-                }
-
-                $taxable = (int) round( $taxable );
-                $exempt  = (int) round( $exempt );
-
-                $totals = array(
-                        'MntTotal' => $taxable + $exempt,
-                );
-
-                if ( 0 !== $exempt ) {
-                        $totals['MntExe'] = $exempt;
-                }
-
-                if ( null !== $tasa_iva && $tasa_iva > 0 && 0 !== $taxable ) {
-                        $rate     = 1 + ( $tasa_iva / 100 );
-                        $neto     = (int) round( $taxable / $rate );
-                        $iva      = $taxable - $neto;
-                        $totals['MntNeto'] = $neto;
-                        if ( 0 !== $iva ) {
-                                $totals['IVA'] = $iva;
-                        }
-                        $totals['TasaIVA'] = $tasa_iva;
-                } elseif ( null !== $tasa_iva ) {
-                        $totals['TasaIVA'] = $tasa_iva;
-                }
-
-                return $totals;
-        }
-
-        private function format_tax_rate( float $rate ): string {
-                $formatted = sprintf( '%.2F', $rate );
-                $formatted = rtrim( rtrim( $formatted, '0' ), '.' );
-                return '' === $formatted ? '0' : $formatted;
-        }
 
         /**
          * Converts a DTE XML string into the array structure expected by LibreDTE.

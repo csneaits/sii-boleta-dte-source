@@ -61,21 +61,21 @@ class ControlPanelPage {
 		if ( isset( $_GET['tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$tab = function_exists( 'sanitize_key' ) ? sanitize_key( (string) $_GET['tab'] ) : strtolower( (string) $_GET['tab'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
-                ?>
-                                <?php AdminStyles::open_container( 'sii-control-panel' ); ?>
-                                <?php $this->render_notices(); ?>
-						<h1><?php echo esc_html__( 'Control Panel', 'sii-boleta-dte' ); ?></h1>
-						<p><?php echo esc_html__( 'Monitor your DTE operations, queues and scheduled tasks in an elegant unified dashboard.', 'sii-boleta-dte' ); ?></p>
-						<h2 class="nav-tab-wrapper">
+?>
+<?php AdminStyles::open_container( 'sii-control-panel' ); ?>
+<?php $this->render_notices(); ?>
+<h1><?php echo esc_html__( 'Panel de control', 'sii-boleta-dte' ); ?></h1>
+<p><?php echo esc_html__( 'Supervisa tus operaciones DTE, las colas y las tareas programadas desde un panel unificado.', 'sii-boleta-dte' ); ?></p>
+<h2 class="nav-tab-wrapper">
 								<?php
 								$base = function_exists( 'menu_page_url' ) ? menu_page_url( 'sii-boleta-dte', false ) : '?page=sii-boleta-dte';
-								$tabs = array(
-									'logs'    => __( 'Recent DTEs', 'sii-boleta-dte' ),
-									'queue'   => __( 'Queue', 'sii-boleta-dte' ),
-									'rvd'     => __( 'RVD', 'sii-boleta-dte' ),
-									'libro'   => __( 'Libro validation', 'sii-boleta-dte' ),
-									'metrics' => __( 'Metrics', 'sii-boleta-dte' ),
-								);
+$tabs = array(
+'logs'    => __( 'DTE recientes', 'sii-boleta-dte' ),
+'queue'   => __( 'Cola', 'sii-boleta-dte' ),
+'rvd'     => __( 'RVD', 'sii-boleta-dte' ),
+'libro'   => __( 'Validación de Libros', 'sii-boleta-dte' ),
+'metrics' => __( 'Métricas', 'sii-boleta-dte' ),
+);
 								if ( ! isset( $tabs[ $tab ] ) ) {
 										$tab = 'logs';
 								}
@@ -107,14 +107,14 @@ class ControlPanelPage {
 		$cfg   = $this->settings->get_settings();
 		$types = $cfg['enabled_types'] ?? array();
 		?>
-		<h2><?php echo esc_html__( 'Folio availability', 'sii-boleta-dte' ); ?></h2>
-		<table class="widefat striped">
-			<thead>
-				<tr>
-					<th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
-					<th><?php echo esc_html__( 'Available', 'sii-boleta-dte' ); ?></th>
-				</tr>
-			</thead>
+<h2><?php echo esc_html__( 'Disponibilidad de folios', 'sii-boleta-dte' ); ?></h2>
+<table class="widefat striped">
+<thead>
+<tr>
+<th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Disponibles', 'sii-boleta-dte' ); ?></th>
+</tr>
+</thead>
 			<tbody>
 				<?php
 				$environment = $this->settings->get_environment();
@@ -137,105 +137,114 @@ class ControlPanelPage {
 	private function render_recent_logs(): void {
 			$logs = LogDb::get_logs( array( 'limit' => 5 ) );
 		?>
-				<div class="sii-section">
-						<h2><?php echo esc_html__( 'Recent DTEs', 'sii-boleta-dte' ); ?></h2>
-						<table class="widefat striped">
-						<thead>
-								<tr>
-										<th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
-										<th><?php echo esc_html__( 'Status', 'sii-boleta-dte' ); ?></th>
-								</tr>
-			</thead>
-			<tbody>
-				<?php foreach ( $logs as $row ) : ?>
-				<tr>
-					<td><?php echo esc_html( $row['track_id'] ); ?></td>
-					<td><?php echo esc_html( $row['status'] ); ?></td>
-				</tr>
-								<?php endforeach; ?>
-						</tbody>
-						</table>
-				</div>
-				<?php
-	}
+<div class="sii-section">
+<h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
+<table class="widefat striped">
+<thead>
+<tr>
+<th><?php echo esc_html__( 'ID de seguimiento', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
+</tr>
+</thead>
+<tbody id="sii-control-logs-body">
+<?php if ( empty( $logs ) ) : ?>
+<tr class="sii-control-empty-row">
+<td colspan="2"><?php echo esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ); ?></td>
+</tr>
+<?php else : ?>
+<?php foreach ( $logs as $row ) : ?>
+<tr>
+<td><?php echo esc_html( $row['track_id'] ); ?></td>
+<td><?php echo esc_html( $this->translate_status_label( (string) $row['status'] ) ); ?></td>
+</tr>
+<?php endforeach; ?>
+<?php endif; ?>
+</tbody>
+</table>
+</div>
+<?php
+}
 
-		/** Lists queue items with controls. */
-	private function render_queue(): void {
-			$jobs = QueueDb::get_pending_jobs();
-		?>
-				<div class="sii-section">
-						<h2><?php echo esc_html__( 'Queue', 'sii-boleta-dte' ); ?></h2>
-					<?php if ( empty( $jobs ) ) : ?>
-						<p><?php echo esc_html__( 'No queued items.', 'sii-boleta-dte' ); ?></p>
-						<?php else : ?>
-						<table class="wp-list-table widefat fixed striped">
-				<thead>
-				<tr>
-						<th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
-						<th><?php echo esc_html__( 'Type', 'sii-boleta-dte' ); ?></th>
-			<th><?php echo esc_html__( 'Attempts', 'sii-boleta-dte' ); ?></th>
-			<th><?php echo esc_html__( 'Actions', 'sii-boleta-dte' ); ?></th>
-		</tr>
-		</thead>
-		<tbody>
-							<?php foreach ( $jobs as $job ) : ?>
-		<tr>
-			<td><?php echo (int) $job['id']; ?></td>
-			<td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
-			<td><?php echo (int) $job['attempts']; ?></td>
-			<td>
-						<form method="post" class="sii-inline-form">
-				<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
-								<?php $this->output_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
-				<button class="button" name="queue_action" value="process"><?php echo esc_html__( 'Process', 'sii-boleta-dte' ); ?></button>
-				<button class="button" name="queue_action" value="requeue"><?php echo esc_html__( 'Retry', 'sii-boleta-dte' ); ?></button>
-				<button class="button" name="queue_action" value="cancel"><?php echo esc_html__( 'Cancel', 'sii-boleta-dte' ); ?></button>
-				</form>
-			</td>
-				</tr>
-				<?php endforeach; ?>
-				</tbody>
-						</table>
-						<?php endif; ?>
-				</div>
-				<?php
-	}
+/** Lists queue items with controls. */
+private function render_queue(): void {
+$jobs = QueueDb::get_pending_jobs();
+?>
+<div class="sii-section">
+<h2><?php echo esc_html__( 'Cola', 'sii-boleta-dte' ); ?></h2>
+<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
+<table id="sii-control-queue-table" class="wp-list-table widefat fixed striped"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
+<thead>
+<tr>
+<th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Intentos', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Acciones', 'sii-boleta-dte' ); ?></th>
+</tr>
+</thead>
+<tbody id="sii-control-queue-body">
+<?php if ( empty( $jobs ) ) : ?>
+<tr class="sii-control-empty-row">
+<td colspan="4"><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></td>
+</tr>
+<?php else : ?>
+<?php foreach ( $jobs as $job ) : ?>
+<tr>
+<td><?php echo (int) $job['id']; ?></td>
+<td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
+<td><?php echo (int) $job['attempts']; ?></td>
+<td>
+<form method="post" class="sii-inline-form">
+<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
+<?php $this->output_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
+<button class="button" name="queue_action" value="process"><?php echo esc_html__( 'Procesar', 'sii-boleta-dte' ); ?></button>
+<button class="button" name="queue_action" value="requeue"><?php echo esc_html__( 'Reintentar', 'sii-boleta-dte' ); ?></button>
+<button class="button" name="queue_action" value="cancel"><?php echo esc_html__( 'Cancelar', 'sii-boleta-dte' ); ?></button>
+</form>
+</td>
+</tr>
+<?php endforeach; ?>
+<?php endif; ?>
+</tbody>
+</table>
+</div>
+<?php
+}
 
 	private function render_rvd_tools(): void {
 		?>
-				<div class="sii-section">
-						<h2><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></h2>
-						<p><?php echo esc_html__( 'Creates the daily sales summary and sends it to the SII immediately.', 'sii-boleta-dte' ); ?></p>
-						<form method="post">
-						<input type="hidden" name="rvd_action" value="generate_send" />
-					<?php $this->output_nonce_field( 'sii_boleta_rvd', 'sii_boleta_rvd_nonce' ); ?>
-						<button type="submit" class="button button-primary"><?php echo esc_html__( 'Generate and send RVD', 'sii-boleta-dte' ); ?></button>
-						</form>
-					<?php $this->render_rvd_schedule(); ?>
-				</div>
-				<?php
-	}
+<div class="sii-section">
+<h2><?php echo esc_html__( 'Generar y enviar RVD', 'sii-boleta-dte' ); ?></h2>
+<p><?php echo esc_html__( 'Genera el resumen de ventas diario y lo envía al SII de inmediato.', 'sii-boleta-dte' ); ?></p>
+<form method="post">
+<input type="hidden" name="rvd_action" value="generate_send" />
+<?php $this->output_nonce_field( 'sii_boleta_rvd', 'sii_boleta_rvd_nonce' ); ?>
+<button type="submit" class="button button-primary"><?php echo esc_html__( 'Generar y enviar RVD', 'sii-boleta-dte' ); ?></button>
+</form>
+<?php $this->render_rvd_schedule(); ?>
+</div>
+<?php
+}
 
-	private function render_libro_validation(): void {
-		?>
-				<div class="sii-section">
-						<h2><?php echo esc_html__( 'Validate Libro XML', 'sii-boleta-dte' ); ?></h2>
-						<p><?php echo esc_html__( 'Paste the Libro XML to verify it against the official schema.', 'sii-boleta-dte' ); ?></p>
-					<?php $this->render_libro_schedule(); ?>
-						<form method="post">
-						<input type="hidden" name="libro_action" value="validate" />
-					<?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
-						<textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
-					<?php
-					if ( function_exists( 'submit_button' ) ) {
-							submit_button( __( 'Validate XML', 'sii-boleta-dte' ) );
-					} else {
-							echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validate XML', 'sii-boleta-dte' ) . '</button>';
-					}
-					?>
-						</form>
-				</div>
-				<?php
+private function render_libro_validation(): void {
+?>
+<div class="sii-section">
+<h2><?php echo esc_html__( 'Validar Libro XML', 'sii-boleta-dte' ); ?></h2>
+<p><?php echo esc_html__( 'Pega el XML del Libro para validarlo contra el esquema oficial.', 'sii-boleta-dte' ); ?></p>
+<?php $this->render_libro_schedule(); ?>
+<form method="post">
+<input type="hidden" name="libro_action" value="validate" />
+<?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
+<textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
+<?php
+if ( function_exists( 'submit_button' ) ) {
+submit_button( __( 'Validar XML', 'sii-boleta-dte' ) );
+} else {
+echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validar XML', 'sii-boleta-dte' ) . '</button>';
+}
+?>
+</form>
+</div>
+<?php
 	}
 
         private function render_metrics_dashboard(): void {
@@ -348,7 +357,7 @@ class ControlPanelPage {
                                 );
                         }
                         $month_label   = $month_options[ $selected_month ] ?? (string) $selected_month;
-                        $series_caption = sprintf( __( 'Daily activity for %1$s %2$d', 'sii-boleta-dte' ), $month_label, $selected_year );
+$series_caption = sprintf( __( 'Actividad diaria para %1$s %2$d', 'sii-boleta-dte' ), $month_label, $selected_year );
                 } elseif ( $selected_year > 0 ) {
                         $monthly_counts = array_fill( 1, 12, 0 );
                         foreach ( $filtered_logs as $row ) {
@@ -363,7 +372,7 @@ class ControlPanelPage {
                                         'value' => $monthly_counts[ $month ] ?? 0,
                                 );
                         }
-                        $series_caption = sprintf( __( 'Monthly totals for %d', 'sii-boleta-dte' ), $selected_year );
+$series_caption = sprintf( __( 'Totales mensuales para %d', 'sii-boleta-dte' ), $selected_year );
                 } elseif ( $selected_month > 0 ) {
                         $year_counts = array();
                         foreach ( $filtered_logs as $row ) {
@@ -381,7 +390,7 @@ class ControlPanelPage {
                                 );
                         }
                         $month_label   = $month_options[ $selected_month ] ?? (string) $selected_month;
-                        $series_caption = sprintf( __( 'Yearly comparison for %s', 'sii-boleta-dte' ), $month_label );
+$series_caption = sprintf( __( 'Comparación anual para %s', 'sii-boleta-dte' ), $month_label );
                 } else {
                         $month_counts = array();
                         foreach ( $filtered_logs as $row ) {
@@ -406,12 +415,12 @@ class ControlPanelPage {
                                         'value' => $value,
                                 );
                         }
-                        $series_caption = __( 'Most recent six months of activity', 'sii-boleta-dte' );
-                }
+$series_caption = __( 'Actividad de los últimos seis meses', 'sii-boleta-dte' );
+}
 
-                if ( '' === $series_caption ) {
-                        $series_caption = __( 'Timeline for the latest submissions', 'sii-boleta-dte' );
-                }
+if ( '' === $series_caption ) {
+$series_caption = __( 'Cronología de los últimos envíos', 'sii-boleta-dte' );
+}
 
                 $series_total = 0;
                 foreach ( $series_points as $point ) {
@@ -422,23 +431,23 @@ class ControlPanelPage {
                         $series_max = max( array_map( static fn( $point ) => (int) $point['value'], $series_points ) );
                 }
 
-                $legend_items = array(
-                        array(
-                                'label' => __( 'Accepted', 'sii-boleta-dte' ),
-                                'value' => $accepted_dtes,
-                                'color' => '#22c55e',
-                        ),
-                        array(
-                                'label' => __( 'Sent (awaiting result)', 'sii-boleta-dte' ),
-                                'value' => $sent_dtes,
-                                'color' => '#38bdf8',
-                        ),
-                        array(
-                                'label' => __( 'Rejected', 'sii-boleta-dte' ),
-                                'value' => $rejected_dtes,
-                                'color' => '#ef4444',
-                        ),
-                );
+$legend_items = array(
+array(
+'label' => __( 'Aceptados', 'sii-boleta-dte' ),
+'value' => $accepted_dtes,
+'color' => '#22c55e',
+),
+array(
+'label' => __( 'Enviados (en espera)', 'sii-boleta-dte' ),
+'value' => $sent_dtes,
+'color' => '#38bdf8',
+),
+array(
+'label' => __( 'Rechazados', 'sii-boleta-dte' ),
+'value' => $rejected_dtes,
+'color' => '#ef4444',
+),
+);
 
                 $pie_total   = 0;
                 $gradients   = array();
@@ -505,80 +514,80 @@ class ControlPanelPage {
                         }
                 }
 
-                $dominant_status = __( 'Accepted', 'sii-boleta-dte' );
+$dominant_status = __( 'Aceptados', 'sii-boleta-dte' );
                 $dominant_value  = $accepted_dtes;
                 if ( $sent_dtes > $dominant_value ) {
-                        $dominant_status = __( 'Sent (awaiting result)', 'sii-boleta-dte' );
+$dominant_status = __( 'Enviados (en espera)', 'sii-boleta-dte' );
                         $dominant_value  = $sent_dtes;
                 }
                 if ( $rejected_dtes > $dominant_value ) {
-                        $dominant_status = __( 'Rejected', 'sii-boleta-dte' );
+$dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
                         $dominant_value  = $rejected_dtes;
                 }
                 ?>
-                <div class="sii-section">
-                        <h2><?php echo esc_html__( 'Operational metrics', 'sii-boleta-dte' ); ?></h2>
+<div class="sii-section">
+<h2><?php echo esc_html__( 'Métricas operativas', 'sii-boleta-dte' ); ?></h2>
                         <form method="get" class="sii-metric-filter">
                                 <input type="hidden" name="page" value="<?php echo esc_attr( $page_slug ); ?>" />
                                 <input type="hidden" name="tab" value="metrics" />
-                                <label>
-                                        <span><?php echo esc_html__( 'Year', 'sii-boleta-dte' ); ?></span>
-                                        <select name="metrics_year">
-                                                <option value=""><?php echo esc_html__( 'All years', 'sii-boleta-dte' ); ?></option>
+<label>
+<span><?php echo esc_html__( 'Año', 'sii-boleta-dte' ); ?></span>
+<select name="metrics_year">
+<option value=""><?php echo esc_html__( 'Todos los años', 'sii-boleta-dte' ); ?></option>
                                                 <?php foreach ( $years as $year_option ) : ?>
                                                         <?php $selected_attr = ( (int) $year_option === $selected_year ) ? ' selected="selected"' : ''; ?>
                                                         <option value="<?php echo (int) $year_option; ?>"<?php echo $selected_attr; ?>><?php echo (int) $year_option; ?></option>
                                                 <?php endforeach; ?>
                                         </select>
                                 </label>
-                                <label>
-                                        <span><?php echo esc_html__( 'Month', 'sii-boleta-dte' ); ?></span>
-                                        <select name="metrics_month">
-                                                <option value=""><?php echo esc_html__( 'All months', 'sii-boleta-dte' ); ?></option>
+<label>
+<span><?php echo esc_html__( 'Mes', 'sii-boleta-dte' ); ?></span>
+<select name="metrics_month">
+<option value=""><?php echo esc_html__( 'Todos los meses', 'sii-boleta-dte' ); ?></option>
                                                 <?php foreach ( $month_options as $month_number => $month_label ) : ?>
                                                         <?php $selected_attr = ( (int) $month_number === $selected_month ) ? ' selected="selected"' : ''; ?>
                                                         <option value="<?php echo (int) $month_number; ?>"<?php echo $selected_attr; ?>><?php echo esc_html( $month_label ); ?></option>
                                                 <?php endforeach; ?>
                                         </select>
                                 </label>
-                                <button type="submit" class="button button-primary"><?php echo esc_html__( 'Apply filters', 'sii-boleta-dte' ); ?></button>
-                                <?php if ( $selected_year || $selected_month ) : ?>
-                                        <a class="button" href="<?php echo esc_url( $metrics_url ); ?>"><?php echo esc_html__( 'Reset', 'sii-boleta-dte' ); ?></a>
-                                <?php endif; ?>
+<button type="submit" class="button button-primary"><?php echo esc_html__( 'Aplicar filtros', 'sii-boleta-dte' ); ?></button>
+<?php if ( $selected_year || $selected_month ) : ?>
+<a class="button" href="<?php echo esc_url( $metrics_url ); ?>"><?php echo esc_html__( 'Reiniciar', 'sii-boleta-dte' ); ?></a>
+<?php endif; ?>
                         </form>
-                        <div class="sii-metric-grid">
-                                <div class="sii-metric-card">
-                                        <h3><?php echo esc_html__( 'DTE performance', 'sii-boleta-dte' ); ?></h3>
+<div class="sii-metric-grid">
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Desempeño de DTE', 'sii-boleta-dte' ); ?></h3>
                                         <p class="sii-metric-value"><?php echo (int) $total_dtes; ?></p>
                                         <ul class="sii-metric-details">
-                                                <li><?php echo esc_html__( 'Accepted', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
-                                                <li><?php echo esc_html__( 'Sent (awaiting result)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
-                                                <li><?php echo esc_html__( 'Rejected', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
-                                        </ul>
-                                </div>
-                                <div class="sii-metric-card">
-                                        <h3><?php echo esc_html__( 'RVD automation', 'sii-boleta-dte' ); ?></h3>
-                                        <p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Active', 'sii-boleta-dte' ) : __( 'Paused', 'sii-boleta-dte' ) ); ?></p>
-                                        <ul class="sii-metric-details">
-                                                <li><?php echo esc_html__( 'Last submission', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
-                                                <li><?php echo esc_html__( 'Next run', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $rvd_next ) ); ?></li>
-                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['rvd']; ?></li>
-                                        </ul>
-                                </div>
-                                <div class="sii-metric-card">
-                                        <h3><?php echo esc_html__( 'Libro de boletas', 'sii-boleta-dte' ); ?></h3>
-                                        <p class="sii-metric-value"><?php echo esc_html( $libro_enabled ? __( 'Scheduled', 'sii-boleta-dte' ) : __( 'Manual', 'sii-boleta-dte' ) ); ?></p>
-                                        <ul class="sii-metric-details">
-                                                <li><?php echo esc_html__( 'Last report', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $libro_last_run ? $libro_last_run : __( 'Never', 'sii-boleta-dte' ) ); ?></li>
-                                                <li><?php echo esc_html__( 'Next reporting window', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $libro_next ) ); ?></li>
-                                                <li><?php echo esc_html__( 'Period under preparation', 'sii-boleta-dte' ) . ': ' . esc_html( $libro_period ); ?></li>
-                                                <li><?php echo esc_html__( 'Pending jobs', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['libro']; ?></li>
-                                        </ul>
-                                </div>
-                        </div>
-                        <div class="sii-metric-charts">
-                                <div class="sii-chart-card">
-                                        <h3><?php echo esc_html__( 'Time series', 'sii-boleta-dte' ); ?></h3>
+<li><?php echo esc_html__( 'Aceptados', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
+<li><?php echo esc_html__( 'Enviados (en espera)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
+<li><?php echo esc_html__( 'Rechazados', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
+</ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Automatización de RVD', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Activo', 'sii-boleta-dte' ) : __( 'En pausa', 'sii-boleta-dte' ) ); ?></p>
+<ul class="sii-metric-details">
+<li><?php echo esc_html__( 'Último envío', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Nunca', 'sii-boleta-dte' ) ); ?></li>
+<li><?php echo esc_html__( 'Próxima ejecución', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $rvd_next ) ); ?></li>
+<li><?php echo esc_html__( 'Trabajos pendientes', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['rvd']; ?></li>
+</ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Libro de boletas', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $libro_enabled ? __( 'Programado', 'sii-boleta-dte' ) : __( 'Manual', 'sii-boleta-dte' ) ); ?></p>
+<ul class="sii-metric-details">
+<li><?php echo esc_html__( 'Último reporte', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $libro_last_run ? $libro_last_run : __( 'Nunca', 'sii-boleta-dte' ) ); ?></li>
+<li><?php echo esc_html__( 'Próxima ventana de envío', 'sii-boleta-dte' ) . ': ' . esc_html( $this->format_datetime( $libro_next ) ); ?></li>
+<li><?php echo esc_html__( 'Período en preparación', 'sii-boleta-dte' ) . ': ' . esc_html( $libro_period ); ?></li>
+<li><?php echo esc_html__( 'Trabajos pendientes', 'sii-boleta-dte' ) . ': ' . (int) $queue_counts['libro']; ?></li>
+</ul>
+</div>
+</div>
+<div class="sii-metric-charts">
+<div class="sii-chart-card">
+<h3><?php echo esc_html__( 'Serie temporal', 'sii-boleta-dte' ); ?></h3>
                                         <p><?php echo esc_html( $series_caption ); ?></p>
                                         <?php if ( $series_total > 0 && $series_max > 0 ) : ?>
                                                 <div class="sii-series-bars">
@@ -596,18 +605,18 @@ class ControlPanelPage {
                                                                 <span><?php echo esc_html( (string) $point['label'] ); ?></span>
                                                         <?php endforeach; ?>
                                                 </div>
-                                        <?php else : ?>
-                                                <div class="sii-chart-empty"><?php echo esc_html__( 'No data available for the selected filters.', 'sii-boleta-dte' ); ?></div>
-                                        <?php endif; ?>
-                                </div>
-                                <div class="sii-chart-card">
-                                        <h3><?php echo esc_html__( 'Status distribution', 'sii-boleta-dte' ); ?></h3>
-                                        <p><?php echo esc_html__( 'Accepted vs pending vs rejected', 'sii-boleta-dte' ); ?></p>
+<?php else : ?>
+<div class="sii-chart-empty"><?php echo esc_html__( 'No hay datos disponibles para los filtros seleccionados.', 'sii-boleta-dte' ); ?></div>
+<?php endif; ?>
+</div>
+<div class="sii-chart-card">
+<h3><?php echo esc_html__( 'Distribución de estados', 'sii-boleta-dte' ); ?></h3>
+<p><?php echo esc_html__( 'Aceptados vs pendientes vs rechazados', 'sii-boleta-dte' ); ?></p>
                                         <?php if ( $pie_total > 0 ) : ?>
                                                 <div class="sii-chart-pie"<?php echo '' !== $pie_style ? ' style="' . esc_attr( $pie_style ) . '"' : ''; ?>></div>
-                                        <?php else : ?>
-                                                <div class="sii-chart-empty"><?php echo esc_html__( 'No DTE activity to display.', 'sii-boleta-dte' ); ?></div>
-                                        <?php endif; ?>
+<?php else : ?>
+<div class="sii-chart-empty"><?php echo esc_html__( 'No hay actividad de DTE para mostrar.', 'sii-boleta-dte' ); ?></div>
+<?php endif; ?>
                                         <div class="sii-pie-legend">
                                                 <?php foreach ( $legend_items as $item ) : ?>
                                                         <span style="color: <?php echo esc_attr( $item['color'] ); ?>;">
@@ -617,13 +626,13 @@ class ControlPanelPage {
                                         </div>
                                 </div>
                         </div>
-                        <div class="sii-highlight">
-                                <strong><?php echo esc_html__( 'Key takeaway', 'sii-boleta-dte' ); ?></strong>
-                                <?php if ( $series_total > 0 ) : ?>
-                                        <span><?php echo esc_html( sprintf( __( 'Most documents are currently classified as %1$s (%2$d records).', 'sii-boleta-dte' ), $dominant_status, $dominant_value ) ); ?></span>
-                                <?php else : ?>
-                                        <span><?php echo esc_html__( 'We have not recorded activity for this period yet — use the filters to explore other dates.', 'sii-boleta-dte' ); ?></span>
-                                <?php endif; ?>
+<div class="sii-highlight">
+<strong><?php echo esc_html__( 'Conclusión clave', 'sii-boleta-dte' ); ?></strong>
+<?php if ( $series_total > 0 ) : ?>
+<span><?php echo esc_html( sprintf( __( 'La mayoría de los documentos están clasificados como %1$s (%2$d registros).', 'sii-boleta-dte' ), $dominant_status, $dominant_value ) ); ?></span>
+<?php else : ?>
+<span><?php echo esc_html__( 'Aún no registramos actividad para este período; utiliza los filtros para revisar otras fechas.', 'sii-boleta-dte' ); ?></span>
+<?php endif; ?>
                         </div>
                 <?php AdminStyles::close_container(); ?>
                 <?php
@@ -635,8 +644,8 @@ class ControlPanelPage {
 			return;
 		}
 
-		if ( ! $this->verify_nonce( 'sii_boleta_queue_nonce', 'sii_boleta_queue' ) ) {
-			$this->add_notice( __( 'Security verification failed. Please try again.', 'sii-boleta-dte' ), 'error' );
+if ( ! $this->verify_nonce( 'sii_boleta_queue_nonce', 'sii_boleta_queue' ) ) {
+$this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
@@ -648,7 +657,7 @@ class ControlPanelPage {
 			$this->processor->retry( $id );
 		}
 
-		$this->add_notice( __( 'Queue action executed.', 'sii-boleta-dte' ) );
+$this->add_notice( __( 'Acción de cola ejecutada.', 'sii-boleta-dte' ) );
 	}
 
 	private function handle_rvd_action( string $action ): void {
@@ -656,19 +665,19 @@ class ControlPanelPage {
 			return;
 		}
 
-		if ( ! $this->verify_nonce( 'sii_boleta_rvd_nonce', 'sii_boleta_rvd' ) ) {
-			$this->add_notice( __( 'Security verification failed. Please try again.', 'sii-boleta-dte' ), 'error' );
+if ( ! $this->verify_nonce( 'sii_boleta_rvd_nonce', 'sii_boleta_rvd' ) ) {
+$this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
 		$xml = $this->rvd_manager->generate_xml();
-		if ( '' === $xml ) {
-			$this->add_notice( __( 'Unable to generate the RVD XML. Check your configuration and try again.', 'sii-boleta-dte' ), 'error' );
+if ( '' === $xml ) {
+$this->add_notice( __( 'No fue posible generar el XML del RVD. Revisa la configuración e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
-		if ( ! $this->rvd_manager->validate_rvd_xml( $xml ) ) {
-			$this->add_notice( __( 'The generated RVD XML is not valid.', 'sii-boleta-dte' ), 'error' );
+if ( ! $this->rvd_manager->validate_rvd_xml( $xml ) ) {
+$this->add_notice( __( 'El XML de RVD generado no es válido.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
@@ -683,8 +692,8 @@ class ControlPanelPage {
 		}
 
 		if ( $is_error ) {
-			$error_message = method_exists( $response, 'get_error_message' ) ? $response->get_error_message() : __( 'Unknown error', 'sii-boleta-dte' );
-			$this->add_notice( sprintf( __( 'RVD sending failed: %s', 'sii-boleta-dte' ), $error_message ), 'error' );
+$error_message = method_exists( $response, 'get_error_message' ) ? $response->get_error_message() : __( 'Error desconocido', 'sii-boleta-dte' );
+$this->add_notice( sprintf( __( 'Error al enviar el RVD: %s', 'sii-boleta-dte' ), $error_message ), 'error' );
 			return;
 		}
 
@@ -693,9 +702,9 @@ class ControlPanelPage {
 			$track = (string) $response['trackId'];
 		}
 
-		$message = __( 'RVD sent successfully.', 'sii-boleta-dte' );
-		if ( '' !== $track ) {
-			$message .= ' ' . sprintf( __( 'Track ID: %s', 'sii-boleta-dte' ), $track );
+$message = __( 'RVD enviado correctamente.', 'sii-boleta-dte' );
+if ( '' !== $track ) {
+$message .= ' ' . sprintf( __( 'ID de seguimiento: %s', 'sii-boleta-dte' ), $track );
 		}
 
 		$this->add_notice( $message );
@@ -706,21 +715,21 @@ class ControlPanelPage {
 				return;
 		}
 
-		if ( ! $this->verify_nonce( 'sii_boleta_libro_nonce', 'sii_boleta_libro' ) ) {
-			$this->add_notice( __( 'Security verification failed. Please try again.', 'sii-boleta-dte' ), 'error' );
+if ( ! $this->verify_nonce( 'sii_boleta_libro_nonce', 'sii_boleta_libro' ) ) {
+$this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
 			$xml = trim( $xml );
-		if ( '' === $xml ) {
-			$this->add_notice( __( 'Please paste the Libro XML before validating.', 'sii-boleta-dte' ), 'error' );
+if ( '' === $xml ) {
+$this->add_notice( __( 'Debes pegar el XML del Libro antes de validar.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
-		if ( $this->libro_boletas->validate_libro_xml( $xml ) ) {
-			$this->add_notice( __( 'Libro XML is valid.', 'sii-boleta-dte' ) );
-		} else {
-			$this->add_notice( __( 'Libro XML did not pass validation. Review the structure and try again.', 'sii-boleta-dte' ), 'error' );
+if ( $this->libro_boletas->validate_libro_xml( $xml ) ) {
+$this->add_notice( __( 'El XML del Libro es válido.', 'sii-boleta-dte' ) );
+} else {
+$this->add_notice( __( 'El XML del Libro no pasó la validación. Revisa la estructura e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
 		}
 	}
 
@@ -770,12 +779,29 @@ class ControlPanelPage {
 
 	/** Returns a translated label for a queue job type. */
 	private function translate_type( string $type ): string {
-			$map = array(
-				'dte'   => __( 'DTE', 'sii-boleta-dte' ),
-				'libro' => __( 'Libro', 'sii-boleta-dte' ),
-				'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
-			);
-			return $map[ $type ] ?? $type;
+		$map = array(
+			'dte'   => __( 'DTE', 'sii-boleta-dte' ),
+			'libro' => __( 'Libro', 'sii-boleta-dte' ),
+			'rvd'   => __( 'RVD', 'sii-boleta-dte' ),
+		);
+		return $map[ $type ] ?? $type;
+	}
+
+	/** Returns a translated label for log statuses. */
+	private function translate_status_label( string $status ): string {
+		$normalized = strtolower( trim( $status ) );
+		$map        = array(
+			'accepted'   => __( 'Aceptado', 'sii-boleta-dte' ),
+			'sent'       => __( 'Enviado (en espera)', 'sii-boleta-dte' ),
+			'pending'    => __( 'Pendiente', 'sii-boleta-dte' ),
+			'rejected'   => __( 'Rechazado', 'sii-boleta-dte' ),
+			'processing' => __( 'Procesando', 'sii-boleta-dte' ),
+			'queued'     => __( 'En cola', 'sii-boleta-dte' ),
+			'failed'     => __( 'Fallido', 'sii-boleta-dte' ),
+			'error'      => __( 'Error', 'sii-boleta-dte' ),
+			'draft'      => __( 'Borrador', 'sii-boleta-dte' ),
+		);
+		return $map[ $normalized ] ?? $status;
 	}
 
 	private function render_rvd_schedule(): void {
@@ -789,13 +815,13 @@ class ControlPanelPage {
 			$last        = Settings::get_schedule_last_run( 'rvd', $environment );
 			$next_ts     = $enabled ? $this->next_daily_run_timestamp( $time ) : 0;
 		?>
-				<h3><?php echo esc_html__( 'Automatic schedule', 'sii-boleta-dte' ); ?></h3>
-				<p><?php echo esc_html__( 'Status:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Enabled', 'sii-boleta-dte' ) : __( 'Disabled', 'sii-boleta-dte' ) ); ?></p>
-				<?php if ( $enabled ) : ?>
-						<p><?php echo esc_html__( 'Daily time:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
-						<p><?php echo esc_html__( 'Next run:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
-				<?php endif; ?>
-				<p><?php echo esc_html__( 'Last run:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Never', 'sii-boleta-dte' ) ); ?></p>
+<h3><?php echo esc_html__( 'Programación automática', 'sii-boleta-dte' ); ?></h3>
+<p><?php echo esc_html__( 'Estado:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Habilitado', 'sii-boleta-dte' ) : __( 'Deshabilitado', 'sii-boleta-dte' ) ); ?></p>
+<?php if ( $enabled ) : ?>
+<p><?php echo esc_html__( 'Hora diaria:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
+<p><?php echo esc_html__( 'Próxima ejecución:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
+<?php endif; ?>
+<p><?php echo esc_html__( 'Última ejecución:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Nunca', 'sii-boleta-dte' ) ); ?></p>
 				<?php
 	}
 
@@ -815,15 +841,15 @@ class ControlPanelPage {
 			$next_ts     = $enabled ? $this->next_monthly_run_timestamp( $day, $time ) : 0;
 			$period      = $this->previous_month_period( $this->current_timestamp() );
 		?>
-				<h3><?php echo esc_html__( 'Monthly Libro schedule', 'sii-boleta-dte' ); ?></h3>
-				<p><?php echo esc_html__( 'Status:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Enabled', 'sii-boleta-dte' ) : __( 'Disabled', 'sii-boleta-dte' ) ); ?></p>
-				<?php if ( $enabled ) : ?>
-						<p><?php echo esc_html__( 'Scheduled day:', 'sii-boleta-dte' ) . ' ' . esc_html( (string) $day ); ?></p>
-						<p><?php echo esc_html__( 'Send time:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
-						<p><?php echo esc_html__( 'Next run:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
-						<p><?php echo esc_html__( 'Period to be reported:', 'sii-boleta-dte' ) . ' ' . esc_html( $period ); ?></p>
-				<?php endif; ?>
-				<p><?php echo esc_html__( 'Last run:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Never', 'sii-boleta-dte' ) ); ?></p>
+<h3><?php echo esc_html__( 'Programación mensual del Libro', 'sii-boleta-dte' ); ?></h3>
+<p><?php echo esc_html__( 'Estado:', 'sii-boleta-dte' ) . ' ' . esc_html( $enabled ? __( 'Habilitado', 'sii-boleta-dte' ) : __( 'Deshabilitado', 'sii-boleta-dte' ) ); ?></p>
+<?php if ( $enabled ) : ?>
+<p><?php echo esc_html__( 'Día programado:', 'sii-boleta-dte' ) . ' ' . esc_html( (string) $day ); ?></p>
+<p><?php echo esc_html__( 'Hora de envío:', 'sii-boleta-dte' ) . ' ' . esc_html( $time ); ?></p>
+<p><?php echo esc_html__( 'Próxima ejecución:', 'sii-boleta-dte' ) . ' ' . esc_html( $this->format_datetime( $next_ts ) ); ?></p>
+<p><?php echo esc_html__( 'Período a informar:', 'sii-boleta-dte' ) . ' ' . esc_html( $period ); ?></p>
+<?php endif; ?>
+<p><?php echo esc_html__( 'Última ejecución:', 'sii-boleta-dte' ) . ' ' . esc_html( '' !== $last ? $last : __( 'Nunca', 'sii-boleta-dte' ) ); ?></p>
 				<?php
 	}
 
@@ -910,8 +936,8 @@ class ControlPanelPage {
 	}
 
 	private function format_datetime( int $timestamp ): string {
-		if ( $timestamp <= 0 ) {
-				return __( 'Not scheduled', 'sii-boleta-dte' );
+if ( $timestamp <= 0 ) {
+return __( 'Sin programación', 'sii-boleta-dte' );
 		}
 		if ( function_exists( 'wp_date' ) ) {
 				return wp_date( 'Y-m-d H:i', $timestamp );

@@ -6,545 +6,423 @@ use Derafu\Certificate\Service\CertificateLoader;
 use JsonException;
 use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\Engine\Builder\DocumentPayloadBuilder;
+use Sii\BoletaDte\Infrastructure\Engine\Caf\CafProviderInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Caf\CafResolutionException;
+use Sii\BoletaDte\Infrastructure\Engine\Caf\LibreDteCafProvider;
+use Sii\BoletaDte\Infrastructure\Engine\Certificate\CertificateProviderInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Certificate\LibreDteCertificateProvider;
+use Sii\BoletaDte\Infrastructure\Engine\EmptyReceptorProvider;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\SectionSanitizer;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
-use Sii\BoletaDte\Infrastructure\Engine\Xml\NullTotalsAdjuster;
+use Sii\BoletaDte\Infrastructure\Engine\Preparation\DocumentPreparationPipelineInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Preparation\FactoryBackedDocumentPreparationPipeline;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\ReceptorPlaceholderCleaner;
-use Sii\BoletaDte\Infrastructure\Engine\Xml\VatInclusiveTotalsAdjuster;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlPlaceholderCleaner;
-use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlTotalsAdjuster;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Settings;
-use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
-use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
 use libredte\lib\Core\Application;
 use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\RendererWorker;
-use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafLoaderWorkerInterface;
-use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
+use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
 
 /**
  * DTE engine backed by LibreDTE library.
  */
 class LibreDteEngine implements DteEngine {
-	private Settings $settings;
-        private BuilderWorker $builder;
-        private RendererWorker $renderer;
-        private CafLoaderWorkerInterface $cafLoader;
-        private CafFakerWorker $cafFaker;
-        private CertificateFaker $certificateFaker;
-        private CertificateLoader $certificateLoader;
-        private DteDocumentFactoryRegistry $documentFactoryRegistry;
-        private SectionSanitizer $sectionSanitizer;
-        /**
-         * @var array<int,XmlTotalsAdjuster>
-         */
-        private array $totalsAdjusters;
-        private XmlPlaceholderCleaner $placeholderCleaner;
+    private Settings $settings;
+    private BuilderWorker $builder;
+    private RendererWorker $renderer;
+    private DteDocumentFactoryRegistry $documentFactoryRegistry;
+    private SectionSanitizer $sectionSanitizer;
+    private XmlPlaceholderCleaner $placeholderCleaner;
+    private DocumentPreparationPipelineInterface $preparationPipeline;
+    private CafProviderInterface $cafProvider;
+    private CertificateProviderInterface $certificateProvider;
 
-        public function __construct( Settings $settings, ?DteDocumentFactoryRegistry $factoryRegistry = null, ?SectionSanitizer $sectionSanitizer = null ) {
-                $this->settings          = $settings;
-                $this->sectionSanitizer  = $sectionSanitizer ?? new SectionSanitizer();
-                $templatesRoot           = dirname( __DIR__, 2 ) . '/resources/yaml/';
-                $this->documentFactoryRegistry = $factoryRegistry ?? DteDocumentFactoryRegistry::createDefault( $templatesRoot, $this->sectionSanitizer );
-                $app                             = Application::getInstance();
-                $this->override_receptor_provider( $app );
-                $registry                        = $app->getPackageRegistry()->getBillingPackage();
-                $component                       = $registry->getDocumentComponent();
-                $this->builder                   = $component->getBuilderWorker();
-                $this->renderer                  = $component->getRendererWorker();
-                $identifier                      = $registry->getIdentifierComponent();
-                $this->cafLoader                 = $identifier->getCafLoaderWorker();
-                $this->cafFaker                  = $identifier->getCafFakerWorker();
-                                $this->certificateLoader = new CertificateLoader();
-                                $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
-                $this->totalsAdjusters = array(
-                        new VatInclusiveTotalsAdjuster(),
-                        new NullTotalsAdjuster(),
-                );
-                $this->placeholderCleaner = new ReceptorPlaceholderCleaner();
+    public function __construct(
+        Settings $settings,
+        ?DteDocumentFactoryRegistry $factoryRegistry = null,
+        ?SectionSanitizer $sectionSanitizer = null,
+        ?DocumentPreparationPipelineInterface $preparationPipeline = null,
+        ?CafProviderInterface $cafProvider = null,
+        ?CertificateProviderInterface $certificateProvider = null,
+        ?XmlPlaceholderCleaner $placeholderCleaner = null
+    ) {
+        $this->settings = $settings;
+        $this->sectionSanitizer = $sectionSanitizer ?? new SectionSanitizer();
+        $templatesRoot = dirname(__DIR__, 2) . '/resources/yaml/';
+        $this->documentFactoryRegistry = $factoryRegistry
+            ?? DteDocumentFactoryRegistry::createDefault($templatesRoot, $this->sectionSanitizer);
+        $this->preparationPipeline = $preparationPipeline
+            ?? new FactoryBackedDocumentPreparationPipeline($this->sectionSanitizer);
+
+        $app = Application::getInstance();
+        $this->override_receptor_provider($app);
+        $registry = $app->getPackageRegistry()->getBillingPackage();
+        $component = $registry->getDocumentComponent();
+        $this->builder = $component->getBuilderWorker();
+        $this->renderer = $component->getRendererWorker();
+
+        $identifier = $registry->getIdentifierComponent();
+        $this->cafProvider = $cafProvider
+            ?? new LibreDteCafProvider(
+                $identifier->getCafLoaderWorker(),
+                $identifier->getCafFakerWorker()
+            );
+
+        $certificateLoader = new CertificateLoader();
+        $certificateFaker = new CertificateFaker($certificateLoader);
+        $this->certificateProvider = $certificateProvider
+            ?? new LibreDteCertificateProvider($certificateLoader, $certificateFaker);
+
+        $this->placeholderCleaner = $placeholderCleaner ?? new ReceptorPlaceholderCleaner();
+    }
+
+    public function register_document_factory( int $tipo, DteDocumentFactory $factory ): void {
+        $this->documentFactoryRegistry->registerFactory( $tipo, $factory );
+    }
+
+    private function override_receptor_provider( Application $app ): void {
+        try {
+            $container = $app->getService( 'service_container' );
+        } catch ( \Throwable $e ) {
+            return;
         }
 
-        public function register_document_factory( int $tipo, DteDocumentFactory $factory ): void {
-                $this->documentFactoryRegistry->registerFactory( $tipo, $factory );
+        if ( ! is_object( $container ) ) {
+            return;
         }
 
-        private function override_receptor_provider( Application $app ): void {
-                try {
-                        $container = $app->getService( 'service_container' );
-                } catch ( \Throwable $e ) {
-                        return;
-                }
-
-                if ( ! is_object( $container ) ) {
-                        return;
-                }
-
-                try {
-                        $reflection = new \ReflectionObject( $container );
-                } catch ( \ReflectionException $e ) {
-                        return;
-                }
-
-                if ( ! $reflection->hasProperty( 'privates' ) ) {
-                        return;
-                }
-
-                $property = $reflection->getProperty( 'privates' );
-                $property->setAccessible( true );
-                $privates = $property->getValue( $container );
-                if ( ! is_array( $privates ) ) {
-                        $privates = array();
-                }
-
-                if ( isset( $privates[ ReceptorProviderInterface::class ] )
-                        && $privates[ ReceptorProviderInterface::class ] instanceof EmptyReceptorProvider ) {
-                        return;
-                }
-
-                $factory  = new ReceptorFactory();
-                $provider = new EmptyReceptorProvider( $factory );
-
-                $privates[ ReceptorProviderInterface::class ] = $provider;
-                $property->setValue( $container, $privates );
+        try {
+            $reflection = new \ReflectionObject( $container );
+        } catch ( \ReflectionException $e ) {
+            return;
         }
 
-	public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
-                $tipo     = (int) $tipo_dte;
-                $settings = $this->settings->get_settings();
+        if ( ! $reflection->hasProperty( 'privates' ) ) {
+            return;
+        }
 
-                $folio_number = 0;
-                if ( isset( $data['Folio'] ) ) {
-                        $folio_number = (int) $data['Folio'];
-                } elseif ( isset( $data['Encabezado']['IdDoc']['Folio'] ) ) {
-                        $folio_number = (int) $data['Encabezado']['IdDoc']['Folio'];
-                }
-                $environment = $this->settings->get_environment();
-                if ( $folio_number > 0 && ! FoliosDb::find_for_folio( $tipo, $folio_number, $environment ) ) {
-                        return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
-                }
+        $property = $reflection->getProperty( 'privates' );
+        $property->setAccessible( true );
+        $privates = $property->getValue( $container );
+        if ( ! is_array( $privates ) ) {
+            $privates = array();
+        }
 
-                $factory  = $this->documentFactoryRegistry->getFactory( $tipo );
-                $template = $factory->createTemplateLoader()->load( $tipo );
-                if ( isset( $template['Detalle'] ) ) {
-                        $template['Detalle'] = array();
-                }
-                if ( isset( $template['Encabezado']['Totales'] ) ) {
-                        $template['Encabezado']['Totales'] = array();
-                }
-                if ( isset( $template['DscRcgGlobal'] ) ) {
-                        unset( $template['DscRcgGlobal'] );
-                }
+        if ( isset( $privates[ ReceptorProviderInterface::class ] )
+            && $privates[ ReceptorProviderInterface::class ] instanceof EmptyReceptorProvider ) {
+            return;
+        }
 
-                $global_discount_data  = array();
-                $global_discount_items = array();
-                if ( isset( $data['DscRcgGlobal'] ) && is_array( $data['DscRcgGlobal'] ) ) {
-                        list( $global_discount_data, $global_discount_items ) = $this->normalize_global_discount_data(
-                                $data['DscRcgGlobal']
-                        );
+        $factory  = new ReceptorFactory();
+        $provider = new EmptyReceptorProvider( $factory );
+
+        $privates[ ReceptorProviderInterface::class ] = $provider;
+        $property->setValue( $container, $privates );
+    }
+
+    public function generate_dte_xml( array $data, $tipo_dte, bool $preview = false ) {
+        $tipo     = (int) $tipo_dte;
+        $settings = $this->settings->get_settings();
+        $environment = $this->settings->get_environment();
+
+        $folioNumber = $this->extractFolio( $data );
+        if ( $folioNumber > 0 && ! FoliosDb::find_for_folio( $tipo, $folioNumber, $environment ) ) {
+            return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
+        }
+
+        if ( $preview ) {
+            $this->debug_log( '[preview] settings=' . json_encode( array(
+                'rut_emisor'    => $settings['rut_emisor'] ?? null,
+                'razon_social'  => $settings['razon_social'] ?? null,
+                'giro'          => $settings['giro'] ?? null,
+                'direccion'     => $settings['direccion'] ?? null,
+                'comuna'        => $settings['comuna'] ?? null,
+            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+        }
+
+        $factory = $this->documentFactoryRegistry->getFactory( $tipo );
+        $preparation = $this->preparationPipeline->prepare( $factory, $tipo, $data, $settings, $preview );
+
+        $payload      = $preparation->getPayload();
+        $documentData = $payload->getDocument();
+        $rawReceptor  = $payload->getRawReceptor();
+
+        if ( $preview ) {
+            $this->debug_log( '[preview] emisor=' . json_encode( $preparation->getEmisor(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+            $this->debug_log( '[preview] detalle=' . json_encode( $preparation->getDetalle(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+        }
+
+        $emisorData = $preparation->getEmisor();
+        $emisorRut = (string) ( $emisorData['RUTEmisor'] ?? '' );
+        $emisorName = (string) ( $emisorData['RznSocEmisor'] ?? '' );
+        $emisorEntity = new Emisor( $emisorRut, $emisorName );
+
+        $folio = (int) ( $documentData['Encabezado']['IdDoc']['Folio'] ?? 0 );
+
+        try {
+            $cafBag = $this->cafProvider->resolve( $tipo, $folio, $preview, $emisorEntity, $environment );
+        } catch ( CafResolutionException $exception ) {
+            $this->debug_log( '[error] CAF load failed: ' . $exception->getMessage() );
+            if ( $exception->hadProvidedCaf() && '' !== trim( $exception->getCafXml() ) ) {
+                $this->debug_log( '[error] CAF xml=' . $exception->getCafXml() );
+            }
+
+            return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
+        }
+
+        $certificate = $this->certificateProvider->resolve( $settings, $emisorEntity );
+
+        $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+
+        try {
+            $this->builder->build( $bag );
+        } catch ( \Throwable $e ) {
+            $context = array(
+                'tipo'        => $tipo,
+                'preview'     => $preview,
+                'folio'       => $documentData['Encabezado']['IdDoc']['Folio'] ?? null,
+                'environment' => $environment,
+            );
+            $this->debug_log( '[error] Builder failed: ' . $e->getMessage() );
+            $this->debug_log( '[error] Context=' . json_encode( $context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+            throw $e;
+        }
+
+        $xmlString = $bag->getDocument()->saveXml();
+        if ( ! is_string( $xmlString ) ) {
+            return '';
+        }
+
+        $xmlString = $factory->createTotalsAdjuster()->adjust(
+            $xmlString,
+            $preparation->getDetalle(),
+            $tipo,
+            $preparation->getTasaIva(),
+            $preparation->getGlobalDiscounts()
+        );
+
+        $xmlString = $this->placeholderCleaner->clean(
+            $xmlString,
+            $rawReceptor,
+            $payload->hasReferences()
+        );
+
+        return $xmlString;
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    private function extractFolio( array $data ): int {
+        if ( isset( $data['Folio'] ) ) {
+            return (int) $data['Folio'];
+        }
+
+        if ( isset( $data['Encabezado']['IdDoc']['Folio'] ) ) {
+            return (int) $data['Encabezado']['IdDoc']['Folio'];
+        }
+
+        return 0;
+    }
+
+    /**
+     * Renders a PDF using LibreDTE templates.
+     */
+    private function debug_log( string $message ): void {
+        if ( ! function_exists( 'wp_upload_dir' ) ) {
+            error_log( $message );
+            return;
+        }
+        $uploads = wp_upload_dir();
+        $base = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
+            ? $uploads['basedir']
+            : ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
+        $dir = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
+        if ( function_exists( 'wp_mkdir_p' ) ) {
+            wp_mkdir_p( $dir );
+        } elseif ( ! is_dir( $dir ) ) {
+            @mkdir( $dir, 0755, true );
+        }
+        $file = $dir . '/debug.log';
+        $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
+        @file_put_contents( $file, $line, FILE_APPEND );
+    }
+
+    /**
+     * Renders a PDF using LibreDTE templates.
+     */
+    public function render_pdf( string $xml, array $options = array() ): string {
+        $xml       = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
+        $overrides = array();
+
+        if ( isset( $options['document_overrides'] ) && is_array( $options['document_overrides'] ) ) {
+            $overrides = $options['document_overrides'];
+            unset( $options['document_overrides'] );
+        }
+
+        $options = array_replace_recursive(
+            array(
+                'parser'   => array( 'strategy' => 'default.xml' ),
+                'renderer' => array( 'format' => 'pdf' ),
+            ),
+            $options
+        );
+
+        $parsedXml = $this->parse_document_data_from_xml( $xml );
+
+        if ( null !== $parsedXml ) {
+            if ( ! empty( $overrides ) ) {
+                foreach ( $overrides as $key => $value ) {
+                    $parsedXml[ $key ] = $value;
                 }
+            }
+            $parsedXml               = $this->reset_total_before_rendering( $parsedXml );
+            $options['normalizer']   = array( 'normalize' => false );
+            $bag                     = new DocumentBag( parsedData: $parsedXml, options: $options );
+            $bag->setNormalizedData( $parsedXml );
+        } else {
+            $bag = new DocumentBag( $xml, options: $options );
+        }
 
-                $detalles = is_array( $data['Detalles'] ?? null ) ? $data['Detalles'] : array();
-                $detalle  = $factory->createDetailNormalizer()->normalize( $detalles, $tipo );
+        $pdf  = $this->renderer->render( $bag );
+        $file = tempnam( sys_get_temp_dir(), 'pdf' );
+        file_put_contents( $file, $pdf );
+        return $file;
+    }
 
-                $emisorBuilder = $factory->createEmisorDataBuilder();
-                $emisor        = $emisorBuilder->build( $data, $settings );
-                if ( $preview ) {
-                        $this->debug_log( '[preview] settings=' . json_encode( array(
-                                'rut_emisor'    => $settings['rut_emisor'] ?? null,
-                                'razon_social'  => $settings['razon_social'] ?? null,
-                                'giro'          => $settings['giro'] ?? null,
-                                'direccion'     => $settings['direccion'] ?? null,
-                                'comuna'        => $settings['comuna'] ?? null,
-                        ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                }
+    /**
+     * Normalizes total fields before passing parsed data into LibreDTE renderers.
+     */
+    private function reset_total_before_rendering( ?array $parsedXml ): ?array {
+        if ( null === $parsedXml || ! isset( $parsedXml['Encabezado']['Totales'] ) ) {
+            return $parsedXml;
+        }
 
-                $payloadBuilder = new DocumentPayloadBuilder( $template );
-                $payloadBuilder
-                        ->withDocumentIdentification( $tipo, $data )
-                        ->withEmisor( $emisor )
-                        ->withDetalle( $detalle )
-                        ->withGlobalDiscount( $global_discount_data );
+        $totals = $parsedXml['Encabezado']['Totales'];
+        if ( ! is_array( $totals ) ) {
+            return $parsedXml;
+        }
 
-                $rawReceptor = array();
-                if ( isset( $data['Receptor'] ) && is_array( $data['Receptor'] ) ) {
-                        $rawReceptor = $data['Receptor'];
-                } elseif ( isset( $data['Encabezado']['Receptor'] ) && is_array( $data['Encabezado']['Receptor'] ) ) {
-                        $rawReceptor = $data['Encabezado']['Receptor'];
-                }
+        $parsedXml['Encabezado']['Totales'] = $this->normalize_totals_for_rendering( $totals );
 
-                $receptorSanitizer = $factory->createReceptorSanitizer();
-                if ( ! empty( $rawReceptor ) ) {
-                        $sanitizedReceptor = $receptorSanitizer->sanitize( $rawReceptor );
-                } elseif ( isset( $template['Encabezado']['Receptor'] ) && is_array( $template['Encabezado']['Receptor'] ) ) {
-                        $sanitizedReceptor = $receptorSanitizer->sanitize( $template['Encabezado']['Receptor'] );
+        return $parsedXml;
+    }
+
+    /**
+     * Normalizes nested amount structures before sending data to the renderer.
+     *
+     * @param array<string,mixed> $values Totals subsection.
+     * @return array<string,mixed>
+     */
+    private function normalize_totals_for_rendering( array $values ): array {
+        foreach ( $values as $key => $value ) {
+            if ( 'TasaIVA' === $key ) {
+                if ( is_numeric( $value ) ) {
+                    $values[ $key ] = (float) $value;
                 } else {
-                        $sanitizedReceptor = $receptorSanitizer->sanitize( array() );
+                    unset( $values[ $key ] );
                 }
+                continue;
+            }
 
-                $payloadBuilder->withReceptor( $sanitizedReceptor, $rawReceptor );
-
-                $tasa_iva = null;
-                if ( isset( $data['Encabezado']['Totales']['TasaIVA'] ) ) {
-                        $tasa_iva = (float) $data['Encabezado']['Totales']['TasaIVA'];
-                } elseif ( isset( $template['Encabezado']['Totales']['TasaIVA'] ) ) {
-                        $tasa_iva = (float) $template['Encabezado']['Totales']['TasaIVA'];
+            if ( is_array( $value ) ) {
+                $values[ $key ] = $this->normalize_totals_for_rendering( $value );
+                if ( empty( $values[ $key ] ) ) {
+                    unset( $values[ $key ] );
                 }
-                if ( null === $tasa_iva && in_array( $tipo, array( 33, 39, 43, 46 ), true ) ) {
-                        $tasa_iva = 19.0;
-                }
+                continue;
+            }
 
-                $payloadBuilder->withTotalsSkeleton( $tasa_iva );
+            if ( is_numeric( $value ) ) {
+                $values[ $key ] = (int) round( (float) $value );
+                continue;
+            }
 
-                if ( isset( $data['Referencias'] ) && is_array( $data['Referencias'] ) ) {
-                        $payloadBuilder->withReferences( $data['Referencias'] );
-                } else {
-                        $payloadBuilder->withReferences( array() );
-                }
-
-                $payload      = $payloadBuilder->build();
-                $documentData = $payload->getDocument();
-                $rawReceptor  = $payload->getRawReceptor();
-
-                if ( $preview ) {
-                        $this->debug_log( '[preview] emisor=' . json_encode( $documentData['Encabezado']['Emisor'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                        $this->debug_log( '[preview] detalle=' . json_encode( $documentData['Detalle'] ?? array(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                }
-
-                                $emisorEntity = new Emisor( $emisor['RUTEmisor'], $emisor['RznSocEmisor'] );
-
-                $cafXml = '';
-                if ( ! $preview ) {
-                        if ( $folio_number > 0 ) {
-                                $range = FoliosDb::find_for_folio( $tipo, $folio_number, $environment );
-                                if ( $range && ! empty( $range['caf'] ) ) {
-                                        $cafXml = (string) $range['caf'];
-                                }
-                        }
-                        if ( '' === $cafXml ) {
-                                foreach ( FoliosDb::for_type( $tipo, $environment ) as $row ) {
-                                        if ( ! empty( $row['caf'] ) ) {
-                                                $cafXml = (string) $row['caf'];
-                                                break;
-                                        }
-                                }
-                        }
-                }
-
-                if ( $preview || '' === trim( $cafXml ) ) {
-                        $cafBag = $this->cafFaker->create( $emisorEntity, $tipo, $documentData['Encabezado']['IdDoc']['Folio'] );
-                } else {
-                        try {
-                                $cafBag = $this->cafLoader->load( $cafXml );
-                        } catch ( \Throwable $e ) {
-                                $this->debug_log( '[error] CAF load failed: ' . $e->getMessage() );
-                                if ( '' !== trim( $cafXml ) ) {
-                                        $this->debug_log( '[error] CAF xml=' . $cafXml );
-                                }
-                                return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
-                        }
-                }
-
-                                $cert_file = $settings['cert_path'] ?? '';
-                                $cert_pass = $settings['cert_pass'] ?? '';
-		try {
-			if ( $cert_file && @file_exists( $cert_file ) ) {
-						$certificate = $this->certificateLoader->load( $cert_file, (string) $cert_pass );
-			} else {
-							$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
-			}
-		} catch ( \Throwable $e ) {
-				$certificate = $this->certificateFaker->createFake( id: $emisorEntity->getRUT() );
-		}
-
-                $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
-                try {
-                        $this->builder->build( $bag );
-                } catch ( \Throwable $e ) {
-                        $context = array(
-                                'tipo'         => $tipo,
-                                'preview'      => $preview,
-                                'folio'        => $documentData['Encabezado']['IdDoc']['Folio'] ?? null,
-                                'environment'  => $environment,
-                                'caf_provided' => '' !== trim( $cafXml ),
-                        );
-                        $this->debug_log( '[error] Builder failed: ' . $e->getMessage() );
-                        $this->debug_log( '[error] Context=' . json_encode( $context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-                        if ( '' !== trim( $cafXml ) ) {
-                                $this->debug_log( '[error] CAF xml=' . $cafXml );
-                        }
-                        throw $e;
-                }
-
-                $xmlString = $bag->getDocument()->saveXml();
-                if ( ! is_string( $xmlString ) ) {
-                        return '';
-                }
-
-                $adjuster  = $this->resolveTotalsAdjuster( $tipo );
-                $xmlString = $adjuster->adjust( $xmlString, $detalle, $tipo, $tasa_iva, $global_discount_items );
-
-                $xmlString = $this->placeholderCleaner->clean(
-                        $xmlString,
-                        $rawReceptor,
-                        $payload->hasReferences()
-                );
-
-                return $xmlString;
+            unset( $values[ $key ] );
         }
 
-        /**
-         * Normalizes the DscRcgGlobal payload keeping the original shape for LibreDTE.
-         *
-         * @param array<string|int,mixed> $raw Raw discount/recargo data from the UI.
-         *
-         * @return array{0:array<mixed>,1:array<int,array<string,mixed>>}
-         */
-        private function normalize_global_discount_data( array $raw ): array {
-                if ( $this->is_list( $raw ) ) {
-                        $normalized = array();
-                        foreach ( $raw as $entry ) {
-                                if ( ! is_array( $entry ) ) {
-                                        continue;
-                                }
-                                $clean = $this->sectionSanitizer->sanitize( $entry );
-                                if ( ! empty( $clean ) ) {
-                                        $normalized[] = $clean;
-                                }
-                        }
+        return $values;
+    }
 
-                        return array( $normalized, $normalized );
-                }
+    /**
+     * Converts a DTE XML string into the array structure expected by LibreDTE.
+     */
+    private function parse_document_data_from_xml( string $xml ): ?array {
+        $previous = libxml_use_internal_errors( true );
+        $document = simplexml_load_string( $xml );
 
-                $clean = $this->sectionSanitizer->sanitize( $raw );
-                if ( empty( $clean ) ) {
-                        return array( array(), array() );
-                }
-
-                return array( $clean, array( $clean ) );
+        if ( ! $document instanceof SimpleXMLElement ) {
+            libxml_clear_errors();
+            libxml_use_internal_errors( $previous );
+            return null;
         }
 
-        /**
-         * Checks if an array is a list with sequential numeric keys.
-         */
-        private function is_list( array $array ): bool {
-                if ( array() === $array ) {
-                        return true;
-                }
-
-                return array_keys( $array ) === range( 0, count( $array ) - 1 );
+        /** @var SimpleXMLElement|null $document_node */
+        $document_node = $document->Documento ?? $document->Exportaciones ?? $document->Liquidacion ?? null;
+        if ( ! $document_node instanceof SimpleXMLElement ) {
+            libxml_clear_errors();
+            libxml_use_internal_errors( $previous );
+            return null;
         }
 
-        private function resolveTotalsAdjuster( int $tipo ): XmlTotalsAdjuster {
-                foreach ( $this->totalsAdjusters as $adjuster ) {
-                        if ( $adjuster->supports( $tipo ) ) {
-                                return $adjuster;
-                        }
-                }
-
-                return new NullTotalsAdjuster();
+        try {
+            $encoded = json_encode( $document_node, JSON_THROW_ON_ERROR );
+            $data    = json_decode( $encoded, true, 512, JSON_THROW_ON_ERROR );
+        } catch ( JsonException $e ) {
+            libxml_clear_errors();
+            libxml_use_internal_errors( $previous );
+            return null;
         }
 
-        /**
-         * Renders a PDF using LibreDTE templates.
-         */
-        private function debug_log( string $message ): void {
-                if ( ! function_exists( 'wp_upload_dir' ) ) {
-                        error_log( $message );
-                        return;
-                }
-                $uploads = wp_upload_dir();
-                $base = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
-                        ? $uploads['basedir']
-                        : ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
-                $dir = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
-                if ( function_exists( 'wp_mkdir_p' ) ) {
-                        wp_mkdir_p( $dir );
-                } elseif ( ! is_dir( $dir ) ) {
-                        @mkdir( $dir, 0755, true );
-                }
-                $file = $dir . '/debug.log';
-                $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
-                @file_put_contents( $file, $line, FILE_APPEND );
+        if ( ! is_array( $data ) ) {
+            libxml_clear_errors();
+            libxml_use_internal_errors( $previous );
+            return null;
         }
 
-        /**
-         * Renders a PDF using LibreDTE templates.
-         */
-        public function render_pdf( string $xml, array $options = array() ): string {
-                $xml       = mb_convert_encoding( $xml, 'UTF-8', 'ISO-8859-1' );
-                $overrides = array();
+        unset( $data['@attributes'] );
 
-                if ( isset( $options['document_overrides'] ) && is_array( $options['document_overrides'] ) ) {
-                        $overrides = $options['document_overrides'];
-                        unset( $options['document_overrides'] );
-                }
+        if ( isset( $data['Encabezado']['Emisor'] ) && is_array( $data['Encabezado']['Emisor'] ) ) {
+            $emisor = &$data['Encabezado']['Emisor'];
 
-                $options = array_replace_recursive(
-                        array(
-                                'parser'   => array( 'strategy' => 'default.xml' ),
-                                'renderer' => array( 'format' => 'pdf' ),
-                        ),
-                        $options
-                );
+            if ( isset( $emisor['RznSocEmisor'] ) && ! isset( $emisor['RznSoc'] ) ) {
+                $emisor['RznSoc'] = $emisor['RznSocEmisor'];
+            } elseif ( isset( $emisor['RznSoc'] ) && ! isset( $emisor['RznSocEmisor'] ) ) {
+                $emisor['RznSocEmisor'] = $emisor['RznSoc'];
+            }
 
-                $parsedXml = $this->parse_document_data_from_xml( $xml );
-
-                if ( null !== $parsedXml ) {
-                        if ( ! empty( $overrides ) ) {
-                                foreach ( $overrides as $key => $value ) {
-                                        $parsedXml[ $key ] = $value;
-                                }
-                        }
-                        $parsedXml               = $this->reset_total_before_rendering( $parsedXml );
-                        $options['normalizer']   = array( 'normalize' => false );
-                        $bag                     = new DocumentBag( parsedData: $parsedXml, options: $options );
-                        $bag->setNormalizedData( $parsedXml );
-                } else {
-                        $bag = new DocumentBag( $xml, options: $options );
-                }
-
-                $pdf  = $this->renderer->render( $bag );
-                $file = tempnam( sys_get_temp_dir(), 'pdf' );
-                file_put_contents( $file, $pdf );
-                return $file;
+            if ( isset( $emisor['GiroEmisor'] ) && ! isset( $emisor['GiroEmis'] ) ) {
+                $emisor['GiroEmis'] = $emisor['GiroEmisor'];
+            } elseif ( isset( $emisor['GiroEmis'] ) && ! isset( $emisor['GiroEmisor'] ) ) {
+                $emisor['GiroEmisor'] = $emisor['GiroEmis'];
+            }
         }
 
-       /** Loads YAML template for a given DTE type exclusively from
-        * resources/yaml/documentos_ok/ (carpetas por tipo).
-         */
-        /**
-         * Normalizes total fields before passing parsed data into LibreDTE renderers.
-         */
-        private function reset_total_before_rendering( ?array $parsedXml ): ?array {
-                if ( null === $parsedXml || ! isset( $parsedXml['Encabezado']['Totales'] ) ) {
-                        return $parsedXml;
-                }
+        if ( isset( $data['Detalle'] ) ) {
+            $detalles = $data['Detalle'];
+            if ( ! is_array( $detalles ) || ! array_is_list( $detalles ) ) {
+                $detalles = array( $detalles );
+            }
 
-                $totals = $parsedXml['Encabezado']['Totales'];
-                if ( ! is_array( $totals ) ) {
-                        return $parsedXml;
-                }
-
-                $parsedXml['Encabezado']['Totales'] = $this->normalize_totals_for_rendering( $totals );
-
-                return $parsedXml;
+            $data['Detalle'] = array_values(
+                array_map(
+                    static fn( $detalle ) => is_array( $detalle ) ? $detalle : (array) $detalle,
+                    $detalles
+                )
+            );
         }
 
-        /**
-         * Normalizes nested amount structures before sending data to the renderer.
-         *
-         * @param array<string,mixed> $values Totals subsection.
-         * @return array<string,mixed>
-         */
-        private function normalize_totals_for_rendering( array $values ): array {
-                foreach ( $values as $key => $value ) {
-                        if ( 'TasaIVA' === $key ) {
-                                if ( is_numeric( $value ) ) {
-                                        $values[ $key ] = (float) $value;
-                                } else {
-                                        unset( $values[ $key ] );
-                                }
-                                continue;
-                        }
+        libxml_clear_errors();
+        libxml_use_internal_errors( $previous );
 
-                        if ( is_array( $value ) ) {
-                                $values[ $key ] = $this->normalize_totals_for_rendering( $value );
-                                if ( empty( $values[ $key ] ) ) {
-                                        unset( $values[ $key ] );
-                                }
-                                continue;
-                        }
-
-                        if ( is_numeric( $value ) ) {
-                                $values[ $key ] = (int) round( (float) $value );
-                                continue;
-                        }
-
-                        unset( $values[ $key ] );
-                }
-
-                return $values;
-        }
-
-
-        /**
-         * Converts a DTE XML string into the array structure expected by LibreDTE.
-         */
-        private function parse_document_data_from_xml( string $xml ): ?array {
-                $previous = libxml_use_internal_errors( true );
-                $document = simplexml_load_string( $xml );
-
-                if ( ! $document instanceof SimpleXMLElement ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return null;
-                }
-
-                /** @var SimpleXMLElement|null $document_node */
-                $document_node = $document->Documento ?? $document->Exportaciones ?? $document->Liquidacion ?? null;
-                if ( ! $document_node instanceof SimpleXMLElement ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return null;
-                }
-
-                try {
-                        $encoded = json_encode( $document_node, JSON_THROW_ON_ERROR );
-                        $data    = json_decode( $encoded, true, 512, JSON_THROW_ON_ERROR );
-                } catch ( JsonException $e ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return null;
-                }
-
-                if ( ! is_array( $data ) ) {
-                        libxml_clear_errors();
-                        libxml_use_internal_errors( $previous );
-                        return null;
-                }
-
-                unset( $data['@attributes'] );
-
-                if ( isset( $data['Encabezado']['Emisor'] ) && is_array( $data['Encabezado']['Emisor'] ) ) {
-                        $emisor = &$data['Encabezado']['Emisor'];
-
-                        if ( isset( $emisor['RznSocEmisor'] ) && ! isset( $emisor['RznSoc'] ) ) {
-                                $emisor['RznSoc'] = $emisor['RznSocEmisor'];
-                        } elseif ( isset( $emisor['RznSoc'] ) && ! isset( $emisor['RznSocEmisor'] ) ) {
-                                $emisor['RznSocEmisor'] = $emisor['RznSoc'];
-                        }
-
-                        if ( isset( $emisor['GiroEmisor'] ) && ! isset( $emisor['GiroEmis'] ) ) {
-                                $emisor['GiroEmis'] = $emisor['GiroEmisor'];
-                        } elseif ( isset( $emisor['GiroEmis'] ) && ! isset( $emisor['GiroEmisor'] ) ) {
-                                $emisor['GiroEmisor'] = $emisor['GiroEmis'];
-                        }
-                }
-
-                if ( isset( $data['Detalle'] ) ) {
-                        $detalles = $data['Detalle'];
-                        if ( ! is_array( $detalles ) || ! array_is_list( $detalles ) ) {
-                                $detalles = array( $detalles );
-                        }
-
-                        $data['Detalle'] = array_values(
-                                array_map(
-                                        static fn( $detalle ) => is_array( $detalle ) ? $detalle : (array) $detalle,
-                                        $detalles
-                                )
-                        );
-                }
-
-                libxml_clear_errors();
-                libxml_use_internal_errors( $previous );
-
-               return $data;
-       }
+        return $data;
+    }
 }
 
 class_alias( LibreDteEngine::class, 'SII_LibreDTE_Engine' );

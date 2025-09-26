@@ -7,19 +7,19 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Template loader that restricts the search space to specific directories for a given TipoDTE.
  */
-class MappedYamlTemplateLoader implements TemplateLoader {
+class MappedYamlTemplateLoader implements TemplateLoaderInterface {
         private string $rootPath;
 
         /**
          * @var array<int, string>
          */
         private array $directoryMap;
-        private TemplateLoader $fallback;
+        private TemplateLoaderInterface $fallback;
 
         /**
          * @param array<int, string> $directoryMap
          */
-        public function __construct( string $rootPath, array $directoryMap, ?TemplateLoader $fallback = null ) {
+        public function __construct( string $rootPath, array $directoryMap, ?TemplateLoaderInterface $fallback = null ) {
                 $this->rootPath      = rtrim( $rootPath, '/' ) . '/';
                 $this->directoryMap  = $directoryMap;
                 $this->fallback      = $fallback ?? new YamlTemplateLoader( $this->rootPath );

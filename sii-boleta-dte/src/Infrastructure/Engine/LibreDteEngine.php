@@ -6,8 +6,11 @@ use Derafu\Certificate\Service\CertificateLoader;
 use JsonException;
 use SimpleXMLElement;
 use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\SectionSanitizer;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactory;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Settings;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\ReceptorProviderInterface;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Factory\ReceptorFactory;
 use libredte\lib\Core\Application;
@@ -17,7 +20,6 @@ use libredte\lib\Core\Package\Billing\Component\Document\Worker\RendererWorker;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafLoaderWorkerInterface;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Entity\Emisor;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * DTE engine backed by LibreDTE library.
@@ -28,11 +30,16 @@ class LibreDteEngine implements DteEngine {
         private RendererWorker $renderer;
         private CafLoaderWorkerInterface $cafLoader;
         private CafFakerWorker $cafFaker;
-	private CertificateFaker $certificateFaker;
-	private CertificateLoader $certificateLoader;
+        private CertificateFaker $certificateFaker;
+        private CertificateLoader $certificateLoader;
+        private DteDocumentFactoryRegistry $documentFactoryRegistry;
+        private SectionSanitizer $sectionSanitizer;
 
-        public function __construct( Settings $settings ) {
-                $this->settings                  = $settings;
+        public function __construct( Settings $settings, ?DteDocumentFactoryRegistry $factoryRegistry = null, ?SectionSanitizer $sectionSanitizer = null ) {
+                $this->settings          = $settings;
+                $this->sectionSanitizer  = $sectionSanitizer ?? new SectionSanitizer();
+                $templatesRoot           = dirname( __DIR__, 2 ) . '/resources/yaml/';
+                $this->documentFactoryRegistry = $factoryRegistry ?? DteDocumentFactoryRegistry::createDefault( $templatesRoot, $this->sectionSanitizer );
                 $app                             = Application::getInstance();
                 $this->override_receptor_provider( $app );
                 $registry                        = $app->getPackageRegistry()->getBillingPackage();
@@ -44,6 +51,10 @@ class LibreDteEngine implements DteEngine {
                 $this->cafFaker                  = $identifier->getCafFakerWorker();
                                 $this->certificateLoader = new CertificateLoader();
                                 $this->certificateFaker  = new CertificateFaker( $this->certificateLoader );
+        }
+
+        public function register_document_factory( int $tipo, DteDocumentFactory $factory ): void {
+                $this->documentFactoryRegistry->registerFactory( $tipo, $factory );
         }
 
         private function override_receptor_provider( Application $app ): void {
@@ -101,7 +112,8 @@ class LibreDteEngine implements DteEngine {
                         return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
                 }
 
-                $template = $this->load_template( $tipo );
+                $factory  = $this->documentFactoryRegistry->getFactory( $tipo );
+                $template = $factory->createTemplateLoader()->load( $tipo );
                 if ( isset( $template['Detalle'] ) ) {
                         $template['Detalle'] = array();
                 }
@@ -120,107 +132,11 @@ class LibreDteEngine implements DteEngine {
                         );
                 }
 
-                $detalles = $data['Detalles'] ?? array();
-                $detalle  = array();
-                $i        = 1;
-                foreach ( $detalles as $d ) {
-                        if ( ! is_array( $d ) ) {
-                                continue;
-                        }
+                $detalles = is_array( $data['Detalles'] ?? null ) ? $data['Detalles'] : array();
+                $detalle  = $factory->createDetailNormalizer()->normalize( $detalles, $tipo );
 
-                        $line = $this->sanitize_section( $d );
-
-                        $qty = isset( $line['QtyItem'] ) ? (float) $line['QtyItem'] : (float) ( $d['QtyItem'] ?? 1 );
-                        if ( $qty <= 0 ) {
-                                $qty = 1.0;
-                        }
-
-                        $price = isset( $line['PrcItem'] ) ? (float) $line['PrcItem'] : (float) ( $d['PrcItem'] ?? 0 );
-                        if ( $price < 0 ) {
-                                $price = 0.0;
-                        }
-
-                        $line_number = isset( $line['NroLinDet'] ) ? (int) $line['NroLinDet'] : (int) ( $d['NroLinDet'] ?? $i );
-                        if ( $line_number <= 0 ) {
-                                $line_number = $i;
-                        }
-
-                        $line['NroLinDet'] = $line_number;
-                        $line['NmbItem']   = isset( $line['NmbItem'] ) ? (string) $line['NmbItem'] : ( $d['NmbItem'] ?? '' );
-                        $line['QtyItem']   = $qty;
-                        $line['PrcItem']   = (int) round( $price );
-
-                        if ( isset( $line['MontoItem'] ) ) {
-                                $line['MontoItem'] = (int) round( (float) $line['MontoItem'] );
-                        } else {
-                                $line['MontoItem'] = (int) round( $qty * (float) $line['PrcItem'] );
-                        }
-                        if ( $line['MontoItem'] < 0 ) {
-                                $line['MontoItem'] = 0;
-                        }
-
-$indicator = isset( $line['IndExe'] ) ? (int) $line['IndExe'] : 0;
-if ( 0 === $indicator && isset( $d['IndExe'] ) ) {
-$indicator = (int) $d['IndExe'];
-}
-if ( $indicator <= 0 && in_array( $tipo, array( 34, 41 ), true ) ) {
-$indicator = 1;
-}
-if ( $indicator > 0 ) {
-$line['IndExe'] = $indicator;
-} else {
-unset( $line['IndExe'] );
-}
-
-                        $detalle[] = $line;
-                        ++$i;
-                }
-
-                $emisor_data = array();
-                if ( isset( $data['Encabezado']['Emisor'] ) && is_array( $data['Encabezado']['Emisor'] ) ) {
-                        $emisor_data = $data['Encabezado']['Emisor'];
-                }
-
-                $custom_giro = $emisor_data['GiroEmisor']
-                        ?? $emisor_data['GiroEmis']
-                        ?? $data['GiroEmisor']
-                        ?? $data['GiroEmis']
-                        ?? '';
-                $custom_giro = is_string( $custom_giro ) ? trim( $custom_giro ) : '';
-
-                $emisor = array(
-                        'RUTEmisor'    => $settings['rut_emisor']
-                                ?? $emisor_data['RUTEmisor']
-                                ?? $data['RUTEmisor']
-                                ?? $data['RutEmisor']
-                                ?? '',
-                        'RznSocEmisor' => $settings['razon_social']
-                                ?? $emisor_data['RznSocEmisor']
-                                ?? $emisor_data['RznSoc']
-                                ?? $data['RznSocEmisor']
-                                ?? $data['RznSoc']
-                                ?? '',
-                        'GiroEmisor'   => '' !== $custom_giro
-                                ? $custom_giro
-                                : ( $settings['giro']
-                                        ?? ''
-                                ),
-                        'DirOrigen'    => $settings['direccion']
-                                ?? $emisor_data['DirOrigen']
-                                ?? $data['DirOrigen']
-                                ?? '',
-                        'CmnaOrigen'   => $settings['comuna']
-                                ?? $emisor_data['CmnaOrigen']
-                                ?? $data['CmnaOrigen']
-                                ?? '',
-                );
-
-                if ( '' !== $emisor['RznSocEmisor'] ) {
-                        $emisor['RznSoc'] = $emisor['RznSocEmisor'];
-                }
-                if ( '' !== $emisor['GiroEmisor'] ) {
-                        $emisor['GiroEmis'] = $emisor['GiroEmisor'];
-                }
+                $emisorBuilder = $factory->createEmisorDataBuilder();
+                $emisor        = $emisorBuilder->build( $data, $settings );
                 if ( $preview ) {
                         $this->debug_log( '[preview] settings=' . json_encode( array(
                                 'rut_emisor'    => $settings['rut_emisor'] ?? null,
@@ -259,10 +175,11 @@ unset( $line['IndExe'] );
                 }
 
                 if ( isset( $documentData['Encabezado']['Receptor'] ) ) {
+                        $receptorSanitizer = $factory->createReceptorSanitizer();
                         if ( ! empty( $rawReceptor ) ) {
-                                $documentData['Encabezado']['Receptor'] = $this->sanitize_section( $rawReceptor );
+                                $documentData['Encabezado']['Receptor'] = $receptorSanitizer->sanitize( $rawReceptor );
                         } else {
-                                $documentData['Encabezado']['Receptor'] = $this->sanitize_section( (array) $documentData['Encabezado']['Receptor'] );
+                                $documentData['Encabezado']['Receptor'] = $receptorSanitizer->sanitize( (array) $documentData['Encabezado']['Receptor'] );
                         }
                 }
 
@@ -382,41 +299,6 @@ unset( $line['IndExe'] );
         }
 
         /**
-         * Removes null/empty values from a section to avoid leaking placeholder data.
-         *
-         * @param array<string, mixed> $values Section data.
-         * @return array<string, mixed>
-         */
-        private function sanitize_section( array $values ): array {
-                $clean = array();
-
-                foreach ( $values as $key => $value ) {
-                        if ( is_array( $value ) ) {
-                                $nested = $this->sanitize_section( $value );
-                                if ( ! empty( $nested ) ) {
-                                        $clean[ $key ] = $nested;
-                                }
-                                continue;
-                        }
-
-                        if ( null === $value ) {
-                                continue;
-                        }
-
-                        if ( is_string( $value ) ) {
-                                $value = trim( $value );
-                                if ( '' === $value ) {
-                                        continue;
-                                }
-                        }
-
-                        $clean[ $key ] = $value;
-                }
-
-                return $clean;
-        }
-
-        /**
          * Normalizes the DscRcgGlobal payload keeping the original shape for LibreDTE.
          *
          * @param array<string|int,mixed> $raw Raw discount/recargo data from the UI.
@@ -430,7 +312,7 @@ unset( $line['IndExe'] );
                                 if ( ! is_array( $entry ) ) {
                                         continue;
                                 }
-                                $clean = $this->sanitize_section( $entry );
+                                $clean = $this->sectionSanitizer->sanitize( $entry );
                                 if ( ! empty( $clean ) ) {
                                         $normalized[] = $clean;
                                 }
@@ -439,7 +321,7 @@ unset( $line['IndExe'] );
                         return array( $normalized, $normalized );
                 }
 
-                $clean = $this->sanitize_section( $raw );
+                $clean = $this->sectionSanitizer->sanitize( $raw );
                 if ( empty( $clean ) ) {
                         return array( array(), array() );
                 }
@@ -605,31 +487,6 @@ unset( $line['IndExe'] );
        /** Loads YAML template for a given DTE type exclusively from
         * resources/yaml/documentos_ok/ (carpetas por tipo).
          */
-        private function load_template( int $tipo ): array {
-                $root = dirname( __DIR__, 2 ) . '/resources/yaml/';
-
-                // Foldered layout copied from LibreDTE fixtures
-               $dir = $root . 'documentos_ok/' . sprintf( '%03d', $tipo ) . '*';
-                foreach ( glob( $dir ) as $typeDir ) {
-                        if ( ! is_dir( $typeDir ) ) {
-                                continue;
-                        }
-                        $candidates = array_merge( glob( $typeDir . '/*.yml' ) ?: array(), glob( $typeDir . '/*.yaml' ) ?: array() );
-                        if ( empty( $candidates ) ) {
-                                continue;
-                        }
-                        // Use the first candidate as a base template
-                        try {
-                                $parsed = Yaml::parseFile( $candidates[0] );
-                                return is_array( $parsed ) ? $parsed : array();
-                        } catch ( \Throwable $e ) {
-                                // try next
-                        }
-                }
-
-                return array();
-        }
-
         /**
          * Normalizes total fields before passing parsed data into LibreDTE renderers.
          */

@@ -457,6 +457,7 @@
             var price = row.querySelector('input[data-field="price"]');
             var discountPct = row.querySelector('input[data-field="discount_pct"]');
             var discountAmount = row.querySelector('input[data-field="discount_amount"]');
+            var indicatorSelect = row.querySelector('select[data-field="exempt_indicator"]');
             if(!desc){return;}
             enhanceNumberField(qty);
             enhanceNumberField(price);
@@ -521,6 +522,17 @@
                     cache[desc.value] = p;
                 }
             });
+            if (indicatorSelect){
+                indicatorSelect.addEventListener('change', function(){
+                    if (indicatorSelect.value){
+                        indicatorSelect.dataset.manual = '1';
+                    } else {
+                        delete indicatorSelect.dataset.manual;
+                        delete indicatorSelect.dataset.autoApplied;
+                        applyIndicatorDefaults();
+                    }
+                });
+            }
         }
 
         function renumberRows(){
@@ -553,11 +565,16 @@
             var discountAmtLabel = escapeAttribute(getText('itemsDiscountAmtLabel', 'Descuento $'));
             var taxCodeLabel = escapeAttribute(getText('itemsTaxCodeLabel', 'Impuesto adicional'));
             var retainerLabel = escapeAttribute(getText('itemsRetainerLabel', 'Indicador retenedor'));
+            var indicatorLabel = escapeAttribute(getText('itemsIndicatorLabel', 'Indicador de exención'));
+            var indicatorAuto = escapeAttribute(getText('itemsIndicatorAuto', 'Automático'));
+            var indicatorExempt = escapeAttribute(getText('itemsIndicatorExempt', 'No afecto o exento de IVA'));
+            var indicatorNonBillable = escapeAttribute(getText('itemsIndicatorNonBillable', 'Producto o servicio no facturable'));
             row.innerHTML = '<td data-label="' + descLabel + '">' +
                                 '<input type="text" data-field="desc" name="items[][desc]" class="regular-text" />' +
-                                '<details class="sii-item-advanced dte-section" data-types="33,34,43,46,52,56,61,110,111,112" style="display:none">' +
+                                '<details class="sii-item-advanced dte-section" data-types="33,34,41,43,46,52,56,61,110,111,112" style="display:none">' +
                                         '<summary>' + advancedSummary + '</summary>' +
                                         '<div class="sii-item-advanced-grid">' +
+                                                '<label class="dte-section" data-types="34,41"><span>' + indicatorLabel + '</span><select data-field="exempt_indicator" name="items[][exempt_indicator]"><option value="">' + indicatorAuto + '</option><option value="1">' + indicatorExempt + '</option><option value="2">' + indicatorNonBillable + '</option></select></label>' +
                                                 '<label><span>' + codeTypeLabel + '</span><input type="text" data-field="code_type" name="items[][code_type]" /></label>' +
                                                 '<label><span>' + codeValueLabel + '</span><input type="text" data-field="code_value" name="items[][code_value]" /></label>' +
                                                 '<label class="sii-item-advanced-wide"><span>' + extraDescLabel + '</span><textarea data-field="extra_desc" name="items[][extra_desc]" rows="3"></textarea></label>' +
@@ -573,9 +590,27 @@
                         '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
                         '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
                         '<td data-label="' + actionsLabel + '"><button type="button" class="button remove-item" aria-label="' + removeLabel + '">×</button></td>';
-           tableBody.appendChild(row);
+            tableBody.appendChild(row);
            initRow(row);
             renumberRows();
+            applyIndicatorDefaults();
+        }
+        function applyIndicatorDefaults(){
+            if (!tableBody){ return; }
+            var currentType = tipoSelect ? parseInt(tipoSelect.value || '39', 10) : 39;
+            var shouldDefault = (currentType === 34 || currentType === 41);
+            Array.prototype.forEach.call(tableBody.querySelectorAll('select[data-field="exempt_indicator"]'), function(select){
+                if (!select){ return; }
+                if (shouldDefault){
+                    if (!select.dataset.manual && !select.value){
+                        select.value = '1';
+                        select.dataset.autoApplied = '1';
+                    }
+                } else if (select.dataset.autoApplied === '1' && !select.dataset.manual){
+                    select.value = '';
+                    delete select.dataset.autoApplied;
+                }
+            });
         }
         // Toggle sections first to ensure the form adapts immediately
         function toggleSections(){
@@ -609,6 +644,7 @@
                     else { el.removeAttribute('disabled'); }
                 });
             }
+            applyIndicatorDefaults();
             validateRutField(false);
             updateCreditNoteUi();
             updateTips();
@@ -630,6 +666,7 @@
             Array.prototype.forEach.call(tableBody.querySelectorAll('tr'), initRow);
             renumberRows();
             updateCreditNoteUi();
+            applyIndicatorDefaults();
         }
        if (addBtn && tableBody){
             addBtn.addEventListener('click', function(e){
@@ -644,6 +681,7 @@
                     if (tr){ tr.remove(); }
                     renumberRows();
                     updateCreditNoteUi();
+                    applyIndicatorDefaults();
                 }
             });
         }

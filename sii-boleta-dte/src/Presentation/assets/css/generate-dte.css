@@ -461,27 +461,32 @@ body.sii-dte-modal-open {
     box-shadow: 0 22px 44px rgba(15, 23, 42, 0.16);
 }
 #sii-items-table tbody td {
-    padding: 0.4rem 0;
+    padding: 0.55rem 0;
     border: none;
     display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: stretch;
     font-size: 0.95rem;
 }
 #sii-items-table tbody td::before {
     content: attr(data-label);
     font-weight: 600;
     color: #1f2937;
+    font-size: 0.82rem;
 }
-    #sii-items-table tbody td:nth-child(2) input,
-#sii-items-table tbody td:nth-child(3) input {
+#sii-items-table tbody td input,
+#sii-items-table tbody td select,
+#sii-items-table tbody td textarea {
+    width: 100%;
     margin: 0;
-    max-width: 160px;
 }
 #sii-items-table tbody td:last-child {
-    justify-content: flex-end;
     padding-right: 0;
+    align-items: flex-start;
+}
+#sii-items-table tbody td:last-child .remove-item {
+    align-self: flex-start;
 }
 }
 @media (prefers-color-scheme: dark) {

@@ -159,12 +159,18 @@ class LibreDteEngine implements DteEngine {
                                 $line['MontoItem'] = 0;
                         }
 
-                        $is_exento = ! empty( $line['IndExe'] ) || ! empty( $d['IndExe'] ) || 41 === $tipo || 34 === $tipo;
-                        if ( $is_exento ) {
-                                $line['IndExe'] = 1;
-                        } else {
-                                unset( $line['IndExe'] );
-                        }
+$indicator = isset( $line['IndExe'] ) ? (int) $line['IndExe'] : 0;
+if ( 0 === $indicator && isset( $d['IndExe'] ) ) {
+$indicator = (int) $d['IndExe'];
+}
+if ( $indicator <= 0 && in_array( $tipo, array( 34, 41 ), true ) ) {
+$indicator = 1;
+}
+if ( $indicator > 0 ) {
+$line['IndExe'] = $indicator;
+} else {
+unset( $line['IndExe'] );
+}
 
                         $detalle[] = $line;
                         ++$i;

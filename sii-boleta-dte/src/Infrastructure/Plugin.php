@@ -19,6 +19,7 @@ use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\FacturaDteDocumentFactory;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\VatInclusiveDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
@@ -137,8 +138,16 @@ class Plugin {
         private function register_document_factories( LibreDteEngine $engine ): void {
                 $templates_root = dirname( __DIR__, 2 ) . '/resources/yaml/';
 
-                $boleta_factory  = new BoletaDteDocumentFactory( $templates_root );
-                $factura_factory = new FacturaDteDocumentFactory( $templates_root );
+                $boleta_factory        = new BoletaDteDocumentFactory( $templates_root );
+                $factura_factory       = new FacturaDteDocumentFactory( $templates_root );
+                $vat_inclusive_factory = new VatInclusiveDteDocumentFactory(
+                        $templates_root,
+                        array(
+                                52 => 'documentos_ok/052_guia_despacho',
+                                56 => 'documentos_ok/056_nota_debito',
+                                61 => 'documentos_ok/061_nota_credito',
+                        )
+                );
 
                 foreach ( array( 39, 41 ) as $tipo_boleta ) {
                         $engine->register_document_factory( $tipo_boleta, $boleta_factory );
@@ -146,6 +155,10 @@ class Plugin {
 
                 foreach ( array( 33, 34, 46 ) as $tipo_factura ) {
                         $engine->register_document_factory( $tipo_factura, $factura_factory );
+                }
+
+                foreach ( array( 52, 56, 61 ) as $tipo_vat_inclusive ) {
+                        $engine->register_document_factory( $tipo_vat_inclusive, $vat_inclusive_factory );
                 }
         }
 

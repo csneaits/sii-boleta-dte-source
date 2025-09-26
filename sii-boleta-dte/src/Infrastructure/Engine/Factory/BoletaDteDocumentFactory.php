@@ -5,13 +5,15 @@ namespace Sii\BoletaDte\Infrastructure\Engine\Factory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DefaultDetailNormalizer;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DefaultEmisorDataBuilder;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DefaultReceptorSanitizer;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DetailNormalizer;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\EmisorDataBuilder;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\DetailNormalizerInterface;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\EmisorDataBuilderInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\MappedYamlTemplateLoader;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\ReceptorSanitizer;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\ReceptorSanitizerInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\SectionSanitizer;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\TemplateLoader;
+use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\TemplateLoaderInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\YamlTemplateLoader;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\NullTotalsAdjuster;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\TotalsAdjusterInterface;
 
 /**
  * Factory specialized for Boletas related TipoDTE values.
@@ -25,7 +27,7 @@ class BoletaDteDocumentFactory implements DteDocumentFactory {
                 $this->sectionSanitizer = $sectionSanitizer ?? new SectionSanitizer();
         }
 
-        public function createTemplateLoader(): TemplateLoader {
+        public function createTemplateLoader(): TemplateLoaderInterface {
                 return new MappedYamlTemplateLoader(
                         $this->templateRoot,
                         array(
@@ -36,15 +38,19 @@ class BoletaDteDocumentFactory implements DteDocumentFactory {
                 );
         }
 
-        public function createDetailNormalizer(): DetailNormalizer {
+        public function createDetailNormalizer(): DetailNormalizerInterface {
                 return new DefaultDetailNormalizer( $this->sectionSanitizer );
         }
 
-        public function createEmisorDataBuilder(): EmisorDataBuilder {
+        public function createEmisorDataBuilder(): EmisorDataBuilderInterface {
                 return new DefaultEmisorDataBuilder();
         }
 
-        public function createReceptorSanitizer(): ReceptorSanitizer {
+        public function createReceptorSanitizer(): ReceptorSanitizerInterface {
                 return new DefaultReceptorSanitizer( $this->sectionSanitizer );
+        }
+
+        public function createTotalsAdjuster(): TotalsAdjusterInterface {
+                return new NullTotalsAdjuster();
         }
 }

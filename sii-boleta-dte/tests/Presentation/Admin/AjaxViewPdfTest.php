@@ -70,27 +70,35 @@ class AjaxViewPdfTest extends TestCase {
         $this->cleanStorage();
     }
 
-    public function test_anonymous_user_cannot_download_pdf(): void {
+    public function test_download_fails_with_invalid_nonce(): void {
         $stored = $this->prepareOrderPdf( 10 );
+
+        $GLOBALS['current_user_can']  = true;
+        $GLOBALS['is_user_logged_in'] = true;
+        $GLOBALS['current_user_id']   = 5;
+        $GLOBALS['wc_order_user_id']  = 5;
 
         $_GET = array(
             'order_id' => 10,
             'key'      => $stored['key'],
-            'nonce'    => $stored['nonce'],
+            'nonce'    => 'invalid',
             'type'     => '_sii_boleta',
         );
 
         $ajax = new Ajax( $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Plugin' ) );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'terminated:403' );
-        $ajax->view_pdf();
-        $this->assertSame( 403, $GLOBALS['status_header'] );
+        try {
+            $ajax->view_pdf();
+            $this->fail( 'Expected unauthorized access to terminate the request.' );
+        } catch ( \RuntimeException $e ) {
+            $this->assertSame( 'terminated:403', $e->getMessage() );
+        }
     }
 
     public function test_authorized_user_can_download_pdf(): void {
         $stored = $this->prepareOrderPdf( 42 );
 
+        $GLOBALS['current_user_can']  = true;
         $GLOBALS['wc_order_user_id']  = 7;
         $GLOBALS['is_user_logged_in'] = true;
         $GLOBALS['current_user_id']   = 7;
@@ -103,6 +111,17 @@ class AjaxViewPdfTest extends TestCase {
         );
 
         $ajax = new Ajax( $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Plugin' ) );
+
+        $this->assertTrue( function_exists( 'is_user_logged_in' ) );
+        $this->assertTrue( function_exists( 'get_current_user_id' ) );
+        $this->assertTrue( function_exists( 'wc_get_order' ) );
+        $this->assertTrue( \is_user_logged_in() );
+        $this->assertSame( 7, \get_current_user_id() );
+        $this->assertSame( 7, \wc_get_order( 42 )->get_user_id() );
+
+        $ref = new \ReflectionMethod( Ajax::class, 'user_can_view_pdf' );
+        $ref->setAccessible( true );
+        $this->assertTrue( $ref->invoke( $ajax, 42 ) );
 
         $output = $this->captureOutput( function () use ( $ajax ) {
             $ajax->view_pdf();

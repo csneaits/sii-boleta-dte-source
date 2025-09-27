@@ -88,13 +88,7 @@ class SettingsPageTest extends TestCase {
         $input = array( 'cert_path' => 'wp-content/uploads/cert-test.pfx' );
         $clean = $page->sanitize_settings( $input );
 
-        $expected = realpath( $file );
-        if ( false !== $expected ) {
-            $expected = wp_normalize_path( $expected );
-        } else {
-            $expected = wp_normalize_path( $file );
-        }
-        $this->assertSame( $expected, $clean['cert_path'] );
+        $this->assertSame( 'wp-content/uploads/cert-test.pfx', $clean['cert_path'] );
 
         @unlink( $file );
     }

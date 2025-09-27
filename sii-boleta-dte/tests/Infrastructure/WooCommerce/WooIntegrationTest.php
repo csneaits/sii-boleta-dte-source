@@ -50,6 +50,10 @@ if ( ! function_exists( 'wc_get_order' ) ) {
             return (string) $this->id;
         }
 
+        public function get_user_id() {
+            return isset( $GLOBALS['wc_order_user_id'] ) ? (int) $GLOBALS['wc_order_user_id'] : 0;
+        }
+
         public function get_billing_email() {
             return 'customer@example.com';
         }
@@ -307,7 +311,7 @@ class WooIntegrationTest extends TestCase {
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'Descargar PDF del DTE', $output );
-        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $output );
+        $this->assertStringContainsString( 'admin-ajax.php?action=sii_boleta_dte_view_pdf', $output );
     }
 
     private function createTemporaryPdf(): string {

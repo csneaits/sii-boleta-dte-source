@@ -17,10 +17,10 @@
 - Persistencia especializada en tablas personalizadas (`QueueDb`, `FoliosDb`, `LogDb`) con fallback en memoria para pruebas.
 
 ## Interacción entre componentes
-- **Checkout → Emisión automática**: `Presentation\WooCommerce\CheckoutFields` captura RUT/tipo DTE. Al completar el pedido, `Infrastructure\WooCommerce\Woo` orquesta el caso de uso: prepara datos, usa `Infrastructure\Engine\LibreDteEngine` para generar XML, obtiene token con `Infrastructure\TokenManager`, envía vía `Infrastructure\Rest\Api`, guarda `trackId` y activa `Infrastructure\PdfGenerator` para entregar PDF y correos.
+- **Checkout → Emisión automática**: `Presentation\WooCommerce\CheckoutFields` captura RUT/tipo DTE. Al completar el pedido, `Infrastructure\WooCommerce\Woo` orquesta el caso de uso: prepara datos, usa `Infrastructure\Engine\LibreDteEngine` para generar XML, obtiene token con `Infrastructure\TokenManager`, envía vía `Infrastructure\Rest\Api`, guarda `trackId`, persiste PDF en `Infrastructure\WooCommerce\PdfStorage` y activa `Infrastructure\PdfGenerator` para entregar PDF y correos.
 - **Emisión manual y gestión operativa**: páginas de `Presentation\Admin` permiten cargar CAF, generar DTE ad-hoc, monitorear cola, revisar logs y ejecutar diagnósticos contra el SII.
-- **Procesamiento diferido**: `Application\Queue` y `Application\QueueProcessor` persisten trabajos en `sii_boleta_dte_queue`. El cron `sii_boleta_dte_process_queue` (configurado en `Infrastructure\Cron`) consume pendientes y reintenta con backoff.
-- **Reportes y comercio diario**: `Application\LibroBoletas` y `Application\RvdManager` generan libros electrónicos y Resúmenes de Ventas Diarias reutilizando la misma infraestructura de token, API y cola.
+- **Procesamiento diferido**: `Application\Queue` y `Application\QueueProcessor` persisten trabajos en `sii_boleta_dte_queue`. El cron `sii_boleta_dte_process_queue` (configurado en `Infrastructure\Cron`) consume pendientes y reintenta con backoff mientras migra XML/PDF al almacenamiento seguro.
+- **Compartición segura**: `Infrastructure\Rest\SignedUrlService` crea enlaces temporales para boletas, `Infrastructure\Rest\Endpoints` sirve HTML desde `uploads/sii-boleta-dte-secure` y `Presentation\Admin\Ajax` valida claves/nonce antes de transmitir PDFs del directorio privado `wp-content/sii-boleta-dte/private`.
 
 ## Patrones de diseño y prácticas
 - Ports & Adapters / Hexagonal para aislar dominio de WordPress y servicios externos.
@@ -34,11 +34,11 @@
 - Asegurar trazabilidad completa: cada DTE debe almacenar XML, PDF, `trackId`, folio y bitácora de eventos dentro del pedido o tablas auxiliares.
 - Mantener la integridad de folios: validar rangos, evitar saltos y bloquear reutilización hasta confirmar rechazo.
 - Tolerar fallas externas: cualquier problema con SII o WooCommerce debe registrarse y permitir reintentos seguros desde el panel.
-- Proteger datos sensibles (RUT, XML firmados, certificados) respetando permisos de WordPress y minimizando exposición.
+- Proteger datos sensibles (RUT, XML firmados, certificados) respetando permisos de WordPress y minimizando exposición. No deshabilitar el almacenamiento seguro ni exponer rutas públicas sin validaciones de token/nonce.
 
 ## Lineamientos para nuevas intervenciones del agente
 - Reutiliza el contenedor para acceder a servicios; evita instanciar dependencias manualmente salvo en tests controlados.
-- Al tocar flujos de emisión o cola, agrega pruebas en `tests/` o scripts de integración y ejecuta `composer test`.
+- Al tocar flujos de emisión, cola, almacenamiento seguro o migraciones, agrega pruebas en `tests/` o scripts de integración y ejecuta `composer test`.
 - Respeta estándares de código WordPress/PSR aplicando `composer phpcs` antes de entregar cambios.
-- Documenta ajustes funcionales relevantes en `README.md` o `docs/` y actualiza este archivo si cambian supuestos de arquitectura o negocio.
+- Documenta ajustes funcionales relevantes en `README.md` o `docs/` y actualiza este archivo si cambian supuestos de arquitectura, negocio o seguridad.
 - Verifica scripts de build al introducir nuevas dependencias o assets para no romper el empaquetado del plugin.

@@ -76,19 +76,31 @@ class GenerateDtePageTest extends TestCase {
         $api = $this->createMock( Api::class );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
         $engine = $this->createMock( DteEngine::class );
-        $engine->expects( $this->once() )
+        $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
-            ->with(
-                $this->callback( function ( $data ) {
-                    $this->assertSame( 'Giro', $data['Receptor']['GiroRecep'] );
-                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
-                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
-                    return true;
-                } ),
-                39,
-                false
+            ->withConsecutive(
+                array(
+                    $this->callback( function ( $data ) {
+                        $this->assertSame( 0, $data['Folio'] );
+                        $this->assertSame( 'Giro', $data['Receptor']['GiroRecep'] );
+                        return true;
+                    } ),
+                    39,
+                    true,
+                ),
+                array(
+                    $this->callback( function ( $data ) {
+                        $this->assertSame( 1, $data['Folio'] );
+                        $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
+                        $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                        $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                        return true;
+                    } ),
+                    39,
+                    false,
+                )
             )
-            ->willReturn( '<xml/>' );
+            ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
@@ -131,9 +143,9 @@ class GenerateDtePageTest extends TestCase {
         $api = $this->createMock( Api::class );
         $api->expects( $this->never() )->method( 'send_dte_to_sii' );
         $engine = $this->createMock( DteEngine::class );
-        $engine->expects( $this->once() )
+        $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
-            ->willReturn( '<xml/>' );
+            ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
@@ -159,6 +171,57 @@ class GenerateDtePageTest extends TestCase {
         ) );
 
         $this->assertArrayHasKey( 'error', $result );
+    }
+
+    public function test_process_post_does_not_fetch_folio_when_xml_generation_fails(): void {
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Principal',
+            )
+        );
+
+        $token = $this->createMock( TokenManager::class );
+        $api   = $this->createMock( Api::class );
+        $engine = $this->createMock( DteEngine::class );
+        $engine->expects( $this->once() )
+            ->method( 'generate_dte_xml' )
+            ->with(
+                $this->callback( function ( $data ) {
+                    $this->assertSame( 0, $data['Folio'] );
+                    return true;
+                } ),
+                39,
+                true
+            )
+            ->willReturn( new WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) );
+
+        $pdf   = $this->createMock( PdfGenerator::class );
+        $folio = $this->createMock( FolioManager::class );
+        $folio->expects( $this->never() )->method( 'get_next_folio' );
+        $folio->expects( $this->never() )->method( 'mark_folio_used' );
+
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        $result = $page->process_post( array(
+            'sii_boleta_generate_dte_nonce' => 'good',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        ) );
+
+        $this->assertArrayHasKey( 'error', $result );
+        $this->assertSame( 'Invalid CAF', $result['error'] );
     }
 
     public function test_process_post_invalid_nonce(): void {
@@ -253,18 +316,30 @@ class GenerateDtePageTest extends TestCase {
         $api = $this->createMock( Api::class );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
         $engine = $this->createMock( DteEngine::class );
-        $engine->expects( $this->once() )
+        $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
-            ->with(
-                $this->callback( function ( $data ) {
-                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
-                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
-                    return true;
-                } ),
-                39,
-                false
+            ->withConsecutive(
+                array(
+                    $this->callback( function ( $data ) {
+                        $this->assertSame( 0, $data['Folio'] );
+                        return true;
+                    } ),
+                    39,
+                    true,
+                ),
+                array(
+                    $this->callback( function ( $data ) {
+                        $this->assertSame( 1, $data['Folio'] );
+                        $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
+                        $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                        $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                        return true;
+                    } ),
+                    39,
+                    false,
+                )
             )
-            ->willReturn( '<xml/>' );
+            ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );

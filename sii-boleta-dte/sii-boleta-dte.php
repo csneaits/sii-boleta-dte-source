@@ -99,6 +99,7 @@ register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persist
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\FoliosDb::class, 'install' ) );
 // Migrar ajustes y logs de versiones anteriores.
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\SettingsMigration::class, 'migrate' ) );
+register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorageMigrator::class, 'migrate' ) );
 
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
 	/**

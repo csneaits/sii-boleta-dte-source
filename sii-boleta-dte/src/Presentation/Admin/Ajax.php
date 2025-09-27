@@ -622,47 +622,143 @@ class Ajax {
     }
 
     /**
-     * Streams a generated preview PDF stored in uploads so it can be embedded in an iframe.
-     * Accepts GET params: key (filename under uploads/sii-boleta-dte/previews), _wpnonce (sii_boleta_nonce).
+     * Streams a generated PDF stored in the secure directory.
+     * Accepts GET params: order_id, key, nonce, type.
      */
     public function view_pdf(): void {
-        if ( ! isset( $_GET['_wpnonce'] ) || ! \wp_verify_nonce( (string) $_GET['_wpnonce'], 'sii_boleta_nonce' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            \status_header( 403 );
-            exit;
-        }
-        if ( ! \current_user_can( 'manage_options' ) ) {
-            \status_header( 403 );
-            exit;
-        }
-        $key = isset( $_GET['key'] ) ? sanitize_file_name( (string) $_GET['key'] ) : '';
-        if ( '' === $key ) {
-            \status_header( 404 );
-            exit;
-        }
         $is_preview = isset( $_GET['preview'] ) && '1' === (string) $_GET['preview']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         if ( $is_preview ) {
-            $file = GenerateDtePage::resolve_preview_path( $key );
-        } else {
-            $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-            $base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' ) . '/sii-boleta-dte/previews/';
-            $file    = realpath( $base . $key );
-            $realBase= realpath( $base ) ?: $base;
-            if ( false !== $file && strncmp( $file, $realBase, strlen( $realBase ) ) !== 0 ) {
-                $file = false;
+            $preview_key = isset( $_GET['key'] ) ? sanitize_file_name( (string) $_GET['key'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( '' === $preview_key ) {
+                $this->terminate_request( 404 );
             }
-        }
 
-        if ( ! is_string( $file ) || ! file_exists( $file ) ) {
-            \status_header( 404 );
+            if ( ! function_exists( 'current_user_can' ) || ! \current_user_can( 'manage_options' ) ) {
+                $this->terminate_request( 403 );
+            }
+
+            $preview_file = GenerateDtePage::resolve_preview_path( $preview_key );
+            if ( ! is_string( $preview_file ) || '' === $preview_file || ! file_exists( $preview_file ) ) {
+                $this->terminate_request( 404 );
+            }
+
+            if ( function_exists( 'nocache_headers' ) ) {
+                \nocache_headers();
+            }
+
+            header( 'Content-Type: application/pdf' );
+            header( 'Content-Disposition: inline; filename="' . basename( $preview_file ) . '"' );
+            header( 'Content-Length: ' . filesize( $preview_file ) );
+            @readfile( $preview_file );
+
+            if ( defined( 'SII_BOLETA_DTE_TESTING' ) && SII_BOLETA_DTE_TESTING ) {
+                return;
+            }
+
             exit;
         }
-        if ( function_exists( 'nocache_headers' ) ) { \nocache_headers(); }
+
+        $order_id = isset( $_GET['order_id'] ) ? (int) $_GET['order_id'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $key      = isset( $_GET['key'] ) ? strtolower( preg_replace( '/[^a-f0-9]/', '', (string) $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $nonce    = isset( $_GET['nonce'] ) ? strtolower( preg_replace( '/[^a-f0-9]/', '', (string) $_GET['nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $type     = isset( $_GET['type'] ) ? strtolower( preg_replace( '/[^a-z0-9_]/', '', (string) $_GET['type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+        if ( $order_id <= 0 || '' === $key || '' === $nonce || '' === $type ) {
+            $this->terminate_request( 400 );
+        }
+
+        if ( ! $this->user_can_view_pdf( $order_id ) ) {
+            $this->terminate_request( 403 );
+        }
+
+        $stored_key   = strtolower( $this->get_order_meta( $order_id, $type . '_pdf_key' ) );
+        $stored_nonce = strtolower( $this->get_order_meta( $order_id, $type . '_pdf_nonce' ) );
+
+        if ( $key !== $stored_key || $nonce !== $stored_nonce ) {
+            $this->terminate_request( 403 );
+        }
+
+        $file = \Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage::resolve_path( $stored_key );
+        if ( '' === $file || ! file_exists( $file ) ) {
+            $this->terminate_request( 404 );
+        }
+
+        if ( function_exists( 'nocache_headers' ) ) {
+            \nocache_headers();
+        }
+
         header( 'Content-Type: application/pdf' );
         header( 'Content-Disposition: inline; filename="' . basename( $file ) . '"' );
         header( 'Content-Length: ' . filesize( $file ) );
         @readfile( $file );
+
+        if ( defined( 'SII_BOLETA_DTE_TESTING' ) && SII_BOLETA_DTE_TESTING ) {
+            return;
+        }
+
         exit;
+    }
+
+    private function terminate_request( int $status ): void {
+        if ( function_exists( 'status_header' ) ) {
+            \status_header( $status );
+        }
+
+        if ( defined( 'SII_BOLETA_DTE_TESTING' ) && SII_BOLETA_DTE_TESTING ) {
+            throw new \RuntimeException( 'terminated:' . $status );
+        }
+
+        exit;
+    }
+
+    private function user_can_view_pdf( int $order_id ): bool {
+        if ( function_exists( 'current_user_can' ) && \current_user_can( 'manage_options' ) ) {
+            return true;
+        }
+
+        if ( ! function_exists( 'is_user_logged_in' ) || ! \is_user_logged_in() ) {
+            return false;
+        }
+
+        if ( ! function_exists( 'get_current_user_id' ) ) {
+            return false;
+        }
+
+        if ( ! function_exists( 'wc_get_order' ) ) {
+            return false;
+        }
+
+        $order = \wc_get_order( $order_id );
+        if ( ! $order || ! method_exists( $order, 'get_user_id' ) ) {
+            return false;
+        }
+
+        $user_id = (int) $order->get_user_id();
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        return \get_current_user_id() === $user_id;
+    }
+
+    private function get_order_meta( int $order_id, string $meta_key ): string {
+        if ( $order_id <= 0 || '' === $meta_key ) {
+            return '';
+        }
+
+        if ( function_exists( 'get_post_meta' ) ) {
+            $value = \get_post_meta( $order_id, $meta_key, true );
+            if ( is_scalar( $value ) ) {
+                return (string) $value;
+            }
+        }
+
+        if ( isset( $GLOBALS['meta'][ $order_id ][ $meta_key ] ) ) {
+            return (string) $GLOBALS['meta'][ $order_id ][ $meta_key ];
+        }
+
+        return '';
     }
 }
 

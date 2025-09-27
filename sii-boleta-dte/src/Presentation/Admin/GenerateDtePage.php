@@ -908,24 +908,31 @@ class GenerateDtePage {
 				$rut = '66666666-6';
 		}
 
-		$folio = 0;
-		if ( ! $preview ) {
-			$next = $this->folio_manager->get_next_folio( $tipo, false );
-			if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
-				return array( 'error' => $next->get_error_message() );
-			}
-			if ( $next instanceof \WP_Error ) {
-				return array( 'error' => $next->get_error_message() );
-			}
-			$folio = (int) $next;
-			if ( $folio <= 0 ) {
-				return array( 'error' => __( 'No hay folios disponibles para emitir este documento.', 'sii-boleta-dte' ) );
-			}
-		}
+                $folio      = 0;
+                $engine_err = function ( $result ) use ( $tipo, $available ) {
+                        if ( function_exists( 'is_wp_error' ) && is_wp_error( $result ) ) {
+                                $code = method_exists( $result, 'get_error_code' ) ? $result->get_error_code() : '';
+                                $msg  = $result->get_error_message();
+                                if ( 'sii_boleta_missing_caf' === $code ) {
+                                        $tipo_label = $available[ $tipo ] ?? (string) $tipo;
+                                        $msg        = sprintf( __( 'No hay un CAF configurado para el tipo %s. Sube un CAF en “Folios / CAFs”.', 'sii-boleta-dte' ), $tipo_label );
+                                }
+                                return array( 'error' => $msg );
+                        }
+                        if ( $result instanceof \WP_Error ) {
+                                $msg = method_exists( $result, 'get_error_message' ) ? $result->get_error_message() : '';
+                                if ( '' === $msg ) {
+                                        $msg = __( 'No fue posible generar el XML del documento tributario.', 'sii-boleta-dte' );
+                                }
+                                return array( 'error' => $msg );
+                        }
 
-				$data = array(
-					'Folio'    => $folio,
-					'FchEmis'  => gmdate( 'Y-m-d' ),
+                        return null;
+                };
+
+                                $data = array(
+                                        'Folio'    => $folio,
+                                        'FchEmis'  => gmdate( 'Y-m-d' ),
 					'Receptor' => array(
 						'RUTRecep'    => $rut,
 						'RznSocRecep' => $razon,
@@ -1096,29 +1103,49 @@ class GenerateDtePage {
 				}
 				if ( ! empty( $references ) ) {
 						$data['Referencias'] = $references; }
-				if ( 61 === $tipo ) {
-					if ( ! $nc_has_reference ) {
-							return array( 'error' => __( 'Debes ingresar al menos una referencia con folio y fecha para la nota de crédito.', 'sii-boleta-dte' ) );
-					}
-					if ( $nc_missing_fields ) {
-							return array( 'error' => __( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ) );
-					}
-					if ( 'texto' === $nc_motive && $nc_missing_text_reason ) {
-							return array( 'error' => __( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ) );
-					}
-				}
-				$xml = $this->engine->generate_dte_xml( $data, $tipo, $preview );
-				if ( is_wp_error( $xml ) ) {
-						$code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
-						$msg  = $xml->get_error_message();
-					if ( 'sii_boleta_missing_caf' === $code ) {
-						// Mensaje más claro para el usuario final
-						$labels     = $this->get_available_types();
-						$tipo_label = $labels[ $tipo ] ?? (string) $tipo;
-						$msg        = sprintf( __( 'No hay un CAF configurado para el tipo %s. Sube un CAF en “Folios / CAFs”.', 'sii-boleta-dte' ), $tipo_label );
-					}
-						return array( 'error' => $msg );
-				}
+                                if ( 61 === $tipo ) {
+                                        if ( ! $nc_has_reference ) {
+                                                        return array( 'error' => __( 'Debes ingresar al menos una referencia con folio y fecha para la nota de crédito.', 'sii-boleta-dte' ) );
+                                        }
+                                        if ( $nc_missing_fields ) {
+                                                        return array( 'error' => __( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ) );
+                                        }
+                                        if ( 'texto' === $nc_motive && $nc_missing_text_reason ) {
+                                                        return array( 'error' => __( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ) );
+                                        }
+                                }
+
+                                if ( ! $preview ) {
+                                        $validation = $this->engine->generate_dte_xml( $data, $tipo, true );
+                                        $error      = $engine_err( $validation );
+                                        if ( null !== $error ) {
+                                                return $error;
+                                        }
+
+                                        $next = $this->folio_manager->get_next_folio( $tipo, false );
+                                        if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
+                                                return array( 'error' => $next->get_error_message() );
+                                        }
+                                        if ( $next instanceof \WP_Error ) {
+                                                return array( 'error' => $next->get_error_message() );
+                                        }
+
+                                        $folio = (int) $next;
+                                        if ( $folio <= 0 ) {
+                                                return array( 'error' => __( 'No hay folios disponibles para emitir este documento.', 'sii-boleta-dte' ) );
+                                        }
+
+                                        $data['Folio']                        = $folio;
+                                        if ( isset( $data['Encabezado']['IdDoc'] ) && is_array( $data['Encabezado']['IdDoc'] ) ) {
+                                                $data['Encabezado']['IdDoc']['Folio'] = $folio;
+                                        }
+                                }
+
+                                $xml   = $this->engine->generate_dte_xml( $data, $tipo, $preview );
+                                $error = $engine_err( $xml );
+                                if ( null !== $error ) {
+                                        return $error;
+                                }
 				$pdf       = $this->pdf->generate( (string) $xml );
 				$pdf_label = $available[ $tipo ] ?? sprintf( 'DTE %d', $tipo );
 

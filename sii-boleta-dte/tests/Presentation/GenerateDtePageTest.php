@@ -132,7 +132,7 @@ class GenerateDtePageTest extends TestCase {
             'tipo' => '39',
         ) );
         $this->assertSame( '123', $result['track_id'] );
-        $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
+        $this->assertSame( $tmpPdf, $result['pdf'] );
         $this->assertSame( 'success', $result['notice_type'] );
     }
 
@@ -153,8 +153,10 @@ class GenerateDtePageTest extends TestCase {
         $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
             ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
+        $tmpPdf = sys_get_temp_dir() . '/test.pdf';
+        file_put_contents( $tmpPdf, '%PDF fake' );
         $pdf = $this->createMock( PdfGenerator::class );
-        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 5 );
         $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 5 )->willReturn( false );
@@ -178,6 +180,10 @@ class GenerateDtePageTest extends TestCase {
         ) );
 
         $this->assertArrayHasKey( 'error', $result );
+
+        if ( file_exists( $tmpPdf ) ) {
+            unlink( $tmpPdf );
+        }
     }
 
     public function test_process_post_does_not_fetch_folio_when_xml_generation_fails(): void {
@@ -349,8 +355,10 @@ class GenerateDtePageTest extends TestCase {
 
                 $this->fail( 'generate_dte_xml called more than expected' );
             } );
+        $tmpPdf = sys_get_temp_dir() . '/test.pdf';
+        file_put_contents( $tmpPdf, '%PDF fake' );
         $pdf = $this->createMock( PdfGenerator::class );
-        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
         $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );

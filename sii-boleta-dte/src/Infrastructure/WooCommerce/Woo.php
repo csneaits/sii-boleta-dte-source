@@ -3,6 +3,7 @@ namespace Sii\BoletaDte\Infrastructure\WooCommerce;
 
 use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
 
 /**
  * Minimal WooCommerce integration: adds document type field, generates DTE on
@@ -200,29 +201,31 @@ class Woo {
                                 return;
                         }
 
-                        $stored_pdf   = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
-                        $pdf_path     = $stored_pdf['path'] ?? $pdf;
-                        $pdf_url      = $stored_pdf['url'] ?? '';
-                        $pdf_meta_val = '' !== $pdf_url ? $pdf_url : $pdf_path;
+                        $stored_pdf = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
+                        $pdf_path   = $stored_pdf['path'] ?? $pdf;
+                        $pdf_key    = $stored_pdf['key'] ?? '';
+                        $pdf_nonce  = $stored_pdf['nonce'] ?? '';
 
-                        if ( '' !== (string) $pdf_meta_val ) {
-                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf', $pdf_meta_val );
+                        if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
+                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
+                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
                         }
-                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_path', $pdf_path );
-                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_url', $pdf_url );
+
+                        $this->clear_legacy_pdf_meta( $order_id, $meta_prefix );
                         $this->update_order_meta( $order_id, $meta_prefix . '_track_id', '' );
 
                         $note = __( 'Se generó una previsualización del documento sin enviarlo al SII (modo prueba).', 'sii-boleta-dte' );
-                        if ( '' !== $pdf_url ) {
+                        $preview_link = $this->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
+                        if ( '' !== $preview_link ) {
                                 $note .= ' ' . sprintf(
                                         /* translators: %s: URL pointing to the generated PDF preview. */
                                         __( 'Puedes revisarla en: %s', 'sii-boleta-dte' ),
-                                        $pdf_url
+                                        $preview_link
                                 );
                         }
 
                         $this->add_order_note( $order, $note );
-                        $this->send_document_email( $order, $pdf_path, $document_type, true, $pdf_url );
+                        $this->send_document_email( $order, $pdf_path, $document_type, true, $preview_link );
                         return;
                 }
 
@@ -252,18 +255,20 @@ class Woo {
                 $pdf_generator = $this->plugin->get_pdf_generator();
                 $pdf           = $pdf_generator->generate( $xml );
                 if ( is_string( $pdf ) && '' !== $pdf ) {
-                        $stored_pdf   = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
-                        $pdf_path     = $stored_pdf['path'] ?? $pdf;
-                        $pdf_url      = $stored_pdf['url'] ?? '';
-                        $pdf_meta_val = '' !== $pdf_url ? $pdf_url : $pdf_path;
+                        $stored_pdf = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
+                        $pdf_path   = $stored_pdf['path'] ?? $pdf;
+                        $pdf_key    = $stored_pdf['key'] ?? '';
+                        $pdf_nonce  = $stored_pdf['nonce'] ?? '';
 
-                        if ( '' !== (string) $pdf_meta_val ) {
-                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf', $pdf_meta_val );
+                        if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
+                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
+                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
                         }
-                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_path', $pdf_path );
-                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_url', $pdf_url );
 
-                        $this->send_document_email( $order, $pdf_path, $document_type, false, $pdf_url );
+                        $this->clear_legacy_pdf_meta( $order_id, $meta_prefix );
+
+                        $download_link = $this->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
+                        $this->send_document_email( $order, $pdf_path, $document_type, false, $download_link );
                 }
 
                 if ( file_exists( $file ) ) {
@@ -422,7 +427,7 @@ class Woo {
                 $meta[ $order_id ][ $meta_key ] = $value;
         }
 
-        private function send_document_email( $order, string $pdf_path, int $document_type, bool $preview = false, string $pdf_url = '' ): void {
+        private function send_document_email( $order, string $pdf_path, int $document_type, bool $preview = false, string $download_url = '' ): void {
                 if ( ! function_exists( 'wp_mail' ) || ! $order || ! method_exists( $order, 'get_billing_email' ) ) {
                         return;
                 }
@@ -451,11 +456,11 @@ class Woo {
                         ? __( 'Se adjunta la previsualización del documento tributario electrónico asociada a su compra. No ha sido enviada al SII.', 'sii-boleta-dte' )
                         : __( 'Se adjunta el documento tributario electrónico asociado a su compra.', 'sii-boleta-dte' );
 
-                if ( $preview && '' !== $pdf_url ) {
-                        $link = function_exists( 'esc_url' ) ? esc_url( $pdf_url ) : $pdf_url;
+                if ( '' !== $download_url ) {
+                        $link = function_exists( 'esc_url' ) ? esc_url( $download_url ) : $download_url;
                         $message .= '<br />' . sprintf(
-                                /* translators: %s: URL pointing to the generated PDF preview. */
-                                __( 'También puede revisarlo en: %s', 'sii-boleta-dte' ),
+                                /* translators: %s: URL pointing to the generated PDF download. */
+                                __( 'También puede descargarlo en: %s', 'sii-boleta-dte' ),
                                 $link
                         );
                 }
@@ -466,209 +471,130 @@ class Woo {
         }
 
         /**
-         * Moves the generated PDF to a persistent location under uploads and returns
-         * the path/url pair to reuse across notes and emails.
+         * Moves the generated PDF to the secure storage directory and returns
+         * the new path alongside its key and nonce.
          *
-         * @return array{path:string,url:string}
+         * @return array{path:string,key:string,nonce:string}
          */
         private function persist_pdf_for_order( string $path, $order, int $document_type, int $order_id ): array {
-                $result = array( 'path' => $path, 'url' => '' );
+                $result = array(
+                        'path'  => $path,
+                        'key'   => '',
+                        'nonce' => '',
+                );
 
                 if ( '' === $path || ! file_exists( $path ) ) {
                         return $result;
                 }
 
-                $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array();
-                $base_dir = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] ) && '' !== $uploads['basedir']
-                        ? $uploads['basedir']
-                        : sys_get_temp_dir();
-                $base_url = $this->resolve_upload_base_url( is_array( $uploads ) ? $uploads : array() );
-
-                $base_dir = rtrim( (string) $base_dir, '/\\' );
-                $dest_dir = $base_dir . '/sii-boleta-dte/previews';
-
-                if ( function_exists( 'wp_mkdir_p' ) ) {
-                        wp_mkdir_p( $dest_dir );
-                } elseif ( ! is_dir( $dest_dir ) ) {
-                        @mkdir( $dest_dir, 0755, true );
-                }
-
-                if ( ! is_dir( $dest_dir ) || ! is_writable( $dest_dir ) ) {
+                $stored = PdfStorage::store( $path );
+                if ( empty( $stored['key'] ) ) {
                         return $result;
                 }
 
-                $filename  = $this->build_pdf_filename( $order, $document_type, $order_id );
-                $name_only = pathinfo( $filename, PATHINFO_FILENAME );
-                $dest      = $dest_dir . '/' . $filename;
-                $counter   = 2;
+                return $stored;
+        }
 
-                while ( file_exists( $dest ) ) {
-                        $dest = $dest_dir . '/' . $name_only . '-' . $counter . '.pdf';
-                        ++$counter;
+        private function add_order_note( $order, string $message ): void {
+                if ( $order && method_exists( $order, 'add_order_note' ) ) {
+                        $order->add_order_note( $message );
+                }
+        }
+
+        private function build_pdf_download_link( int $order_id, string $meta_prefix, string $key, string $nonce ): string {
+                if ( $order_id <= 0 ) {
+                        return '';
                 }
 
-                if ( ! @copy( $path, $dest ) ) {
-                        return $result;
+                $key   = trim( strtolower( (string) $key ) );
+                $nonce = trim( strtolower( (string) $nonce ) );
+
+                if ( '' === $key || '' === $nonce ) {
+                        return '';
                 }
 
-                @chmod( $dest, 0644 );
-
-                if ( $dest !== $path ) {
-                        @unlink( $path );
+                $type = $this->sanitize_meta_prefix( $meta_prefix );
+                if ( '' === $type ) {
+                        return '';
                 }
 
-                $url = '';
-                if ( '' !== $base_url ) {
-                        $url = $base_url . '/sii-boleta-dte/previews/' . basename( $dest );
-                }
-
-                return array(
-                        'path' => $dest,
-                        'url'  => $url,
+                $params = array(
+                        'action'   => 'sii_boleta_dte_view_pdf',
+                        'order_id' => $order_id,
+                        'key'      => $key,
+                        'nonce'    => $nonce,
+                        'type'     => $type,
                 );
+
+                $base = $this->get_ajax_endpoint_base();
+                if ( '' === $base ) {
+                        $base = 'admin-ajax.php';
+                }
+
+                $separator = str_contains( $base, '?' ) ? '&' : '?';
+
+                return $base . $separator . http_build_query( $params );
         }
 
-        /**
-         * Normalises the uploads base URL provided by WordPress.
-         *
-         * @param array<string,mixed> $uploads Upload dir information from wp_upload_dir().
-         */
-        private function resolve_upload_base_url( array $uploads ): string {
-                $base_url = '';
-
-                if ( isset( $uploads['baseurl'] ) && is_string( $uploads['baseurl'] ) ) {
-                        $base_url = $this->sanitize_upload_base_url( (string) $uploads['baseurl'] );
+        private function get_ajax_endpoint_base(): string {
+                if ( function_exists( 'admin_url' ) ) {
+                        return admin_url( 'admin-ajax.php' );
                 }
 
-                if ( '' !== $base_url ) {
-                        return rtrim( $base_url, '/\\' );
-                }
-
-                $fallback = $this->default_uploads_base_url();
-
-                return '' === $fallback ? '' : rtrim( $fallback, '/\\' );
-        }
-
-        private function sanitize_upload_base_url( string $base_url ): string {
-                $base_url = trim( $base_url );
-
-                if ( '' === $base_url ) {
-                        return '';
-                }
-
-                $base_url = $this->ensure_https_scheme( $base_url );
-
-                $parts = parse_url( $base_url );
-                if ( false === $parts || empty( $parts['host'] ) ) {
-                        return $base_url;
-                }
-
-                $path = isset( $parts['path'] ) ? rtrim( (string) $parts['path'], '/' ) : '';
-
-                if ( '' === $path || '/' === $path ) {
-                        return $this->build_url_from_parts( $parts, '/wp-content/uploads' );
-                }
-
-                if ( '/uploads' === $path ) {
-                        return $this->build_url_from_parts( $parts, '/wp-content/uploads' );
-                }
-
-                return $base_url;
-        }
-
-        private function ensure_https_scheme( string $url ): string {
-                if ( '' === $url ) {
-                        return '';
-                }
-
-                if ( function_exists( 'set_url_scheme' ) ) {
-                        return set_url_scheme( $url, 'https' );
-                }
-
-                if ( str_starts_with( $url, '//' ) ) {
-                        return 'https:' . $url;
-                }
-
-                if ( str_starts_with( $url, 'http://' ) ) {
-                        return 'https://' . substr( $url, 7 );
-                }
-
-                return $url;
-        }
-
-        /**
-         * @param array<string,mixed> $parts Output of parse_url().
-         */
-        private function build_url_from_parts( array $parts, string $path ): string {
-                $scheme = isset( $parts['scheme'] ) && is_string( $parts['scheme'] ) ? strtolower( $parts['scheme'] ) : '';
-                if ( '' === $scheme || 'http' === $scheme ) {
-                        $scheme = 'https';
-                }
-
-                $user = isset( $parts['user'] ) ? (string) $parts['user'] : '';
-                $pass = isset( $parts['pass'] ) ? ':' . (string) $parts['pass'] : '';
-                $auth = '' !== $user ? $user . $pass . '@' : '';
-                $port = isset( $parts['port'] ) ? ':' . (string) $parts['port'] : '';
-
-                $normalized_path = '/' . ltrim( $path, '/' );
-
-                return $scheme . '://' . $auth . $parts['host'] . $port . $normalized_path;
-        }
-
-        private function default_uploads_base_url(): string {
-                if ( function_exists( 'content_url' ) ) {
-                        $content = rtrim( (string) content_url(), '/\\' );
-                        if ( '' !== $content ) {
-                                return $this->ensure_https_scheme( $content . '/uploads' );
-                        }
-                }
-
-                if ( defined( 'SII_BOLETA_DTE_URL' ) ) {
-                        $candidate = (string) SII_BOLETA_DTE_URL;
-                        if ( '' !== $candidate ) {
-                                $parts = parse_url( $candidate );
-                                if ( false !== $parts && isset( $parts['host'] ) ) {
-                                        $scheme = isset( $parts['scheme'] ) ? strtolower( (string) $parts['scheme'] ) : '';
-                                        if ( '' === $scheme || 'http' === $scheme ) {
-                                                $scheme = 'https';
-                                        }
-
-                                        $host = (string) $parts['host'];
-                                        $port = isset( $parts['port'] ) ? ':' . (string) $parts['port'] : '';
-                                        $path = rtrim( isset( $parts['path'] ) ? (string) $parts['path'] : '', '/' );
-
-                                        return $scheme . '://' . $host . $port . $path . '/wp-content/uploads';
-                                }
+                if ( function_exists( 'site_url' ) ) {
+                        $base = rtrim( (string) site_url(), '/\\' );
+                        if ( '' !== $base ) {
+                                return $base . '/wp-admin/admin-ajax.php';
                         }
                 }
 
                 return '';
         }
 
-        private function build_pdf_filename( $order, int $document_type, int $order_id ): string {
-                $order_number = '';
+        private function sanitize_meta_prefix( string $meta_prefix ): string {
+                $meta_prefix = strtolower( (string) $meta_prefix );
 
-                if ( $order && method_exists( $order, 'get_order_number' ) ) {
-                        $order_number = (string) $order->get_order_number();
-                }
-
-                if ( '' === $order_number ) {
-                        $order_number = (string) $order_id;
-                }
-
-                $order_number = preg_replace( '/[^a-zA-Z0-9\-]+/', '-', $order_number ) ?? '';
-                $order_number = trim( strtolower( $order_number ), '-' );
-
-                if ( '' === $order_number ) {
-                        $order_number = 'pedido';
-                }
-
-                return 'dte-' . $order_number . '-tipo-' . $document_type . '.pdf';
+                return preg_replace( '/[^a-z0-9_]/', '', $meta_prefix ) ?? '';
         }
 
-        private function add_order_note( $order, string $message ): void {
-                if ( $order && method_exists( $order, 'add_order_note' ) ) {
-                        $order->add_order_note( $message );
+        private function get_order_meta_value( int $order_id, string $meta_key ): string {
+                if ( $order_id <= 0 || '' === $meta_key ) {
+                        return '';
+                }
+
+                if ( function_exists( 'get_post_meta' ) ) {
+                        $value = get_post_meta( $order_id, $meta_key, true );
+                        if ( is_scalar( $value ) ) {
+                                return (string) $value;
+                        }
+                }
+
+                global $meta; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+                if ( isset( $meta[ $order_id ][ $meta_key ] ) ) {
+                        return (string) $meta[ $order_id ][ $meta_key ];
+                }
+
+                return '';
+        }
+
+        private function clear_legacy_pdf_meta( int $order_id, string $meta_prefix ): void {
+                foreach ( array( '_pdf', '_pdf_path', '_pdf_url' ) as $suffix ) {
+                        $this->delete_order_meta( $order_id, $meta_prefix . $suffix );
+                }
+        }
+
+        private function delete_order_meta( int $order_id, string $meta_key ): void {
+                if ( $order_id <= 0 || '' === $meta_key ) {
+                        return;
+                }
+
+                if ( function_exists( 'delete_post_meta' ) ) {
+                        delete_post_meta( $order_id, $meta_key );
+                }
+
+                global $meta; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+                if ( isset( $meta[ $order_id ][ $meta_key ] ) ) {
+                        unset( $meta[ $order_id ][ $meta_key ] );
                 }
         }
 
@@ -695,7 +621,9 @@ class Woo {
                         return;
                 }
 
-                $pdf_url  = $this->get_order_pdf_url( $order_id );
+                $pdf_key   = $this->get_order_meta_value( $order_id, '_sii_boleta_pdf_key' );
+                $pdf_nonce = $this->get_order_meta_value( $order_id, '_sii_boleta_pdf_nonce' );
+                $pdf_url   = $this->build_pdf_download_link( $order_id, '_sii_boleta', $pdf_key, $pdf_nonce );
 
                 if ( '' === $pdf_url ) {
                         return;
@@ -709,32 +637,6 @@ class Woo {
                 echo '<h2>' . $section_title . '</h2>';
                 echo '<p><a class="button" href="' . $link . '" target="_blank" rel="noopener noreferrer">' . $button_label . '</a></p>';
                 echo '</section>';
-        }
-
-        /**
-         * Retrieves a public URL for the generated PDF if available.
-         */
-        private function get_order_pdf_url( int $order_id ): string {
-                if ( ! function_exists( 'get_post_meta' ) ) {
-                        return '';
-                }
-
-                $candidates = array(
-                        (string) get_post_meta( $order_id, '_sii_boleta_pdf_url', true ),
-                        (string) get_post_meta( $order_id, '_sii_boleta_pdf', true ),
-                );
-
-                foreach ( $candidates as $value ) {
-                        $value = trim( (string) $value );
-                        if ( '' === $value ) {
-                                continue;
-                        }
-                        if ( preg_match( '#^https?://#i', $value ) ) {
-                                return $value;
-                        }
-                }
-
-                return '';
         }
 
         /**

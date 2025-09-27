@@ -23,6 +23,7 @@ use Sii\BoletaDte\Infrastructure\Engine\Factory\VatInclusiveDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
+use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorageMigrator;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Infrastructure\Factory\Container;
@@ -47,7 +48,8 @@ class Plugin {
 	private Pages $pages;
 
         public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
-			Container::init();
+                        Container::init();
+                        PdfStorageMigrator::migrate();
 			$this->settings       = $settings ?? new Settings();
 			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
 			$this->signer         = $signer ?? new Signer();

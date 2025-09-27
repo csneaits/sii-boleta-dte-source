@@ -132,7 +132,7 @@ class LibreDteEngine implements DteEngine {
         $environment = $this->settings->get_environment();
 
         $folioNumber = $this->extractFolio( $data );
-        if ( $folioNumber > 0 && ! FoliosDb::find_for_folio( $tipo, $folioNumber, $environment ) ) {
+        if ( ! $preview && $folioNumber > 0 && ! FoliosDb::find_for_folio( $tipo, $folioNumber, $environment ) ) {
             return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
         }
 

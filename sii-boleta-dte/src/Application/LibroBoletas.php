@@ -184,13 +184,12 @@ class LibroBoletas {
             return array();
         }
 
+        $range = $start->format( 'Y-m-d' ) . '...' . $end->format( 'Y-m-d' );
+
         $args = array(
             'status'       => array( 'completed', 'processing' ),
             'limit'        => -1,
-            'date_created' => array(
-                'after'  => $start->format( 'Y-m-d H:i:s' ),
-                'before' => $end->format( 'Y-m-d H:i:s' ),
-            ),
+            'date_created' => $range,
         );
 
         $orders = wc_get_orders( $args );

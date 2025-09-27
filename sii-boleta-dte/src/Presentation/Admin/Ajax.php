@@ -627,6 +627,7 @@ class Ajax {
      */
     public function view_pdf(): void {
         $is_preview = isset( $_GET['preview'] ) && '1' === (string) $_GET['preview']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $is_manual  = isset( $_GET['manual'] ) && '1' === (string) $_GET['manual']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         if ( $is_preview ) {
             $preview_key = isset( $_GET['key'] ) ? sanitize_file_name( (string) $_GET['key'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -651,6 +652,63 @@ class Ajax {
             header( 'Content-Disposition: inline; filename="' . basename( $preview_file ) . '"' );
             header( 'Content-Length: ' . filesize( $preview_file ) );
             @readfile( $preview_file );
+
+            if ( defined( 'SII_BOLETA_DTE_TESTING' ) && SII_BOLETA_DTE_TESTING ) {
+                return;
+            }
+
+            exit;
+        }
+
+        if ( $is_manual ) {
+            $key = isset( $_GET['key'] )
+                ? strtolower( preg_replace( '/[^a-f0-9]/', '', (string) $_GET['key'] ) )
+                : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $token = isset( $_GET['token'] )
+                ? strtolower( preg_replace( '/[^a-f0-9]/', '', (string) $_GET['token'] ) )
+                : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+            if ( '' === $key || '' === $token ) {
+                $this->terminate_request( 403 );
+            }
+
+            if ( function_exists( 'wp_verify_nonce' ) ) {
+                $nonce_value = isset( $_GET['_wpnonce'] ) ? (string) $_GET['_wpnonce'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                if ( '' === $nonce_value || ! \wp_verify_nonce( $nonce_value, 'sii_boleta_nonce' ) ) {
+                    $this->terminate_request( 403 );
+                }
+            }
+
+            if ( ! function_exists( 'current_user_can' ) || ! \current_user_can( 'manage_options' ) ) {
+                $this->terminate_request( 403 );
+            }
+
+            $entry = GenerateDtePage::resolve_manual_pdf( $key );
+            if ( null === $entry ) {
+                $this->terminate_request( 404 );
+            }
+
+            $stored_token = isset( $entry['token'] ) ? strtolower( (string) $entry['token'] ) : '';
+            if ( '' === $stored_token || ! hash_equals( $stored_token, $token ) ) {
+                $this->terminate_request( 403 );
+            }
+
+            $file     = isset( $entry['path'] ) ? (string) $entry['path'] : '';
+            $filename = isset( $entry['filename'] ) ? (string) $entry['filename'] : basename( $file );
+
+            if ( '' === $file || ! file_exists( $file ) ) {
+                GenerateDtePage::clear_manual_pdf( $key );
+                $this->terminate_request( 404 );
+            }
+
+            if ( function_exists( 'nocache_headers' ) ) {
+                \nocache_headers();
+            }
+
+            header( 'Content-Type: application/pdf' );
+            header( 'Content-Disposition: inline; filename="' . basename( $filename ) . '"' );
+            header( 'Content-Length: ' . filesize( $file ) );
+            @readfile( $file );
 
             if ( defined( 'SII_BOLETA_DTE_TESTING' ) && SII_BOLETA_DTE_TESTING ) {
                 return;

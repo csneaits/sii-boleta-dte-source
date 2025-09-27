@@ -10,6 +10,7 @@ use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
+use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
 
 /**
  * Admin page that allows manually generating a DTE without WooCommerce orders.
@@ -23,8 +24,10 @@ class GenerateDtePage {
 	private FolioManager $folio_manager;
 	private Queue $queue;
 
-	private const PREVIEW_TRANSIENT_PREFIX = 'sii_boleta_preview_';
-	private const PREVIEW_TTL              = 900;
+    private const PREVIEW_TRANSIENT_PREFIX = 'sii_boleta_preview_';
+    private const PREVIEW_TTL              = 900;
+    private const MANUAL_TRANSIENT_PREFIX  = 'sii_boleta_manual_pdf_';
+    private const MANUAL_TTL               = 86400; // 24 hours for manual downloads
 
 	/**
 	 * Supported motives for credit notes (type 61) mapped to SII CodRef values.
@@ -37,10 +40,15 @@ class GenerateDtePage {
 		'montos' => '3',
 	);
 
-		/**
-		 * @var array<string,array{path:string,expires:int}>
-		 */
-	private static array $preview_cache = array();
+    /**
+     * @var array<string,array{path:string,expires:int}>
+     */
+    private static array $preview_cache = array();
+
+    /**
+     * @var array<string,array{path:string,token:string,filename:string,expires:int}>
+     */
+    private static array $manual_cache = array();
 
 	public function __construct( Settings $settings, TokenManager $token_manager, Api $api, DteEngine $engine, PdfGenerator $pdf, FolioManager $folio_manager, Queue $queue ) {
 			$this->settings      = $settings;
@@ -791,9 +799,10 @@ class GenerateDtePage {
 				$items = array();
 				$n     = 1;
 		$raw           = $post['items'] ?? array();
-		if ( $preview ) {
-			$this->debug_log( '[preview] raw items=' . print_r( $raw, true ) );
-		}
+                if ( $preview ) {
+                        $count = is_array( $raw ) ? count( $raw ) : 0;
+                        $this->debug_log( '[preview] raw items count=' . $count );
+                }
 		if ( is_array( $raw ) ) {
 			foreach ( $raw as $item_index => $item ) {
 						$qty  = isset( $item['qty'] ) ? $this->parse_amount( $item['qty'] ) : 1.0;
@@ -901,9 +910,9 @@ class GenerateDtePage {
 				$items[] = $line;
 			}
 		}
-		if ( $preview ) {
-			$this->debug_log( '[preview] parsed items=' . wp_json_encode( $items ) );
-		}
+                if ( $preview ) {
+                        $this->debug_log( '[preview] parsed items count=' . count( $items ) );
+                }
 		// If Boleta/Boleta Exenta without RUT, use generic SII rut
 		if ( in_array( $tipo, array( 39, 41 ), true ) && '' === $rut ) {
 				$rut = '66666666-6';
@@ -1232,7 +1241,7 @@ class GenerateDtePage {
 		 *
 		 * @param array<string,mixed> $context Metadata used to build a friendly filename.
 		 */
-	private function create_preview_pdf_link( string $path, array $context = array() ): string {
+    private function create_preview_pdf_link( string $path, array $context = array() ): string {
 		if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
 						return '';
 		}
@@ -1262,57 +1271,56 @@ class GenerateDtePage {
 		 *
 		 * @param array<string,mixed> $context Metadata used to build a friendly filename.
 		 */
-	private function store_persistent_pdf( string $path, array $context = array() ): string {
-		if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
-						return '';
-		}
-					$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
-						'basedir' => sys_get_temp_dir(),
-						'baseurl' => '',
-					);
-					$base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
-					$dir     = $base . '/sii-boleta-dte/previews';
-					if ( function_exists( 'wp_mkdir_p' ) ) {
-									wp_mkdir_p( $dir );
-					} elseif ( ! is_dir( $dir ) ) {
-									@mkdir( $dir, 0755, true );
-					}
-					$filename  = $this->build_pdf_filename( $context, 'pdf' );
-					$name_only = pathinfo( $filename, PATHINFO_FILENAME );
-					if ( '' === (string) $name_only ) {
-									$name_only = 'dte';
-					}
-					$dest    = $dir . '/' . $filename;
-					$counter = 2;
-					while ( file_exists( $dest ) ) {
-									$dest = $dir . '/' . $name_only . '-' . $counter . '.pdf';
-									++$counter;
-					}
-					if ( ! @copy( $path, $dest ) ) {
-									return '';
-					}
-					@chmod( $dest, 0644 );
+    private function store_persistent_pdf( string $path, array $context = array() ): string {
+        if ( ! is_string( $path ) || '' === $path || ! file_exists( $path ) ) {
+            return '';
+        }
 
-					return $this->build_viewer_url( basename( $dest ) );
-	}
+        $stored = PdfStorage::store( $path );
+        $dest   = isset( $stored['path'] ) ? (string) $stored['path'] : '';
+        $key    = isset( $stored['key'] ) ? (string) $stored['key'] : '';
+        $token  = isset( $stored['nonce'] ) ? (string) $stored['nonce'] : '';
 
-	private function build_viewer_url( string $key, bool $preview = false ): string {
-		if ( ! function_exists( 'admin_url' ) ) {
-				return '';
-		}
+        if ( '' === $dest || '' === $key || '' === $token ) {
+            return '';
+        }
 
-			$args = array(
-				'action'   => 'sii_boleta_dte_view_pdf',
-				'key'      => $key,
-				'_wpnonce' => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '',
-			);
+        $download_name = $this->build_pdf_filename( $context, 'pdf' );
+        $this->register_manual_pdf_entry( $key, $dest, $token, $download_name );
 
-			if ( $preview ) {
-					$args['preview'] = '1';
-			}
+        return $this->build_viewer_url(
+            $key,
+            false,
+            array(
+                'manual' => '1',
+                'token'  => $token,
+            )
+        );
+    }
 
-			return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
-	}
+    private function build_viewer_url( string $key, bool $preview = false, array $extra = array() ): string {
+        if ( ! function_exists( 'admin_url' ) ) {
+            return '';
+        }
+
+        $args = array(
+            'action'   => 'sii_boleta_dte_view_pdf',
+            'key'      => $key,
+            '_wpnonce' => function_exists( 'wp_create_nonce' ) ? wp_create_nonce( 'sii_boleta_nonce' ) : '',
+        );
+
+        if ( $preview ) {
+            $args['preview'] = '1';
+        }
+
+        foreach ( $extra as $arg_key => $value ) {
+            if ( is_scalar( $value ) && '' !== (string) $value ) {
+                $args[ $arg_key ] = (string) $value;
+            }
+        }
+
+        return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
+    }
 
 	private function preview_key_exists( string $key ): bool {
 			return null !== self::get_preview_entry( $key );
@@ -1375,24 +1383,107 @@ class GenerateDtePage {
 			unset( self::$preview_cache[ $key ] );
 	}
 
-	public static function resolve_preview_path( string $key ): ?string {
-			$entry = self::get_preview_entry( $key );
-		if ( null === $entry ) {
-				return null;
-		}
+    public static function resolve_preview_path( string $key ): ?string {
+                        $entry = self::get_preview_entry( $key );
+                if ( null === $entry ) {
+                                return null;
+                }
 
-			$path = $entry['path'];
-		if ( ! file_exists( $path ) ) {
-				self::clear_preview_entry( $key );
-				return null;
-		}
+                        $path = $entry['path'];
+                if ( ! file_exists( $path ) ) {
+                                self::clear_preview_entry( $key );
+                                return null;
+                }
 
-			return $path;
-	}
+                        return $path;
+    }
 
-	public static function clear_preview_path( string $key ): void {
-			self::clear_preview_entry( $key );
-	}
+    public static function clear_preview_path( string $key ): void {
+                        self::clear_preview_entry( $key );
+    }
+
+    private function register_manual_pdf_entry( string $key, string $path, string $token, string $filename ): void {
+        $key = strtolower( preg_replace( '/[^a-f0-9]/', '', $key ) );
+        if ( '' === $key || '' === $path || '' === $token ) {
+            return;
+        }
+
+        $data = array(
+            'path'     => $path,
+            'token'    => $token,
+            'filename' => $filename,
+            'expires'  => time() + self::MANUAL_TTL,
+        );
+
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( self::MANUAL_TRANSIENT_PREFIX . $key, $data, self::MANUAL_TTL );
+        }
+
+        self::$manual_cache[ $key ] = $data;
+    }
+
+    public static function resolve_manual_pdf( string $key ): ?array {
+        $key = strtolower( preg_replace( '/[^a-f0-9]/', '', $key ) );
+        if ( '' === $key ) {
+            return null;
+        }
+
+        $data = null;
+
+        if ( function_exists( 'get_transient' ) ) {
+            $value = get_transient( self::MANUAL_TRANSIENT_PREFIX . $key );
+            if ( false !== $value && is_array( $value ) ) {
+                $data = $value;
+            }
+        }
+
+        if ( null === $data && isset( self::$manual_cache[ $key ] ) ) {
+            $data = self::$manual_cache[ $key ];
+        }
+
+        if ( null === $data ) {
+            return null;
+        }
+
+        $expires = isset( $data['expires'] ) ? (int) $data['expires'] : 0;
+        if ( $expires > 0 && $expires < time() ) {
+            self::clear_manual_pdf( $key );
+            return null;
+        }
+
+        $path = isset( $data['path'] ) ? (string) $data['path'] : '';
+        if ( '' === $path || ! file_exists( $path ) ) {
+            self::clear_manual_pdf( $key );
+            return null;
+        }
+
+        $token = isset( $data['token'] ) ? (string) $data['token'] : '';
+        if ( '' === $token ) {
+            self::clear_manual_pdf( $key );
+            return null;
+        }
+
+        $filename = isset( $data['filename'] ) ? (string) $data['filename'] : basename( $path );
+
+        return array(
+            'path'     => $path,
+            'token'    => $token,
+            'filename' => $filename,
+        );
+    }
+
+    public static function clear_manual_pdf( string $key ): void {
+        $key = strtolower( preg_replace( '/[^a-f0-9]/', '', $key ) );
+        if ( '' === $key ) {
+            return;
+        }
+
+        if ( function_exists( 'delete_transient' ) ) {
+            delete_transient( self::MANUAL_TRANSIENT_PREFIX . $key );
+        }
+
+        unset( self::$manual_cache[ $key ] );
+    }
 
                                 /**
                                  * Stores the XML representation for queued retries in a persistent directory.
@@ -1530,24 +1621,76 @@ class GenerateDtePage {
 					return $trimmed;
 	}
 
-		/**
-		 * Escribe mensajes de depuración en uploads/sii-boleta-logs/.
-		 */
-	private function debug_log( string $message ): void {
-		$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array();
-		$base    = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
-		? $uploads['basedir']
-		: ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
-		$dir     = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
-		if ( function_exists( 'wp_mkdir_p' ) ) {
-			wp_mkdir_p( $dir );
-		} elseif ( ! is_dir( $dir ) ) {
-			@mkdir( $dir, 0755, true );
-		}
-		$file = $dir . '/debug.log';
-		$line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
-		@file_put_contents( $file, $line, FILE_APPEND );
-	}
+    /**
+     * Escribe mensajes de depuración en un directorio privado.
+     */
+    private function debug_log( string $message ): void {
+        if ( defined( 'WP_DEBUG' ) && ! WP_DEBUG ) {
+            return;
+        }
+
+        $sanitized = $this->sanitize_log_message( $message );
+        if ( '' === $sanitized ) {
+            return;
+        }
+
+        $dir = $this->resolve_secure_log_directory();
+        if ( '' === $dir ) {
+            error_log( $sanitized );
+            return;
+        }
+
+        if ( function_exists( 'wp_mkdir_p' ) ) {
+            wp_mkdir_p( $dir );
+        } elseif ( ! is_dir( $dir ) ) {
+            @mkdir( $dir, 0755, true );
+        }
+
+        $htaccess = $dir . '/.htaccess';
+        if ( ! file_exists( $htaccess ) ) {
+            @file_put_contents( $htaccess, "Deny from all\n" );
+        }
+
+        $file = $dir . '/debug.log';
+        $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $sanitized . PHP_EOL;
+        @file_put_contents( $file, $line, FILE_APPEND );
+    }
+
+    private function resolve_secure_log_directory(): string {
+        if ( defined( 'WP_CONTENT_DIR' ) && is_string( WP_CONTENT_DIR ) && '' !== WP_CONTENT_DIR ) {
+            $base = WP_CONTENT_DIR;
+        } elseif ( function_exists( 'wp_upload_dir' ) ) {
+            $uploads = wp_upload_dir();
+            $base    = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] ) ? $uploads['basedir'] : '';
+        } else {
+            $base = sys_get_temp_dir();
+        }
+
+        $base = rtrim( (string) $base, '/\\' );
+        if ( '' === $base ) {
+            return '';
+        }
+
+        return $base . '/sii-boleta-dte/private/logs';
+    }
+
+    private function sanitize_log_message( string $message ): string {
+        $message = trim( preg_replace( '/[\r\n]+/', ' ', $message ) );
+        if ( '' === $message ) {
+            return '';
+        }
+
+        $limit = 600;
+        if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+            if ( mb_strlen( $message, 'UTF-8' ) > $limit ) {
+                $message = mb_substr( $message, 0, $limit, 'UTF-8' ) . '…';
+            }
+        } elseif ( strlen( $message ) > $limit ) {
+            $message = substr( $message, 0, $limit ) . '…';
+        }
+
+        return $message;
+    }
 
 	/**
 	 * Normaliza números ingresados con separadores locales (puntos miles, comas decimales).

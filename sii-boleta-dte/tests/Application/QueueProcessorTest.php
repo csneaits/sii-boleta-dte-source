@@ -3,6 +3,7 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 
 // WordPress stubs.
@@ -42,6 +43,17 @@ if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
         return $response['body'] ?? '';
     }
 }
+if ( ! function_exists( 'wp_mkdir_p' ) ) {
+    function wp_mkdir_p( $dir = '' ) {
+        if ( '' !== $dir && ! is_dir( $dir ) ) {
+            mkdir( $dir, 0755, true );
+        }
+        return $dir;
+    }
+}
+if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+    define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/wp-content' );
+}
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
     function sii_boleta_write_log( $msg ) {}
 }
@@ -80,5 +92,35 @@ class QueueProcessorTest extends TestCase {
 
         $this->assertSame( 3, $GLOBALS['wp_remote_post_calls'] );
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
+    }
+
+    public function test_process_resolves_secure_xml_paths() {
+        $api = $this->getMockBuilder( Api::class )
+            ->onlyMethods( array( 'send_dte_to_sii' ) )
+            ->getMock();
+
+        $processor = new QueueProcessor( $api, static function(){} );
+
+        $temp = $this->create_temp_xml();
+        $stored = XmlStorage::store( $temp );
+        $this->assertNotSame( '', $stored['key'] );
+        $this->assertFileExists( $stored['path'] );
+
+        QueueDb::purge();
+        QueueDb::enqueue( 'dte', array(
+            'file'        => '/tmp/ignored.xml',
+            'file_key'    => $stored['key'],
+            'environment' => 'prod',
+            'token'       => 'tok',
+        ) );
+
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )
+            ->with( $stored['path'], 'prod', 'tok' )
+            ->willReturn( 'track' );
+
+        $processor->process();
+
+        $this->assertCount( 0, QueueDb::get_pending_jobs() );
+        @unlink( $stored['path'] );
     }
 }

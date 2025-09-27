@@ -16,16 +16,19 @@ class Queue {
                 QueueDb::install();
         }
 
-	public function enqueue_dte( string $file, string $environment, string $token ): void {
-		QueueDb::enqueue(
-			'dte',
-			array(
-				'file'        => $file,
-				'environment' => $environment,
-				'token'       => $token,
-			)
-		);
-	}
+        public function enqueue_dte( string $file, string $environment, string $token, string $storage_key = '' ): void {
+                $payload = array(
+                        'file'        => $file,
+                        'environment' => $environment,
+                        'token'       => $token,
+                );
+
+                if ( '' !== $storage_key ) {
+                        $payload['file_key'] = $storage_key;
+                }
+
+                QueueDb::enqueue( 'dte', $payload );
+        }
 
         public function enqueue_libro( string $xml, string $environment, string $token ): void {
                 QueueDb::enqueue(

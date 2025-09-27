@@ -31,6 +31,9 @@ if ( ! function_exists( 'wp_mkdir_p' ) ) {
         return $dir;
     }
 }
+if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+    define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/wp-content' );
+}
 if ( ! function_exists( 'wp_create_nonce' ) ) { function wp_create_nonce() { return 'nonce'; } }
 if ( ! function_exists( 'admin_url' ) ) {
     function admin_url( $path = '' ) {
@@ -388,10 +391,20 @@ class GenerateDtePageTest extends TestCase {
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $queue->expects( $this->once() )->method( 'enqueue_dte' )->with(
             $this->callback( function ( $file ) {
-                return is_string( $file ) && '' !== $file;
+                $this->assertIsString( $file );
+                $this->assertNotSame( '', $file );
+                $this->assertStringContainsString( 'sii-boleta-dte/private/xml/', $file );
+                $this->assertFileExists( $file );
+                return true;
             } ),
             'test',
-            'tok'
+            'tok',
+            $this->callback( function ( $key ) {
+                $this->assertIsString( $key );
+                $this->assertNotSame( '', $key );
+                $this->assertMatchesRegularExpression( '/^[a-f0-9]{16,}$/', $key );
+                return true;
+            } )
         );
 
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );

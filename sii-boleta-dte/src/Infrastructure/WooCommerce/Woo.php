@@ -30,7 +30,7 @@ class Woo {
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_dte', array( $this, 'handle_manual_dte' ) );
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_credit_note', array( $this, 'handle_manual_credit_note' ) );
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_debit_note', array( $this, 'handle_manual_debit_note' ) );
-                                add_action( 'woocommerce_admin_order_actions_end', array( $this, 'render_credit_note_modal' ), 10, 1 );
+                                add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'render_credit_note_modal' ), 10, 1 );
                                 add_action( 'woocommerce_order_details_after_order_table', array( $this, 'render_customer_pdf_download' ), 15, 1 );
         }
 
@@ -631,8 +631,9 @@ class Woo {
                         return $items;
                 }
 
-                $line = 1;
-                foreach ( $refund->get_items() as $item ) {
+                $line       = 1;
+                $item_types = array( 'line_item', 'shipping', 'fee' );
+                foreach ( $refund->get_items( $item_types ) as $item ) {
                         if ( ! is_object( $item ) ) {
                                 continue;
                         }
@@ -649,7 +650,16 @@ class Woo {
                         }
 
                         $unit_price = $quantity > 0 ? $amount / $quantity : $amount;
-                        $name       = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : __( 'Reembolso', 'sii-boleta-dte' );
+                        $name = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : __( 'Reembolso', 'sii-boleta-dte' );
+
+                        if ( method_exists( $item, 'get_type' ) ) {
+                                $type = (string) $item->get_type();
+                                if ( 'shipping' === $type && '' === trim( $name ) ) {
+                                        $name = __( 'Costo de envío reembolsado', 'sii-boleta-dte' );
+                                } elseif ( 'fee' === $type && '' === trim( $name ) ) {
+                                        $name = __( 'Cargo reembolsado', 'sii-boleta-dte' );
+                                }
+                        }
 
                         $items[] = array(
                                 'NroLinDet' => $line,

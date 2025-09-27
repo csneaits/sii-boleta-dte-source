@@ -213,6 +213,7 @@ class Woo {
 
                 echo '<script>';
                 echo '(function(){';
+                echo 'function initializeModal(){';
                 echo 'var modal=document.getElementById(' . $modal_id_json . ');';
                 echo 'if(!modal){return;}';
                 echo 'var refundSelect=document.getElementById(' . $select_id_json . ');';
@@ -232,13 +233,15 @@ class Woo {
                 echo 'var codrefInput=form.querySelector("input[name=\\"sii_boleta_refund_codref\\"]");';
                 echo 'if(!codrefInput){codrefInput=document.createElement("input");codrefInput.type="hidden";codrefInput.name="sii_boleta_refund_codref";form.appendChild(codrefInput);}';
                 echo 'var allowSubmit=false;';
-                echo 'function openModal(){modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");if(refundSelect&& !refundSelect.value){refundSelect.focus();}}';
+                echo 'function openModal(){modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");if(refundSelect&&!refundSelect.value){refundSelect.focus();}}';
                 echo 'function closeModal(){modal.classList.remove("is-open");modal.setAttribute("aria-hidden","true");}';
                 echo 'modal.querySelectorAll("[data-sii-boleta-close]").forEach(function(btn){btn.addEventListener("click",function(ev){ev.preventDefault();closeModal();});});';
                 echo 'var confirmButton=modal.querySelector("[data-sii-boleta-confirm]");';
                 echo 'if(confirmButton){confirmButton.addEventListener("click",function(ev){ev.preventDefault();if(!refundSelect||!refundSelect.value){refundSelect.focus();return;}refundInput.value=refundSelect.value;reasonInput.value=reasonField?reasonField.value:"";codrefInput.value=codrefField?codrefField.value:"";allowSubmit=true;closeModal();applyButton.click();});}';
                 echo 'document.addEventListener("keydown",function(ev){if("Escape"===ev.key&&modal.classList.contains("is-open")){closeModal();}});';
                 echo 'applyButton.addEventListener("click",function(ev){if(allowSubmit){allowSubmit=false;return;}if(orderActions&&orderActions.value===' . $action_value . '){ev.preventDefault();openModal();}});';
+                echo '}';
+                echo 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",initializeModal);}else{initializeModal();}';
                 echo '})();';
                 echo '</script>';
         }

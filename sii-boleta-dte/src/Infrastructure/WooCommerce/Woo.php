@@ -456,7 +456,7 @@ class Woo {
                 $base_dir = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] ) && '' !== $uploads['basedir']
                         ? $uploads['basedir']
                         : sys_get_temp_dir();
-                $base_url = isset( $uploads['baseurl'] ) && is_string( $uploads['baseurl'] ) ? $uploads['baseurl'] : '';
+                $base_url = $this->resolve_upload_base_url( is_array( $uploads ) ? $uploads : array() );
 
                 $base_dir = rtrim( (string) $base_dir, '/\\' );
                 $dest_dir = $base_dir . '/sii-boleta-dte/previews';
@@ -493,14 +493,130 @@ class Woo {
 
                 $url = '';
                 if ( '' !== $base_url ) {
-                        $base_url = rtrim( (string) $base_url, '/\\' );
-                        $url      = $base_url . '/sii-boleta-dte/previews/' . basename( $dest );
+                        $url = $base_url . '/sii-boleta-dte/previews/' . basename( $dest );
                 }
 
                 return array(
                         'path' => $dest,
                         'url'  => $url,
                 );
+        }
+
+        /**
+         * Normalises the uploads base URL provided by WordPress.
+         *
+         * @param array<string,mixed> $uploads Upload dir information from wp_upload_dir().
+         */
+        private function resolve_upload_base_url( array $uploads ): string {
+                $base_url = '';
+
+                if ( isset( $uploads['baseurl'] ) && is_string( $uploads['baseurl'] ) ) {
+                        $base_url = $this->sanitize_upload_base_url( (string) $uploads['baseurl'] );
+                }
+
+                if ( '' !== $base_url ) {
+                        return rtrim( $base_url, '/\\' );
+                }
+
+                $fallback = $this->default_uploads_base_url();
+
+                return '' === $fallback ? '' : rtrim( $fallback, '/\\' );
+        }
+
+        private function sanitize_upload_base_url( string $base_url ): string {
+                $base_url = trim( $base_url );
+
+                if ( '' === $base_url ) {
+                        return '';
+                }
+
+                $base_url = $this->ensure_https_scheme( $base_url );
+
+                $parts = parse_url( $base_url );
+                if ( false === $parts || empty( $parts['host'] ) ) {
+                        return $base_url;
+                }
+
+                $path = isset( $parts['path'] ) ? rtrim( (string) $parts['path'], '/' ) : '';
+
+                if ( '' === $path || '/' === $path ) {
+                        return $this->build_url_from_parts( $parts, '/wp-content/uploads' );
+                }
+
+                if ( '/uploads' === $path ) {
+                        return $this->build_url_from_parts( $parts, '/wp-content/uploads' );
+                }
+
+                return $base_url;
+        }
+
+        private function ensure_https_scheme( string $url ): string {
+                if ( '' === $url ) {
+                        return '';
+                }
+
+                if ( function_exists( 'set_url_scheme' ) ) {
+                        return set_url_scheme( $url, 'https' );
+                }
+
+                if ( str_starts_with( $url, '//' ) ) {
+                        return 'https:' . $url;
+                }
+
+                if ( str_starts_with( $url, 'http://' ) ) {
+                        return 'https://' . substr( $url, 7 );
+                }
+
+                return $url;
+        }
+
+        /**
+         * @param array<string,mixed> $parts Output of parse_url().
+         */
+        private function build_url_from_parts( array $parts, string $path ): string {
+                $scheme = isset( $parts['scheme'] ) && is_string( $parts['scheme'] ) ? strtolower( $parts['scheme'] ) : '';
+                if ( '' === $scheme || 'http' === $scheme ) {
+                        $scheme = 'https';
+                }
+
+                $user = isset( $parts['user'] ) ? (string) $parts['user'] : '';
+                $pass = isset( $parts['pass'] ) ? ':' . (string) $parts['pass'] : '';
+                $auth = '' !== $user ? $user . $pass . '@' : '';
+                $port = isset( $parts['port'] ) ? ':' . (string) $parts['port'] : '';
+
+                $normalized_path = '/' . ltrim( $path, '/' );
+
+                return $scheme . '://' . $auth . $parts['host'] . $port . $normalized_path;
+        }
+
+        private function default_uploads_base_url(): string {
+                if ( function_exists( 'content_url' ) ) {
+                        $content = rtrim( (string) content_url(), '/\\' );
+                        if ( '' !== $content ) {
+                                return $this->ensure_https_scheme( $content . '/uploads' );
+                        }
+                }
+
+                if ( defined( 'SII_BOLETA_DTE_URL' ) ) {
+                        $candidate = (string) SII_BOLETA_DTE_URL;
+                        if ( '' !== $candidate ) {
+                                $parts = parse_url( $candidate );
+                                if ( false !== $parts && isset( $parts['host'] ) ) {
+                                        $scheme = isset( $parts['scheme'] ) ? strtolower( (string) $parts['scheme'] ) : '';
+                                        if ( '' === $scheme || 'http' === $scheme ) {
+                                                $scheme = 'https';
+                                        }
+
+                                        $host = (string) $parts['host'];
+                                        $port = isset( $parts['port'] ) ? ':' . (string) $parts['port'] : '';
+                                        $path = rtrim( isset( $parts['path'] ) ? (string) $parts['path'] : '', '/' );
+
+                                        return $scheme . '://' . $host . $port . $path . '/wp-content/uploads';
+                                }
+                        }
+                }
+
+                return '';
         }
 
         private function build_pdf_filename( $order, int $document_type, int $order_id ): string {

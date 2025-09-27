@@ -11,6 +11,7 @@ if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
 if ( ! function_exists( 'update_post_meta' ) ) { function update_post_meta( $id, $key, $value ) { $GLOBALS['meta'][ $id ][ $key ] = $value; } }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $key, $single ) { return $GLOBALS['meta'][ $id ][ $key ] ?? ''; } }
+if ( ! function_exists( 'delete_post_meta' ) ) { function delete_post_meta( $id, $key ) { unset( $GLOBALS['meta'][ $id ][ $key ] ); } }
 if ( ! function_exists( 'wp_upload_dir' ) ) {
     function wp_upload_dir() {
         return array(
@@ -77,6 +78,36 @@ class WooIntegrationTest extends TestCase {
         $GLOBALS['meta']  = array();
         $GLOBALS['notes'] = array();
         $GLOBALS['mail']  = array();
+
+        $storage_dir = rtrim( sys_get_temp_dir(), '/\\' ) . '/sii-boleta-dte/private';
+        if ( is_dir( $storage_dir ) ) {
+            $this->removeDirectory( $storage_dir );
+        }
+    }
+
+    private function removeDirectory( string $dir ): void {
+        if ( ! is_dir( $dir ) ) {
+            return;
+        }
+
+        $items = scandir( $dir );
+        if ( ! is_array( $items ) ) {
+            return;
+        }
+
+        foreach ( $items as $item ) {
+            if ( '.' === $item || '..' === $item ) {
+                continue;
+            }
+            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            if ( is_dir( $path ) ) {
+                $this->removeDirectory( $path );
+            } else {
+                @unlink( $path );
+            }
+        }
+
+        @rmdir( $dir );
     }
 
     public function test_generates_dte_and_saves_track_id(): void {
@@ -105,10 +136,16 @@ class WooIntegrationTest extends TestCase {
         $woo->handle_order_completed( 1 );
 
         $this->assertSame( 'T123', $GLOBALS['meta'][1]['_sii_boleta_track_id'] ?? null );
-        $this->assertArrayHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
-        $this->assertFileExists( $GLOBALS['meta'][1]['_sii_boleta_pdf_path'] );
-        $this->assertNotEmpty( $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
-        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_key', $GLOBALS['meta'][1] );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_nonce', $GLOBALS['meta'][1] );
+        $key = $GLOBALS['meta'][1]['_sii_boleta_pdf_key'];
+        $this->assertNotEmpty( $key );
+        $this->assertNotEmpty( $GLOBALS['meta'][1]['_sii_boleta_pdf_nonce'] );
+        $stored_path = \Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage::resolve_path( $key );
+        $this->assertFileExists( $stored_path );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf', $GLOBALS['meta'][1] );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf_url', $GLOBALS['meta'][1] );
 
         $this->assertNotEmpty( $GLOBALS['mail'] );
         $email = $GLOBALS['mail'][0];
@@ -116,6 +153,7 @@ class WooIntegrationTest extends TestCase {
         $this->assertNotEmpty( $email['attachments'][0] ?? '' );
         $this->assertFileExists( $email['attachments'][0] );
         $this->assertStringContainsString( 'Documento tributario electrónico', $email['subject'] );
+        $this->assertStringContainsString( 'admin-ajax.php', $email['message'] );
     }
 
     public function test_preview_mode_skips_sii_submission(): void {
@@ -148,17 +186,23 @@ class WooIntegrationTest extends TestCase {
         $woo->handle_order_completed( 1 );
 
         $this->assertSame( '', $GLOBALS['meta'][1]['_sii_boleta_track_id'] ?? null );
-        $this->assertArrayHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
-        $this->assertFileExists( $GLOBALS['meta'][1]['_sii_boleta_pdf_path'] );
-        $this->assertNotEmpty( $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
-        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $GLOBALS['meta'][1]['_sii_boleta_pdf'] ?? '' );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_key', $GLOBALS['meta'][1] );
+        $this->assertArrayHasKey( '_sii_boleta_pdf_nonce', $GLOBALS['meta'][1] );
+        $key        = $GLOBALS['meta'][1]['_sii_boleta_pdf_key'];
+        $storedPath = \Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage::resolve_path( $key );
+        $this->assertFileExists( $storedPath );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf', $GLOBALS['meta'][1] );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf_path', $GLOBALS['meta'][1] );
+        $this->assertArrayNotHasKey( '_sii_boleta_pdf_url', $GLOBALS['meta'][1] );
         $this->assertNotEmpty( $GLOBALS['notes'][1] ?? array() );
         $this->assertStringContainsString( 'previsualización', $GLOBALS['notes'][1][0] ?? '' );
+        $this->assertStringContainsString( 'admin-ajax.php', $GLOBALS['notes'][1][0] ?? '' );
         $this->assertNotEmpty( $GLOBALS['mail'] );
         $email = $GLOBALS['mail'][0];
         $this->assertStringContainsString( 'Previsualización', $email['subject'] );
         $this->assertNotEmpty( $email['attachments'][0] ?? '' );
         $this->assertFileExists( $email['attachments'][0] );
+        $this->assertStringContainsString( 'admin-ajax.php', $email['message'] );
     }
 
     public function test_defaults_to_boleta_when_meta_missing(): void {

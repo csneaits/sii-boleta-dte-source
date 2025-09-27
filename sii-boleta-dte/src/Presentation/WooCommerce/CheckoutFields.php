@@ -97,13 +97,12 @@ class CheckoutFields {
 		}
 		$order_id = $order->get_id();
                 if ( function_exists( 'get_post_meta' ) ) {
-                        $type     = get_post_meta( $order_id, '_sii_boleta_doc_type', true );
-                        $track_id = get_post_meta( $order_id, '_sii_boleta_track_id', true );
-                        $pdf      = get_post_meta( $order_id, '_sii_boleta_pdf', true );
-                        $pdf_url  = get_post_meta( $order_id, '_sii_boleta_pdf_url', true );
-                        $pdf_path = get_post_meta( $order_id, '_sii_boleta_pdf_path', true );
+                        $type      = get_post_meta( $order_id, '_sii_boleta_doc_type', true );
+                        $track_id  = get_post_meta( $order_id, '_sii_boleta_track_id', true );
+                        $pdf_key   = get_post_meta( $order_id, '_sii_boleta_pdf_key', true );
+                        $pdf_nonce = get_post_meta( $order_id, '_sii_boleta_pdf_nonce', true );
                 } else {
-                        $type = $track_id = $pdf = $pdf_url = $pdf_path = '';
+                        $type = $track_id = $pdf_key = $pdf_nonce = '';
                 }
 		if ( $type ) {
 			echo '<p><strong>' . esc_html__( 'Document type', 'sii-boleta-dte' ) . ':</strong> ' . esc_html( (string) $type ) . '</p>';
@@ -112,16 +111,20 @@ class CheckoutFields {
 			echo '<p><strong>' . esc_html__( 'Track ID', 'sii-boleta-dte' ) . ':</strong> ' . esc_html( (string) $track_id ) . '</p>';
 		}
                 $pdf_link = '';
-                if ( is_string( $pdf ) && '' !== $pdf ) {
-                        $pdf_link = (string) $pdf;
-                } elseif ( is_string( $pdf_url ) && '' !== $pdf_url ) {
-                        $pdf_link = (string) $pdf_url;
+                if ( is_string( $pdf_key ) && '' !== $pdf_key && is_string( $pdf_nonce ) && '' !== $pdf_nonce ) {
+                        $base = function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : 'admin-ajax.php';
+                        $params = array(
+                                'action'   => 'sii_boleta_dte_view_pdf',
+                                'order_id' => $order_id,
+                                'key'      => strtolower( (string) $pdf_key ),
+                                'nonce'    => strtolower( (string) $pdf_nonce ),
+                                'type'     => '_sii_boleta',
+                        );
+                        $pdf_link = $base . ( str_contains( $base, '?' ) ? '&' : '?' ) . http_build_query( $params );
                 }
 
-                if ( '' !== $pdf_link && preg_match( '#^https?://#i', $pdf_link ) ) {
+                if ( '' !== $pdf_link ) {
                         echo '<p><a href="' . esc_url( $pdf_link ) . '" target="_blank" rel="noopener">' . esc_html__( 'View PDF', 'sii-boleta-dte' ) . '</a></p>';
-                } elseif ( is_string( $pdf_path ) && '' !== $pdf_path ) {
-                        echo '<p><strong>' . esc_html__( 'Ruta local del PDF', 'sii-boleta-dte' ) . ':</strong> ' . esc_html( $pdf_path ) . '</p>';
                 }
 	}
 

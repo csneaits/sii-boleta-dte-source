@@ -46,14 +46,21 @@ class CheckoutFields {
 		} else {
 			echo '<p class="form-row"><label>' . esc_html( $label ) . '</label><input type="text" name="billing_rut" /></p>';
 		}
-		$types = $this->get_enabled_document_types();
-		if ( $types ) {
-			$options = '';
-			foreach ( $types as $code => $name ) {
-				$options .= '<option value="' . esc_attr( (string) $code ) . '">' . esc_html( $name ) . '</option>';
-			}
-			echo '<p class="form-row"><label>' . esc_html__( 'Document type', 'sii-boleta-dte' ) . '</label><select name="sii_boleta_doc_type">' . $options . '</select></p>';
-		}
+                $types        = $this->get_enabled_document_types();
+                $default_type = $this->get_default_document_type( array_keys( $types ) );
+                if ( $types ) {
+                        $options = '';
+                        foreach ( $types as $code => $name ) {
+                                $selected = '';
+                                if ( $default_type > 0 ) {
+                                        $selected = function_exists( 'selected' )
+                                                ? selected( $default_type, $code, false )
+                                                : ( $default_type === (int) $code ? ' selected="selected"' : '' );
+                                }
+                                $options .= '<option value="' . esc_attr( (string) $code ) . '"' . $selected . '>' . esc_html( $name ) . '</option>';
+                        }
+                        echo '<p class="form-row"><label>' . esc_html__( 'Document type', 'sii-boleta-dte' ) . '</label><select name="sii_boleta_doc_type">' . $options . '</select></p>';
+                }
 	}
 
 	/** Save posted fields to order meta. */
@@ -67,12 +74,18 @@ class CheckoutFields {
                                 update_post_meta( $order_id, 'billing_rut', $rut );
                         }
                 }
-		if ( isset( $_POST['sii_boleta_doc_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$type = sanitize_text_field( (string) $_POST['sii_boleta_doc_type'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			if ( function_exists( 'update_post_meta' ) ) {
-				update_post_meta( $order_id, '_sii_boleta_doc_type', $type );
-			}
-		}
+                if ( isset( $_POST['sii_boleta_doc_type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                        $type = sanitize_text_field( (string) $_POST['sii_boleta_doc_type'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                        if ( '' !== $type && function_exists( 'update_post_meta' ) ) {
+                                update_post_meta( $order_id, '_sii_boleta_doc_type', $type );
+                                return;
+                        }
+                }
+
+                $fallback_type = $this->get_default_document_type();
+                if ( $fallback_type > 0 && function_exists( 'update_post_meta' ) ) {
+                        update_post_meta( $order_id, '_sii_boleta_doc_type', (string) $fallback_type );
+                }
 	}
 
 	/**
@@ -119,13 +132,13 @@ class CheckoutFields {
 	 */
         private function get_enabled_document_types(): array {
                 $settings = $this->settings->get_settings();
-                $enabled  = $settings['enabled_types'] ?? array();
+                $enabled  = $this->normalize_enabled_types( $settings['enabled_types'] ?? array() );
                 $labels   = array(
                         33 => __( 'Factura', 'sii-boleta-dte' ),
-			39 => __( 'Boleta', 'sii-boleta-dte' ),
-		);
-		$types    = array();
-		foreach ( $enabled as $code ) {
+                        39 => __( 'Boleta', 'sii-boleta-dte' ),
+                );
+                $types    = array();
+                foreach ( $enabled as $code ) {
 			if ( isset( $labels[ $code ] ) ) {
 				$types[ $code ] = $labels[ $code ];
 			}
@@ -175,6 +188,53 @@ class CheckoutFields {
                 if ( function_exists( 'wc_add_notice' ) ) {
                         wc_add_notice( $message, 'error' );
                 }
+        }
+
+        /**
+         * Normalises the enabled document types array returned by the settings store.
+         *
+         * @param mixed $raw Raw value coming from the settings option.
+         * @return array<int>
+         */
+        private function normalize_enabled_types( $raw ): array {
+                if ( ! is_array( $raw ) ) {
+                        return array();
+                }
+
+                $codes = array();
+                foreach ( $raw as $key => $value ) {
+                        if ( is_int( $key ) ) {
+                                $codes[] = (int) $value;
+                        } else {
+                                $codes[] = (int) $key;
+                        }
+                }
+
+                $codes = array_filter( array_map( 'intval', $codes ) );
+
+                return array_values( array_unique( $codes ) );
+        }
+
+        /**
+         * Resolves the default document type to use when the customer does not select one.
+         *
+         * @param array<int> $candidate_types Optional list of candidate types to prioritise.
+         */
+        private function get_default_document_type( array $candidate_types = array() ): int {
+                if ( empty( $candidate_types ) ) {
+                        $settings = $this->settings->get_settings();
+                        $candidate_types = $this->normalize_enabled_types( $settings['enabled_types'] ?? array() );
+                }
+
+                if ( empty( $candidate_types ) ) {
+                        return 0;
+                }
+
+                if ( in_array( 39, $candidate_types, true ) ) {
+                        return 39;
+                }
+
+                return (int) $candidate_types[0];
         }
 
         private function sanitize_rut_field( string $value ): string {

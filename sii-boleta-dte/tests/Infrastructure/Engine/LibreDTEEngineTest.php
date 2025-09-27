@@ -151,6 +151,45 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertStringContainsString('<CAF', $xml);
     }
 
+    public function test_preview_mode_skips_missing_caf_validation(): void {
+        FoliosDb::install();
+
+        $settings = new Dummy_Settings([
+            'environment'   => 'test',
+            'rut_emisor'    => '76192083-9',
+            'razon_social'  => 'Empresa de Prueba',
+            'giro'          => 'Servicios',
+            'direccion'     => 'Direccion 123',
+            'comuna'        => 'Santiago',
+        ]);
+
+        $engine = new LibreDteEngine($settings);
+
+        $data = [
+            'Folio'    => 25,
+            'FchEmis'  => '2024-01-01',
+            'Receptor' => [
+                'RUTRecep'    => '66666666-6',
+                'RznSocRecep' => 'Cliente Prueba',
+                'GiroRecep'   => 'Comercio',
+            ],
+            'Detalles' => [
+                [
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'Producto',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1000,
+                    'MontoItem' => 1000,
+                ],
+            ],
+        ];
+
+        $xml = $engine->generate_dte_xml($data, 39, true);
+
+        $this->assertIsString($xml);
+        $this->assertNotSame('', $xml);
+    }
+
     public function test_register_document_factory_overrides_factory_for_tipo(): void {
         $settings = new Dummy_Settings([]);
         $engine   = new LibreDteEngine($settings);

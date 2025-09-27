@@ -676,11 +676,25 @@ class Woo {
          * Renders a PDF download link in the customer order details page.
          */
         public function render_customer_pdf_download( $order ): void {
-                if ( ! $order || ! method_exists( $order, 'get_id' ) ) {
+                if ( ! $order ) {
                         return;
                 }
 
-                $order_id = (int) $order->get_id();
+                $order_id = 0;
+
+                if ( method_exists( $order, 'get_id' ) ) {
+                        $order_id = (int) $order->get_id();
+                } elseif ( method_exists( $order, 'get_order_number' ) ) {
+                        $number = (string) $order->get_order_number();
+                        if ( is_numeric( $number ) ) {
+                                $order_id = (int) $number;
+                        }
+                }
+
+                if ( $order_id <= 0 ) {
+                        return;
+                }
+
                 $pdf_url  = $this->get_order_pdf_url( $order_id );
 
                 if ( '' === $pdf_url ) {

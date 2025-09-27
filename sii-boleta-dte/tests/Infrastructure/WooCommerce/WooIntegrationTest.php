@@ -161,6 +161,111 @@ class WooIntegrationTest extends TestCase {
         $this->assertFileExists( $email['attachments'][0] );
     }
 
+    public function test_defaults_to_boleta_when_meta_missing(): void {
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
+        $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
+
+        $engine = $this->createMock( 'Sii\\BoletaDte\\Domain\\DteEngine' );
+        $engine->expects( $this->once() )->method( 'generate_dte_xml' )->with( $this->anything(), 39, false )->willReturn( '<xml/>' );
+
+        $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'T999' );
+        $api->method( 'generate_token' )->willReturn( 'tok' );
+
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
+
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+            ->disableOriginalConstructor()
+            ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
+            ->getMock();
+
+        $plugin->method( 'get_settings' )->willReturn( $settings );
+        $plugin->method( 'get_engine' )->willReturn( $engine );
+        $plugin->method( 'get_api' )->willReturn( $api );
+        $plugin->method( 'get_pdf_generator' )->willReturn( $pdf );
+
+        $woo = new Woo( $plugin );
+        $woo->handle_order_completed( 1 );
+
+        $this->assertSame( '39', $GLOBALS['meta'][1]['_sii_boleta_doc_type'] ?? '' );
+        $this->assertSame( 'T999', $GLOBALS['meta'][1]['_sii_boleta_track_id'] ?? null );
+    }
+
+    public function test_defaults_to_first_enabled_type_when_boleta_disabled(): void {
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 33 ) ) );
+        $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
+
+        $engine = $this->createMock( 'Sii\\BoletaDte\\Domain\\DteEngine' );
+        $engine->expects( $this->once() )->method( 'generate_dte_xml' )->with( $this->anything(), 33, false )->willReturn( '<xml/>' );
+
+        $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'T100' );
+        $api->method( 'generate_token' )->willReturn( 'tok' );
+
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
+
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+            ->disableOriginalConstructor()
+            ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
+            ->getMock();
+
+        $plugin->method( 'get_settings' )->willReturn( $settings );
+        $plugin->method( 'get_engine' )->willReturn( $engine );
+        $plugin->method( 'get_api' )->willReturn( $api );
+        $plugin->method( 'get_pdf_generator' )->willReturn( $pdf );
+
+        $woo = new Woo( $plugin );
+        $woo->handle_order_completed( 2 );
+
+        $this->assertSame( '33', $GLOBALS['meta'][2]['_sii_boleta_doc_type'] ?? '' );
+        $this->assertSame( 'T100', $GLOBALS['meta'][2]['_sii_boleta_track_id'] ?? null );
+    }
+
+    public function test_renders_pdf_link_in_my_account(): void {
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
+        $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
+
+        $engine = $this->createMock( 'Sii\\BoletaDte\\Domain\\DteEngine' );
+        $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+
+        $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
+        $api->method( 'send_dte_to_sii' )->willReturn( 'T555' );
+        $api->method( 'generate_token' )->willReturn( 'tok' );
+
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->method( 'generate' )->willReturn( $pdf_path );
+
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+            ->disableOriginalConstructor()
+            ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
+            ->getMock();
+
+        $plugin->method( 'get_settings' )->willReturn( $settings );
+        $plugin->method( 'get_engine' )->willReturn( $engine );
+        $plugin->method( 'get_api' )->willReturn( $api );
+        $plugin->method( 'get_pdf_generator' )->willReturn( $pdf );
+
+        $woo = new Woo( $plugin );
+
+        $GLOBALS['meta'][3]['_sii_boleta_doc_type'] = '39';
+        $woo->handle_order_completed( 3 );
+
+        ob_start();
+        $woo->render_customer_pdf_download( new DummyOrder( 3 ) );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( 'Descargar PDF del DTE', $output );
+        $this->assertStringContainsString( 'https://example.com/wp-content/uploads/sii-boleta-dte/previews/', $output );
+    }
+
     private function createTemporaryPdf(): string {
         $path = tempnam( sys_get_temp_dir(), 'woo_pdf_' );
         file_put_contents( $path, '%PDF-1.4 Fake content' );

@@ -88,8 +88,9 @@ class WooIntegrationTest extends TestCase {
         $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'T123' );
         $api->method( 'generate_token' )->willReturn( 'tok' );
-        $pdf = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
-        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( __FILE__ );
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
         $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
             ->disableOriginalConstructor()
@@ -128,8 +129,9 @@ class WooIntegrationTest extends TestCase {
         $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
         $api->expects( $this->never() )->method( 'send_dte_to_sii' );
 
-        $pdf = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
-        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( __FILE__ );
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
         $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
             ->disableOriginalConstructor()
@@ -157,5 +159,12 @@ class WooIntegrationTest extends TestCase {
         $this->assertStringContainsString( 'Previsualización', $email['subject'] );
         $this->assertNotEmpty( $email['attachments'][0] ?? '' );
         $this->assertFileExists( $email['attachments'][0] );
+    }
+
+    private function createTemporaryPdf(): string {
+        $path = tempnam( sys_get_temp_dir(), 'woo_pdf_' );
+        file_put_contents( $path, '%PDF-1.4 Fake content' );
+
+        return $path;
     }
 }

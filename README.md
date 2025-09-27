@@ -167,6 +167,12 @@ El módulo `Presentation\WooCommerce\CheckoutFields` añade un campo de RUT y se
 2. Ejecuta `composer test` y `composer phpcs` antes de enviar el pull request.
 3. Describe claramente el objetivo de tu contribución en el mensaje del PR.
 
+## Preguntas frecuentes
+
+### ¿De dónde proviene el número de folio que muestra una boleta?
+
+El folio nunca se inventa ni se genera de manera aleatoria. El plugin lee los rangos autorizados en los archivos CAF cargados en la sección de administración y, para cada tipo de documento, avanza secuencialmente desde el último folio registrado por ambiente (certificación o producción).【F:sii-boleta-dte/src/Application/FolioManager.php†L18-L52】【F:sii-boleta-dte/src/Infrastructure/Settings.php†L45-L110】
+
 ## Licencia
 
 El código se distribuye bajo la licencia GPL v2 o posterior. Consulta los encabezados de cada archivo para más detalles.

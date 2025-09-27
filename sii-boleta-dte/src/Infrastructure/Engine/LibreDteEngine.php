@@ -137,13 +137,13 @@ class LibreDteEngine implements DteEngine {
         }
 
         if ( $preview ) {
-            $this->debug_log( '[preview] settings=' . json_encode( array(
-                'rut_emisor'    => $settings['rut_emisor'] ?? null,
-                'razon_social'  => $settings['razon_social'] ?? null,
-                'giro'          => $settings['giro'] ?? null,
-                'direccion'     => $settings['direccion'] ?? null,
-                'comuna'        => $settings['comuna'] ?? null,
-            ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+            $available_settings = array();
+            foreach ( array( 'rut_emisor', 'razon_social', 'giro', 'direccion', 'comuna' ) as $field ) {
+                if ( isset( $settings[ $field ] ) && '' !== trim( (string) $settings[ $field ] ) ) {
+                    $available_settings[] = $field;
+                }
+            }
+            $this->debug_log( '[preview] settings fields=' . implode( ',', $available_settings ) );
         }
 
         $factory = $this->documentFactoryRegistry->getFactory( $tipo );
@@ -154,8 +154,10 @@ class LibreDteEngine implements DteEngine {
         $rawReceptor  = $payload->getRawReceptor();
 
         if ( $preview ) {
-            $this->debug_log( '[preview] emisor=' . json_encode( $preparation->getEmisor(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
-            $this->debug_log( '[preview] detalle=' . json_encode( $preparation->getDetalle(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+            $emisor_fields = array_keys( array_filter( (array) $preparation->getEmisor() ) );
+            $detalle_count = is_array( $preparation->getDetalle() ) ? count( $preparation->getDetalle() ) : 0;
+            $this->debug_log( '[preview] emisor fields=' . implode( ',', $emisor_fields ) );
+            $this->debug_log( '[preview] detalle count=' . $detalle_count );
         }
 
         $emisorData = $preparation->getEmisor();
@@ -170,7 +172,8 @@ class LibreDteEngine implements DteEngine {
         } catch ( CafResolutionException $exception ) {
             $this->debug_log( '[error] CAF load failed: ' . $exception->getMessage() );
             if ( $exception->hadProvidedCaf() && '' !== trim( $exception->getCafXml() ) ) {
-                $this->debug_log( '[error] CAF xml=' . $exception->getCafXml() );
+                $length = strlen( $exception->getCafXml() );
+                $this->debug_log( '[error] CAF xml retained (bytes=' . $length . ')' );
             }
 
             return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) : false;
@@ -235,23 +238,71 @@ class LibreDteEngine implements DteEngine {
      * Renders a PDF using LibreDTE templates.
      */
     private function debug_log( string $message ): void {
-        if ( ! function_exists( 'wp_upload_dir' ) ) {
-            error_log( $message );
+        if ( defined( 'WP_DEBUG' ) && ! WP_DEBUG ) {
             return;
         }
-        $uploads = wp_upload_dir();
-        $base = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] )
-            ? $uploads['basedir']
-            : ( defined( 'ABSPATH' ) ? ABSPATH : sys_get_temp_dir() );
-        $dir = rtrim( (string) $base, '/\\' ) . '/sii-boleta-logs';
+
+        $sanitized = $this->sanitize_debug_message( $message );
+        if ( '' === $sanitized ) {
+            return;
+        }
+
+        $dir = $this->resolve_secure_log_directory();
+        if ( '' === $dir ) {
+            error_log( $sanitized );
+            return;
+        }
+
         if ( function_exists( 'wp_mkdir_p' ) ) {
             wp_mkdir_p( $dir );
         } elseif ( ! is_dir( $dir ) ) {
             @mkdir( $dir, 0755, true );
         }
+
+        $htaccess = $dir . '/.htaccess';
+        if ( ! file_exists( $htaccess ) ) {
+            @file_put_contents( $htaccess, "Deny from all\n" );
+        }
+
         $file = $dir . '/debug.log';
-        $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $message . PHP_EOL;
+        $line = '[' . gmdate( 'Y-m-d H:i:s' ) . '] ' . $sanitized . PHP_EOL;
         @file_put_contents( $file, $line, FILE_APPEND );
+    }
+
+    private function resolve_secure_log_directory(): string {
+        if ( defined( 'WP_CONTENT_DIR' ) && is_string( WP_CONTENT_DIR ) && '' !== WP_CONTENT_DIR ) {
+            $base = WP_CONTENT_DIR;
+        } elseif ( function_exists( 'wp_upload_dir' ) ) {
+            $uploads = wp_upload_dir();
+            $base    = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] ) ? $uploads['basedir'] : '';
+        } else {
+            $base = sys_get_temp_dir();
+        }
+
+        $base = rtrim( (string) $base, '/\\' );
+        if ( '' === $base ) {
+            return '';
+        }
+
+        return $base . '/sii-boleta-dte/private/logs';
+    }
+
+    private function sanitize_debug_message( string $message ): string {
+        $message = trim( preg_replace( '/[\r\n]+/', ' ', $message ) );
+        if ( '' === $message ) {
+            return '';
+        }
+
+        $limit = 600;
+        if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+            if ( mb_strlen( $message, 'UTF-8' ) > $limit ) {
+                $message = mb_substr( $message, 0, $limit, 'UTF-8' ) . '…';
+            }
+        } elseif ( strlen( $message ) > $limit ) {
+            $message = substr( $message, 0, $limit ) . '…';
+        }
+
+        return $message;
     }
 
     /**

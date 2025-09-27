@@ -37,13 +37,64 @@ if ( ! function_exists( 'wp_mail' ) ) {
 if ( ! function_exists( 'wc_get_order' ) ) {
     class DummyOrder {
         private $id;
+        private $total = 100.0;
+        private $total_tax = 0.0;
+        private $items = array();
+        private $refunds = array();
+        private $status = 'cancelled';
+        private $billing_first_name = 'John';
+        private $billing_last_name = 'Doe';
+        private $billing_phone = '+56900000000';
+        private $billing_email = 'customer@example.com';
+        private $billing_address = 'Demo 123';
+        private $billing_city = 'Santiago';
 
         public function __construct( $id ) {
             $this->id = $id;
         }
 
+        public function get_id() {
+            return $this->id;
+        }
+
+        public function set_total( float $total ): void {
+            $this->total = $total;
+        }
+
         public function get_total() {
-            return 100;
+            return $this->total;
+        }
+
+        public function set_total_tax( float $tax ): void {
+            $this->total_tax = $tax;
+        }
+
+        public function get_total_tax() {
+            return $this->total_tax;
+        }
+
+        public function set_items( array $items ): void {
+            $this->items = $items;
+        }
+
+        public function get_items() {
+            return $this->items;
+        }
+
+        public function set_refunds( array $refunds ): void {
+            $this->refunds = $refunds;
+        }
+
+        public function get_refunds() {
+            return $this->refunds;
+        }
+
+        public function set_status( string $status ): void {
+            $this->status = $status;
+        }
+
+        public function has_status( string $status ): bool {
+            return $this->status === $status;
         }
 
         public function get_order_number() {
@@ -55,14 +106,111 @@ if ( ! function_exists( 'wc_get_order' ) ) {
         }
 
         public function get_billing_email() {
-            return 'customer@example.com';
+            return $this->billing_email;
+        }
+
+        public function get_billing_phone() {
+            return $this->billing_phone;
+        }
+
+        public function get_billing_address_1() {
+            return $this->billing_address;
+        }
+
+        public function get_billing_city() {
+            return $this->billing_city;
+        }
+
+        public function get_formatted_billing_full_name() {
+            return trim( $this->billing_first_name . ' ' . $this->billing_last_name );
+        }
+
+        public function get_billing_first_name() {
+            return $this->billing_first_name;
+        }
+
+        public function get_billing_last_name() {
+            return $this->billing_last_name;
         }
 
         public function add_order_note( $message ) {
             $GLOBALS['notes'][ $this->id ][] = $message;
         }
     }
-    function wc_get_order( $id ) { return new DummyOrder( $id ); }
+
+    class DummyRefundItem {
+        private $name;
+        private $total;
+        private $tax;
+        private $quantity;
+
+        public function __construct( string $name, float $total, float $tax = 0.0, float $quantity = 1.0 ) {
+            $this->name     = $name;
+            $this->total    = $total;
+            $this->tax      = $tax;
+            $this->quantity = $quantity;
+        }
+
+        public function get_name() {
+            return $this->name;
+        }
+
+        public function get_total() {
+            return $this->total;
+        }
+
+        public function get_total_tax() {
+            return $this->tax;
+        }
+
+        public function get_quantity() {
+            return $this->quantity;
+        }
+    }
+
+    class DummyRefund {
+        private $id;
+        private $items;
+        private $amount;
+        private $tax;
+        private $reason;
+
+        public function __construct( int $id, array $items, float $amount, float $tax = 0.0, string $reason = '' ) {
+            $this->id     = $id;
+            $this->items  = $items;
+            $this->amount = $amount;
+            $this->tax    = $tax;
+            $this->reason = $reason;
+        }
+
+        public function get_id() {
+            return $this->id;
+        }
+
+        public function get_items() {
+            return $this->items;
+        }
+
+        public function get_amount() {
+            return $this->amount;
+        }
+
+        public function get_total() {
+            return -1 * $this->amount;
+        }
+
+        public function get_total_tax() {
+            return -1 * $this->tax;
+        }
+
+        public function get_reason() {
+            return $this->reason;
+        }
+    }
+
+    function wc_get_order( $id ) {
+        return $GLOBALS['wc_orders'][ $id ] ?? new DummyOrder( $id );
+    }
 }
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $v ) { return $v instanceof WP_Error; } }
@@ -82,6 +230,8 @@ class WooIntegrationTest extends TestCase {
         $GLOBALS['meta']  = array();
         $GLOBALS['notes'] = array();
         $GLOBALS['mail']  = array();
+        $GLOBALS['wc_orders'] = array();
+        $_POST = array();
 
         $storage_dir = rtrim( sys_get_temp_dir(), '/\\' ) . '/sii-boleta-dte/private';
         if ( is_dir( $storage_dir ) ) {
@@ -312,6 +462,81 @@ class WooIntegrationTest extends TestCase {
 
         $this->assertStringContainsString( 'Descargar PDF del DTE', $output );
         $this->assertStringContainsString( 'admin-ajax.php?action=sii_boleta_dte_view_pdf', $output );
+    }
+
+    public function test_manual_credit_note_uses_partial_refund_data(): void {
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
+        $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
+
+        $captured = null;
+        $engine   = $this->createMock( 'Sii\\BoletaDte\\Domain\\DteEngine' );
+        $engine->expects( $this->once() )->method( 'generate_dte_xml' )->willReturnCallback(
+            function ( $data, $document_type, $preview ) use ( &$captured ) {
+                $captured = $data;
+                return '<xml/>';
+            }
+        );
+
+        $api = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Rest\\Api' );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'TCREDIT' );
+        $api->method( 'generate_token' )->willReturn( 'tok' );
+
+        $pdf_path = $this->createTemporaryPdf();
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
+
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+            ->disableOriginalConstructor()
+            ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
+            ->getMock();
+
+        $plugin->method( 'get_settings' )->willReturn( $settings );
+        $plugin->method( 'get_engine' )->willReturn( $engine );
+        $plugin->method( 'get_api' )->willReturn( $api );
+        $plugin->method( 'get_pdf_generator' )->willReturn( $pdf );
+
+        $woo = new Woo( $plugin );
+
+        $order_id = 55;
+        $order    = new DummyOrder( $order_id );
+        $order->set_status( 'cancelled' );
+        $order->set_total( 100.0 );
+        $order->set_total_tax( 19.0 );
+        $order->set_items( array( new DummyRefundItem( 'Producto inicial', 81.0, 19.0, 1.0 ) ) );
+
+        $refund_item = new DummyRefundItem( 'Producto inicial', 25.0, 5.0, 1.0 );
+        $refund      = new DummyRefund( 77, array( $refund_item ), 30.0, 5.0, 'Cambio parcial' );
+        $order->set_refunds( array( $refund ) );
+
+        $GLOBALS['wc_orders'][ $order_id ]                   = $order;
+        $GLOBALS['meta'][ $order_id ]['_sii_boleta_doc_type'] = '39';
+
+        $_POST['sii_boleta_refund_id']     = '77';
+        $_POST['sii_boleta_refund_reason'] = 'Producto defectuoso';
+        $_POST['sii_boleta_refund_codref'] = '6';
+
+        $woo->handle_manual_credit_note( $order );
+
+        $this->assertIsArray( $captured );
+        $this->assertSame( 61, $captured['Encabezado']['IdDoc']['TipoDTE'] ?? 0 );
+        $this->assertCount( 1, $captured['Detalles'] ?? array() );
+        $detail = $captured['Detalles'][0];
+        $this->assertSame( 'Producto inicial', $detail['NmbItem'] );
+        $this->assertSame( 25.0, $detail['MontoItem'] );
+        $this->assertSame( 1.0, $detail['QtyItem'] );
+
+        $totals = $captured['Encabezado']['Totales'] ?? array();
+        $this->assertSame( 25.0, $totals['MntNeto'] ?? 0.0 );
+        $this->assertSame( 5.0, $totals['IVA'] ?? 0.0 );
+        $this->assertSame( 30.0, $totals['MntTotal'] ?? 0.0 );
+
+        $reference = $captured['Referencia'][0] ?? array();
+        $this->assertSame( 6, $reference['CodRef'] ?? 0 );
+        $this->assertSame( 'Producto defectuoso', $reference['RazonRef'] ?? '' );
+
+        $this->assertSame( 'Producto defectuoso', $GLOBALS['meta'][ $order_id ]['_sii_boleta_credit_note_reason'] ?? '' );
+        $this->assertSame( '77', $GLOBALS['meta'][ $order_id ]['_sii_boleta_credit_note_refund_id'] ?? '' );
     }
 
     private function createTemporaryPdf(): string {

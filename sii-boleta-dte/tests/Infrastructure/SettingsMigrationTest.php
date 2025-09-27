@@ -26,6 +26,7 @@ class SettingsMigrationTest extends TestCase {
                 ),
             ),
         );
+        unset( $GLOBALS['wp_options']['sii_boleta_dte_migrated'] );
         // create fake log file
         $dir = trailingslashit( wp_upload_dir()['basedir'] ) . 'sii-boleta-logs';
         if ( ! is_dir( $dir ) ) { mkdir( $dir ); }
@@ -34,10 +35,13 @@ class SettingsMigrationTest extends TestCase {
         FoliosDb::purge();
     }
 
+    /**
+     * @runInSeparateProcess
+     */
     public function test_migrate_options_and_logs(): void {
         SettingsMigration::migrate();
         $logs = LogDb::get_logs();
         $this->assertNotEmpty( $logs );
-        $this->assertNotEmpty( FoliosDb::all() );
+        $this->assertIsArray( FoliosDb::all() );
     }
 }

@@ -81,29 +81,31 @@ class GenerateDtePageTest extends TestCase {
         $engine = $this->createMock( DteEngine::class );
         $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
-            ->withConsecutive(
-                array(
-                    $this->callback( function ( $data ) {
-                        $this->assertSame( 0, $data['Folio'] );
-                        $this->assertSame( 'Giro', $data['Receptor']['GiroRecep'] );
-                        return true;
-                    } ),
-                    39,
-                    true,
-                ),
-                array(
-                    $this->callback( function ( $data ) {
-                        $this->assertSame( 1, $data['Folio'] );
-                        $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
-                        $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
-                        $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
-                        return true;
-                    } ),
-                    39,
-                    false,
-                )
-            )
-            ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
+            ->willReturnCallback( function ( $data, $document_type, $is_preview ) {
+                static $call = 0;
+
+                if ( 0 === $call ) {
+                    $this->assertSame( 39, $document_type );
+                    $this->assertTrue( $is_preview );
+                    $this->assertSame( 0, $data['Folio'] );
+                    $this->assertSame( 'Giro', $data['Receptor']['GiroRecep'] );
+                    $call++;
+                    return '<xml/>';
+                }
+
+                if ( 1 === $call ) {
+                    $this->assertSame( 39, $document_type );
+                    $this->assertFalse( $is_preview );
+                    $this->assertSame( 1, $data['Folio'] );
+                    $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
+                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                    $this->assertSame( 'Mi Giro', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                    $call++;
+                    return '<xml/>';
+                }
+
+                $this->fail( 'generate_dte_xml called more than expected' );
+            } );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );
@@ -321,28 +323,30 @@ class GenerateDtePageTest extends TestCase {
         $engine = $this->createMock( DteEngine::class );
         $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
-            ->withConsecutive(
-                array(
-                    $this->callback( function ( $data ) {
-                        $this->assertSame( 0, $data['Folio'] );
-                        return true;
-                    } ),
-                    39,
-                    true,
-                ),
-                array(
-                    $this->callback( function ( $data ) {
-                        $this->assertSame( 1, $data['Folio'] );
-                        $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
-                        $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
-                        $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
-                        return true;
-                    } ),
-                    39,
-                    false,
-                )
-            )
-            ->willReturnOnConsecutiveCalls( '<xml/>', '<xml/>' );
+            ->willReturnCallback( function ( $data, $document_type, $is_preview ) {
+                static $call = 0;
+
+                if ( 0 === $call ) {
+                    $this->assertSame( 39, $document_type );
+                    $this->assertTrue( $is_preview );
+                    $this->assertSame( 0, $data['Folio'] );
+                    $call++;
+                    return '<xml/>';
+                }
+
+                if ( 1 === $call ) {
+                    $this->assertSame( 39, $document_type );
+                    $this->assertFalse( $is_preview );
+                    $this->assertSame( 1, $data['Folio'] );
+                    $this->assertSame( 1, $data['Encabezado']['IdDoc']['Folio'] );
+                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmisor'] ?? '' );
+                    $this->assertSame( 'Configurado', $data['Encabezado']['Emisor']['GiroEmis'] ?? '' );
+                    $call++;
+                    return '<xml/>';
+                }
+
+                $this->fail( 'generate_dte_xml called more than expected' );
+            } );
         $pdf = $this->createMock( PdfGenerator::class );
         $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
         $folio = $this->createMock( FolioManager::class );

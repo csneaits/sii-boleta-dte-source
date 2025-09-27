@@ -9,6 +9,7 @@ use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 
 /**
  * Admin page that allows manually generating a DTE without WooCommerce orders.
@@ -1184,18 +1185,20 @@ class GenerateDtePage {
 								$message = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
 								$message = $this->normalize_api_error_message( $message );
 					if ( $this->should_queue_for_error( $code ) ) {
-										$context     = array(
-											'label'        => $pdf_label,
-											'type'         => $tipo,
-											'folio'        => $folio,
-											'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
-											'rut_receptor' => $rut,
-										);
-										$queued_file = $this->store_xml_for_queue( $file, $context );
-										if ( is_string( $queued_file ) && '' !== $queued_file ) {
-														$file = $queued_file;
-										}
-										$this->queue->enqueue_dte( $file, $env, $token );
+                                        $context        = array(
+                                                'label'        => $pdf_label,
+                                                'type'         => $tipo,
+                                                'folio'        => $folio,
+                                                'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+                                                'rut_receptor' => $rut,
+                                        );
+                                        $queued_storage = $this->store_xml_for_queue( $file, $context );
+                                        $storage_path   = (string) ( $queued_storage['path'] ?? '' );
+                                        $storage_key    = (string) ( $queued_storage['key'] ?? '' );
+                                        if ( '' !== $storage_path ) {
+                                                $file = $storage_path;
+                                        }
+                                        $this->queue->enqueue_dte( $file, $env, $token, $storage_key );
 										return array(
 											'queued'      => true,
 											'pdf'         => $pdf,
@@ -1391,44 +1394,33 @@ class GenerateDtePage {
 			self::clear_preview_entry( $key );
 	}
 
-				/**
-				 * Stores the XML representation for queued retries in a persistent directory.
-				 *
-				 * @param array<string,mixed> $context Metadata used to build the filename.
-				 */
-	private function store_xml_for_queue( string $path, array $context = array() ): string {
-		if ( '' === $path || ! file_exists( $path ) ) {
-						return '';
-		}
+                                /**
+                                 * Stores the XML representation for queued retries in a persistent directory.
+                                 *
+                                 * @param array<string,mixed> $context Metadata reserved for future use.
+                                 *
+                                 * @return array{path:string,key:string}
+                                 */
+        private function store_xml_for_queue( string $path, array $context = array() ): array {
+                if ( '' === $path || ! file_exists( $path ) ) {
+                        return array(
+                                'path' => '',
+                                'key'  => '',
+                        );
+                }
 
-					$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array(
-						'basedir' => sys_get_temp_dir(),
-					);
-					$base    = rtrim( (string) ( $uploads['basedir'] ?? sys_get_temp_dir() ), '/\\' );
-					$dir     = $base . '/sii-boleta-dte/queue';
-					if ( function_exists( 'wp_mkdir_p' ) ) {
-									wp_mkdir_p( $dir );
-					} elseif ( ! is_dir( $dir ) ) {
-									@mkdir( $dir, 0755, true );
-					}
-					$filename  = $this->build_pdf_filename( $context, 'xml' );
-					$name_only = pathinfo( $filename, PATHINFO_FILENAME );
-					if ( '' === $name_only ) {
-									$name_only = 'dte';
-					}
-					$dest    = $dir . '/' . $filename;
-					$counter = 2;
-					while ( file_exists( $dest ) ) {
-									$dest = $dir . '/' . $name_only . '-' . $counter . '.xml';
-									++$counter;
-					}
-					if ( ! @copy( $path, $dest ) ) {
-									return '';
-					}
-					@chmod( $dest, 0644 );
+                unset( $context );
 
-					return $dest;
-	}
+                $stored = XmlStorage::store( $path );
+                if ( '' !== $stored['path'] ) {
+                        return $stored;
+                }
+
+                return array(
+                        'path' => $path,
+                        'key'  => '',
+                );
+        }
 
 				/**
 				 * Builds a descriptive filename for a generated PDF.

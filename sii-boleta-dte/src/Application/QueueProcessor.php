@@ -5,6 +5,7 @@ namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 
 /**
@@ -33,13 +34,25 @@ class QueueProcessor {
 			);
 		}
 		foreach ( $jobs as $job ) {
-			$result = null;
+                        $result = null;
                         if ( 'dte' === $job['type'] ) {
-                                $result = $this->api->send_dte_to_sii(
-                                        $job['payload']['file'],
-                                        $job['payload']['environment'],
-                                        $job['payload']['token']
-                                );
+                                $file_path = isset( $job['payload']['file'] ) ? (string) $job['payload']['file'] : '';
+                                if ( isset( $job['payload']['file_key'] ) ) {
+                                        $resolved = XmlStorage::resolve_path( (string) $job['payload']['file_key'] );
+                                        if ( '' !== $resolved ) {
+                                                $file_path = $resolved;
+                                        }
+                                }
+
+                                if ( '' === $file_path || ! file_exists( $file_path ) ) {
+                                        $result = class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_xml', 'Queued XML file is missing.' ) : null;
+                                } else {
+                                        $result = $this->api->send_dte_to_sii(
+                                                $file_path,
+                                                $job['payload']['environment'],
+                                                $job['payload']['token']
+                                        );
+                                }
                         } elseif ( in_array( $job['type'], array( 'libro', 'rvd' ), true ) ) {
                                 $result = $this->api->send_libro_to_sii(
                                         $job['payload']['xml'],

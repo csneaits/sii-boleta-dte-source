@@ -106,8 +106,10 @@ class GenerateDtePageTest extends TestCase {
 
                 $this->fail( 'generate_dte_xml called more than expected' );
             } );
+        $tmpPdf = tempnam( sys_get_temp_dir(), 'pdf' );
+        file_put_contents( $tmpPdf, '%PDF fake' );
         $pdf = $this->createMock( PdfGenerator::class );
-        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
         $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
@@ -369,6 +371,31 @@ class GenerateDtePageTest extends TestCase {
             'tipo' => '39',
         ) );
         $this->assertSame( '123', $result['track_id'] );
+
+        $this->assertArrayHasKey( 'pdf_url', $result );
+        $this->assertNotSame( '', $result['pdf_url'] );
+        $query = array();
+        parse_str( (string) parse_url( (string) $result['pdf_url'], PHP_URL_QUERY ), $query );
+        $this->assertSame( '1', $query['manual'] ?? null );
+        $this->assertArrayHasKey( 'token', $query );
+        $this->assertMatchesRegularExpression( '/^[a-f0-9]{16,}$/', (string) ( $query['key'] ?? '' ) );
+        $this->assertMatchesRegularExpression( '/^[a-f0-9]{16,}$/', (string) ( $query['token'] ?? '' ) );
+
+        $entry = GenerateDtePage::resolve_manual_pdf( (string) $query['key'] );
+        $this->assertNotNull( $entry );
+        if ( null !== $entry ) {
+            $stored_path = (string) $entry['path'];
+            GenerateDtePage::clear_manual_pdf( (string) $query['key'] );
+            if ( file_exists( $stored_path ) ) {
+                unlink( $stored_path );
+            }
+        } else {
+            GenerateDtePage::clear_manual_pdf( (string) $query['key'] );
+        }
+
+        if ( file_exists( $tmpPdf ) ) {
+            unlink( $tmpPdf );
+        }
     }
 
     public function test_process_post_queues_when_sii_unavailable(): void {
@@ -386,8 +413,10 @@ class GenerateDtePageTest extends TestCase {
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( new WP_Error( 'sii_boleta_http_error', 'HTTP 500' ) );
         $engine = $this->createMock( DteEngine::class );
         $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+        $tmpPdf = tempnam( sys_get_temp_dir(), 'pdf' );
+        file_put_contents( $tmpPdf, '%PDF fake' );
         $pdf = $this->createMock( PdfGenerator::class );
-        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 10 );
         $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 10 )->willReturn( true );
@@ -431,6 +460,24 @@ class GenerateDtePageTest extends TestCase {
         $this->assertTrue( $result['queued'] );
         $this->assertSame( 'warning', $result['notice_type'] );
         $this->assertSame( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', $result['message'] );
-        $this->assertSame( '/tmp/test.pdf', $result['pdf'] );
+        $this->assertSame( $tmpPdf, $result['pdf'] );
+        $this->assertArrayHasKey( 'pdf_url', $result );
+        $this->assertNotSame( '', $result['pdf_url'] );
+        $query = array();
+        parse_str( (string) parse_url( (string) $result['pdf_url'], PHP_URL_QUERY ), $query );
+        $this->assertSame( '1', $query['manual'] ?? null );
+        $entry = GenerateDtePage::resolve_manual_pdf( (string) ( $query['key'] ?? '' ) );
+        $this->assertNotNull( $entry );
+        if ( null !== $entry ) {
+            $path = (string) $entry['path'];
+            GenerateDtePage::clear_manual_pdf( (string) ( $query['key'] ?? '' ) );
+            if ( file_exists( $path ) ) {
+                unlink( $path );
+            }
+        }
+
+        if ( file_exists( $tmpPdf ) ) {
+            unlink( $tmpPdf );
+        }
     }
 }

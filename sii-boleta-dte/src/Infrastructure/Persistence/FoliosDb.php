@@ -549,7 +549,9 @@ class FoliosDb {
     /** Indicates whether a document type has at least one range configured. */
     public static function has_type( int $tipo, string $environment = '0' ): bool {
         foreach ( self::for_type( $tipo, $environment ) as $row ) {
-            if ( $row['hasta'] > $row['desde'] ) {
+            $desde = isset( $row['desde'] ) ? (int) $row['desde'] : 0;
+            $hasta = isset( $row['hasta'] ) ? (int) $row['hasta'] : 0;
+            if ( $hasta >= $desde ) {
                 return true;
             }
         }

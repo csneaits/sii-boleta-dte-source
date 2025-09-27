@@ -1,7 +1,7 @@
 <?php
 
-use PHPUnit\\Framework\\TestCase;
-use Sii\\BoletaDte\\Infrastructure\\Persistence\\FoliosDb;
+use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 class FoliosDbHasTypeTest extends TestCase {
     protected function setUp(): void {

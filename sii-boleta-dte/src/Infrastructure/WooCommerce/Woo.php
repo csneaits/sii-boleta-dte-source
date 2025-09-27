@@ -29,6 +29,7 @@ class Woo {
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_dte', array( $this, 'handle_manual_dte' ) );
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_credit_note', array( $this, 'handle_manual_credit_note' ) );
                                 add_action( 'woocommerce_order_action_sii_boleta_generate_debit_note', array( $this, 'handle_manual_debit_note' ) );
+                                add_action( 'woocommerce_order_details_after_order_table', array( $this, 'render_customer_pdf_download' ), 15, 1 );
         }
 
                 /**
@@ -126,13 +127,38 @@ class Woo {
         }
 
         private function get_order_document_type( int $order_id ): int {
-                if ( ! function_exists( 'get_post_meta' ) ) {
-                        return 0;
+                $type = 0;
+
+                if ( function_exists( 'get_post_meta' ) ) {
+                        $type = (int) get_post_meta( $order_id, '_sii_boleta_doc_type', true );
+                        if ( $type > 0 ) {
+                                return $type;
+                        }
                 }
 
-                $type = get_post_meta( $order_id, '_sii_boleta_doc_type', true );
+                $settings = $this->plugin->get_settings();
+                if ( is_object( $settings ) && method_exists( $settings, 'get_settings' ) ) {
+                        $config  = $settings->get_settings();
+                        $enabled = $this->normalize_enabled_types( $config['enabled_types'] ?? array() );
 
-                return (int) $type;
+                        if ( empty( $enabled ) ) {
+                                return 0;
+                        }
+
+                        if ( in_array( 39, $enabled, true ) ) {
+                                $this->update_order_meta( $order_id, '_sii_boleta_doc_type', '39' );
+                                return 39;
+                        }
+
+                        $resolved = (int) $enabled[0];
+                        if ( $resolved > 0 ) {
+                                $this->update_order_meta( $order_id, '_sii_boleta_doc_type', (string) $resolved );
+                        }
+
+                        return $resolved;
+                }
+
+                return 0;
         }
 
         /**
@@ -644,6 +670,82 @@ class Woo {
                 if ( $order && method_exists( $order, 'add_order_note' ) ) {
                         $order->add_order_note( $message );
                 }
+        }
+
+        /**
+         * Renders a PDF download link in the customer order details page.
+         */
+        public function render_customer_pdf_download( $order ): void {
+                if ( ! $order || ! method_exists( $order, 'get_id' ) ) {
+                        return;
+                }
+
+                $order_id = (int) $order->get_id();
+                $pdf_url  = $this->get_order_pdf_url( $order_id );
+
+                if ( '' === $pdf_url ) {
+                        return;
+                }
+
+                $link          = function_exists( 'esc_url' ) ? esc_url( $pdf_url ) : $pdf_url;
+                $section_title = function_exists( 'esc_html__' ) ? esc_html__( 'Documento tributario electrónico', 'sii-boleta-dte' ) : __( 'Documento tributario electrónico', 'sii-boleta-dte' );
+                $button_label  = function_exists( 'esc_html__' ) ? esc_html__( 'Descargar PDF del DTE', 'sii-boleta-dte' ) : __( 'Descargar PDF del DTE', 'sii-boleta-dte' );
+
+                echo '<section class="woocommerce-order-details sii-boleta-dte-documents">';
+                echo '<h2>' . $section_title . '</h2>';
+                echo '<p><a class="button" href="' . $link . '" target="_blank" rel="noopener noreferrer">' . $button_label . '</a></p>';
+                echo '</section>';
+        }
+
+        /**
+         * Retrieves a public URL for the generated PDF if available.
+         */
+        private function get_order_pdf_url( int $order_id ): string {
+                if ( ! function_exists( 'get_post_meta' ) ) {
+                        return '';
+                }
+
+                $candidates = array(
+                        (string) get_post_meta( $order_id, '_sii_boleta_pdf_url', true ),
+                        (string) get_post_meta( $order_id, '_sii_boleta_pdf', true ),
+                );
+
+                foreach ( $candidates as $value ) {
+                        $value = trim( (string) $value );
+                        if ( '' === $value ) {
+                                continue;
+                        }
+                        if ( preg_match( '#^https?://#i', $value ) ) {
+                                return $value;
+                        }
+                }
+
+                return '';
+        }
+
+        /**
+         * Normalises enabled type lists from settings or meta values.
+         *
+         * @param mixed $raw Raw enabled types value.
+         * @return array<int>
+         */
+        private function normalize_enabled_types( $raw ): array {
+                if ( ! is_array( $raw ) ) {
+                        return array();
+                }
+
+                $codes = array();
+                foreach ( $raw as $key => $value ) {
+                        if ( is_int( $key ) ) {
+                                $codes[] = (int) $value;
+                        } else {
+                                $codes[] = (int) $key;
+                        }
+                }
+
+                $codes = array_filter( array_map( 'intval', $codes ) );
+
+                return array_values( array_unique( $codes ) );
         }
 
         private function should_preview_only(): bool {

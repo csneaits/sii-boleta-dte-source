@@ -9,7 +9,7 @@ Plugin modular para WordPress y WooCommerce que emite boletas, facturas y otros 
 - **Almacenamiento seguro de XML y PDF**: mueve automáticamente los archivos generados a directorios protegidos (`wp-content/uploads/sii-boleta-dte-secure/` para XML y `wp-content/sii-boleta-dte/private/` para PDF), crea reglas `.htaccess`, firma URLs temporales y permite migrar archivos heredados.
 - **Cola persistente de trabajos**: conserva envíos pendientes en la tabla `sii_boleta_dte_queue`, ejecuta reintentos controlados y ofrece procesamiento manual, automático (cron) y migración hacia el almacenamiento seguro.
 - **Integración con WooCommerce**: añade campos en el checkout, genera DTE al completar el pedido, adjunta el PDF en el correo y publica enlaces de descarga firmados para clientes y operadores.
-- **Panel administrativo completo**: incluye páginas para ajustes, panel de control, generación manual, carga de CAF, monitoreo de la cola, diagnósticos y visor de logs.
+- **Panel administrativo completo**: incluye páginas para ajustes, panel de control, generación manual, carga de CAF, monitoreo de la cola, diagnósticos, visor de logs y una guía de certificación con checklist interactiva.
 - **Extensibilidad**: filtros y factories permiten reemplazar el motor de generación, personalizar pipelines de preparación y registrar nuevos tipos de documento.
 
 ## Arquitectura y módulos

@@ -11,6 +11,7 @@ use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
+use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
 
 /**
  * Admin page that allows manually generating a DTE without WooCommerce orders.
@@ -1222,17 +1223,21 @@ class GenerateDtePage {
 								);
 				}
 
-				if ( ! is_string( $track ) || '' === trim( (string) $track ) ) {
-								return array(
-									'error' => __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' ),
-								);
-				}
+                                if ( ! is_string( $track ) || '' === trim( (string) $track ) ) {
+                                                                return array(
+                                                                        'error' => __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' ),
+                                                                );
+                                }
 
-								return array(
-									'track_id'    => trim( (string) $track ),
-									'pdf'         => $pdf,      // keep raw path for tests
-									'pdf_url'     => $pdf_url,  // public URL for link
-									'notice_type' => 'success',
+                                if ( $this->is_certification_environment( $env ) ) {
+                                        ProgressTracker::mark( ProgressTracker::OPTION_TEST_SEND );
+                                }
+
+                                                                return array(
+                                                                        'track_id'    => trim( (string) $track ),
+                                                                        'pdf'         => $pdf,      // keep raw path for tests
+                                                                        'pdf_url'     => $pdf_url,  // public URL for link
+                                                                        'notice_type' => 'success',
 								);
 	}
 
@@ -1599,27 +1604,35 @@ class GenerateDtePage {
 				/**
 				 * Attempts to extract a human readable message from the API error payload.
 				 */
-	private function normalize_api_error_message( string $message ): string {
-			$trimmed = trim( $message );
-		if ( '' === $trimmed ) {
-						return '';
-		}
+        private function normalize_api_error_message( string $message ): string {
+                        $trimmed = trim( $message );
+                if ( '' === $trimmed ) {
+                                                return '';
+                }
 
-					$decoded = json_decode( $trimmed, true );
-		if ( is_array( $decoded ) ) {
-						$keys = array( 'mensaje', 'message', 'error', 'detail', 'descripcion' );
-			foreach ( $keys as $key ) {
-				if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
-								$value = (string) $decoded[ $key ];
-					if ( '' !== trim( $value ) ) {
-						return trim( $value );
-					}
-				}
-			}
-		}
+                                        $decoded = json_decode( $trimmed, true );
+                if ( is_array( $decoded ) ) {
+                                                $keys = array( 'mensaje', 'message', 'error', 'detail', 'descripcion' );
+                        foreach ( $keys as $key ) {
+                                if ( isset( $decoded[ $key ] ) && is_scalar( $decoded[ $key ] ) ) {
+                                                                $value = (string) $decoded[ $key ];
+                                        if ( '' !== trim( $value ) ) {
+                                                return trim( $value );
+                                        }
+                                }
+                        }
+                }
 
-					return $trimmed;
-	}
+                                        return $trimmed;
+        }
+
+                                /**
+                                 * Determina si el ambiente corresponde a certificación.
+                                 */
+        private function is_certification_environment( string $environment ): bool {
+                        $env = strtolower( trim( $environment ) );
+                return in_array( $env, array( '0', 'test', 'certificacion', 'certification' ), true );
+        }
 
     /**
      * Escribe mensajes de depuración en un directorio privado.

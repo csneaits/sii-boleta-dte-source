@@ -152,6 +152,7 @@ class CafPage {
         return array(
             33 => __( 'Factura', 'sii-boleta-dte' ),
             34 => __( 'Factura Exenta', 'sii-boleta-dte' ),
+            46 => __( 'Factura de Compra', 'sii-boleta-dte' ),
             39 => __( 'Boleta', 'sii-boleta-dte' ),
             41 => __( 'Boleta Exenta', 'sii-boleta-dte' ),
             52 => __( 'Guía de Despacho', 'sii-boleta-dte' ),

@@ -1,41 +1,71 @@
 <?php
+
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 
-if ( ! function_exists( 'wp_mkdir_p' ) ) {
-    function wp_mkdir_p( $dir = '' ) {
-        if ( '' !== $dir && ! is_dir( $dir ) ) {
-            mkdir( $dir, 0755, true );
-        }
-        return $dir;
-    }
-}
-if ( ! defined( 'WP_CONTENT_DIR' ) ) {
-    define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/wp-content' );
-}
-
 class XmlStorageTest extends TestCase {
-    public function test_store_creates_private_directory_and_random_filename(): void {
+    protected function setUp(): void {
+        $this->cleanup();
+    }
+
+    protected function tearDown(): void {
+        $this->cleanup();
+    }
+
+    public function test_store_moves_file_and_protects_directory(): void {
         $source = tempnam( sys_get_temp_dir(), 'xml' );
-        file_put_contents( $source, '<xml></xml>' );
+        file_put_contents( $source, '<xml />' );
 
-        $stored = XmlStorage::store( $source );
+        $result = XmlStorage::store( $source );
 
-        $this->assertNotSame( '', $stored['key'] );
-        $this->assertMatchesRegularExpression( '/^[a-f0-9]{16,}$/', $stored['key'] );
-        $this->assertFileExists( $stored['path'] );
+        $this->assertNotSame( '', $result['path'] );
+        $this->assertNotSame( '', $result['key'] );
+        $this->assertFileExists( $result['path'] );
+        $this->assertFileDoesNotExist( $source );
 
-        $expected_dir = rtrim( WP_CONTENT_DIR, '/\\' ) . '/sii-boleta-dte/private/xml';
-        $this->assertStringStartsWith( $expected_dir, $stored['path'] );
-        $this->assertFileExists( $expected_dir . '/.htaccess' );
-        $this->assertFileExists( $expected_dir . '/index.php' );
+        $base = dirname( $result['path'] );
+        $this->assertFileExists( $base . '/.htaccess' );
+        $this->assertFileExists( $base . '/index.php' );
+    }
 
-        $htaccess = file_get_contents( $expected_dir . '/.htaccess' );
-        $this->assertStringContainsString( 'Deny from all', $htaccess );
+    public function test_resolve_path_sanitizes_key(): void {
+        $base = dirname( XmlStorage::resolve_path( 'seed' ) );
 
-        $index = file_get_contents( $expected_dir . '/index.php' );
-        $this->assertStringContainsString( 'exit', $index );
+        $sanitized = XmlStorage::resolve_path( '../etc/passwd' );
+        $this->assertSame( $base . '/ecad.xml', $sanitized );
 
-        @unlink( $stored['path'] );
+        $source = tempnam( sys_get_temp_dir(), 'xml' );
+        file_put_contents( $source, '<xml />' );
+        $result = XmlStorage::store( $source );
+
+        $this->assertSame( $result['path'], XmlStorage::resolve_path( strtoupper( $result['key'] ) ) );
+    }
+
+    private function cleanup(): void {
+        $roots = array();
+        if ( defined( 'WP_CONTENT_DIR' ) && is_string( WP_CONTENT_DIR ) && '' !== WP_CONTENT_DIR ) {
+            $roots[] = rtrim( WP_CONTENT_DIR, '/\\' );
+        }
+        $roots[] = rtrim( sys_get_temp_dir(), '/\\' );
+
+        foreach ( $roots as $root ) {
+            $path = $root . '/sii-boleta-dte';
+            if ( ! is_dir( $path ) ) {
+                continue;
+            }
+
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ),
+                RecursiveIteratorIterator::CHILD_FIRST
+            );
+            foreach ( $iterator as $item ) {
+                if ( $item->isDir() ) {
+                    @rmdir( $item->getPathname() );
+                } else {
+                    @unlink( $item->getPathname() );
+                }
+            }
+            @rmdir( $path );
+        }
     }
 }

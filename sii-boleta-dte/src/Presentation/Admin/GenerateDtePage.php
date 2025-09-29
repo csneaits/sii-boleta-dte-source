@@ -457,19 +457,30 @@ class GenerateDtePage {
 													<tr>
 												<th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
 														<td>
-																<table id="sii-items-table" class="widefat">
-																		<thead>
-																				<tr>
-																<th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
-																<th><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></th>
-																<th><?php esc_html_e( 'Precio unitario', 'sii-boleta-dte' ); ?></th>
-																						<th></th>
-																				</tr>
-																		</thead>
-																<tbody>
-																																<tr>
-																<td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>">
+                                                                                                                               <table id="sii-items-table" class="widefat">
+                                                                                                                               <thead>
+                                                                                                                               <tr>
+                                                                                                                               <th><?php esc_html_e( 'Descripción', 'sii-boleta-dte' ); ?></th>
+                                                                                                                               <th><?php esc_html_e( 'Acciones', 'sii-boleta-dte' ); ?></th>
+                                                                                                                               </tr>
+                                                                                                                               </thead>
+                                                                                                                               <tbody>
+                                                                                                                               <tr>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Descripción', 'sii-boleta-dte' ); ?>">
+                                                                                                                               <div class="sii-item-stack">
+                                                                                                                               <div class="sii-item-primary">
 <input type="text" name="items[0][desc]" data-field="desc" class="regular-text" value="<?php echo $i0d; ?>" />
+                                                                                                                               </div>
+                                                                                                                               <div class="sii-item-metrics">
+                                                                                                                               <label class="sii-item-metric">
+                                                                                                                               <span><?php esc_html_e( 'Cantidad', 'sii-boleta-dte' ); ?></span>
+<input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" />
+                                                                                                                               </label>
+                                                                                                                               <label class="sii-item-metric">
+                                                                                                                               <span><?php esc_html_e( 'Precio unitario', 'sii-boleta-dte' ); ?></span>
+<input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" />
+                                                                                                                               </label>
+                                                                                                                               </div>
 <details class="sii-item-advanced dte-section" data-types="33,34,41,43,46,52,56,61,110,111,112" style="display:none">
 <summary><?php esc_html_e( 'Opciones avanzadas del ítem', 'sii-boleta-dte' ); ?></summary>
 <div class="sii-item-advanced-grid">
@@ -499,10 +510,10 @@ class GenerateDtePage {
                                                 <input type="text" name="items[0][code_value]" data-field="code_value" value="<?php echo $i0code_value; ?>" />
                                                 <p class="description"><?php esc_html_e( 'Ejemplo: 123456789 o el código que usas en tu sistema para el producto.', 'sii-boleta-dte' ); ?></p>
                                             </label>
-																						<label class="sii-item-advanced-wide">
-																								<span><?php esc_html_e( 'Descripción adicional', 'sii-boleta-dte' ); ?></span>
-																								<textarea name="items[0][extra_desc]" data-field="extra_desc" rows="3"><?php echo $i0extra_desc; ?></textarea>
-																						</label>
+                                                                                                                               <label class="sii-item-advanced-wide">
+                                                                                                                               <span><?php esc_html_e( 'Descripción adicional', 'sii-boleta-dte' ); ?></span>
+                                                                                                                               <textarea name="items[0][extra_desc]" data-field="extra_desc" rows="3"><?php echo $i0extra_desc; ?></textarea>
+                                                                                                                               </label>
                                             <label>
                                                 <span><?php esc_html_e( 'Unidad del ítem', 'sii-boleta-dte' ); ?></span>
                                                 <input type="text" name="items[0][unit_item]" data-field="unit_item" value="<?php echo $i0unit_item; ?>" />
@@ -513,31 +524,30 @@ class GenerateDtePage {
                                                 <input type="text" name="items[0][unit_ref]" data-field="unit_ref" value="<?php echo $i0unit_ref; ?>" />
                                                 <p class="description"><?php esc_html_e( 'Úsalo sólo si necesitas informar una unidad alternativa (por ejemplo, paquete de 12 UND).', 'sii-boleta-dte' ); ?></p>
                                             </label>
-																						<label>
-																								<span><?php esc_html_e( 'Descuento %', 'sii-boleta-dte' ); ?></span>
-																								<input type="number" name="items[0][discount_pct]" data-field="discount_pct" value="<?php echo $i0discount_pct; ?>" step="0.01" inputmode="decimal" />
-																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Descuento $', 'sii-boleta-dte' ); ?></span>
-																								<input type="number" name="items[0][discount_amount]" data-field="discount_amount" value="<?php echo $i0discount_amount; ?>" step="0.01" inputmode="decimal" />
-																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Impuesto adicional', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][tax_code]" data-field="tax_code" value="<?php echo $i0tax_code; ?>" />
-																						</label>
-																						<label>
-																								<span><?php esc_html_e( 'Indicador retenedor', 'sii-boleta-dte' ); ?></span>
-																								<input type="text" name="items[0][retained_indicator]" data-field="retained_indicator" value="<?php echo $i0retained_indicator; ?>" />
-																						</label>
-																				</div>
-																		</details>
-																</td>
-																<td data-label="<?php esc_attr_e( 'Cantidad', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][qty]" data-field="qty" value="<?php echo $i0q; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-																<td data-label="<?php esc_attr_e( 'Precio unitario', 'sii-boleta-dte' ); ?>"><input type="number" name="items[0][price]" data-field="price" value="<?php echo $i0p; ?>" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>
-																<td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Eliminar ítem', 'sii-boleta-dte' ); ?>">×</button></td>
-																																</tr>
-																																</tbody>
-															</table>
+                                                                                                                               <label>
+                                                                                                                               <span><?php esc_html_e( 'Descuento %', 'sii-boleta-dte' ); ?></span>
+                                                                                                                               <input type="number" name="items[0][discount_pct]" data-field="discount_pct" value="<?php echo $i0discount_pct; ?>" step="0.01" inputmode="decimal" />
+                                                                                                                               </label>
+                                                                                                                               <label>
+                                                                                                                               <span><?php esc_html_e( 'Descuento $', 'sii-boleta-dte' ); ?></span>
+                                                                                                                               <input type="number" name="items[0][discount_amount]" data-field="discount_amount" value="<?php echo $i0discount_amount; ?>" step="0.01" inputmode="decimal" />
+                                                                                                                               </label>
+                                                                                                                               <label>
+                                                                                                                               <span><?php esc_html_e( 'Impuesto adicional', 'sii-boleta-dte' ); ?></span>
+                                                                                                                               <input type="text" name="items[0][tax_code]" data-field="tax_code" value="<?php echo $i0tax_code; ?>" />
+                                                                                                                               </label>
+                                                                                                                               <label>
+                                                                                                                               <span><?php esc_html_e( 'Indicador retenedor', 'sii-boleta-dte' ); ?></span>
+                                                                                                                               <input type="text" name="items[0][retained_indicator]" data-field="retained_indicator" value="<?php echo $i0retained_indicator; ?>" />
+                                                                                                                               </label>
+                                                                                                                               </div>
+                                                                                                                               </details>
+                                                                                                                               </div>
+                                                                                                                               </td>
+                                                                                                                               <td data-label="<?php esc_attr_e( 'Acciones', 'sii-boleta-dte' ); ?>"><button type="button" class="button remove-item" aria-label="<?php esc_attr_e( 'Eliminar ítem', 'sii-boleta-dte' ); ?>">×</button></td>
+                                                                                                                               </tr>
+                                                                                                                               </tbody>
+                                                                                                                        </table>
 														<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button></p>
 														</td>
 													</tr>

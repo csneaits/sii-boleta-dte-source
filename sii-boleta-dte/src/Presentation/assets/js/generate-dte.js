@@ -570,25 +570,29 @@
             var indicatorExempt = escapeAttribute(getText('itemsIndicatorExempt', 'No afecto o exento de IVA'));
             var indicatorNonBillable = escapeAttribute(getText('itemsIndicatorNonBillable', 'Producto o servicio no facturable'));
             row.innerHTML = '<td data-label="' + descLabel + '">' +
-                                '<input type="text" data-field="desc" name="items[][desc]" class="regular-text" />' +
-                                '<details class="sii-item-advanced dte-section" data-types="33,34,41,43,46,52,56,61,110,111,112" style="display:none">' +
-                                        '<summary>' + advancedSummary + '</summary>' +
-                                        '<div class="sii-item-advanced-grid">' +
-                                                '<label class="dte-section" data-types="34,41"><span>' + indicatorLabel + '</span><select data-field="exempt_indicator" name="items[][exempt_indicator]"><option value="">' + indicatorAuto + '</option><option value="1">' + indicatorExempt + '</option><option value="2">' + indicatorNonBillable + '</option></select></label>' +
-                                                '<label><span>' + codeTypeLabel + '</span><input type="text" data-field="code_type" name="items[][code_type]" /></label>' +
-                                                '<label><span>' + codeValueLabel + '</span><input type="text" data-field="code_value" name="items[][code_value]" /></label>' +
-                                                '<label class="sii-item-advanced-wide"><span>' + extraDescLabel + '</span><textarea data-field="extra_desc" name="items[][extra_desc]" rows="3"></textarea></label>' +
-                                                '<label><span>' + unitLabel + '</span><input type="text" data-field="unit_item" name="items[][unit_item]" /></label>' +
-                                                '<label><span>' + unitRefLabel + '</span><input type="text" data-field="unit_ref" name="items[][unit_ref]" /></label>' +
-                                                '<label><span>' + discountPctLabel + '</span><input type="number" data-field="discount_pct" name="items[][discount_pct]" value="0" step="0.01" data-increment="0.1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
-                                                '<label><span>' + discountAmtLabel + '</span><input type="number" data-field="discount_amount" name="items[][discount_amount]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
-                                                '<label><span>' + taxCodeLabel + '</span><input type="text" data-field="tax_code" name="items[][tax_code]" /></label>' +
-                                                '<label><span>' + retainerLabel + '</span><input type="text" data-field="retained_indicator" name="items[][retained_indicator]" /></label>' +
-                                        '</div>' +
-                                '</details>' +
+                                '<div class="sii-item-stack">' +
+                                    '<div class="sii-item-primary"><input type="text" data-field="desc" name="items[][desc]" class="regular-text" /></div>' +
+                                    '<div class="sii-item-metrics">' +
+                                        '<label class="sii-item-metric"><span>' + qtyLabel + '</span><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                        '<label class="sii-item-metric"><span>' + priceLabel + '</span><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                    '</div>' +
+                                    '<details class="sii-item-advanced dte-section" data-types="33,34,41,43,46,52,56,61,110,111,112" style="display:none">' +
+                                            '<summary>' + advancedSummary + '</summary>' +
+                                            '<div class="sii-item-advanced-grid">' +
+                                                    '<label class="dte-section" data-types="34,41"><span>' + indicatorLabel + '</span><select data-field="exempt_indicator" name="items[][exempt_indicator]"><option value="">' + indicatorAuto + '</option><option value="1">' + indicatorExempt + '</option><option value="2">' + indicatorNonBillable + '</option></select></label>' +
+                                                    '<label><span>' + codeTypeLabel + '</span><input type="text" data-field="code_type" name="items[][code_type]" /></label>' +
+                                                    '<label><span>' + codeValueLabel + '</span><input type="text" data-field="code_value" name="items[][code_value]" /></label>' +
+                                                    '<label class="sii-item-advanced-wide"><span>' + extraDescLabel + '</span><textarea data-field="extra_desc" name="items[][extra_desc]" rows="3"></textarea></label>' +
+                                                    '<label><span>' + unitLabel + '</span><input type="text" data-field="unit_item" name="items[][unit_item]" /></label>' +
+                                                    '<label><span>' + unitRefLabel + '</span><input type="text" data-field="unit_ref" name="items[][unit_ref]" /></label>' +
+                                                    '<label><span>' + discountPctLabel + '</span><input type="number" data-field="discount_pct" name="items[][discount_pct]" value="0" step="0.01" data-increment="0.1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                                    '<label><span>' + discountAmtLabel + '</span><input type="number" data-field="discount_amount" name="items[][discount_amount]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></label>' +
+                                                    '<label><span>' + taxCodeLabel + '</span><input type="text" data-field="tax_code" name="items[][tax_code]" /></label>' +
+                                                    '<label><span>' + retainerLabel + '</span><input type="text" data-field="retained_indicator" name="items[][retained_indicator]" /></label>' +
+                                            '</div>' +
+                                    '</details>' +
+                                '</div>' +
                         '</td>' +
-                        '<td data-label="' + qtyLabel + '"><input type="number" data-field="qty" name="items[][qty]" value="1" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
-                        '<td data-label="' + priceLabel + '"><input type="number" data-field="price" name="items[][price]" value="0" step="0.01" data-increment="1" data-decimals="2" inputmode="decimal" min="0" /></td>' +
                         '<td data-label="' + actionsLabel + '"><button type="button" class="button remove-item" aria-label="' + removeLabel + '">×</button></td>';
             tableBody.appendChild(row);
            initRow(row);

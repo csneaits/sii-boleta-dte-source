@@ -192,7 +192,7 @@ class Ajax {
             }
         }
 
-        $allowed = array( 33, 34, 39, 41, 52, 56, 61 );
+        $allowed = array( 33, 34, 39, 41, 46, 52, 56, 61 );
         if ( ! in_array( $tipo, $allowed, true ) ) {
             \wp_send_json_error( array( 'message' => \__( 'Tipo de documento inválido.', 'sii-boleta-dte' ) ) );
         }

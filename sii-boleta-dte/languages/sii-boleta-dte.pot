@@ -1,43 +1,2107 @@
+# Copyright (C) 2025 Tu Nombre
+# This file is distributed under the same license as the SII Boleta DTE plugin.
 msgid ""
 msgstr ""
 "Project-Id-Version: SII Boleta DTE 1.0.0\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sii-boleta-dte\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"POT-Creation-Date: 2025-09-29T01:24:56+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: sii-boleta-dte\n"
 
-# Traductores: Añada sus traducciones aquí.
-
-#: src/Presentation/Admin/LogsPage.php
-msgid "Logs"
+#. Plugin Name of the plugin
+#: sii-boleta-dte.php
+#: src/Presentation/Admin/SettingsPage.php:285
+msgid "SII Boleta DTE"
 msgstr ""
 
-#: src/Presentation/Admin/LogsPage.php
-msgid "Track ID"
+#. Description of the plugin
+#: sii-boleta-dte.php
+msgid "Plugin modular para la emisión de boletas, facturas, guías de despacho y notas de crédito o débito electrónicas con integración al Servicio de Impuestos Internos (SII) de Chile. Permite configurar certificados, gestionar folios, generar el timbre electrónico (TED) y firmar digitalmente los documentos. Incluye integración con WooCommerce, generación del Resumen de Ventas Diarias (RVD) y soporte para distintos tipos de DTE. Incorpora una librería local para generar el código de barras PDF417 sin depender de servicios externos."
 msgstr ""
 
-#: src/Presentation/Admin/LogsPage.php
-msgid "Status"
+#. Author of the plugin
+#: sii-boleta-dte.php
+msgid "Tu Nombre"
 msgstr ""
 
-#: src/Presentation/Admin/LogsPage.php
-msgid "Date"
+#: sii-boleta-dte.php:24
+msgid "SII Boleta DTE requiere PHP 8.4 o superior."
 msgstr ""
 
-#: src/Presentation/Admin/SettingsPage.php
-msgid "Document types"
+#: src/Application/FolioManager.php:145
+msgid "No hay folios disponibles para este tipo de documento."
 msgstr ""
 
-#: src/Infrastructure/WooCommerce/Woo.php
-msgid "Document type"
+#: src/Infrastructure/Plugin.php:182
+msgid "No se pudo cargar el motor LibreDTE."
 msgstr ""
 
-#: src/Infrastructure/WooCommerce/Woo.php
+#: src/Infrastructure/WooCommerce/Woo.php:51
+msgid "DTE generado automáticamente al completar el pedido."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:64
+msgid "Generar DTE SII"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:68
+msgid "Generar Nota de Crédito SII"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:69
+msgid "Generar Nota de Débito SII"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:88
+msgid "DTE generado manualmente desde WooCommerce."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:105
+msgid "Nota de crédito generada manualmente."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:112
+msgid "Nota de débito generada manualmente."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:185
+msgid "Nota de crédito parcial"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:186
+msgid "Selecciona el reembolso parcial y define la glosa que será enviada al SII."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:187
+msgid "Reembolso asociado"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:189
+msgid "Selecciona un reembolso"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:194
+msgid "Tipo de corrección"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:196
+msgid "Anulación parcial del detalle"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:197
+msgid "Descuentos o bonificaciones"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:199
+msgid "Glosa de corrección"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:200
+msgid "Describe el motivo del ajuste"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:202
+msgid "Aplicar reembolso"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:203
+#: src/Presentation/Admin/Ajax.php:109
+#: src/Presentation/Admin/CafPage.php:141
+#: src/Presentation/Admin/ControlPanelPage.php:201
+msgid "Cancelar"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:374
+msgid "No fue posible preparar los datos del pedido para el DTE."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:383
+#: src/Presentation/Admin/GenerateDtePage.php:936
+msgid "No fue posible generar el XML del documento tributario."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:391
+msgid "No fue posible generar el PDF de previsualización."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:408
+msgid "Se generó una previsualización del documento sin enviarlo al SII (modo prueba)."
+msgstr ""
+
+#. translators: %s: URL pointing to the generated PDF preview.
+#: src/Infrastructure/WooCommerce/Woo.php:413
+#, php-format
+msgid "Puedes revisarla en: %s"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:425
+msgid "No fue posible crear un archivo temporal para el DTE."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:439
+#: src/Presentation/Admin/GenerateDtePage.php:1228
+msgid "La respuesta del SII no incluyó un track ID válido."
+msgstr ""
+
+#. translators: %s: error message returned by the SII API.
+#: src/Infrastructure/WooCommerce/Woo.php:476
+#, php-format
+msgid "Error al enviar el documento tributario al SII: %s"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:534
+msgid "Reembolso parcial del pedido"
+msgstr ""
+
+#. translators: %s: order number used as description fallback.
+#: src/Infrastructure/WooCommerce/Woo.php:551
+#, php-format
+msgid "Pedido #%s"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:656
+msgid "Reembolso"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:661
+msgid "Costo de envío reembolsado"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:663
+msgid "Cargo reembolsado"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:715
+msgid "Anulación parcial del pedido"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:716
+msgid "Ajuste parcial del pedido"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:723
+msgid "Ajuste de pedido"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:726
+msgid "Anulación de pedido"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:830
+#, php-format
+msgid "Previsualización del documento tributario electrónico para el pedido #%1$s (%2$s)"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:831
+#, php-format
+msgid "Documento tributario electrónico para el pedido #%1$s (%2$s)"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:841
+msgid "Se adjunta la previsualización del documento tributario electrónico asociada a su compra. No ha sido enviada al SII."
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:842
+msgid "Se adjunta el documento tributario electrónico asociado a su compra."
+msgstr ""
+
+#. translators: %s: URL pointing to the generated PDF download.
+#: src/Infrastructure/WooCommerce/Woo.php:848
+#, php-format
+msgid "También puede descargarlo en: %s"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:1018
+msgid "Documento tributario electrónico"
+msgstr ""
+
+#: src/Infrastructure/WooCommerce/Woo.php:1019
+msgid "Descargar PDF del DTE"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:36
+#: src/Presentation/Admin/Ajax.php:151
+#: src/Presentation/Admin/Ajax.php:259
+#: src/Presentation/Admin/Ajax.php:303
+#: src/Presentation/Admin/Ajax.php:327
+#: src/Presentation/Admin/Ajax.php:447
+#: src/Presentation/Admin/Ajax.php:502
+#: src/Presentation/Admin/Ajax.php:531
+#: src/Presentation/Admin/Ajax.php:579
+msgid "Permisos insuficientes."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:59
+#: src/Presentation/Admin/ControlPanelPage.php:152
+#: src/Presentation/Admin/Pages.php:134
+msgid "Sin DTE recientes."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:81
+#: src/Presentation/Admin/ControlPanelPage.php:174
+#: src/Presentation/Admin/ControlPanelPage.php:187
+#: src/Presentation/Admin/Pages.php:135
+msgid "No hay elementos en la cola."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:107
+#: src/Presentation/Admin/ControlPanelPage.php:199
+msgid "Procesar"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:108
+#: src/Presentation/Admin/ControlPanelPage.php:200
+msgid "Reintentar"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:125
+#: src/Presentation/Admin/ControlPanelPage.php:783
+msgid "DTE"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:126
+#: src/Presentation/Admin/ControlPanelPage.php:784
+msgid "Libro"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:127
+#: src/Presentation/Admin/ControlPanelPage.php:75
+#: src/Presentation/Admin/ControlPanelPage.php:785
+msgid "RVD"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:135
+#: src/Presentation/Admin/ControlPanelPage.php:794
+msgid "Aceptado"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:136
+#: src/Presentation/Admin/ControlPanelPage.php:795
+msgid "Enviado (en espera)"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:137
+#: src/Presentation/Admin/CafPage.php:85
+#: src/Presentation/Admin/ControlPanelPage.php:796
+msgid "Pendiente"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:138
+#: src/Presentation/Admin/ControlPanelPage.php:797
+msgid "Rechazado"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:139
+#: src/Presentation/Admin/ControlPanelPage.php:798
+msgid "Procesando"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:140
+#: src/Presentation/Admin/ControlPanelPage.php:799
+msgid "En cola"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:141
+#: src/Presentation/Admin/ControlPanelPage.php:800
+msgid "Fallido"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:142
+#: src/Presentation/Admin/ControlPanelPage.php:801
+msgid "Error"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:143
+#: src/Presentation/Admin/ControlPanelPage.php:802
+msgid "Borrador"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:166
+#: src/Presentation/Admin/Ajax.php:178
+msgid "No se pudo leer el archivo CAF subido."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:174
+msgid "El CAF debe ser un archivo .xml o .caf."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:191
+msgid "El archivo CAF no es válido."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:197
+msgid "Tipo de documento inválido."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:201
+msgid "Debes ingresar valores positivos para el folio inicial y la cantidad."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:206
+msgid "El rango de folios es inválido."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:213
+msgid "El rango se solapa con otro existente para este tipo de documento."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:219
+msgid "El rango seleccionado no existe."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:222
+msgid "No se pudo actualizar el rango de folios en la base de datos."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:225
+#: src/Presentation/Admin/Ajax.php:235
+#: src/Presentation/Admin/Ajax.php:246
+#, php-format
+msgid "Error de base de datos: %s"
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:232
+msgid "No se pudo guardar el rango de folios en la base de datos."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:243
+msgid "No se pudo guardar el archivo CAF. Revisa los permisos de la base de datos."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:264
+msgid "Identificador de rango inválido."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:269
+msgid "El rango indicado no existe."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:273
+msgid "No se pudo eliminar el rango de folios de la base de datos."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:307
+msgid "Dirección de destino inválida."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:319
+msgid "No se pudo enviar el correo de prueba. Revise la configuración del proveedor SMTP."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:321
+msgid "Correo de prueba enviado. Revise su bandeja."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:451
+msgid "WooCommerce no está activo."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:510
+#: src/Presentation/Admin/Ajax.php:515
+#: src/Presentation/Admin/Pages.php:176
+msgid "Could not generate preview. Please try again."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:520
+#: src/Presentation/Admin/GenerateDtePage.php:180
+#: src/Presentation/Admin/Pages.php:175
+msgid "Preview generated. Review the document below."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:539
+#: src/Presentation/Admin/Ajax.php:561
+#: src/Presentation/Admin/GenerateDtePage.php:1222
+#: src/Presentation/Admin/Pages.php:181
+msgid "Could not send the document. Please try again."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:546
+#: src/Presentation/Admin/GenerateDtePage.php:1216
+msgid "El SII no respondió. El documento fue puesto en cola para un reintento automático."
+msgstr ""
+
+#: src/Presentation/Admin/Ajax.php:570
+#: src/Presentation/Admin/Pages.php:182
+#, php-format
+msgid "Document sent to SII. Tracking ID: %s."
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:42
+#: src/Presentation/Admin/Pages.php:74
+#: src/Presentation/Admin/Pages.php:75
+msgid "Folios / CAFs"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:43
+#: src/Presentation/Admin/DiagnosticsPage.php:199
+msgid "Producción"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:43
+#: src/Presentation/Admin/DiagnosticsPage.php:200
+msgid "Certificación"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:44
+msgid "Registra manualmente los rangos de folios autorizados. El sistema validará que los folios emitidos pertenezcan a un rango configurado."
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:45
+#, php-format
+msgid "Ambiente activo: %s. Los rangos configurados son independientes por ambiente."
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:46
+msgid "Agregar folios"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:51
+#: src/Presentation/Admin/ControlPanelPage.php:114
+#: src/Presentation/Admin/ControlPanelPage.php:179
+#: src/Presentation/Admin/GenerateDtePage.php:566
+#: src/Presentation/Admin/GenerateDtePage.php:577
+msgid "Tipo"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:52
+msgid "Rango"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:53
+msgid "Consumidos"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:54
+msgid "Restantes"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:55
+msgid "CAF"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:56
+#: src/Presentation/Admin/ControlPanelPage.php:146
+msgid "Estado"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:57
+msgid "Creado"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:58
+#: src/Presentation/Admin/ControlPanelPage.php:181
+#: src/Presentation/Admin/GenerateDtePage.php:537
+#: src/Presentation/Admin/GenerateDtePage.php:608
+msgid "Acciones"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:62
+msgid "Aún no se han registrado rangos de folios."
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:79
+msgid "Vigente"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:79
+msgid "Agotado"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:83
+msgid "CAF cargado"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:95
+msgid "Editar"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:96
+msgid "Eliminar"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:124
+#: src/Presentation/Admin/GenerateDtePage.php:232
+msgid "Tipo de documento"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:130
+msgid "Folio inicial"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:132
+msgid "Cantidad de folios"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:134
+msgid "Folio final"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:136
+msgid "Archivo CAF"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:138
+msgid "Aún no se ha cargado un CAF para este rango."
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:140
+msgid "Guardar"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:153
+#: src/Presentation/Admin/GenerateDtePage.php:580
+#: src/Presentation/Admin/GenerateDtePage.php:1819
+#: src/Presentation/Admin/SettingsPage.php:166
+#: src/Presentation/WooCommerce/CheckoutFields.php:140
 msgid "Factura"
 msgstr ""
 
-#: src/Infrastructure/WooCommerce/Woo.php
+#: src/Presentation/Admin/CafPage.php:154
+#: src/Presentation/Admin/GenerateDtePage.php:581
+#: src/Presentation/Admin/GenerateDtePage.php:1820
+msgid "Factura Exenta"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:155
+#: src/Presentation/Admin/GenerateDtePage.php:582
+#: src/Presentation/Admin/GenerateDtePage.php:1821
+#: src/Presentation/Admin/GenerateDtePage.php:1845
+#: src/Presentation/Admin/SettingsPage.php:167
+#: src/Presentation/Admin/SettingsPage.php:194
+#: src/Presentation/WooCommerce/CheckoutFields.php:141
 msgid "Boleta"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:156
+#: src/Presentation/Admin/GenerateDtePage.php:583
+#: src/Presentation/Admin/GenerateDtePage.php:1822
+msgid "Boleta Exenta"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:157
+#: src/Presentation/Admin/GenerateDtePage.php:1825
+msgid "Guía de Despacho"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:158
+#: src/Presentation/Admin/GenerateDtePage.php:1826
+msgid "Nota de Débito"
+msgstr ""
+
+#: src/Presentation/Admin/CafPage.php:159
+#: src/Presentation/Admin/GenerateDtePage.php:1827
+msgid "Nota de Crédito"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:67
+msgid "Panel de control"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:68
+msgid "Supervisa tus operaciones DTE, las colas y las tareas programadas desde un panel unificado."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:73
+#: src/Presentation/Admin/ControlPanelPage.php:141
+msgid "DTE recientes"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:74
+#: src/Presentation/Admin/ControlPanelPage.php:173
+msgid "Cola"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:76
+msgid "Validación de Libros"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:77
+msgid "Métricas"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:110
+msgid "Disponibilidad de folios"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:115
+msgid "Disponibles"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:145
+#: src/Presentation/Admin/LogsPage.php:56
+#: src/Presentation/WooCommerce/CheckoutFields.php:111
+msgid "Track ID"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:178
+msgid "ID"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:180
+msgid "Intentos"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:216
+#: src/Presentation/Admin/ControlPanelPage.php:221
+msgid "Generar y enviar RVD"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:217
+msgid "Genera el resumen de ventas diario y lo envía al SII de inmediato."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:231
+msgid "Validar Libro XML"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:232
+msgid "Pega el XML del Libro para validarlo contra el esquema oficial."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:240
+#: src/Presentation/Admin/ControlPanelPage.php:242
+msgid "Validar XML"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:360
+#, php-format
+msgid "Actividad diaria para %1$s %2$d"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:375
+#, php-format
+msgid "Totales mensuales para %d"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:393
+#, php-format
+msgid "Comparación anual para %s"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:418
+msgid "Actividad de los últimos seis meses"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:422
+msgid "Cronología de los últimos envíos"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:436
+#: src/Presentation/Admin/ControlPanelPage.php:517
+#: src/Presentation/Admin/ControlPanelPage.php:563
+msgid "Aceptados"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:441
+#: src/Presentation/Admin/ControlPanelPage.php:520
+#: src/Presentation/Admin/ControlPanelPage.php:564
+msgid "Enviados (en espera)"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:446
+#: src/Presentation/Admin/ControlPanelPage.php:524
+#: src/Presentation/Admin/ControlPanelPage.php:565
+msgid "Rechazados"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:529
+msgid "Métricas operativas"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:534
+msgid "Año"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:536
+msgid "Todos los años"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:544
+msgid "Mes"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:546
+msgid "Todos los meses"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:553
+msgid "Aplicar filtros"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:555
+msgid "Reiniciar"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:560
+msgid "Desempeño de DTE"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:569
+msgid "Automatización de RVD"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:570
+msgid "Activo"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:570
+msgid "En pausa"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:572
+msgid "Último envío"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:572
+#: src/Presentation/Admin/ControlPanelPage.php:581
+#: src/Presentation/Admin/ControlPanelPage.php:824
+#: src/Presentation/Admin/ControlPanelPage.php:852
+msgid "Nunca"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:573
+msgid "Próxima ejecución"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:574
+#: src/Presentation/Admin/ControlPanelPage.php:584
+msgid "Trabajos pendientes"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:578
+msgid "Libro de boletas"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:579
+msgid "Programado"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:579
+msgid "Manual"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:581
+msgid "Último reporte"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:582
+msgid "Próxima ventana de envío"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:583
+msgid "Período en preparación"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:590
+msgid "Serie temporal"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:609
+msgid "No hay datos disponibles para los filtros seleccionados."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:613
+msgid "Distribución de estados"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:614
+msgid "Aceptados vs pendientes vs rechazados"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:618
+msgid "No hay actividad de DTE para mostrar."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:630
+msgid "Conclusión clave"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:632
+#, php-format
+msgid "La mayoría de los documentos están clasificados como %1$s (%2$d registros)."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:634
+msgid "Aún no registramos actividad para este período; utiliza los filtros para revisar otras fechas."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:648
+#: src/Presentation/Admin/ControlPanelPage.php:669
+#: src/Presentation/Admin/ControlPanelPage.php:719
+msgid "La verificación de seguridad falló. Inténtalo nuevamente."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:660
+msgid "Acción de cola ejecutada."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:675
+msgid "No fue posible generar el XML del RVD. Revisa la configuración e inténtalo nuevamente."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:680
+msgid "El XML de RVD generado no es válido."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:695
+msgid "Error desconocido"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:696
+#, php-format
+msgid "Error al enviar el RVD: %s"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:705
+msgid "RVD enviado correctamente."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:707
+#: src/Presentation/Admin/GenerateDtePage.php:211
+#, php-format
+msgid "Track ID: %s"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:725
+msgid "Debes pegar el XML del Libro antes de validar."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:730
+msgid "El XML del Libro es válido."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:732
+msgid "El XML del Libro no pasó la validación. Revisa la estructura e inténtalo nuevamente."
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:818
+msgid "Programación automática"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:819
+#: src/Presentation/Admin/ControlPanelPage.php:845
+msgid "Estado:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:819
+#: src/Presentation/Admin/ControlPanelPage.php:845
+msgid "Habilitado"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:819
+#: src/Presentation/Admin/ControlPanelPage.php:845
+msgid "Deshabilitado"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:821
+msgid "Hora diaria:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:822
+#: src/Presentation/Admin/ControlPanelPage.php:849
+msgid "Próxima ejecución:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:824
+#: src/Presentation/Admin/ControlPanelPage.php:852
+msgid "Última ejecución:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:844
+msgid "Programación mensual del Libro"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:847
+msgid "Día programado:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:848
+msgid "Hora de envío:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:850
+msgid "Período a informar:"
+msgstr ""
+
+#: src/Presentation/Admin/ControlPanelPage.php:940
+msgid "Sin programación"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:28
+#: src/Presentation/Admin/DiagnosticsPage.php:29
+msgid "Diagnostics"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:53
+#, php-format
+msgid "No se pudo generar el token: %s"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:60
+msgid "No se pudo generar el token. El SII no devolvió credenciales."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:66
+msgid "Token generado correctamente. El plugin pudo autenticarse contra el SII."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:75
+msgid "Revisa el ambiente configurado: el host del SII parece incorrecto o no es alcanzable desde el servidor."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:88
+msgid "El SII rechazó la transacción. Esto suele ocurrir cuando el contribuyente aún no se ha habilitado en certificación o la IP/certificado no está autorizado."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:90
+#, php-format
+msgid "ID entregado por el SII: %s."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:97
+#, php-format
+msgid "La consulta a la API falló: %s"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:106
+msgid "Consulta a la API exitosa. El SII respondió al ping de estado."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:125
+msgid "Diagnósticos"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:126
+msgid "Utiliza esta página para verificar rápidamente los archivos requeridos y la conectividad con el SII. Cada verificación es independiente para que identifiques el paso que está fallando."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:128
+msgid "Resumen de configuración"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:131
+msgid "sin configurar"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:132
+#, php-format
+msgid "Certificado: %s"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:137
+#, php-format
+msgid "Rangos de folios configurados: %d"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:140
+#, php-format
+msgid "Sin rango para los tipos %s"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:149
+#: src/Presentation/Admin/GenerateDtePage.php:631
+#, php-format
+msgid "Ambiente: %s"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:160
+msgid "Pruebas de conectividad"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:161
+msgid "Ejecuta las siguientes pruebas para confirmar que el plugin puede autenticarse y comunicarse con el SII. Puedes realizarlas las veces que necesites; los resultados se muestran debajo de cada botón."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:167
+msgid "Generación de token"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:167
+msgid "Solicita un token nuevo utilizando el certificado digital y RUT configurados."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:168
+msgid "Ejecutar prueba de token"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:171
+msgid "Prueba de API del SII"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:171
+msgid "Realiza una consulta de estado a un folio ficticio para comprobar la conectividad."
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:172
+msgid "Ejecutar prueba de API"
+msgstr ""
+
+#: src/Presentation/Admin/DiagnosticsPage.php:201
+msgid "desconocido"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:68
+#: src/Presentation/Admin/GenerateDtePage.php:69
+#: src/Presentation/Admin/GenerateDtePage.php:162
+msgid "Generate DTE"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:157
+#: src/Presentation/Admin/SettingsPage.php:157
+msgid "Production"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:157
+msgid "Certification"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:163
+msgid "Craft and submit digital tax documents with a refined interface designed to guide each step of the process."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:172
+msgid "Close preview"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:173
+msgid "DTE preview"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:184
+#: src/Presentation/Admin/Pages.php:177
+msgid "Open preview in a new tab"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:216
+#: src/Presentation/Admin/Pages.php:184
+msgid "Download PDF"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:224
+#: src/Presentation/Admin/GenerateDtePage.php:1119
+msgid "Debes ingresar al menos una referencia con folio y fecha para la nota de crédito."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:225
+#: src/Presentation/Admin/GenerateDtePage.php:1122
+msgid "Completa el tipo, el folio y la fecha del documento referenciado antes de continuar."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:226
+#: src/Presentation/Admin/GenerateDtePage.php:1125
+msgid "Describe la corrección en la glosa de la referencia para finalizar la nota de crédito."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:227
+msgid "Describe la corrección aplicada al documento original"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:242
+msgid "Giro emisor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:260
+msgid "RUT del cliente"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:264
+#: src/Presentation/Admin/SettingsPage.php:34
+msgid "Razón Social"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:268
+#: src/Presentation/Admin/SettingsPage.php:35
+msgid "Giro"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:273
+msgid "Dirección Receptor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:277
+msgid "Comuna Receptor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:281
+msgid "Ciudad Receptor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:285
+msgid "Tipo de despacho"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:289
+msgid "Por cuenta del vendedor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:290
+msgid "Por cuenta del comprador"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:291
+msgid "Por cuenta de un tercero"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:293
+msgid "Indica quién realiza el despacho cuando la guía acompaña mercaderías."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:297
+msgid "Indicador de traslado"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:301
+msgid "Constituye venta"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:302
+msgid "Venta por efectuar"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:303
+msgid "Consignación"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:304
+#: src/Presentation/Admin/GenerateDtePage.php:353
+msgid "Entrega gratuita"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:305
+msgid "Traslado interno"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:306
+msgid "Otros traslados no venta"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:307
+msgid "Guía de devolución"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:309
+msgid "Define el motivo del movimiento de mercancías."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:313
+msgid "Datos de transporte"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:317
+msgid "Patente del vehículo"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:321
+msgid "RUT transportista"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:325
+msgid "RUT chofer"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:329
+msgid "Nombre chofer"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:333
+msgid "Dirección destino"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:337
+msgid "Comuna destino"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:344
+msgid "Condiciones de pago"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:348
+msgid "Forma de pago"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:351
+msgid "Contado"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:352
+msgid "Crédito"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:357
+#: src/Presentation/Admin/GenerateDtePage.php:377
+msgid "Glosa / condiciones"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:361
+#: src/Presentation/Admin/GenerateDtePage.php:405
+msgid "Fecha de vencimiento"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:365
+#: src/Presentation/Admin/GenerateDtePage.php:388
+msgid "Indicador de servicio"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:368
+#: src/Presentation/Admin/GenerateDtePage.php:391
+msgid "Servicios periódicos domiciliarios"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:369
+#: src/Presentation/Admin/GenerateDtePage.php:392
+msgid "Facturación diaria"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:370
+#: src/Presentation/Admin/GenerateDtePage.php:393
+msgid "Otros servicios periódicos"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:380
+msgid "Se envía como observación opcional en la boleta."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:384
+msgid "Servicio periódico"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:397
+msgid "Periodo desde"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:401
+msgid "Periodo hasta"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:412
+msgid "Contacto del receptor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:416
+msgid "Correo electrónico"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:420
+msgid "Contacto / teléfono"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:427
+msgid "Código interno del receptor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:431
+msgid "Descuentos o recargos globales"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:435
+msgid "Movimiento"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:438
+msgid "Descuento"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:439
+msgid "Recargo"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:443
+msgid "Tipo de valor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:446
+msgid "Porcentaje"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:447
+msgid "Monto"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:451
+msgid "Valor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:458
+msgid "Ítems"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:463
+#: src/Presentation/Admin/GenerateDtePage.php:471
+msgid "Descripción"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:464
+#: src/Presentation/Admin/GenerateDtePage.php:535
+msgid "Cantidad"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:465
+#: src/Presentation/Admin/GenerateDtePage.php:536
+msgid "Precio unitario"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:474
+msgid "Opciones avanzadas del ítem"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:477
+#: src/Presentation/Admin/GenerateDtePage.php:485
+msgid "Indicador de exención"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:479
+msgid "Automático"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:480
+msgid "No afecto o exento de IVA"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:481
+msgid "Producto o servicio no facturable"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:488
+msgid "Exento o no afecto"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:489
+msgid "No facturable"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:493
+msgid "Tipo de código"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:495
+msgid "Ejemplo: SKU, EAN13 u otro identificador definido por tu negocio."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:498
+msgid "Código"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:500
+msgid "Ejemplo: 123456789 o el código que usas en tu sistema para el producto."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:503
+msgid "Descripción adicional"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:507
+msgid "Unidad del ítem"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:509
+msgid "Ejemplo: UND, KG, CAJA. Corresponde a cómo vendes el producto en la línea del documento."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:512
+msgid "Unidad de referencia"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:514
+msgid "Úsalo sólo si necesitas informar una unidad alternativa (por ejemplo, paquete de 12 UND)."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:517
+msgid "Descuento %"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:521
+msgid "Descuento $"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:525
+msgid "Impuesto adicional"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:529
+msgid "Indicador retenedor"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:537
+msgid "Eliminar ítem"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:541
+msgid "Agregar ítem"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:545
+msgid "Motivo de la nota de crédito"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:548
+msgid "Anula documento"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:549
+msgid "Corrige texto"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:550
+#: src/Presentation/Admin/GenerateDtePage.php:594
+msgid "Corrige montos"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:552
+msgid "El motivo selecciona automáticamente el código de referencia exigido por el SII."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:554
+msgid "Para correcciones de texto, los ítems se enviarán con montos en cero (cantidad 1 y precio 0)."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:560
+msgid "Referencias"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:562
+msgid "La referencia usará el código 1 para anular el documento original. Completa folio y fecha."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:562
+msgid "La referencia usará el código 2 para corregir texto. Describe la corrección en la glosa y completa folio y fecha."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:562
+msgid "La referencia usará el código 3 para corregir montos. Completa folio y fecha del documento base."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:567
+#: src/Presentation/Admin/GenerateDtePage.php:587
+msgid "Folio"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:568
+#: src/Presentation/Admin/GenerateDtePage.php:588
+msgid "Fecha"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:569
+#: src/Presentation/Admin/GenerateDtePage.php:589
+msgid "Código ref."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:570
+#: src/Presentation/Admin/GenerateDtePage.php:601
+msgid "Razón / glosa"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:571
+#: src/Presentation/Admin/GenerateDtePage.php:602
+msgid "Global"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:584
+msgid "Guía de despacho"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:592
+msgid "Anula documento de referencia"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:593
+msgid "Corrige texto documento ref."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:595
+msgid "Deja sin efecto parcialmente"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:596
+msgid "Corrige montos en más"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:597
+msgid "Corrige montos en menos"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:598
+msgid "Referencia a otro DTE"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:605
+msgid "Referencia global"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:609
+msgid "Eliminar referencia"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:614
+msgid "Agregar referencia"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:616
+msgid "Las notas de crédito 61 siempre refieren a un documento específico, por lo que la casilla “Global” permanecerá desactivada."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:623
+msgid "Previsualizar"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:624
+msgid "Enviar al SII"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:629
+msgid "Resumen del espacio de trabajo"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:632
+msgid "La automatización diaria del RVD está habilitada."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:632
+msgid "La automatización del RVD está deshabilitada actualmente."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:633
+msgid "La validación del libro se ejecuta de forma programada."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:633
+msgid "La validación del libro está configurada de forma manual."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:635
+msgid "Utiliza la previsualización para revisar timbres, folios y totales de ítems antes de enviar el documento al SII."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:638
+msgid "Consejos útiles"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:640
+msgid "Agrega descripciones claras a los ítems y mantén precios unitarios en pesos enteros para totales precisos."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:641
+msgid "Al emitir facturas o guías, completa los campos de dirección del receptor para agilizar la logística."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:642
+msgid "Si tu cliente no tiene RUT para boletas, el sistema aplicará automáticamente el identificador genérico del SII."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:643
+msgid "Para notas de crédito 61, referencia siempre el documento original con su tipo, folio y fecha."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:644
+msgid "Si solo corriges texto, deja los ítems en cero y describe la modificación en la glosa de la referencia."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:661
+msgid "Invalid nonce."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:702
+#: src/Presentation/Admin/Pages.php:179
+msgid "El RUT ingresado no es válido."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:707
+#: src/Presentation/Admin/Pages.php:180
+msgid "El RUT del receptor es obligatorio para este tipo de documento."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:747
+msgid "El RUT del transportista no es válido."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:757
+msgid "El RUT del chofer no es válido."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:775
+msgid "Debes seleccionar el indicador de traslado para la guía de despacho."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:929
+#, php-format
+msgid "No hay un CAF configurado para el tipo %s. Sube un CAF en “Folios / CAFs”."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1146
+msgid "No hay folios disponibles para emitir este documento."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1182
+msgid "No se pudo reservar un folio único. Por favor, inténtalo nuevamente."
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1823
+msgid "Liquidación de Factura"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1824
+msgid "Factura de Compra"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1828
+msgid "Factura de Exportación"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1829
+msgid "Nota de Débito de Exportación"
+msgstr ""
+
+#: src/Presentation/Admin/GenerateDtePage.php:1830
+msgid "Nota de Crédito de Exportación"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:26
+#: src/Presentation/Admin/Help.php:27
+#: src/Presentation/Admin/Help.php:49
+msgid "Ayuda"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:51
+msgid "Guía de certificación con el SII"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:52
+msgid "Sigue cada hito para completar el proceso de certificación y habilitar el envío de DTE en producción."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:58
+msgid "Configura datos del emisor y certificado digital"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:59
+msgid "Actualiza el RUT, razón social y carga el certificado PFX desde los ajustes."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:62
+msgid "Ir a Ajustes"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:66
+msgid "El certificado no se encuentra en la ruta configurada o falta la contraseña."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:70
+msgid "Carga los CAF para los tipos habilitados"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:71
+msgid "Importa los archivos CAF entregados por el SII y verifica que cada tipo de documento tenga un rango activo."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:74
+msgid "Administrar CAF"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:78
+msgid "Selecciona al menos un tipo de DTE en los ajustes para comenzar."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:82
+msgid "Ejecuta los diagnósticos de token y API"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:83
+msgid "Genera un token y realiza el ping de estado para confirmar que el servidor puede conectarse al SII."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:86
+msgid "Abrir Diagnósticos"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:94
+msgid "Envía DTE de certificación y revisa los acuses"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:95
+msgid "Genera documentos de prueba en el ambiente de certificación y valida los resultados en el SII."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:98
+msgid "Generar DTE de prueba"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:102
+msgid "Se marcará como completado al registrar un envío exitoso en certificación."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:111
+msgid "Ver documentación"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:165
+#, php-format
+msgid "Falta cargar CAF para los tipos: %s."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:173
+msgid "Aún no se registran diagnósticos exitosos."
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:177
+#, php-format
+msgid "Último token correcto: %s"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:179
+msgid "Token pendiente"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:182
+#, php-format
+msgid "Última consulta API correcta: %s"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:184
+msgid "Ping API pendiente"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:193
+#, php-format
+msgid "Último envío registrado: %s"
+msgstr ""
+
+#: src/Presentation/Admin/Help.php:221
+msgid "pendiente"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php:57
+msgid "Status"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php:58
+msgid "Date"
+msgstr ""
+
+#: src/Presentation/Admin/LogsPage.php:104
+#: src/Presentation/Admin/LogsPage.php:105
+#: src/Presentation/Admin/LogsPage.php:117
+msgid "Logs"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:37
+#: src/Presentation/Admin/Pages.php:38
+msgid "SII Boletas"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:51
+#: src/Presentation/Admin/Pages.php:52
+msgid "Control Panel"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:64
+#: src/Presentation/Admin/Pages.php:65
+msgid "Settings"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:178
+msgid "Generating preview…"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:183
+#: src/Presentation/Admin/Pages.php:219
+msgid "Sending…"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:185
+msgid "Description"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:186
+msgid "Quantity"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:187
+msgid "Unit Price"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:188
+msgid "Actions"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:189
+msgid "Remove item"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:190
+msgid "Reference code"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:217
+msgid "Select logo"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:218
+msgid "Use logo"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:220
+msgid "Failed to send"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:256
+msgid "Agregar rango de folios"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:257
+msgid "Editar rango de folios"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:258
+msgid "¿Eliminar este rango de folios?"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:259
+msgid "Ha ocurrido un error. Inténtalo nuevamente."
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:260
+msgid "Guardando…"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:261
+msgid "Aún no se ha cargado un CAF."
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:262
+#, php-format
+msgid "CAF actual: %s"
+msgstr ""
+
+#: src/Presentation/Admin/Pages.php:263
+#, php-format
+msgid "(última carga: %s)"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:32
+msgid "Emitter"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:33
+#: src/Presentation/WooCommerce/CheckoutFields.php:35
+msgid "RUT"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:36
+msgid "Dirección"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:37
+msgid "Comuna"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:38
+msgid "Código Acteco"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:39
+msgid "CdgSiiSucur (opcional)"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:42
+msgid "Certificate and CAF"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:43
+msgid "Certificate Path"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:44
+msgid "Certificate Password"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:47
+#: src/Presentation/Admin/SettingsPage.php:48
+msgid "Environment"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:49
+msgid "Enabled DTE Types"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:50
+msgid "WooCommerce test preview"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:53
+msgid "PDF Options"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:54
+msgid "Format"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:55
+msgid "Company Logo"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:56
+msgid "Show Logo"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:57
+msgid "Footer Note"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:60
+msgid "Automation"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:61
+msgid "Daily RVD"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:62
+msgid "Monthly Libro"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:65
+msgid "SMTP"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:66
+msgid "SMTP Profile"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:69
+msgid "Logging"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:70
+msgid "Enable Logging"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:99
+msgid "Remove giro"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:109
+msgid "Add giro"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:110
+msgid "The first giro will be used as the default when issuing documents."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:144
+msgid "Puedes subir un archivo .p12/.pfx o ingresar una ruta absoluta en el servidor."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:156
+msgid "Test"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:180
+msgid "Skip SII submission for WooCommerce orders while testing"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:182
+msgid "Cuando está activo, los pedidos sólo generan un PDF de previsualización y no consumen folios ni se envían al SII."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:184
+msgid "Disponible únicamente en el ambiente de certificación."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:193
+msgid "Carta"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:210
+msgid "Select Logo"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:211
+msgid "Remove Logo"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:220
+msgid "Show logo on PDF"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:237
+msgid "Enable automatic daily RVD sending"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:238
+#: src/Presentation/Admin/SettingsPage.php:257
+msgid "Send at"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:254
+msgid "Enable automatic monthly Libro sending"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:255
+msgid "Day of month"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:266
+msgid "Default"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:277
+msgid "Enable file logging"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:302
+msgid "RUT configured"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:303
+msgid "Razón Social configured"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:304
+msgid "Certificate file present"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:307
+msgid "Certification readiness"
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:351
+msgid "Invalid RUT format."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:440
+msgid "Certificate must be a .p12 or .pfx file."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:442
+msgid "Upload failed: temporary file not found."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:462
+msgid "Could not save the uploaded certificate."
+msgstr ""
+
+#: src/Presentation/Admin/SettingsPage.php:482
+msgid "Invalid certificate path."
+msgstr ""
+
+#: src/Presentation/WooCommerce/CheckoutFields.php:62
+#: src/Presentation/WooCommerce/CheckoutFields.php:108
+msgid "Document type"
+msgstr ""
+
+#: src/Presentation/WooCommerce/CheckoutFields.php:127
+msgid "View PDF"
+msgstr ""
+
+#: src/Presentation/WooCommerce/CheckoutFields.php:180
+msgid "Generic RUT is not allowed."
+msgstr ""
+
+#: src/Presentation/WooCommerce/CheckoutFields.php:184
+msgid "Invalid RUT."
 msgstr ""

@@ -18,6 +18,7 @@ use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 use Sii\BoletaDte\Presentation\Admin\LogsPage;
 use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
 use Sii\BoletaDte\Presentation\Admin\Help;
+use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
@@ -70,7 +71,7 @@ class Container {
 						self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
 						self::bind( LogsPage::class, fn() => new LogsPage() );
 						self::bind( DiagnosticsPage::class, fn() => new DiagnosticsPage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ) ) );
-						self::bind( Help::class, fn() => new Help() );
+                                                self::bind( Help::class, fn() => new Help( self::get( Settings::class ), array( FoliosDb::class, 'has_type' ) ) );
 						self::bind( CheckoutFields::class, fn() => new CheckoutFields( self::get( Settings::class ) ) );
 												self::bind( FolioManager::class, fn() => new FolioManager( self::get( Settings::class ) ) );
                                                                                                 self::bind( QueueProcessor::class, fn() => new QueueProcessor( self::get( Api::class ) ) );

@@ -3,6 +3,7 @@ namespace Sii\BoletaDte\Infrastructure\Rest;
 
 use Sii\BoletaDte\Shared\SharedLogger;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
 use WP_Error;
 
 /**
@@ -51,6 +52,7 @@ class Api {
             $data = json_decode( $body, true );
             if ( isset( $data['trackId'] ) ) {
                 LogDb::add_entry( (string) $data['trackId'], 'sent', $body );
+                $this->maybe_mark_certification_progress( $environment );
                 return (string) $data['trackId'];
             }
             $this->logger->error( 'Invalid response: ' . $body );
@@ -135,6 +137,17 @@ class Api {
                 'url'  => $url,
             )
         );
+    }
+
+    private function maybe_mark_certification_progress( string $environment ): void {
+        if ( $this->is_certification_environment( $environment ) ) {
+            ProgressTracker::mark( ProgressTracker::OPTION_TEST_SEND );
+        }
+    }
+
+    private function is_certification_environment( string $environment ): bool {
+        $env = strtolower( trim( (string) $environment ) );
+        return in_array( $env, array( '0', 'test', 'certificacion', 'certification' ), true );
     }
 
     private function build_url( string $environment, string $path = '' ): string {

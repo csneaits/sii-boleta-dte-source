@@ -76,7 +76,7 @@ class Plugin {
                         $this->pdf_generator   = new PdfGenerator( $this->engine, $this->settings );
                         $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
                         \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
-			$this->help = $help ?? new Help();
+                        $this->help = $help ?? new Help( $this->settings );
 
 		if ( class_exists( 'WooCommerce' ) ) {
 						$this->woo = new Woo( $this );

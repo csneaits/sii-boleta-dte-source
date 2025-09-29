@@ -108,6 +108,10 @@ class DteEngineGenerateTest extends TestCase {
     }
 
     public function test_generate_dte_xml_does_not_prefill_missing_receptor_fields(): void {
+        if ( PHP_VERSION_ID < 80400 ) {
+            $this->markTestSkipped( 'PDF rendering assertions require PHP 8.4+ stack.' );
+        }
+
         FoliosDb::purge();
         FoliosDb::insert( 39, 1, 50 );
         $settings = new class extends Settings { public function get_settings(): array { return array(

@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/bootstrap.php" colors="true">
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+>
+    <coverage />
+    <source>
+        <include>
+            <directory suffix=".php">./src/Domain</directory>
+            <file>./src/Infrastructure/Rest/SignedUrlService.php</file>
+            <directory suffix=".php">./src/Shared</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./src/Presentation</directory>
+            <directory suffix=".php">./src/Infrastructure/WooCommerce</directory>
+            <directory suffix=".php">./src/Infrastructure/Persistence</directory>
+            <directory suffix=".php">./src/Infrastructure/Engine</directory>
+            <directory suffix=".php">./src/Application</directory>
+            <directory suffix=".php">./src/Infrastructure/Certification</directory>
+            <directory suffix=".php">./src/Infrastructure/Queue</directory>
+            <directory suffix=".php">./src/Infrastructure/Settings</directory>
+            <file>./src/Infrastructure/PdfGenerator.php</file>
+        </exclude>
+    </source>
     <testsuites>
         <testsuite name="Plugin Tests">
             <directory>./tests</directory>

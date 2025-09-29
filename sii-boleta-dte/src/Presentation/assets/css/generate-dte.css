@@ -244,23 +244,13 @@
     text-transform: uppercase;
     border-bottom: 1px solid rgba(148, 163, 184, 0.28);
 }
-    #sii-items-table thead th:first-child,
+#sii-items-table thead th:first-child,
 #sii-items-table tbody td:first-child {
-    width: 46%;
+    width: 82%;
 }
-    #sii-items-table thead th:nth-child(2),
-#sii-items-table tbody td:nth-child(2) {
-    width: 18%;
-    text-align: center;
-}
-    #sii-items-table thead th:nth-child(3),
-#sii-items-table tbody td:nth-child(3) {
-    width: 22%;
-    text-align: center;
-}
-    #sii-items-table thead th:last-child,
+#sii-items-table thead th:last-child,
 #sii-items-table tbody td:last-child {
-    width: 14%;
+    width: 18%;
     text-align: right;
 }
 #sii-items-table tbody tr {
@@ -277,14 +267,38 @@
     background: transparent;
     font-size: 0.9rem;
 }
+.sii-item-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+.sii-item-primary input {
+    width: 100%;
+}
+.sii-item-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+.sii-item-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #475569;
+}
+.sii-item-metric span {
+    font-weight: 600;
+}
+.sii-item-metric input {
+    max-width: 160px;
+    text-align: center;
+}
 #sii-items-table tbody tr:last-child td {
     border-bottom: none;
-}
-    #sii-items-table tbody td:nth-child(2) input,
-#sii-items-table tbody td:nth-child(3) input {
-    max-width: 140px;
-    margin: 0 auto;
-    text-align: center;
 }
 #sii-items-table tbody td:last-child {
     padding-right: 1.5rem;
@@ -487,6 +501,19 @@ body.sii-dte-modal-open {
 }
 #sii-items-table tbody td:last-child .remove-item {
     align-self: flex-start;
+}
+.sii-item-metrics {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sii-item-metric {
+    font-size: 0.82rem;
+    letter-spacing: normal;
+    text-transform: none;
+}
+.sii-item-metric input {
+    max-width: 100%;
+    text-align: left;
 }
 }
 @media (prefers-color-scheme: dark) {

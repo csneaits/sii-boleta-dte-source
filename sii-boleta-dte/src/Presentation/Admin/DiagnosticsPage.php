@@ -5,6 +5,7 @@ use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\TokenManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
 
 /**
  * Simple diagnostics page to verify requirements and test connectivity.
@@ -58,11 +59,12 @@ class DiagnosticsPage {
 						'type' => 'error',
 						'text' => __( 'No se pudo generar el token. El SII no devolvió credenciales.', 'sii-boleta-dte' ),
 					);
-				} else {
-					$messages[] = array(
-						'type' => 'success',
-						'text' => __( 'Token generado correctamente. El plugin pudo autenticarse contra el SII.', 'sii-boleta-dte' ),
-					);
+                                } else {
+                                        ProgressTracker::mark( ProgressTracker::OPTION_TOKEN );
+                                        $messages[] = array(
+                                                'type' => 'success',
+                                                'text' => __( 'Token generado correctamente. El plugin pudo autenticarse contra el SII.', 'sii-boleta-dte' ),
+                                        );
 				}
 			} elseif ( 'api' === $action ) {
 				$token  = $this->token_manager->get_token( 'boleta' );
@@ -97,11 +99,12 @@ class DiagnosticsPage {
 						),
 						'dump' => $raw_body,
 					);
-				} else {
-					$messages[] = array(
-						'type' => 'success',
-						'text' => __( 'Consulta a la API exitosa. El SII respondió al ping de estado.', 'sii-boleta-dte' ),
-					);
+                                } else {
+                                        ProgressTracker::mark( ProgressTracker::OPTION_API );
+                                        $messages[] = array(
+                                                'type' => 'success',
+                                                'text' => __( 'Consulta a la API exitosa. El SII respondió al ping de estado.', 'sii-boleta-dte' ),
+                                        );
 				}
 			}
 		}

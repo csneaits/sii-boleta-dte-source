@@ -59,6 +59,154 @@
     border: 1px solid rgba(226, 232, 240, 0.65);
     backdrop-filter: blur(6px);
 }
+.sii-generate-dte-steps {
+    counter-reset: sii-dte-step;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0 0 1.6rem;
+    padding: 0;
+    list-style: none;
+}
+.sii-generate-dte-steps li {
+    counter-increment: sii-dte-step;
+    flex: 1 1 180px;
+    min-width: 160px;
+}
+.sii-generate-dte-step-button {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1f2937;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    text-align: left;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.sii-generate-dte-step-button::before {
+    content: counter(sii-dte-step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.sii-generate-dte-step-button:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.65);
+    outline-offset: 2px;
+}
+.sii-generate-dte-step-button .sii-generate-dte-step-title {
+    flex: 1 1 auto;
+    line-height: 1.3;
+}
+.sii-generate-dte-steps li.is-active .sii-generate-dte-step-button {
+    border-color: rgba(37, 99, 235, 0.6);
+    background: rgba(59, 130, 246, 0.14);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    color: #0f172a;
+}
+.sii-generate-dte-steps li.is-active .sii-generate-dte-step-button::before {
+    background: #2563eb;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+.sii-generate-dte-steps li.is-complete .sii-generate-dte-step-button {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.12);
+    color: #0f5132;
+}
+.sii-generate-dte-steps li.is-complete .sii-generate-dte-step-button::before {
+    content: "\2713";
+    background: #059669;
+    color: #ffffff;
+}
+.sii-dte-step {
+    margin-bottom: 1.6rem;
+    border-radius: 14px;
+    border: 1px solid rgba(226, 232, 240, 0.65);
+    padding: 1.25rem 1.3rem 1.45rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.sii-dte-step.is-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.sii-dte-step:not(.is-active) {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.sii-dte-step[hidden] {
+    display: none !important;
+}
+.sii-dte-step-heading {
+    margin: 0 0 1.1rem;
+    font-size: 1.35rem;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+.sii-step-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+.sii-step-navigation .button {
+    min-width: 140px;
+    min-height: 42px;
+    font-weight: 600;
+}
+.sii-step-navigation .button.button-primary {
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+}
+.sii-step-navigation .button:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.65);
+    outline-offset: 2px;
+}
+.sii-step-navigation--right {
+    justify-content: flex-end;
+}
+.sii-step-navigation--between {
+    justify-content: space-between;
+}
+.sii-step-navigation--start {
+    justify-content: flex-start;
+}
+
+@media (max-width: 960px) {
+    .sii-generate-dte-steps {
+        flex-direction: column;
+    }
+    .sii-generate-dte-steps li {
+        flex: none;
+    }
+}
+
+@media (max-width: 782px) {
+    .sii-step-navigation {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sii-step-navigation .button {
+        width: 100%;
+    }
+}
 .sii-generate-dte-card--accent {
     background: linear-gradient(150deg, rgba(37, 99, 235, 0.14), rgba(56, 189, 248, 0.12));
     border-color: rgba(96, 165, 250, 0.4);

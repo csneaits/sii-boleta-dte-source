@@ -1,6 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
+use Sii\BoletaDte\Infrastructure\Security\CertificateStorage;
 use Sii\BoletaDte\Infrastructure\Settings;
 
 /**
@@ -570,38 +571,29 @@ class SettingsPage {
                         }
                 }
 
-        // Handle certificate upload if present.
-        if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {
-            $tmp  = (string) $_FILES['cert_file']['tmp_name'];
-            $name = sanitize_file_name( (string) ( $_FILES['cert_file']['name'] ?? 'cert.p12' ) );
-            $ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-            if ( ! in_array( $ext, array( 'p12', 'pfx' ), true ) ) {
-                add_settings_error( 'cert_file', 'invalid_ext', __( 'Certificate must be a .p12 or .pfx file.', 'sii-boleta-dte' ) );
-            } elseif ( ! file_exists( $tmp ) ) {
-                add_settings_error( 'cert_file', 'missing_tmp', __( 'Upload failed: temporary file not found.', 'sii-boleta-dte' ) );
-            } else {
-                $uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => WP_CONTENT_DIR . '/uploads' );
-                $base    = rtrim( (string) ( $uploads['basedir'] ?? ( WP_CONTENT_DIR . '/uploads' ) ), '/\\' );
-                $dir     = $base . '/sii-boleta-dte';
-                if ( function_exists( 'wp_mkdir_p' ) ) {
-                    wp_mkdir_p( $dir );
-                } else {
-                    if ( ! is_dir( $dir ) ) {
-                        @mkdir( $dir, 0755, true );
-                    }
-                }
-                $dest = $dir . '/' . $name;
-                if ( file_exists( $dest ) ) {
-                    $filename = pathinfo( $name, PATHINFO_FILENAME );
-                    $dest     = $dir . '/' . $filename . '-' . time() . '.' . $ext;
-                }
-                if ( @move_uploaded_file( $tmp, $dest ) ) {
-                    $output['cert_path'] = $dest;
-                } else {
-                    add_settings_error( 'cert_file', 'move_failed', __( 'Could not save the uploaded certificate.', 'sii-boleta-dte' ) );
-                }
-            }
-        } elseif ( isset( $input['cert_path'] ) ) {
+		$previous_cert_path = isset( $output['cert_path'] ) ? (string) $output['cert_path'] : '';
+
+		// Handle certificate upload if present.
+		if ( isset( $_FILES['cert_file'] ) && is_array( $_FILES['cert_file'] ) && (int) ( $_FILES['cert_file']['error'] ?? UPLOAD_ERR_NO_FILE ) === UPLOAD_ERR_OK ) {
+			$tmp  = (string) $_FILES['cert_file']['tmp_name'];
+			$name = sanitize_file_name( (string) ( $_FILES['cert_file']['name'] ?? 'cert.p12' ) );
+			$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+			if ( ! in_array( $ext, array( 'p12', 'pfx' ), true ) ) {
+				add_settings_error( 'cert_file', 'invalid_ext', __( 'Certificate must be a .p12 or .pfx file.', 'sii-boleta-dte' ) );
+			} elseif ( ! file_exists( $tmp ) ) {
+				add_settings_error( 'cert_file', 'missing_tmp', __( 'Upload failed: temporary file not found.', 'sii-boleta-dte' ) );
+			} else {
+				$stored = CertificateStorage::store_uploaded( $tmp, $name );
+				if ( null === $stored ) {
+					add_settings_error( 'cert_file', 'move_failed', __( 'Could not save the uploaded certificate.', 'sii-boleta-dte' ) );
+				} else {
+					if ( '' !== $previous_cert_path && $previous_cert_path !== $stored ) {
+						CertificateStorage::delete_if_managed( $previous_cert_path );
+					}
+					$output['cert_path'] = $stored;
+				}
+			}
+		} elseif ( isset( $input['cert_path'] ) ) {
             $path = trim( (string) $input['cert_path'] );
             if ( '' === $path ) {
                 $output['cert_path'] = '';

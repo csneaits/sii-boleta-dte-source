@@ -212,6 +212,48 @@
             return status;
         }
 
+        function getStepIncompleteMessage(){
+            if (form && form.dataset && form.dataset.stepIncomplete){
+                return form.dataset.stepIncomplete;
+            }
+            return getText('stepIncomplete', 'Completa los campos obligatorios antes de continuar.');
+        }
+
+        function getRequirementLabel(isRequired){
+            if (form && form.dataset){
+                if (isRequired && form.dataset.requiredLabel){
+                    return form.dataset.requiredLabel;
+                }
+                if (!isRequired && form.dataset.optionalLabel){
+                    return form.dataset.optionalLabel;
+                }
+            }
+            return getText(isRequired ? 'requiredBadge' : 'optionalBadge', isRequired ? 'Obligatorio' : 'Opcional');
+        }
+
+        function annotateFieldRequirements(){
+            if (!form){ return; }
+            var controls = form.querySelectorAll('input, select, textarea');
+            Array.prototype.forEach.call(controls, function(field){
+                if (!field.id || field.type === 'hidden'){ return; }
+                if (field.closest && field.closest('.sii-field-no-badge')){ return; }
+                var selectorId = field.id.replace(/"/g, '\\"');
+                var label = form.querySelector('label[for="' + selectorId + '"]');
+                if (!label){ return; }
+                label.classList.add('sii-field-label');
+                var badge = label.querySelector('.sii-field-badge');
+                if (!badge){
+                    badge = document.createElement('span');
+                    badge.className = 'sii-field-badge';
+                    label.appendChild(badge);
+                }
+                var requiredState = !!field.required;
+                badge.textContent = getRequirementLabel(requiredState);
+                badge.classList.toggle('sii-field-badge--required', requiredState);
+                badge.classList.toggle('sii-field-badge--optional', !requiredState);
+            });
+        }
+
         function setCurrentStep(step, options){
             if (!stepOrder.length){ return; }
             var target = (step && stepOrder.indexOf(step) !== -1) ? step : getCurrentStep() || stepOrder[0];
@@ -520,6 +562,7 @@
             }
             applyTextCorrectionLock(isNc && motive === 'texto');
             refreshSteps();
+            annotateFieldRequirements();
         }
 
         function updateTips(){
@@ -822,6 +865,7 @@
             updateCreditNoteUi();
             updateTips();
             refreshSteps();
+            annotateFieldRequirements();
         }
 
         if (tipoSelect){
@@ -965,12 +1009,14 @@
                     event.preventDefault();
                     var currentStepId = getCurrentStep();
                     if (!currentStepId){ return; }
+                    refreshSteps();
                     var status = stepState[currentStepId] || evaluateStep(currentStepId);
                     if (status && !status.complete){
                         setCurrentStep(currentStepId, { focus: true, focusField: status.firstInvalid });
                         if (status.firstInvalid && typeof status.firstInvalid.reportValidity === 'function'){
                             status.firstInvalid.reportValidity();
                         }
+                        showNotice('error', getStepIncompleteMessage());
                         return;
                     }
                     var idx = stepOrder.indexOf(currentStepId);
@@ -996,13 +1042,41 @@
             stepper.addEventListener('click', function(event){
                 var button = event && event.target && event.target.closest ? event.target.closest('[data-step-target]') : null;
                 if (!button){ return; }
+                event.preventDefault();
                 var targetStep = button.getAttribute('data-step-target');
                 if (!targetStep){ return; }
+                var currentStepId = getCurrentStep();
+                refreshSteps();
+                var targetIndex = stepOrder.indexOf(targetStep);
+                var currentIndex = currentStepId ? stepOrder.indexOf(currentStepId) : -1;
+                if (currentIndex !== -1 && targetIndex > currentIndex){
+                    var blockedStatus = null;
+                    var blockedIndex = -1;
+                    for (var i = currentIndex; i < targetIndex; i++){
+                        var stepId = stepOrder[i];
+                        var status = stepState[stepId] || evaluateStep(stepId);
+                        if (status && !status.complete){
+                            blockedStatus = status;
+                            blockedIndex = i;
+                            break;
+                        }
+                    }
+                    if (blockedStatus && blockedIndex !== -1){
+                        var stepToFocus = stepOrder[blockedIndex];
+                        setCurrentStep(stepToFocus, { focus: true, focusField: blockedStatus.firstInvalid });
+                        if (blockedStatus.firstInvalid && typeof blockedStatus.firstInvalid.reportValidity === 'function'){
+                            blockedStatus.firstInvalid.reportValidity();
+                        }
+                        showNotice('error', getStepIncompleteMessage());
+                        return;
+                    }
+                }
                 setCurrentStep(targetStep, { focus: true });
             });
         }
 
         refreshSteps();
+        annotateFieldRequirements();
 
         var triggerPreview = null;
         var triggerSend = null;

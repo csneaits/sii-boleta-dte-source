@@ -34,6 +34,20 @@
         var ncGlobalNote = document.getElementById('sii-nc-global-note');
         var tipsList = document.querySelector('.sii-generate-dte-tips');
         var tipItems = tipsList ? tipsList.querySelectorAll('[data-tip-type]') : null;
+        var stepper = document.getElementById('sii-generate-dte-steps');
+        var stepSections = document.querySelectorAll('.sii-dte-step');
+        var stepOrder = [];
+        var stepSectionsMap = {};
+        var stepState = {};
+        var creditNoteState = { valid: true, issue: null, field: null, message: '' };
+        if (stepSections && stepSections.length){
+            Array.prototype.forEach.call(stepSections, function(section){
+                var stepId = section.getAttribute('data-step');
+                if (!stepId){ return; }
+                stepOrder.push(stepId);
+                stepSectionsMap[stepId] = section;
+            });
+        }
 
         function getText(key, fallback){
             if (texts && typeof texts[key] === 'string' && texts[key]){
@@ -123,6 +137,183 @@
             rutInput.classList.remove('sii-rut-invalid');
             rutInput.setCustomValidity('');
             return true;
+        }
+
+        function focusField(field){
+            if (!field || typeof field.focus !== 'function'){ return; }
+            if (field.scrollIntoView && field.offsetParent === null){
+                try { field.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+                catch (err) { /* ignore */ }
+            }
+            try { field.focus({ preventScroll: true }); }
+            catch (err) {
+                try { field.focus(); }
+                catch (err2) { /* ignore */ }
+            }
+        }
+
+        function isFieldRelevant(field){
+            if (!field || field.disabled){ return false; }
+            if (field.type === 'hidden'){ return false; }
+            var el = field;
+            while (el){
+                if (el.hasAttribute && el.hasAttribute('hidden')){ return false; }
+                if (window.getComputedStyle){
+                    var style = window.getComputedStyle(el);
+                    if (style && (style.display === 'none' || style.visibility === 'hidden')){
+                        return false;
+                    }
+                }
+                el = el.parentElement;
+            }
+            if (typeof field.offsetParent === 'undefined'){ return true; }
+            if (field.offsetParent === null && field.getClientRects && field.getClientRects().length === 0){
+                return false;
+            }
+            return true;
+        }
+
+        function findStepForField(field){
+            if (!field || !field.closest){ return null; }
+            var section = field.closest('.sii-dte-step');
+            if (!section){ return null; }
+            var step = section.getAttribute('data-step');
+            return step || null;
+        }
+
+        function getCurrentStep(){
+            if (!stepOrder.length){ return null; }
+            var current = stepper ? stepper.getAttribute('data-current-step') : null;
+            if (!current || stepOrder.indexOf(current) === -1){
+                current = stepOrder[0];
+                if (stepper){ stepper.setAttribute('data-current-step', current); }
+            }
+            return current;
+        }
+
+        function evaluateStep(step){
+            var status = { complete: true, firstInvalid: null };
+            var section = stepSectionsMap[step];
+            if (!section){ return status; }
+            var fields = section.querySelectorAll('input,select,textarea');
+            Array.prototype.some.call(fields, function(field){
+                if (!isFieldRelevant(field)){ return false; }
+                if (typeof field.checkValidity === 'function' && !field.checkValidity()){
+                    status.complete = false;
+                    status.firstInvalid = field;
+                    return true;
+                }
+                return false;
+            });
+            if (status.complete && step === 'resumen' && creditNoteState && !creditNoteState.valid){
+                status.complete = false;
+                status.firstInvalid = creditNoteState.field || status.firstInvalid;
+            }
+            return status;
+        }
+
+        function setCurrentStep(step, options){
+            if (!stepOrder.length){ return; }
+            var target = (step && stepOrder.indexOf(step) !== -1) ? step : getCurrentStep() || stepOrder[0];
+            if (stepper){ stepper.setAttribute('data-current-step', target); }
+            refreshSteps();
+            if (options && options.focus){
+                var focusTarget = options.focusField || (stepSectionsMap[target] ? stepSectionsMap[target].querySelector('input,select,textarea,button,a[href]') : null);
+                focusField(focusTarget);
+            }
+        }
+
+        function evaluateCreditNoteState(){
+            var state = { valid: true, issue: null, field: null, message: '' };
+            if (!isCreditNote() || !refBody){ return state; }
+            var rows = refBody.querySelectorAll('tr');
+            var firstField = null;
+            var hasReference = false;
+            var firstMissing = null;
+            var firstMissingReason = null;
+            var motive = getNcMotivo();
+            Array.prototype.forEach.call(rows, function(row){
+                var tipoField = row.querySelector('[data-ref-field="tipo"]');
+                var folioField = row.querySelector('[data-ref-field="folio"]');
+                var fechaField = row.querySelector('[data-ref-field="fecha"]');
+                var reasonField = row.querySelector('[data-ref-field="razon"]');
+                if (!firstField){
+                    firstField = tipoField || folioField || fechaField || reasonField;
+                }
+                var tipoVal = tipoField ? tipoField.value.trim() : '';
+                var folioVal = folioField ? folioField.value.trim() : '';
+                var fechaVal = fechaField ? fechaField.value.trim() : '';
+                var reasonVal = reasonField ? reasonField.value.trim() : '';
+                if (!tipoVal && !folioVal && !fechaVal && !reasonVal){
+                    return;
+                }
+                hasReference = true;
+                if (!firstMissing){
+                    if (!tipoVal){ firstMissing = tipoField; }
+                    else if (!folioVal){ firstMissing = folioField; }
+                    else if (!fechaVal){ firstMissing = fechaField; }
+                }
+                if (!firstMissingReason && motive === 'texto' && tipoVal && folioVal && fechaVal && !reasonVal){
+                    firstMissingReason = reasonField;
+                }
+            });
+            if (!hasReference){
+                state.valid = false;
+                state.issue = 'required';
+                state.field = firstField;
+                state.message = form && form.dataset ? (form.dataset.ncRequired || '') : '';
+                return state;
+            }
+            if (firstMissing){
+                state.valid = false;
+                state.issue = 'incomplete';
+                state.field = firstMissing;
+                state.message = form && form.dataset ? (form.dataset.ncIncomplete || '') : '';
+                return state;
+            }
+            if (firstMissingReason){
+                state.valid = false;
+                state.issue = 'reason';
+                state.field = firstMissingReason;
+                state.message = form && form.dataset ? (form.dataset.ncReason || '') : '';
+                return state;
+            }
+            return state;
+        }
+
+        function refreshSteps(){
+            if (!stepOrder.length){ return; }
+            var current = getCurrentStep();
+            stepState = {};
+            creditNoteState = evaluateCreditNoteState();
+            stepOrder.forEach(function(step){
+                var status = evaluateStep(step);
+                stepState[step] = status;
+                var section = stepSectionsMap[step];
+                var isActive = step === current;
+                if (section){
+                    section.classList.toggle('is-active', isActive);
+                    if (isActive){
+                        section.removeAttribute('hidden');
+                        section.setAttribute('aria-hidden', 'false');
+                    } else {
+                        section.setAttribute('hidden', 'hidden');
+                        section.setAttribute('aria-hidden', 'true');
+                    }
+                }
+                if (stepper){
+                    var item = stepper.querySelector('[data-step="' + step + '"]');
+                    if (item){
+                        item.classList.toggle('is-active', isActive);
+                        item.classList.toggle('is-complete', status.complete);
+                        if (isActive){
+                            item.setAttribute('aria-current', 'step');
+                        } else {
+                            item.removeAttribute('aria-current');
+                        }
+                    }
+                }
+            });
         }
 
         function enhanceNumberField(input){
@@ -328,6 +519,7 @@
                 });
             }
             applyTextCorrectionLock(isNc && motive === 'texto');
+            refreshSteps();
         }
 
         function updateTips(){
@@ -350,46 +542,22 @@
         }
 
         function validateCreditNote(){
-            if (!isCreditNote()){ return true; }
-            if (!refBody){ return true; }
-            var rows = refBody.querySelectorAll('tr');
-            var hasReference = false;
-            var incomplete = false;
-            var missingReason = false;
-            var motive = getNcMotivo();
-            Array.prototype.forEach.call(rows, function(row){
-                var tipoField = row.querySelector('[data-ref-field="tipo"]');
-                var folioField = row.querySelector('[data-ref-field="folio"]');
-                var fechaField = row.querySelector('[data-ref-field="fecha"]');
-                var reasonField = row.querySelector('[data-ref-field="razon"]');
-                var tipoVal = tipoField ? tipoField.value.trim() : '';
-                var folioVal = folioField ? folioField.value.trim() : '';
-                var fechaVal = fechaField ? fechaField.value.trim() : '';
-                var reasonVal = reasonField ? reasonField.value.trim() : '';
-                if (!tipoVal && !folioVal && !fechaVal && !reasonVal){
-                    return;
+            creditNoteState = evaluateCreditNoteState();
+            refreshSteps();
+            if (!creditNoteState.valid){
+                if (creditNoteState.message){
+                    showNotice('error', creditNoteState.message);
                 }
-                hasReference = true;
-                if (!tipoVal || !folioVal || !fechaVal){
-                    incomplete = true;
+                var field = creditNoteState.field;
+                if (field){
+                    var step = findStepForField(field) || 'resumen';
+                    setCurrentStep(step, { focus: true, focusField: field });
+                    if (typeof field.reportValidity === 'function'){
+                        field.reportValidity();
+                    }
+                } else {
+                    setCurrentStep('resumen', { focus: true });
                 }
-                if (motive === 'texto' && tipoVal && folioVal && fechaVal && !reasonVal){
-                    missingReason = true;
-                }
-            });
-            if (!hasReference){
-                var msgRequired = form && form.dataset ? form.dataset.ncRequired : '';
-                if (msgRequired){ showNotice('error', msgRequired); }
-                return false;
-            }
-            if (incomplete){
-                var msgIncomplete = form && form.dataset ? form.dataset.ncIncomplete : '';
-                if (msgIncomplete){ showNotice('error', msgIncomplete); }
-                return false;
-            }
-            if (missingReason){
-                var msgReason = form && form.dataset ? form.dataset.ncReason : '';
-                if (msgReason){ showNotice('error', msgReason); }
                 return false;
             }
             return true;
@@ -653,6 +821,7 @@
             validateRutField(false);
             updateCreditNoteUi();
             updateTips();
+            refreshSteps();
         }
 
         if (tipoSelect){
@@ -779,6 +948,61 @@
                 }
             });
         }
+
+        if (form){
+            form.addEventListener('invalid', function(event){
+                var target = event && event.target ? event.target : null;
+                var step = findStepForField(target);
+                if (step){
+                    setCurrentStep(step, { focus: true, focusField: target });
+                }
+            }, true);
+            form.addEventListener('input', function(){ refreshSteps(); }, true);
+            form.addEventListener('change', function(){ refreshSteps(); }, true);
+            form.addEventListener('click', function(event){
+                var nextBtn = event && event.target && event.target.closest ? event.target.closest('.sii-step-next') : null;
+                if (nextBtn){
+                    event.preventDefault();
+                    var currentStepId = getCurrentStep();
+                    if (!currentStepId){ return; }
+                    var status = stepState[currentStepId] || evaluateStep(currentStepId);
+                    if (status && !status.complete){
+                        setCurrentStep(currentStepId, { focus: true, focusField: status.firstInvalid });
+                        if (status.firstInvalid && typeof status.firstInvalid.reportValidity === 'function'){
+                            status.firstInvalid.reportValidity();
+                        }
+                        return;
+                    }
+                    var idx = stepOrder.indexOf(currentStepId);
+                    if (idx !== -1 && idx + 1 < stepOrder.length){
+                        setCurrentStep(stepOrder[idx + 1], { focus: true });
+                    }
+                    return;
+                }
+                var prevBtn = event && event.target && event.target.closest ? event.target.closest('.sii-step-prev') : null;
+                if (prevBtn){
+                    event.preventDefault();
+                    var activeStep = getCurrentStep();
+                    if (!activeStep){ return; }
+                    var currentIndex = stepOrder.indexOf(activeStep);
+                    if (currentIndex > 0){
+                        setCurrentStep(stepOrder[currentIndex - 1], { focus: true });
+                    }
+                }
+            });
+        }
+
+        if (stepper){
+            stepper.addEventListener('click', function(event){
+                var button = event && event.target && event.target.closest ? event.target.closest('[data-step-target]') : null;
+                if (!button){ return; }
+                var targetStep = button.getAttribute('data-step-target');
+                if (!targetStep){ return; }
+                setCurrentStep(targetStep, { focus: true });
+            });
+        }
+
+        refreshSteps();
 
         var triggerPreview = null;
         var triggerSend = null;

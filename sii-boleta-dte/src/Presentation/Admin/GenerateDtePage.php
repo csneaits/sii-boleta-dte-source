@@ -614,7 +614,8 @@ class GenerateDtePage {
 												<th scope="row"><label for="sii-ref-table"><?php esc_html_e( 'Referencias', 'sii-boleta-dte' ); ?></label></th>
 												<td>
 														<p class="description" id="sii-nc-reference-hint" data-hint-anula="<?php esc_attr_e( 'La referencia usará el código 1 para anular el documento original. Completa folio y fecha.', 'sii-boleta-dte' ); ?>" data-hint-texto="<?php esc_attr_e( 'La referencia usará el código 2 para corregir texto. Describe la corrección en la glosa y completa folio y fecha.', 'sii-boleta-dte' ); ?>" data-hint-montos="<?php esc_attr_e( 'La referencia usará el código 3 para corregir montos. Completa folio y fecha del documento base.', 'sii-boleta-dte' ); ?>" style="display:none;"></p>
-														<table id="sii-ref-table" class="widefat">
+                                                                                                                <div class="sii-ref-table-wrapper">
+                                                                                                                               <table id="sii-ref-table" class="widefat">
 																<thead>
 																		<tr>
 																				<th><?php esc_html_e( 'Tipo', 'sii-boleta-dte' ); ?></th>
@@ -664,7 +665,8 @@ class GenerateDtePage {
 																				</td>
 																		</tr>
 																</tbody>
-														</table>
+                                                                                                                               </table>
+                                                                                                                </div>
 														<p><button type="button" class="button" id="sii-add-reference"><?php esc_html_e( 'Agregar referencia', 'sii-boleta-dte' ); ?></button></p>
 														<p class="description" id="sii-nc-global-note" style="display:none;">
 																<?php esc_html_e( 'Las notas de crédito 61 siempre refieren a un documento específico, por lo que la casilla “Global” permanecerá desactivada.', 'sii-boleta-dte' ); ?>

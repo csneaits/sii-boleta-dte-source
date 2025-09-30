@@ -16,6 +16,20 @@ class DefaultEmisorDataBuilder implements EmisorDataBuilderInterface {
                         ?? '';
                 $customGiro = is_string( $customGiro ) ? trim( $customGiro ) : '';
 
+                $settingsCdgVendedor = '';
+                if ( isset( $settings['cdg_vendedor'] ) ) {
+                        $settingsCdgVendedor = is_string( $settings['cdg_vendedor'] ) ? trim( $settings['cdg_vendedor'] ) : '';
+                }
+
+                $cdgVendedor = '';
+                if ( '' !== $settingsCdgVendedor ) {
+                        $cdgVendedor = $settingsCdgVendedor;
+                } elseif ( isset( $emisorData['CdgVendedor'] ) && is_string( $emisorData['CdgVendedor'] ) ) {
+                        $cdgVendedor = trim( $emisorData['CdgVendedor'] );
+                } elseif ( isset( $payload['CdgVendedor'] ) && is_string( $payload['CdgVendedor'] ) ) {
+                        $cdgVendedor = trim( $payload['CdgVendedor'] );
+                }
+
                 $emisor = array(
                         'RUTEmisor'    => $settings['rut_emisor']
                                 ?? $emisorData['RUTEmisor']
@@ -41,6 +55,7 @@ class DefaultEmisorDataBuilder implements EmisorDataBuilderInterface {
                                 ?? $emisorData['CmnaOrigen']
                                 ?? $payload['CmnaOrigen']
                                 ?? '',
+                        'CdgVendedor'  => $cdgVendedor,
                 );
 
                 if ( '' !== $emisor['RznSocEmisor'] ) {

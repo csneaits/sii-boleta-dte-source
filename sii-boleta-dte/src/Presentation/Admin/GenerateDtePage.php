@@ -225,9 +225,28 @@ class GenerateDtePage {
 																						data-nc-incomplete="<?php esc_attr_e( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ); ?>"
 																						data-nc-reason="<?php esc_attr_e( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ); ?>"
 																						data-nc-reason-placeholder="<?php esc_attr_e( 'Describe la corrección aplicada al documento original', 'sii-boleta-dte' ); ?>">
-													<?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
-													<table class="form-table" role="presentation">
-														<tbody>
+                                <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
+                                <ol class="sii-generate-dte-steps" id="sii-generate-dte-steps" data-current-step="identificacion" aria-label="<?php esc_attr_e( 'Progreso del formulario', 'sii-boleta-dte' ); ?>">
+                                                <li data-step="identificacion" class="is-active">
+                                                                <button type="button" class="sii-generate-dte-step-button" data-step-target="identificacion">
+                                                                                <span class="sii-generate-dte-step-title"><?php esc_html_e( 'Identificación', 'sii-boleta-dte' ); ?></span>
+                                                                </button>
+                                                </li>
+                                                <li data-step="items">
+                                                                <button type="button" class="sii-generate-dte-step-button" data-step-target="items">
+                                                                                <span class="sii-generate-dte-step-title"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></span>
+                                                                </button>
+                                                </li>
+                                                <li data-step="resumen">
+                                                                <button type="button" class="sii-generate-dte-step-button" data-step-target="resumen">
+                                                                                <span class="sii-generate-dte-step-title"><?php esc_html_e( 'Resumen', 'sii-boleta-dte' ); ?></span>
+                                                                </button>
+                                                </li>
+                                </ol>
+                                <section class="sii-dte-step" data-step="identificacion" aria-labelledby="sii-dte-step-identificacion">
+                                                <h2 id="sii-dte-step-identificacion" class="sii-dte-step-heading"><?php esc_html_e( 'Identificación', 'sii-boleta-dte' ); ?></h2>
+                                                <table class="form-table" role="presentation">
+                                                                <tbody>
 													<tr>
 														<th scope="row"><label for="sii-tipo"><?php esc_html_e( 'Tipo de documento', 'sii-boleta-dte' ); ?></label></th>
 														<td>
@@ -427,36 +446,19 @@ class GenerateDtePage {
 <th scope="row"><label for="sii-cdg-int-recep"><?php esc_html_e( 'Código interno del receptor', 'sii-boleta-dte' ); ?></label></th>
 <td><input type="text" id="sii-cdg-int-recep" name="cod_int_recep" class="regular-text" value="<?php echo $val( 'cod_int_recep' ); ?>" /></td>
 </tr>
-<tr class="dte-section" data-types="33,39,41" style="display:none">
-<th scope="row"><label for="sii-descuento-global"><?php esc_html_e( 'Descuentos o recargos globales', 'sii-boleta-dte' ); ?></label></th>
-<td>
-<div class="sii-generate-grid">
-<label>
-<span><?php esc_html_e( 'Movimiento', 'sii-boleta-dte' ); ?></span>
-																																		<select id="sii-descuento-global" name="dsc_global_mov">
-																																				<option value="">—</option>
-				<option value="D" <?php selected( $current_dsc_mov, 'D', true ); ?>><?php esc_html_e( 'Descuento', 'sii-boleta-dte' ); ?></option>
-				<option value="R" <?php selected( $current_dsc_mov, 'R', true ); ?>><?php esc_html_e( 'Recargo', 'sii-boleta-dte' ); ?></option>
-																																		</select>
-																																</label>
-																																<label>
-																																		<span><?php esc_html_e( 'Tipo de valor', 'sii-boleta-dte' ); ?></span>
-																																		<select name="dsc_global_tipo">
-																																				<option value="">—</option>
-				<option value="%" <?php selected( $current_dsc_tipo, '%', true ); ?>><?php esc_html_e( 'Porcentaje', 'sii-boleta-dte' ); ?></option>
-				<option value="$" <?php selected( $current_dsc_tipo, '$', true ); ?>><?php esc_html_e( 'Monto', 'sii-boleta-dte' ); ?></option>
-																																		</select>
-																																</label>
-																																<label>
-																																		<span><?php esc_html_e( 'Valor', 'sii-boleta-dte' ); ?></span>
-																																		<input type="number" name="dsc_global_valor" step="0.01" inputmode="decimal" value="<?php echo $val( 'dsc_global_valor' ); ?>" />
-																																</label>
-																														</div>
-																												</td>
-																										</tr>
-													<tr>
-												<th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
-														<td>
+                                                                </tbody>
+                                                </table>
+                                                <div class="sii-step-navigation sii-step-navigation--right">
+                                                                <button type="button" class="button button-primary sii-step-next"><?php esc_html_e( 'Siguiente', 'sii-boleta-dte' ); ?></button>
+                                                </div>
+                                </section>
+                                <section class="sii-dte-step" data-step="items" aria-labelledby="sii-dte-step-items">
+                                                <h2 id="sii-dte-step-items" class="sii-dte-step-heading"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></h2>
+                                                <table class="form-table" role="presentation">
+                                                                <tbody>
+                                                                <tr>
+                                                                                                <th scope="row"><label for="sii-items"><?php esc_html_e( 'Ítems', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                                <td>
                                                                                                                                <table id="sii-items-table" class="widefat">
                                                                                                                                <thead>
                                                                                                                                <tr>
@@ -549,9 +551,48 @@ class GenerateDtePage {
                                                                                                                                </tbody>
                                                                                                                         </table>
 														<p><button type="button" class="button" id="sii-add-item"><?php esc_html_e( 'Agregar ítem', 'sii-boleta-dte' ); ?></button></p>
-														</td>
-													</tr>
-										<tr class="dte-section" data-types="61" style="display:none" id="sii-nc-motivo-row">
+                                                                                                               </td>
+                                                                                                       </tr>
+												</tbody>
+										</table>
+										<div class="sii-step-navigation sii-step-navigation--between">
+												<button type="button" class="button sii-step-prev"><?php esc_html_e( 'Anterior', 'sii-boleta-dte' ); ?></button>
+												<button type="button" class="button button-primary sii-step-next"><?php esc_html_e( 'Siguiente', 'sii-boleta-dte' ); ?></button>
+										</div>
+								</section>
+								<section class="sii-dte-step" data-step="resumen" aria-labelledby="sii-dte-step-resumen">
+										<h2 id="sii-dte-step-resumen" class="sii-dte-step-heading"><?php esc_html_e( 'Resumen y referencias', 'sii-boleta-dte' ); ?></h2>
+										<table class="form-table" role="presentation">
+												<tbody>
+
+                                                                                <tr class="dte-section" data-types="33,39,41" style="display:none">
+                                                                                                <th scope="row"><label for="sii-descuento-global"><?php esc_html_e( 'Descuentos o recargos globales', 'sii-boleta-dte' ); ?></label></th>
+                                                                                                <td>
+                                                                                                                <div class="sii-generate-grid">
+                                                                                                                        <label>
+                                                                                                                                <span><?php esc_html_e( 'Movimiento', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                <select id="sii-descuento-global" name="dsc_global_mov">
+                                                                                                                                        <option value="">—</option>
+                                <option value="D" <?php selected( $current_dsc_mov, 'D', true ); ?>><?php esc_html_e( 'Descuento', 'sii-boleta-dte' ); ?></option>
+                                <option value="R" <?php selected( $current_dsc_mov, 'R', true ); ?>><?php esc_html_e( 'Recargo', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                </select>
+                                                                                                                        </label>
+                                                                                                                        <label>
+                                                                                                                                <span><?php esc_html_e( 'Tipo de valor', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                <select name="dsc_global_tipo">
+                                                                                                                                        <option value="">—</option>
+                                <option value="%" <?php selected( $current_dsc_tipo, '%', true ); ?>><?php esc_html_e( 'Porcentaje', 'sii-boleta-dte' ); ?></option>
+                                <option value="$" <?php selected( $current_dsc_tipo, '$', true ); ?>><?php esc_html_e( 'Monto', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                </select>
+                                                                                                                        </label>
+                                                                                                                        <label>
+                                                                                                                                <span><?php esc_html_e( 'Valor', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                <input type="number" name="dsc_global_valor" step="0.01" inputmode="decimal" value="<?php echo $val( 'dsc_global_valor' ); ?>" />
+                                                                                                                        </label>
+                                                                                                                </div>
+                                                                                                </td>
+                                                                                </tr>
+                                                                                <tr class="dte-section" data-types="61" style="display:none" id="sii-nc-motivo-row">
 												<th scope="row"><label for="sii-nc-motivo"><?php esc_html_e( 'Motivo de la nota de crédito', 'sii-boleta-dte' ); ?></label></th>
 												<td>
 														<select id="sii-nc-motivo" name="nc_motivo">
@@ -629,9 +670,13 @@ class GenerateDtePage {
 										</tr>
 																</tbody>
 																</table>
+												<div class="sii-step-navigation sii-step-navigation--start">
+														<button type="button" class="button sii-step-prev"><?php esc_html_e( 'Anterior', 'sii-boleta-dte' ); ?></button>
+												</div>
 																<div class="sii-generate-actions">
 																<?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
 																<?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
+								</section>
 										</form>
 								</div>
 								<aside class="sii-generate-dte-aside">

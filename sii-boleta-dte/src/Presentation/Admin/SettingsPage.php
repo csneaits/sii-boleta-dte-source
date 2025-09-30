@@ -37,7 +37,8 @@ class SettingsPage {
 		add_settings_field( 'direccion', __( 'Dirección', 'sii-boleta-dte' ), array( $this, 'field_direccion' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'comuna', __( 'Comuna', 'sii-boleta-dte' ), array( $this, 'field_comuna' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 		add_settings_field( 'acteco', __( 'Código Acteco', 'sii-boleta-dte' ), array( $this, 'field_acteco' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
-		add_settings_field( 'cdg_sii_sucur', __( 'CdgSiiSucur (opcional)', 'sii-boleta-dte' ), array( $this, 'field_cdg_sii_sucur' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
+                add_settings_field( 'cdg_sii_sucur', __( 'CdgSiiSucur (opcional)', 'sii-boleta-dte' ), array( $this, 'field_cdg_sii_sucur' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
+                add_settings_field( 'cdg_vendedor', __( 'CdgVendedor (opcional)', 'sii-boleta-dte' ), array( $this, 'field_cdg_vendedor' ), 'sii-boleta-dte', 'sii_boleta_emitter' );
 
 		// Certificate and CAF.
 		add_settings_section( 'sii_boleta_cert', __( 'Certificate and CAF', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
@@ -133,6 +134,12 @@ class SettingsPage {
 		$settings = $this->settings->get_settings();
 		$value    = esc_attr( $settings['cdg_sii_sucur'] ?? '' );
 		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[cdg_sii_sucur]" value="' . $value . '" />';
+	}
+
+	public function field_cdg_vendedor(): void {
+		$settings = $this->settings->get_settings();
+		$value    = esc_attr( $settings['cdg_vendedor'] ?? '' );
+		echo '<input type="text" name="' . esc_attr( Settings::OPTION_NAME ) . '[cdg_vendedor]" value="' . $value . '" />';
 	}
 
     public function field_cert_path(): void {
@@ -544,6 +551,10 @@ class SettingsPage {
 
                 if ( isset( $input['cdg_sii_sucur'] ) ) {
                         $output['cdg_sii_sucur'] = sanitize_text_field( $input['cdg_sii_sucur'] );
+                }
+
+                if ( isset( $input['cdg_vendedor'] ) ) {
+                        $output['cdg_vendedor'] = sanitize_text_field( $input['cdg_vendedor'] );
                 }
 
                 $output['rvd_auto_enabled'] = empty( $input['rvd_auto_enabled'] ) ? 0 : 1;

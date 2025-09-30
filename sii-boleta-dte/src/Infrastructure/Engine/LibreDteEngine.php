@@ -138,7 +138,7 @@ class LibreDteEngine implements DteEngine {
 
         if ( $preview ) {
             $available_settings = array();
-            foreach ( array( 'rut_emisor', 'razon_social', 'giro', 'direccion', 'comuna' ) as $field ) {
+            foreach ( array( 'rut_emisor', 'razon_social', 'giro', 'direccion', 'comuna', 'cdg_vendedor' ) as $field ) {
                 if ( isset( $settings[ $field ] ) && '' !== trim( (string) $settings[ $field ] ) ) {
                     $available_settings[] = $field;
                 }

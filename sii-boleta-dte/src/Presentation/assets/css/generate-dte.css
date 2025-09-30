@@ -352,12 +352,32 @@
 }
 #sii-ref-table {
     width: 100%;
+    min-width: 720px;
     border-collapse: collapse;
-    border-radius: 16px;
-    overflow: hidden;
+}
+#sii-ref-table caption {
+    caption-side: bottom;
+}
+.sii-ref-table-wrapper {
     margin-top: 0.75rem;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    overflow: auto;
+    max-height: 320px;
+    scrollbar-width: thin;
+}
+.sii-ref-table-wrapper::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+.sii-ref-table-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 999px;
+}
+.sii-ref-table-wrapper::-webkit-scrollbar-track {
+    background: rgba(226, 232, 240, 0.4);
+    border-radius: 999px;
 }
 #sii-ref-table thead th {
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(16, 185, 129, 0.18));
@@ -381,6 +401,15 @@
     min-height: 42px;
     padding: 0.45rem 0.55rem;
     font-size: 0.95rem;
+}
+#sii-ref-table select[data-ref-field="tipo"] {
+    min-width: 160px;
+}
+#sii-ref-table input[data-ref-field="folio"] {
+    min-width: 140px;
+}
+#sii-ref-table input[data-ref-field="razon"] {
+    min-width: 220px;
 }
 .sii-generate-dte form #sii-add-reference {
     margin-top: 0.85rem;

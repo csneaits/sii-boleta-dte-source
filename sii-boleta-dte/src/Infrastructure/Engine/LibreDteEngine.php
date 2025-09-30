@@ -202,13 +202,16 @@ class LibreDteEngine implements DteEngine {
             return '';
         }
 
-        $xmlString = $factory->createTotalsAdjuster()->adjust(
-            $xmlString,
-            $preparation->getDetalle(),
-            $tipo,
-            $preparation->getTasaIva(),
-            $preparation->getGlobalDiscounts()
-        );
+        $totalsAdjuster = $factory->createTotalsAdjuster();
+        if ( $totalsAdjuster->supports( $tipo ) ) {
+            $xmlString = $totalsAdjuster->adjust(
+                $xmlString,
+                $preparation->getDetalle(),
+                $tipo,
+                $preparation->getTasaIva(),
+                $preparation->getGlobalDiscounts()
+            );
+        }
 
         $xmlString = $this->placeholderCleaner->clean(
             $xmlString,

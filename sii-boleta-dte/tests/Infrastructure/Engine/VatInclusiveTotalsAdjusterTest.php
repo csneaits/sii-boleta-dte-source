@@ -3,6 +3,7 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\FacturaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\VatInclusiveDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\TotalsAdjusterInterface;
 use Sii\BoletaDte\Infrastructure\Settings;
 
 if ( ! class_exists( 'Dummy_Vat_Settings' ) ) {
@@ -86,6 +87,67 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         $this->assertSame( 1200, (int) $totals->MntTotal );
         $this->assertSame( 1008, (int) $totals->MntNeto );
         $this->assertSame( 192, (int) $totals->IVA );
+    }
+
+    public function test_engine_skips_adjustment_when_not_supported(): void {
+        $spyAdjuster = new class() implements TotalsAdjusterInterface {
+            public bool $called = false;
+
+            public function adjust( string $xml, array $detalle, int $tipo, ?float $tasaIva, array $globalDiscounts ): string {
+                $this->called = true;
+
+                return 'adjusted';
+            }
+
+            public function supports( int $tipo ): bool {
+                return false;
+            }
+        };
+
+        $root = __DIR__ . '/../../../resources/yaml/';
+        $engine = new LibreDteEngine( new Dummy_Vat_Settings() );
+
+        $factory = new class( $root, $spyAdjuster ) extends FacturaDteDocumentFactory {
+            public function __construct( string $templateRoot, private TotalsAdjusterInterface $spy ) {
+                parent::__construct( $templateRoot );
+            }
+
+            public function createTotalsAdjuster(): TotalsAdjusterInterface {
+                return $this->spy;
+            }
+        };
+
+        $engine->register_document_factory( 33, $factory );
+
+        $data = array(
+            'Folio'      => 1,
+            'FchEmis'    => '2024-05-01',
+            'Encabezado' => array(
+                'Totales' => array(
+                    'TasaIVA' => 19,
+                ),
+            ),
+            'Receptor'   => array(
+                'RUTRecep'    => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep'    => 'Dir',
+                'CmnaRecep'   => 'Comuna',
+            ),
+            'Detalles'   => array(
+                array(
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'TEST',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1200,
+                ),
+            ),
+        );
+
+        $xml = $engine->generate_dte_xml( $data, 33, true );
+
+        $this->assertIsString( $xml );
+        $this->assertFalse( $spyAdjuster->called );
+        $this->assertNotSame( 'adjusted', $xml );
     }
 
     private function createEngineWithFactories(): LibreDteEngine {

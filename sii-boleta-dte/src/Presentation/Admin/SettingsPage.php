@@ -281,45 +281,184 @@ class SettingsPage {
 	 * Outputs the settings page markup.
 	 */
     public function render_page(): void {
-            AdminStyles::open_container( 'sii-settings-page' );
-            echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
-            echo '<div class="sii-admin-card sii-admin-card--form">';
-            // Enable file uploads in settings form.
-            echo '<form method="post" action="options.php" enctype="multipart/form-data">';
-            settings_fields( Settings::OPTION_GROUP );
-            do_settings_sections( 'sii-boleta-dte' );
-            submit_button();
-            echo '</form>';
-            echo '</div>';
-            $this->render_requirements_check();
-            AdminStyles::close_container();
+        if ( ! function_exists( 'settings_fields' ) ) {
+            return;
+        }
+
+        $steps = array(
+            'emitter'      => array(
+                'label'       => __( 'Emitter', 'sii-boleta-dte' ),
+                'title'       => __( 'Business identity', 'sii-boleta-dte' ),
+                'description' => __( 'Complete the legal information that will appear on every document sent to the SII.', 'sii-boleta-dte' ),
+                'sections'    => array( 'sii_boleta_emitter' ),
+            ),
+            'credentials'  => array(
+                'label'       => __( 'Credentials', 'sii-boleta-dte' ),
+                'title'       => __( 'Certificate & environment', 'sii-boleta-dte' ),
+                'description' => __( 'Upload the signing certificate, define passwords and choose the environment for testing or production.', 'sii-boleta-dte' ),
+                'sections'    => array( 'sii_boleta_cert', 'sii_boleta_env' ),
+            ),
+            'pdf'          => array(
+                'label'       => __( 'Branding', 'sii-boleta-dte' ),
+                'title'       => __( 'PDF layout', 'sii-boleta-dte' ),
+                'description' => __( 'Customize the PDF template, choose the format and add your logo or footer notes.', 'sii-boleta-dte' ),
+                'sections'    => array( 'sii_boleta_pdf' ),
+            ),
+            'automation'   => array(
+                'label'       => __( 'Automation', 'sii-boleta-dte' ),
+                'title'       => __( 'Automation & email', 'sii-boleta-dte' ),
+                'description' => __( 'Schedule automatic RVD and Libro processes and link SMTP profiles for transactional emails.', 'sii-boleta-dte' ),
+                'sections'    => array( 'sii_boleta_automation', 'sii_boleta_smtp' ),
+            ),
+            'observability' => array(
+                'label'       => __( 'Observability', 'sii-boleta-dte' ),
+                'title'       => __( 'Diagnostics & logging', 'sii-boleta-dte' ),
+                'description' => __( 'Keep an audit trail by enabling file logs for every interaction with the SII.', 'sii-boleta-dte' ),
+                'sections'    => array( 'sii_boleta_logging' ),
+            ),
+        );
+
+        $step_ids        = array_keys( $steps );
+        $first_step_id   = (string) reset( $step_ids );
+        $requirements    = $this->render_requirements_check();
+
+        AdminStyles::open_container( 'sii-settings-page' );
+        echo '<div class="sii-settings-wizard sii-dte-settings">';
+        echo '<h1>' . esc_html__( 'SII Boleta DTE', 'sii-boleta-dte' ) . '</h1>';
+        echo '<p class="sii-settings-subtitle">' . esc_html__( 'Configure every aspect of your electronic invoicing flow with a guided, step-by-step interface.', 'sii-boleta-dte' ) . '</p>';
+        echo '<div class="sii-settings-layout">';
+        echo '<div class="sii-settings-card">';
+        if ( function_exists( 'settings_errors' ) ) {
+            settings_errors();
+        }
+
+        echo '<ul class="sii-settings-steps" role="tablist">';
+        foreach ( $steps as $step_id => $step ) {
+            $is_active = $first_step_id === $step_id;
+            $classes   = $is_active ? 'is-active' : '';
+            $class_attr = $classes ? ' class="' . esc_attr( $classes ) . '"' : '';
+            echo '<li' . $class_attr . '>';
+            echo '<button type="button" class="sii-settings-step-button" role="tab" id="sii-settings-tab-' . esc_attr( $step_id ) . '" data-step="' . esc_attr( $step_id ) . '" aria-controls="sii-settings-step-' . esc_attr( $step_id ) . '" aria-selected="' . ( $is_active ? 'true' : 'false' ) . '" tabindex="' . ( $is_active ? '0' : '-1' ) . '"><span class="sii-settings-step-title">' . esc_html( $step['label'] ) . '</span></button>';
+            echo '</li>';
+        }
+        echo '</ul>';
+
+        echo '<form method="post" action="options.php" enctype="multipart/form-data" class="sii-settings-form">';
+        settings_fields( Settings::OPTION_GROUP );
+
+        foreach ( $step_ids as $position => $step_id ) {
+            $step       = $steps[ $step_id ];
+            $is_active  = $step_id === $first_step_id;
+            $next_step  = $step_ids[ $position + 1 ] ?? '';
+            $prev_step  = $step_ids[ $position - 1 ] ?? '';
+            $active_cls = $is_active ? ' is-active' : '';
+            $hidden     = $is_active ? '' : ' hidden';
+            echo '<section id="sii-settings-step-' . esc_attr( $step_id ) . '" class="sii-settings-step' . esc_attr( $active_cls ) . '" data-step="' . esc_attr( $step_id ) . '" role="tabpanel" aria-labelledby="sii-settings-tab-' . esc_attr( $step_id ) . '"' . $hidden . ' aria-hidden="' . ( $is_active ? 'false' : 'true' ) . '">';
+            echo '<header class="sii-settings-step-header">';
+            echo '<h2 class="sii-settings-step-heading">' . esc_html( $step['title'] ) . '</h2>';
+            echo '<p class="sii-settings-step-description">' . esc_html( $step['description'] ) . '</p>';
+            echo '</header>';
+
+            foreach ( $step['sections'] as $section_id ) {
+                $this->render_settings_section( 'sii-boleta-dte', $section_id );
+            }
+
+            echo '<nav class="sii-step-navigation">';
+            if ( ! empty( $prev_step ) ) {
+                echo '<button type="button" class="button button-secondary" data-step-prev="' . esc_attr( $prev_step ) . '">' . esc_html__( 'Back', 'sii-boleta-dte' ) . '</button>';
+            }
+            if ( ! empty( $next_step ) ) {
+                echo '<button type="button" class="button button-primary" data-step-next="' . esc_attr( $next_step ) . '">' . esc_html__( 'Continue', 'sii-boleta-dte' ) . '</button>';
+            } else {
+                if ( function_exists( 'get_submit_button' ) ) {
+                    echo get_submit_button( __( 'Save changes', 'sii-boleta-dte' ), 'primary', 'submit', false );
+                } else {
+                    submit_button( __( 'Save changes', 'sii-boleta-dte' ) );
+                }
+            }
+            echo '</nav>';
+
+            echo '</section>';
+        }
+
+        echo '</form>';
+        echo '</div>';
+
+        if ( '' !== trim( $requirements ) ) {
+            echo '<aside class="sii-settings-summary" aria-label="' . esc_attr__( 'Certification checklist', 'sii-boleta-dte' ) . '">';
+            echo $requirements;
+            echo '</aside>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+        AdminStyles::close_container();
     }
 
-		/** Displays a quick checklist to verify certification readiness. */
-        private function render_requirements_check(): void {
-                                        $cfg    = $this->settings->get_settings();
-                                        $checks = array(
-                                                'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
-                                                'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
-                                                'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
-                                        );
-                                        echo '<div class="sii-admin-card sii-admin-card--compact">';
-                                        echo '<h2>' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2>';
-                                        echo '<ul class="sii-admin-checklist">';
-                                        foreach ( $checks as $key => $label ) {
-                                                                        $ok = false;
-                                                if ( 'cert_path' === $key ) {
-                                                                                $ok = ! empty( $cfg['cert_path'] ) && file_exists( $cfg['cert_path'] );
-                                                } else {
-                                                                                        $ok = ! empty( $cfg[ $key ] );
-                                                }
-                                                                        $icon_class = $ok ? '' : ' is-bad';
-                                                                        $icon       = $ok ? '&#10003;' : '&#10007;';
-                                                                        echo '<li><span class="sii-admin-status-icon' . $icon_class . '">' . $icon . '</span>' . esc_html( $label ) . '</li>';
-                                        }
-                                        echo '</ul>';
-                                        echo '</div>';
+    /**
+     * Displays a quick checklist to verify certification readiness.
+     */
+    private function render_requirements_check(): string {
+        $cfg    = $this->settings->get_settings();
+        $checks = array(
+            'rut_emisor'   => __( 'RUT configured', 'sii-boleta-dte' ),
+            'razon_social' => __( 'Razón Social configured', 'sii-boleta-dte' ),
+            'cert_path'    => __( 'Certificate file present', 'sii-boleta-dte' ),
+        );
+
+        ob_start();
+        echo '<div class="sii-settings-summary-card">';
+        echo '<h2 class="sii-settings-summary-title">' . esc_html__( 'Certification readiness', 'sii-boleta-dte' ) . '</h2>';
+        echo '<ul class="sii-settings-checklist">';
+        foreach ( $checks as $key => $label ) {
+            $ok = false;
+            if ( 'cert_path' === $key ) {
+                $ok = ! empty( $cfg['cert_path'] ) && file_exists( (string) $cfg['cert_path'] );
+            } else {
+                $ok = ! empty( $cfg[ $key ] );
+            }
+            $icon_class = $ok ? '' : ' is-bad';
+            $icon       = $ok ? '&#10003;' : '&#10007;';
+            echo '<li><span class="sii-settings-status-icon' . esc_attr( $icon_class ) . '">' . $icon . '</span>' . esc_html( $label ) . '</li>';
         }
+        echo '</ul>';
+        echo '</div>';
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Outputs registered WordPress settings sections inside our custom layout.
+     */
+    private function render_settings_section( string $page, string $section_id ): void {
+        global $wp_settings_sections;
+
+        if ( ! isset( $wp_settings_sections[ $page ][ $section_id ] ) ) {
+            return;
+        }
+
+        $section = $wp_settings_sections[ $page ][ $section_id ];
+
+        echo '<section class="sii-settings-section">';
+        if ( ! empty( $section['title'] ) ) {
+            echo '<h3 class="sii-settings-section-title">' . esc_html( $section['title'] ) . '</h3>';
+        }
+
+        if ( ! empty( $section['callback'] ) ) {
+            call_user_func( $section['callback'], $section );
+        }
+
+        if ( function_exists( 'do_settings_fields' ) ) {
+            ob_start();
+            do_settings_fields( $page, $section_id );
+            $fields_markup = (string) ob_get_clean();
+            if ( '' !== trim( $fields_markup ) ) {
+                echo '<table class="form-table">' . $fields_markup . '</table>';
+            }
+        }
+
+        echo '</section>';
+    }
 
 	/**
 	 * Sanitizes and validates settings before saving.

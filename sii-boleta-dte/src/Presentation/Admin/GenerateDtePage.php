@@ -243,7 +243,7 @@ class GenerateDtePage {
                                                                 </button>
                                                 </li>
                                 </ol>
-                                <section class="sii-dte-step" data-step="identificacion" aria-labelledby="sii-dte-step-identificacion">
+                                <section class="sii-dte-step is-active" data-step="identificacion" aria-labelledby="sii-dte-step-identificacion">
                                                 <h2 id="sii-dte-step-identificacion" class="sii-dte-step-heading"><?php esc_html_e( 'Identificación', 'sii-boleta-dte' ); ?></h2>
                                                 <table class="form-table" role="presentation">
                                                                 <tbody>

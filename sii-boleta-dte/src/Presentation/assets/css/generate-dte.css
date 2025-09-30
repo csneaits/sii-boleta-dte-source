@@ -1,17 +1,19 @@
 .sii-generate-dte {
     position: relative;
-    padding: 2.5rem 2.2rem 3rem;
-    border-radius: 24px;
+    padding: 1.75rem 1.6rem 2.2rem;
+    border-radius: 20px;
     background: linear-gradient(140deg, #f5f7ff 0%, #ecfdfd 100%);
-    box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.14);
     overflow: hidden;
+    max-width: 1180px;
+    margin: 0 auto;
 }
 .sii-generate-dte::before {
     content: '';
     position: absolute;
-    inset: -150px auto auto -180px;
-    width: 420px;
-    height: 420px;
+    inset: -110px auto auto -150px;
+    width: 340px;
+    height: 340px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
     pointer-events: none;
@@ -19,41 +21,41 @@
 .sii-generate-dte::after {
     content: '';
     position: absolute;
-    inset: auto -160px -200px auto;
-    width: 360px;
-    height: 360px;
+    inset: auto -120px -160px auto;
+    width: 300px;
+    height: 300px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 75%);
     pointer-events: none;
 }
 .sii-generate-dte h1 {
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.55rem;
     position: relative;
     z-index: 1;
-    font-size: 2.15rem;
+    font-size: 1.85rem;
     color: #0f172a;
 }
 .sii-generate-dte-subtitle {
-    margin: 0 0 1.8rem;
-    font-size: 1.05rem;
+    margin: 0 0 1.2rem;
+    font-size: 0.95rem;
     color: #334155;
     position: relative;
     z-index: 1;
-    max-width: 720px;
+    max-width: 660px;
 }
 .sii-generate-dte-layout {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 1.2rem;
     align-items: start;
 }
 .sii-generate-dte-card {
     background: rgba(255, 255, 255, 0.96);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    padding: 1.5rem 1.4rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
     border: 1px solid rgba(226, 232, 240, 0.65);
     backdrop-filter: blur(6px);
 }
@@ -66,7 +68,7 @@
     border-color: rgba(165, 180, 252, 0.35);
 }
 #sii-generate-dte-notices {
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.95rem;
 }
 #sii-generate-dte-notices .notice {
     border-radius: 14px;
@@ -78,14 +80,14 @@
     border-spacing: 0;
 }
 .sii-generate-dte-form table.form-table th {
-    padding: 0 0.85rem 0.85rem 0;
+    padding: 0 0.75rem 0.7rem 0;
     text-align: left;
     color: #1e293b;
-    width: 30%;
-    font-size: 0.9rem;
+    width: 26%;
+    font-size: 0.85rem;
 }
 .sii-generate-dte-form table.form-table td {
-    padding: 0 0 0.85rem;
+    padding: 0 0 0.7rem;
 }
 .sii-generate-dte-form input[type="text"],
 .sii-generate-dte-form input[type="number"],
@@ -93,10 +95,10 @@
 .sii-generate-dte-form select,
 .sii-generate-dte-form textarea {
     width: 100%;
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid rgba(148, 163, 184, 0.55);
-    padding: 0.45rem 0.65rem;
-    font-size: 0.9rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.85rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
     background: rgba(255, 255, 255, 0.92);
@@ -111,24 +113,24 @@
 .sii-generate-dte-form label {
     font-weight: 600;
     color: #1f2937;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.35;
 }
 .sii-generate-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.65rem 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.55rem 0.9rem;
 }
 .sii-generate-grid label {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.3rem;
 }
 .sii-item-advanced {
-    margin-top: 0.65rem;
+    margin-top: 0.55rem;
     background: rgba(15, 118, 110, 0.05);
-    border-radius: 12px;
-    padding: 0.45rem 0.65rem 0.65rem;
+    border-radius: 10px;
+    padding: 0.4rem 0.6rem 0.6rem;
     border: 1px solid rgba(45, 212, 191, 0.28);
 }
 .sii-item-advanced summary {
@@ -152,8 +154,8 @@
 .sii-item-advanced-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.55rem 0.75rem;
-    margin-top: 0.65rem;
+    gap: 0.5rem 0.7rem;
+    margin-top: 0.55rem;
 }
 .sii-item-advanced-grid label {
     display: flex;
@@ -173,24 +175,24 @@
 #sii-ref-table {
     width: 100%;
     border-collapse: collapse;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
-    margin-top: 0.75rem;
+    margin-top: 0.6rem;
     background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
 }
 #sii-ref-table thead th {
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(16, 185, 129, 0.12));
-    padding: 0.6rem 0.75rem;
-    font-size: 0.7rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #0f172a;
 }
 #sii-ref-table tbody td {
-    padding: 0.65rem 0.8rem;
+    padding: 0.55rem 0.75rem;
     border-bottom: 1px solid rgba(226, 232, 240, 0.65);
-    font-size: 0.88rem;
+    font-size: 0.85rem;
 }
 #sii-ref-table tbody tr:last-child td {
     border-bottom: none;
@@ -227,19 +229,19 @@
 }
 #sii-items-table {
     width: 100%;
-    border-radius: 18px;
+    border-radius: 16px;
     overflow: hidden;
     border: none;
-    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
-    margin-top: 0.75rem;
+    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.14);
+    margin-top: 0.6rem;
     border-spacing: 0;
     table-layout: fixed;
 }
 #sii-items-table thead th {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.12));
-    padding: 0.75rem 0.95rem;
+    padding: 0.65rem 0.85rem;
     color: #0f172a;
-    font-size: 0.74rem;
+    font-size: 0.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     border-bottom: 1px solid rgba(148, 163, 184, 0.28);
@@ -262,15 +264,15 @@
     box-shadow: 0 26px 50px rgba(15, 23, 42, 0.16);
 }
 #sii-items-table tbody td {
-    padding: 0.7rem 0.95rem;
+    padding: 0.6rem 0.85rem;
     border-bottom: 1px solid rgba(226, 232, 240, 0.65);
     background: transparent;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 .sii-item-stack {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.55rem;
 }
 .sii-item-primary input {
     width: 100%;
@@ -278,14 +280,14 @@
 .sii-item-metrics {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.6rem;
     align-items: flex-end;
 }
 .sii-item-metric {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.78rem;
+    gap: 0.3rem;
+    font-size: 0.75rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: #475569;
@@ -301,7 +303,7 @@
     border-bottom: none;
 }
 #sii-items-table tbody td:last-child {
-    padding-right: 1.5rem;
+    padding-right: 1.2rem;
 }
 #sii-items-table .remove-item {
     border-radius: 12px;
@@ -333,16 +335,16 @@
     gap: 0.75rem;
     flex-wrap: wrap;
     align-items: center;
-    margin-top: 1.4rem;
+    margin-top: 1.1rem;
 }
 .sii-generate-dte .button,
 .sii-generate-dte .button-primary {
     border-radius: 999px;
     border: none;
-    padding: 0.55rem 1.45rem;
+    padding: 0.5rem 1.2rem;
     font-weight: 600;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
-    box-shadow: 0 15px 28px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
 }
 .sii-generate-dte .button.button-primary {
     background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
@@ -355,12 +357,12 @@
 }
 .sii-generate-dte-aside {
     display: grid;
-    gap: 1.2rem;
+    gap: 1rem;
 }
 .sii-generate-dte-summary,
 .sii-generate-dte-tips {
-    margin: 0.6rem 0 0;
-    padding-left: 1.1rem;
+    margin: 0.4rem 0 0;
+    padding-left: 1rem;
     color: #1f2937;
     line-height: 1.55;
 }
@@ -373,7 +375,7 @@
 .sii-generate-dte-card h2 {
     margin-top: 0;
     color: #1e3a8a;
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 .sii-generate-dte-card--tips h2 {
     color: #5b21b6;
@@ -442,10 +444,10 @@ body.sii-dte-modal-open {
 }
 @media (max-width: 782px) {
 .sii-generate-dte {
-    padding: 2rem 1.2rem 2.4rem;
+    padding: 1.4rem 1rem 1.8rem;
 }
 .sii-generate-dte-card {
-    padding: 1.6rem 1.35rem;
+    padding: 1.3rem 1.15rem;
 }
 .sii-generate-dte-form table.form-table th {
     width: 100%;
@@ -469,10 +471,10 @@ body.sii-dte-modal-open {
     width: 100%;
 }
 #sii-items-table tbody tr {
-    margin-bottom: 1.1rem;
-    padding: 1rem 1.2rem;
-    border-radius: 18px;
-    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.16);
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.16);
 }
 #sii-items-table tbody td {
     padding: 0.55rem 0;
@@ -481,7 +483,7 @@ body.sii-dte-modal-open {
     flex-direction: column;
     gap: 0.35rem;
     align-items: stretch;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 #sii-items-table tbody td::before {
     content: attr(data-label);
@@ -507,7 +509,7 @@ body.sii-dte-modal-open {
     gap: 0.5rem;
 }
 .sii-item-metric {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     letter-spacing: normal;
     text-transform: none;
 }
@@ -519,7 +521,7 @@ body.sii-dte-modal-open {
 @media (prefers-color-scheme: dark) {
 .sii-generate-dte {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(14, 116, 144, 0.45) 100%);
-    box-shadow: 0 32px 70px rgba(2, 6, 23, 0.7);
+    box-shadow: 0 26px 58px rgba(2, 6, 23, 0.68);
 }
 .sii-generate-dte::before {
     background: radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, transparent 70%);
@@ -534,7 +536,7 @@ body.sii-dte-modal-open {
 .sii-generate-dte-card {
     background: rgba(15, 23, 42, 0.85);
     border-color: rgba(51, 65, 85, 0.8);
-    box-shadow: 0 28px 60px rgba(2, 6, 23, 0.75);
+    box-shadow: 0 22px 50px rgba(2, 6, 23, 0.72);
 }
 .sii-generate-dte-card h2,
 .sii-generate-dte-summary,
@@ -552,7 +554,7 @@ body.sii-dte-modal-open {
     border-color: rgba(148, 163, 184, 0.55);
 }
 #sii-items-table {
-    box-shadow: 0 26px 52px rgba(2, 6, 23, 0.65);
+    box-shadow: 0 22px 46px rgba(2, 6, 23, 0.62);
 }
 #sii-items-table thead th {
     color: #e2e8f0;
@@ -564,7 +566,7 @@ body.sii-dte-modal-open {
     border-bottom-color: rgba(51, 65, 85, 0.75);
 }
 #sii-items-table tbody tr:hover {
-    box-shadow: 0 30px 58px rgba(2, 6, 23, 0.7);
+    box-shadow: 0 26px 52px rgba(2, 6, 23, 0.68);
 }
 #sii-items-table tbody td {
     color: #f1f5f9;

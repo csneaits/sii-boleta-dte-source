@@ -264,6 +264,36 @@
     font-size: 0.85rem;
     line-height: 1.35;
 }
+.sii-generate-dte-form label.sii-field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+.sii-field-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.4;
+    background: #e5e7eb;
+    color: #1f2937;
+}
+.sii-field-badge--required {
+    background: #d63638;
+    color: #fff;
+}
+.sii-field-badge--optional {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+.rtl .sii-generate-dte-form label.sii-field-label {
+    flex-direction: row-reverse;
+}
 .sii-generate-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

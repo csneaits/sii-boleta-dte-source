@@ -220,10 +220,13 @@ class GenerateDtePage {
 																<div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
 												<?php endif; ?>
 										</div>
-																				<form method="post" id="sii-generate-dte-form" class="sii-generate-dte-form"
-																						data-nc-required="<?php esc_attr_e( 'Debes ingresar al menos una referencia con folio y fecha para la nota de crédito.', 'sii-boleta-dte' ); ?>"
-																						data-nc-incomplete="<?php esc_attr_e( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ); ?>"
-																						data-nc-reason="<?php esc_attr_e( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ); ?>"
+                                               <form method="post" id="sii-generate-dte-form" class="sii-generate-dte-form"
+                                                       data-step-incomplete="<?php esc_attr_e( 'Completa los campos obligatorios antes de continuar.', 'sii-boleta-dte' ); ?>"
+                                                       data-required-label="<?php esc_attr_e( 'Obligatorio', 'sii-boleta-dte' ); ?>"
+                                                       data-optional-label="<?php esc_attr_e( 'Opcional', 'sii-boleta-dte' ); ?>"
+                                                       data-nc-required="<?php esc_attr_e( 'Debes ingresar al menos una referencia con folio y fecha para la nota de crédito.', 'sii-boleta-dte' ); ?>"
+                                                       data-nc-incomplete="<?php esc_attr_e( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ); ?>"
+                                                       data-nc-reason="<?php esc_attr_e( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ); ?>"
 																						data-nc-reason-placeholder="<?php esc_attr_e( 'Describe la corrección aplicada al documento original', 'sii-boleta-dte' ); ?>">
                                 <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
                                 <ol class="sii-generate-dte-steps" id="sii-generate-dte-steps" data-current-step="identificacion" aria-label="<?php esc_attr_e( 'Progreso del formulario', 'sii-boleta-dte' ); ?>">

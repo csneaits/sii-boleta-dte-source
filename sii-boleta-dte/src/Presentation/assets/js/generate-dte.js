@@ -27,6 +27,7 @@
         var rutInput = document.getElementById('sii-rut');
         var refTable = document.getElementById('sii-ref-table');
         var refBody = refTable ? (refTable.tBodies && refTable.tBodies.length ? refTable.tBodies[0] : refTable.appendChild(document.createElement('tbody'))) : null;
+        var refTemplate = document.getElementById('sii-ref-row-template');
         var addRefBtn = document.getElementById('sii-add-reference');
         var ncMotivoSelect = document.getElementById('sii-nc-motivo');
         var ncReferenceHint = document.getElementById('sii-nc-reference-hint');
@@ -909,7 +910,7 @@
             var rows = refBody.querySelectorAll('tr');
             Array.prototype.forEach.call(rows, function(row, index){
                 row.setAttribute('data-ref-row', index);
-                row.querySelectorAll('[data-ref-field]').forEach(function(input){
+                Array.prototype.forEach.call(row.querySelectorAll('[data-ref-field]'), function(input){
                     var field = input.getAttribute('data-ref-field');
                     if (!field){ return; }
                     input.name = 'references[' + index + '][' + field + ']';
@@ -918,41 +919,47 @@
         }
 
         function clearReferenceRow(row){
-            row.querySelectorAll('[data-ref-field]').forEach(function(input){
+            if (!row){ return; }
+            Array.prototype.forEach.call(row.querySelectorAll('[data-ref-field]'), function(input){
                 if (input.type === 'checkbox'){
                     input.checked = false;
                 } else {
                     input.value = '';
                 }
             });
-            updateCreditNoteUi();
+        }
+
+        function createReferenceRow(){
+            var row = null;
+            if (refTemplate){
+                if (refTemplate.content && refTemplate.content.firstElementChild){
+                    row = refTemplate.content.firstElementChild.cloneNode(true);
+                }
+                if (!row){
+                    var wrapper = document.createElement('tbody');
+                    wrapper.innerHTML = (refTemplate.innerHTML || '').trim();
+                    if (wrapper.firstElementChild){
+                        row = wrapper.removeChild(wrapper.firstElementChild);
+                    }
+                }
+            }
+            if (!row && refBody){
+                var existing = refBody.querySelector('tr');
+                if (existing){
+                    row = existing.cloneNode(true);
+                }
+            }
+            if (!row){
+                row = document.createElement('tr');
+            }
+            return row;
         }
 
         function addReferenceRow(){
             if (!refBody){ return; }
-            var row = document.createElement('tr');
-            var typeLabel = escapeAttribute(getText('referenceTypeLabel', 'Tipo'));
-            var folioLabel = escapeAttribute(getText('referenceFolioLabel', 'Folio'));
-            var dateLabel = escapeAttribute(getText('referenceDateLabel', 'Fecha'));
-            var codeLabel = escapeAttribute(getText('referenceCodeLabel', 'Código ref.'));
-            var reasonLabel = escapeAttribute(getText('referenceReasonLabel', 'Razón / glosa'));
-            var globalLabel = escapeAttribute(getText('referenceGlobalLabel', 'Global'));
-            var actionsLabelRef = escapeAttribute(getText('referenceActionsLabel', 'Acciones'));
-            var removeLabel = escapeAttribute(getText('referenceRemoveLabel', 'Eliminar referencia'));
-            row.innerHTML = '<td data-label="' + typeLabel + '"><select data-ref-field="tipo" name="references[][tipo]">' +
-                    '<option value="">—</option>' +
-                    '<option value="33">Factura</option>' +
-                    '<option value="34">Factura Exenta</option>' +
-                    '<option value="39">Boleta</option>' +
-                    '<option value="41">Boleta Exenta</option>' +
-                    '<option value="52">Guía de despacho</option>' +
-                '</select></td>' +
-                '<td data-label="' + folioLabel + '"><input type="number" data-ref-field="folio" name="references[][folio]" step="1" /></td>' +
-                '<td data-label="' + dateLabel + '"><input type="date" data-ref-field="fecha" name="references[][fecha]" /></td>' +
-                '<td data-label="' + codeLabel + '"><select data-ref-field="codref" name="references[][codref]"><option value="">—</option><option value="1">Anula documento de referencia</option><option value="2">Corrige texto documento ref.</option><option value="3">Corrige montos</option><option value="4">Deja sin efecto parcialmente</option><option value="5">Corrige montos en más</option><option value="6">Corrige montos en menos</option><option value="7">Referencia a otro DTE</option></select></td>' +
-                '<td data-label="' + reasonLabel + '"><input type="text" data-ref-field="razon" name="references[][razon]" /></td>' +
-                '<td data-label="' + globalLabel + '" class="sii-ref-checkbox"><label><input type="checkbox" data-ref-field="global" name="references[][global]" value="1" /><span class="screen-reader-text">' + globalLabel + '</span></label></td>' +
-                '<td data-label="' + actionsLabelRef + '"><button type="button" class="button remove-reference" aria-label="' + removeLabel + '">×</button></td>';
+            var row = createReferenceRow();
+            if (!row){ return; }
+            clearReferenceRow(row);
             refBody.appendChild(row);
             renumberReferences();
             updateCreditNoteUi();

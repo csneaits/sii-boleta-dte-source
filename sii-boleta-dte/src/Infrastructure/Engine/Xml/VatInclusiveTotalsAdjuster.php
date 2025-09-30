@@ -78,7 +78,7 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
         }
 
         public function supports( int $tipo ): bool {
-                return in_array( $tipo, array( 33, 52, 56, 61 ), true );
+                return in_array( $tipo, array( 33, 46, 52, 56, 61 ), true );
         }
 
         /**

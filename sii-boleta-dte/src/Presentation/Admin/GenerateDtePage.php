@@ -132,16 +132,32 @@ class GenerateDtePage {
 		$current_dsc_mov                               = isset( $_POST['dsc_global_mov'] ) ? (string) $_POST['dsc_global_mov'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$current_dsc_tipo                              = isset( $_POST['dsc_global_tipo'] ) ? (string) $_POST['dsc_global_tipo'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$current_dsc_ind_exe                           = isset( $_POST['dsc_global_ind_exe'] ) ? (string) $_POST['dsc_global_ind_exe'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$ref0              = isset( $_POST['references'][0] ) && is_array( $_POST['references'][0] ) ? (array) $_POST['references'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$ref0_tipo         = isset( $ref0['tipo'] ) ? esc_attr( (string) $ref0['tipo'] ) : '';
-		$ref0_folio        = isset( $ref0['folio'] ) ? esc_attr( (string) $ref0['folio'] ) : '';
-		$ref0_fecha        = isset( $ref0['fecha'] ) ? esc_attr( (string) $ref0['fecha'] ) : '';
-		$ref0_codref       = isset( $ref0['codref'] ) ? esc_attr( (string) $ref0['codref'] ) : '';
-		$ref0_razon        = isset( $ref0['razon'] ) ? esc_attr( (string) $ref0['razon'] ) : '';
-		$ref0_global       = isset( $ref0['global'] ) ? '1' : '';
-		$ref0_global_attr  = function_exists( 'checked' )
-		? \checked( '1', $ref0_global, false )
-		: ( '1' === $ref0_global ? 'checked="checked"' : '' );
+                $ref0              = isset( $_POST['references'][0] ) && is_array( $_POST['references'][0] ) ? (array) $_POST['references'][0] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $ref0_tipo         = isset( $ref0['tipo'] ) ? esc_attr( (string) $ref0['tipo'] ) : '';
+                $ref0_folio        = isset( $ref0['folio'] ) ? esc_attr( (string) $ref0['folio'] ) : '';
+                $ref0_fecha        = isset( $ref0['fecha'] ) ? esc_attr( (string) $ref0['fecha'] ) : '';
+                $ref0_codref       = isset( $ref0['codref'] ) ? esc_attr( (string) $ref0['codref'] ) : '';
+                $ref0_razon        = isset( $ref0['razon'] ) ? esc_attr( (string) $ref0['razon'] ) : '';
+                $ref0_global       = isset( $ref0['global'] ) ? '1' : '';
+                $ref0_global_attr  = function_exists( 'checked' )
+                ? \checked( '1', $ref0_global, false )
+                : ( '1' === $ref0_global ? 'checked="checked"' : '' );
+                $reference_type_options = array(
+                        '33' => __( 'Factura', 'sii-boleta-dte' ),
+                        '34' => __( 'Factura Exenta', 'sii-boleta-dte' ),
+                        '39' => __( 'Boleta', 'sii-boleta-dte' ),
+                        '41' => __( 'Boleta Exenta', 'sii-boleta-dte' ),
+                        '52' => __( 'Guía de despacho', 'sii-boleta-dte' ),
+                );
+                $reference_code_options = array(
+                        '1' => __( 'Anula documento de referencia', 'sii-boleta-dte' ),
+                        '2' => __( 'Corrige texto documento ref.', 'sii-boleta-dte' ),
+                        '3' => __( 'Corrige montos', 'sii-boleta-dte' ),
+                        '4' => __( 'Deja sin efecto parcialmente', 'sii-boleta-dte' ),
+                        '5' => __( 'Corrige montos en más', 'sii-boleta-dte' ),
+                        '6' => __( 'Corrige montos en menos', 'sii-boleta-dte' ),
+                        '7' => __( 'Referencia a otro DTE', 'sii-boleta-dte' ),
+                );
 		$current_nc_motive = 'anula';
 		if ( isset( $_POST['nc_motivo'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$raw_nc_motive = sanitize_key( (string) $_POST['nc_motivo'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -630,28 +646,22 @@ class GenerateDtePage {
 																<tbody>
 																		<tr data-ref-row="0">
 																				<td data-label="<?php esc_attr_e( 'Tipo', 'sii-boleta-dte' ); ?>">
-																						<select name="references[0][tipo]" data-ref-field="tipo">
-																								<option value="">—</option>
-																								<option value="33" <?php selected( $ref0_tipo, '33', true ); ?>><?php esc_html_e( 'Factura', 'sii-boleta-dte' ); ?></option>
-																								<option value="34" <?php selected( $ref0_tipo, '34', true ); ?>><?php esc_html_e( 'Factura Exenta', 'sii-boleta-dte' ); ?></option>
-																								<option value="39" <?php selected( $ref0_tipo, '39', true ); ?>><?php esc_html_e( 'Boleta', 'sii-boleta-dte' ); ?></option>
-																								<option value="41" <?php selected( $ref0_tipo, '41', true ); ?>><?php esc_html_e( 'Boleta Exenta', 'sii-boleta-dte' ); ?></option>
-																								<option value="52" <?php selected( $ref0_tipo, '52', true ); ?>><?php esc_html_e( 'Guía de despacho', 'sii-boleta-dte' ); ?></option>
-																						</select>
+                                                                                                                               <select name="references[0][tipo]" data-ref-field="tipo">
+                                                                                                                               <option value=""><?php echo esc_html_x( '—', 'Reference empty option', 'sii-boleta-dte' ); ?></option>
+                                                                                                                               <?php foreach ( $reference_type_options as $code => $label ) : ?>
+                                                                                                                               <option value="<?php echo esc_attr( $code ); ?>" <?php selected( $ref0_tipo, (string) $code, true ); ?>><?php echo esc_html( $label ); ?></option>
+                                                                                                                               <?php endforeach; ?>
+                                                                                                                               </select>
 																				</td>
 																				<td data-label="<?php esc_attr_e( 'Folio', 'sii-boleta-dte' ); ?>"><input type="number" name="references[0][folio]" data-ref-field="folio" value="<?php echo $ref0_folio; ?>" step="1" /></td>
 																				<td data-label="<?php esc_attr_e( 'Fecha', 'sii-boleta-dte' ); ?>"><input type="date" name="references[0][fecha]" data-ref-field="fecha" value="<?php echo $ref0_fecha; ?>" /></td>
 																				<td data-label="<?php esc_attr_e( 'Código ref.', 'sii-boleta-dte' ); ?>">
-																						<select name="references[0][codref]" data-ref-field="codref">
-																								<option value="">—</option>
-																								<option value="1" <?php selected( $ref0_codref, '1', true ); ?>><?php esc_html_e( 'Anula documento de referencia', 'sii-boleta-dte' ); ?></option>
-																								<option value="2" <?php selected( $ref0_codref, '2', true ); ?>><?php esc_html_e( 'Corrige texto documento ref.', 'sii-boleta-dte' ); ?></option>
-																								<option value="3" <?php selected( $ref0_codref, '3', true ); ?>><?php esc_html_e( 'Corrige montos', 'sii-boleta-dte' ); ?></option>
-																								<option value="4" <?php selected( $ref0_codref, '4', true ); ?>><?php esc_html_e( 'Deja sin efecto parcialmente', 'sii-boleta-dte' ); ?></option>
-																								<option value="5" <?php selected( $ref0_codref, '5', true ); ?>><?php esc_html_e( 'Corrige montos en más', 'sii-boleta-dte' ); ?></option>
-																								<option value="6" <?php selected( $ref0_codref, '6', true ); ?>><?php esc_html_e( 'Corrige montos en menos', 'sii-boleta-dte' ); ?></option>
-																								<option value="7" <?php selected( $ref0_codref, '7', true ); ?>><?php esc_html_e( 'Referencia a otro DTE', 'sii-boleta-dte' ); ?></option>
-																						</select>
+                                                                                                                               <select name="references[0][codref]" data-ref-field="codref">
+                                                                                                                               <option value=""><?php echo esc_html_x( '—', 'Reference empty option', 'sii-boleta-dte' ); ?></option>
+                                                                                                                               <?php foreach ( $reference_code_options as $code => $label ) : ?>
+                                                                                                                               <option value="<?php echo esc_attr( $code ); ?>" <?php selected( $ref0_codref, (string) $code, true ); ?>><?php echo esc_html( $label ); ?></option>
+                                                                                                                               <?php endforeach; ?>
+                                                                                                                               </select>
 																				</td>
 																				<td data-label="<?php esc_attr_e( 'Razón / glosa', 'sii-boleta-dte' ); ?>"><input type="text" name="references[0][razon]" data-ref-field="razon" value="<?php echo $ref0_razon; ?>" /></td>
 																				<td data-label="<?php esc_attr_e( 'Global', 'sii-boleta-dte' ); ?>" class="sii-ref-checkbox">
@@ -664,9 +674,41 @@ class GenerateDtePage {
 																						<button type="button" class="button remove-reference" aria-label="<?php esc_attr_e( 'Eliminar referencia', 'sii-boleta-dte' ); ?>">×</button>
 																				</td>
 																		</tr>
-																</tbody>
+                                                                                                                               </tbody>
                                                                                                                                </table>
-                                                                                                                </div>
+                                                                                                                <template id="sii-ref-row-template">
+                                                                                                                               <tr data-ref-row="__index__">
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Tipo', 'sii-boleta-dte' ) ); ?>">
+                                                                                                                                                             <select name="references[__index__][tipo]" data-ref-field="tipo">
+                                                                                                                                                                            <option value=""><?php echo esc_html_x( '—', 'Reference empty option', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                                            <?php foreach ( $reference_type_options as $code => $label ) : ?>
+                                                                                                                                                                            <option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $label ); ?></option>
+                                                                                                                                                                            <?php endforeach; ?>
+                                                                                                                                                             </select>
+                                                                                                                                              </td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Folio', 'sii-boleta-dte' ) ); ?>"><input type="number" name="references[__index__][folio]" data-ref-field="folio" value="" step="1" /></td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Fecha', 'sii-boleta-dte' ) ); ?>"><input type="date" name="references[__index__][fecha]" data-ref-field="fecha" value="" /></td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Código ref.', 'sii-boleta-dte' ) ); ?>">
+                                                                                                                                                             <select name="references[__index__][codref]" data-ref-field="codref">
+                                                                                                                                                                            <option value=""><?php echo esc_html_x( '—', 'Reference empty option', 'sii-boleta-dte' ); ?></option>
+                                                                                                                                                                            <?php foreach ( $reference_code_options as $code => $label ) : ?>
+                                                                                                                                                                            <option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $label ); ?></option>
+                                                                                                                                                                            <?php endforeach; ?>
+                                                                                                                                                             </select>
+                                                                                                                                              </td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Razón / glosa', 'sii-boleta-dte' ) ); ?>"><input type="text" name="references[__index__][razon]" data-ref-field="razon" value="" /></td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Global', 'sii-boleta-dte' ) ); ?>" class="sii-ref-checkbox">
+                                                                                                                                                             <label>
+                                                                                                                                                                            <input type="checkbox" name="references[__index__][global]" data-ref-field="global" value="1" />
+                                                                                                                                                                            <span class="screen-reader-text"><?php echo esc_html__( 'Referencia global', 'sii-boleta-dte' ); ?></span>
+                                                                                                                                                             </label>
+                                                                                                                                              </td>
+                                                                                                                                              <td data-label="<?php echo esc_attr( __( 'Acciones', 'sii-boleta-dte' ) ); ?>">
+                                                                                                                                                             <button type="button" class="button remove-reference" aria-label="<?php echo esc_attr( __( 'Eliminar referencia', 'sii-boleta-dte' ) ); ?>">×</button>
+                                                                                                                                              </td>
+                                                                                                                               </tr>
+                                                                                                                </template>
+                                                                                                               </div>
 														<p><button type="button" class="button" id="sii-add-reference"><?php esc_html_e( 'Agregar referencia', 'sii-boleta-dte' ); ?></button></p>
 														<p class="description" id="sii-nc-global-note" style="display:none;">
 																<?php esc_html_e( 'Las notas de crédito 61 siempre refieren a un documento específico, por lo que la casilla “Global” permanecerá desactivada.', 'sii-boleta-dte' ); ?>

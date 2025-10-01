@@ -10,11 +10,21 @@ use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
  * order completion and stores track IDs.
  */
 class Woo {
-	private Plugin $plugin;
+        /**
+         * Core plugin instance used to access settings and services.
+         *
+         * @var Plugin|null
+         */
+        private ?Plugin $plugin;
 
-	public function __construct( Plugin $plugin ) {
-		$this->plugin = $plugin;
-	}
+        /**
+         * @param Plugin|null $plugin Core plugin instance. It can be null when the
+         *                            WooCommerce integration is resolved from the
+         *                            container without a bootstrapped plugin.
+         */
+        public function __construct( ?Plugin $plugin ) {
+                $this->plugin = $plugin;
+        }
 
         private const CREDIT_NOTE_TYPE = 61;
         private const DEBIT_NOTE_TYPE  = 56;
@@ -328,6 +338,10 @@ class Woo {
                         }
                 }
 
+                if ( null === $this->plugin ) {
+                        return 0;
+                }
+
                 $settings = $this->plugin->get_settings();
                 if ( is_object( $settings ) && method_exists( $settings, 'get_settings' ) ) {
                         $config  = $settings->get_settings();
@@ -368,7 +382,11 @@ class Woo {
                 if ( $order_id <= 0 ) {
                         return;
                 }
-                $data     = $this->prepare_order_data( $order, $document_type, $order_id, $context );
+                if ( null === $this->plugin ) {
+                        return;
+                }
+
+                $data = $this->prepare_order_data( $order, $document_type, $order_id, $context );
 
                 if ( empty( $data ) ) {
                         $this->add_order_note( $order, __( 'No fue posible preparar los datos del pedido para el DTE.', 'sii-boleta-dte' ) );
@@ -1050,6 +1068,10 @@ class Woo {
         }
 
         private function should_preview_only(): bool {
+                if ( null === $this->plugin ) {
+                        return false;
+                }
+
                 $settings = $this->plugin->get_settings();
                 if ( ! is_object( $settings ) ) {
                         return false;

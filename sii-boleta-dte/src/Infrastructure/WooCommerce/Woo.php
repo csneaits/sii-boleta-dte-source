@@ -539,13 +539,19 @@ class Woo {
                                         $line_total = 0.0;
                                 }
                                 $unit_price = $qty > 0 ? $line_total / $qty : $line_total;
-                                $items[]    = array(
+                                $item_data = array(
                                         'NroLinDet' => $line,
                                         'NmbItem'   => (string) $item->get_name(),
                                         'QtyItem'   => $qty,
                                         'PrcItem'   => $unit_price,
                                         'MontoItem' => $line_total,
                                 );
+
+                                if ( $prices_include_tax && $line_tax > 0 ) {
+                                        $item_data['MntBruto'] = 1;
+                                }
+
+                                $items[] = $item_data;
                                 ++$line;
                         }
                 }
@@ -569,13 +575,19 @@ class Woo {
                                                 $description = __( 'Reembolso parcial del pedido', 'sii-boleta-dte' );
                                         }
                                         $normalized_amount = $this->normalize_line_amount( $fallback_net_total, $fallback_tax_total, $prices_include_tax, $order_tax_rate );
-                                        $items[] = array(
+                                        $item_data = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => $description,
                                                 'QtyItem'   => 1,
                                                 'PrcItem'   => $normalized_amount,
                                                 'MontoItem' => $normalized_amount,
                                         );
+
+                                        if ( $prices_include_tax && $fallback_tax_total > 0 ) {
+                                                $item_data['MntBruto'] = 1;
+                                        }
+
+                                        $items[] = $item_data;
                                 }
                         } elseif ( method_exists( $order, 'get_total' ) ) {
                                 $fallback_total = (float) $order->get_total();
@@ -583,7 +595,7 @@ class Woo {
                                         $fallback_tax_total = method_exists( $order, 'get_total_tax' ) ? (float) $order->get_total_tax() : 0.0;
                                         $fallback_net_total = max( 0.0, $fallback_total - $fallback_tax_total );
                                         $normalized_amount  = $this->normalize_line_amount( $fallback_net_total, $fallback_tax_total, $prices_include_tax, $order_tax_rate );
-                                        $items[] = array(
+                                        $item_data = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => sprintf(
                                                         /* translators: %s: order number used as description fallback. */
@@ -594,6 +606,12 @@ class Woo {
                                                 'PrcItem'   => $normalized_amount,
                                                 'MontoItem' => $normalized_amount,
                                         );
+
+                                        if ( $prices_include_tax && $fallback_tax_total > 0 ) {
+                                                $item_data['MntBruto'] = 1;
+                                        }
+
+                                        $items[] = $item_data;
                                 }
                         }
                 }
@@ -710,13 +728,19 @@ class Woo {
                                 }
                         }
 
-                        $items[] = array(
+                        $item_data = array(
                                 'NroLinDet' => $line,
                                 'NmbItem'   => $name,
                                 'QtyItem'   => $quantity,
                                 'PrcItem'   => $unit_price,
                                 'MontoItem' => $amount,
                         );
+
+                        if ( $prices_include_tax && $tax_amount > 0 ) {
+                                $item_data['MntBruto'] = 1;
+                        }
+
+                        $items[] = $item_data;
                         ++$line;
                 }
 
@@ -801,6 +825,8 @@ class Woo {
                         return 0.0;
                 }
 
+                $amount = abs( $amount );
+
                 if ( ! $prices_include_tax ) {
                         return $amount;
                 }
@@ -810,26 +836,18 @@ class Woo {
                         return $amount;
                 }
 
-                $amount = abs( $amount );
+                if ( null !== $reference_tax_rate && $reference_tax_rate > 0.0 ) {
+                        $ratio       = $tax_amount / $amount;
+                        $gross_ratio = $reference_tax_rate / ( 1 + $reference_tax_rate );
+                        $net_diff    = abs( $ratio - $reference_tax_rate );
+                        $gross_diff  = abs( $ratio - $gross_ratio );
 
-                if ( null === $reference_tax_rate || $reference_tax_rate <= 0.0 ) {
-                        $adjusted = $amount - $tax_amount;
-                        return $adjusted > 0.0 ? $adjusted : $amount;
-                }
-
-                $ratio       = $tax_amount / $amount;
-                $gross_ratio = $reference_tax_rate / ( 1 + $reference_tax_rate );
-                $net_diff    = abs( $ratio - $reference_tax_rate );
-                $gross_diff  = abs( $ratio - $gross_ratio );
-
-                if ( $gross_diff + 1e-6 < $net_diff ) {
-                        $adjusted = $amount - $tax_amount;
-                        if ( $adjusted > 0.0 ) {
-                                return $adjusted;
+                        if ( $gross_diff + 1e-6 < $net_diff ) {
+                                return $amount;
                         }
                 }
 
-                return $amount;
+                return $amount + $tax_amount;
         }
 
         private function resolve_refund_total_amount( $refund ): float {

@@ -453,6 +453,14 @@
     border-spacing: 0;
     table-layout: fixed;
 }
+
+.sii-dte-tabla-scroll {
+    width: 100%;
+    max-width: 800px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.65);
+}
 #sii-items-table thead th {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(14, 165, 233, 0.12));
     padding: 0.65rem 0.85rem;
@@ -825,11 +833,8 @@ body.sii-dte-modal-open {
     background: rgba(15, 23, 42, 0.85);
     color: #e2e8f0;
 }
-#sii-dte-tabla-scroll {
-  width: 100%;          /* o el ancho que necesites */
-  max-width: 800px;     /* opcional: limita el ancho visible */
-  overflow-x: auto;     /* scroll horizontal */
-  overflow-y: hidden;   /* opcional: ocultar scroll vertical */
-  border: 1px solid #ccc; /* solo para ver el contorno */
+
+.sii-dte-tabla-scroll {
+    border-color: rgba(71, 85, 105, 0.7);
 }
 }

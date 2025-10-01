@@ -825,4 +825,11 @@ body.sii-dte-modal-open {
     background: rgba(15, 23, 42, 0.85);
     color: #e2e8f0;
 }
+.sii-dte-tabla-scroll {
+  width: 100%;          /* o el ancho que necesites */
+  max-width: 800px;     /* opcional: limita el ancho visible */
+  overflow-x: auto;     /* scroll horizontal */
+  overflow-y: hidden;   /* opcional: ocultar scroll vertical */
+  border: 1px solid #ccc; /* solo para ver el contorno */
+}
 }

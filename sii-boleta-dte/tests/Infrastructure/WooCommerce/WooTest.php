@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
 
 final class WooTest extends TestCase {
-    public function test_prepare_order_data_uses_gross_line_totals(): void {
+    public function test_prepare_order_data_uses_net_line_totals(): void {
         $order = new class() {
             public function get_id(): int {
                 return 42;
@@ -78,8 +78,8 @@ final class WooTest extends TestCase {
 
         $detail = $data['Detalles'][0];
         $this->assertSame( 2.0, $detail['QtyItem'] );
-        $this->assertSame( 1190, (int) round( $detail['PrcItem'] ) );
-        $this->assertSame( 2380, (int) round( $detail['MontoItem'] ) );
+        $this->assertSame( 1000, (int) round( $detail['PrcItem'] ) );
+        $this->assertSame( 2000, (int) round( $detail['MontoItem'] ) );
 
         $this->assertArrayHasKey( 'Totales', $data );
         $this->assertSame( 2380.0, $data['Totales']['MntTotal'] );
@@ -263,11 +263,11 @@ final class WooTest extends TestCase {
         $this->assertSame( 30.0, $totals['MntTotal'] ?? 0.0 );
 
         $detail = $data['Detalles'][0];
-        $this->assertSame( 30.0, $detail['MontoItem'] );
+        $this->assertSame( 25.0, $detail['MontoItem'] );
         $this->assertSame( 1.0, $detail['QtyItem'] );
     }
 
-    public function test_build_refund_items_includes_taxes_in_amounts(): void {
+    public function test_build_refund_items_uses_net_amounts(): void {
         $refund = new class() {
             public function get_items( array $types ): array {
                 return array(
@@ -307,7 +307,7 @@ final class WooTest extends TestCase {
         $item = $items[0];
 
         $this->assertSame( 1.0, $item['QtyItem'] );
-        $this->assertSame( 595, (int) round( $item['PrcItem'] ) );
-        $this->assertSame( 595, (int) round( $item['MontoItem'] ) );
+        $this->assertSame( 500, (int) round( $item['PrcItem'] ) );
+        $this->assertSame( 500, (int) round( $item['MontoItem'] ) );
     }
 }

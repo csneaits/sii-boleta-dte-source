@@ -47,7 +47,7 @@ class BoletaTotalsTest extends TestCase {
                 'CmnaRecep' => 'Comuna',
             ],
             'Detalles' => [
-                [ 'NroLinDet'=>1, 'NmbItem'=>'Afecto', 'QtyItem'=>1, 'PrcItem'=>1190 ],
+                [ 'NroLinDet'=>1, 'NmbItem'=>'Afecto', 'QtyItem'=>1, 'PrcItem'=>1190, 'MntBruto'=>1 ],
                 [ 'NroLinDet'=>2, 'NmbItem'=>'Exento', 'QtyItem'=>1, 'PrcItem'=>500, 'IndExe'=>1 ],
             ],
         ];
@@ -108,8 +108,8 @@ class BoletaTotalsTest extends TestCase {
                 'CmnaRecep' => 'Comuna',
             ],
             'Detalles' => [
-                [ 'NroLinDet'=>1, 'NmbItem'=>'A', 'QtyItem'=>1, 'PrcItem'=>1200 ],
-                [ 'NroLinDet'=>2, 'NmbItem'=>'B', 'QtyItem'=>1, 'PrcItem'=>1200 ],
+                [ 'NroLinDet'=>1, 'NmbItem'=>'A', 'QtyItem'=>1, 'PrcItem'=>1200, 'MntBruto'=>1 ],
+                [ 'NroLinDet'=>2, 'NmbItem'=>'B', 'QtyItem'=>1, 'PrcItem'=>1200, 'MntBruto'=>1 ],
             ],
         ];
         $xml = $engine->generate_dte_xml( $data, 39, true );

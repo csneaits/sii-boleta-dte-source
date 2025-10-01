@@ -519,7 +519,9 @@ class Woo {
                 $using_refund  = self::CREDIT_NOTE_TYPE === $document_type && isset( $context['refund'] ) && is_object( $context['refund'] );
                 $refund_object = $using_refund ? $context['refund'] : null;
 
-                $items = array();
+                $items                = array();
+                $prices_include_tax   = $this->prices_include_tax();
+                $order_tax_rate       = $this->resolve_order_tax_rate( $order );
                 if ( $using_refund && $refund_object ) {
                         $items = $this->build_refund_items( $refund_object );
                 } elseif ( method_exists( $order, 'get_items' ) ) {
@@ -530,12 +532,13 @@ class Woo {
                                 }
                                 $qty = method_exists( $item, 'get_quantity' ) ? (float) $item->get_quantity() : 1.0;
                                 $qty = $qty > 0 ? $qty : 1.0;
-                                $total_excluding_tax = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
-                                if ( $total_excluding_tax < 0 ) {
-                                        $total_excluding_tax = 0.0;
+                                $raw_total = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
+                                $line_tax  = method_exists( $item, 'get_total_tax' ) ? (float) $item->get_total_tax() : 0.0;
+                                $line_total = $this->normalize_line_amount( $raw_total, $line_tax, $prices_include_tax, $order_tax_rate );
+                                if ( $line_total < 0 ) {
+                                        $line_total = 0.0;
                                 }
-                                $line_total = $total_excluding_tax;
-                                $unit_price          = $qty > 0 ? $line_total / $qty : $line_total;
+                                $unit_price = $qty > 0 ? $line_total / $qty : $line_total;
                                 $items[]    = array(
                                         'NroLinDet' => $line,
                                         'NmbItem'   => (string) $item->get_name(),
@@ -565,12 +568,13 @@ class Woo {
                                         if ( '' === $description ) {
                                                 $description = __( 'Reembolso parcial del pedido', 'sii-boleta-dte' );
                                         }
+                                        $normalized_amount = $this->normalize_line_amount( $fallback_net_total, $fallback_tax_total, $prices_include_tax, $order_tax_rate );
                                         $items[] = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => $description,
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_net_total,
-                                                'MontoItem' => $fallback_net_total,
+                                                'PrcItem'   => $normalized_amount,
+                                                'MontoItem' => $normalized_amount,
                                         );
                                 }
                         } elseif ( method_exists( $order, 'get_total' ) ) {
@@ -578,6 +582,7 @@ class Woo {
                                 if ( $fallback_total > 0 ) {
                                         $fallback_tax_total = method_exists( $order, 'get_total_tax' ) ? (float) $order->get_total_tax() : 0.0;
                                         $fallback_net_total = max( 0.0, $fallback_total - $fallback_tax_total );
+                                        $normalized_amount  = $this->normalize_line_amount( $fallback_net_total, $fallback_tax_total, $prices_include_tax, $order_tax_rate );
                                         $items[] = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => sprintf(
@@ -586,8 +591,8 @@ class Woo {
                                                         method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order_id
                                                 ),
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_net_total,
-                                                'MontoItem' => $fallback_net_total,
+                                                'PrcItem'   => $normalized_amount,
+                                                'MontoItem' => $normalized_amount,
                                         );
                                 }
                         }
@@ -674,12 +679,16 @@ class Woo {
 
                 $line       = 1;
                 $item_types = array( 'line_item', 'shipping', 'fee' );
+                $tax_rate   = $this->resolve_refund_tax_rate( $refund );
+                $prices_include_tax = $this->prices_include_tax();
                 foreach ( $refund->get_items( $item_types ) as $item ) {
                         if ( ! is_object( $item ) ) {
                                 continue;
                         }
 
-                        $amount = $this->abs_float( method_exists( $item, 'get_total' ) ? $item->get_total() : 0.0 );
+                        $raw_amount = $this->abs_float( method_exists( $item, 'get_total' ) ? $item->get_total() : 0.0 );
+                        $tax_amount = $this->abs_float( method_exists( $item, 'get_total_tax' ) ? $item->get_total_tax() : 0.0 );
+                        $amount     = $this->normalize_line_amount( $raw_amount, $tax_amount, $prices_include_tax, $tax_rate );
                         if ( $amount <= 0 ) {
                                 continue;
                         }
@@ -728,6 +737,99 @@ class Woo {
                         'IVA'      => $tax_total,
                         'MntTotal' => $total,
                 );
+        }
+
+        protected function prices_include_tax(): bool {
+                if ( function_exists( 'wc_prices_include_tax' ) ) {
+                        return (bool) wc_prices_include_tax();
+                }
+
+                if ( function_exists( 'get_option' ) ) {
+                        $value = get_option( 'woocommerce_prices_include_tax', 'no' );
+                        if ( is_string( $value ) ) {
+                                return 'yes' === strtolower( $value );
+                        }
+
+                        return (bool) $value;
+                }
+
+                return false;
+        }
+
+        private function resolve_order_tax_rate( $order ): ?float {
+                if ( ! is_object( $order ) ) {
+                        return null;
+                }
+
+                $total = method_exists( $order, 'get_total' ) ? (float) $order->get_total() : 0.0;
+                $tax   = method_exists( $order, 'get_total_tax' ) ? (float) $order->get_total_tax() : 0.0;
+
+                if ( $total <= 0.0 || $tax <= 0.0 ) {
+                        return null;
+                }
+
+                $net = $total - $tax;
+                if ( $net <= 0.0 ) {
+                        return null;
+                }
+
+                return $tax / $net;
+        }
+
+        private function resolve_refund_tax_rate( $refund ): ?float {
+                if ( ! is_object( $refund ) ) {
+                        return null;
+                }
+
+                $total = $this->resolve_refund_total_amount( $refund );
+                $tax   = $this->abs_float( method_exists( $refund, 'get_total_tax' ) ? $refund->get_total_tax() : 0.0 );
+
+                if ( $total <= 0.0 || $tax <= 0.0 ) {
+                        return null;
+                }
+
+                $net = $total - $tax;
+                if ( $net <= 0.0 ) {
+                        return null;
+                }
+
+                return $tax / $net;
+        }
+
+        private function normalize_line_amount( float $amount, float $tax_amount, bool $prices_include_tax, ?float $reference_tax_rate ): float {
+                if ( $amount <= 0.0 ) {
+                        return 0.0;
+                }
+
+                if ( ! $prices_include_tax ) {
+                        return $amount;
+                }
+
+                $tax_amount = abs( $tax_amount );
+                if ( $tax_amount <= 0.0 ) {
+                        return $amount;
+                }
+
+                $amount = abs( $amount );
+
+                if ( null === $reference_tax_rate || $reference_tax_rate <= 0.0 ) {
+                        $adjusted = $amount - $tax_amount;
+                        return $adjusted > 0.0 ? $adjusted : $amount;
+                }
+
+                $ratio       = $tax_amount / $amount;
+                $gross_ratio = $reference_tax_rate / ( 1 + $reference_tax_rate );
+                $net_diff    = abs( $ratio - $reference_tax_rate );
+                $gross_diff  = abs( $ratio - $gross_ratio );
+
+                if ( $gross_diff + 1e-6 < $net_diff ) {
+                        $adjusted = $amount - $tax_amount;
+                        if ( $adjusted > 0.0 ) {
+                                return $adjusted;
+                        }
+                }
+
+                return $amount;
         }
 
         private function resolve_refund_total_amount( $refund ): float {

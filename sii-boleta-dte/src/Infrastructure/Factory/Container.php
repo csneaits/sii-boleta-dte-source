@@ -13,6 +13,7 @@ use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Infrastructure\Cron;
 use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
+use Sii\BoletaDte\Infrastructure\Plugin;
 use Sii\BoletaDte\Shared\SharedLogger;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 use Sii\BoletaDte\Presentation\Admin\LogsPage;
@@ -67,7 +68,24 @@ class Container {
                                         self::get( FolioManager::class )
                                 )
                         );
-						self::bind( Woo::class, fn() => new Woo( null ) );
+                        self::bind(
+                                Plugin::class,
+                                static function () {
+                                        static $plugin = null;
+
+                                        if ( null === $plugin ) {
+                                                $plugin = new Plugin();
+                                        }
+
+                                        return $plugin;
+                                }
+                        );
+                        self::bind(
+                                Woo::class,
+                                static function () {
+                                        return new Woo( self::get( Plugin::class ) );
+                                }
+                        );
 						self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
 						self::bind( LogsPage::class, fn() => new LogsPage() );
 						self::bind( DiagnosticsPage::class, fn() => new DiagnosticsPage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ) ) );

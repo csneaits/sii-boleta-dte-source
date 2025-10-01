@@ -531,8 +531,10 @@ class Woo {
                                 $qty = method_exists( $item, 'get_quantity' ) ? (float) $item->get_quantity() : 1.0;
                                 $qty = $qty > 0 ? $qty : 1.0;
                                 $total_excluding_tax = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
-                                $total_tax           = method_exists( $item, 'get_total_tax' ) ? (float) $item->get_total_tax() : 0.0;
-                                $line_total          = $total_excluding_tax + $total_tax;
+                                if ( $total_excluding_tax < 0 ) {
+                                        $total_excluding_tax = 0.0;
+                                }
+                                $line_total = $total_excluding_tax;
                                 $unit_price          = $qty > 0 ? $line_total / $qty : $line_total;
                                 $items[]    = array(
                                         'NroLinDet' => $line,
@@ -549,6 +551,16 @@ class Woo {
                         if ( $using_refund && $refund_object ) {
                                 $fallback_total = $this->resolve_refund_total_amount( $refund_object );
                                 if ( $fallback_total > 0 ) {
+                                        $fallback_tax_total = $this->abs_float( method_exists( $refund_object, 'get_total_tax' ) ? $refund_object->get_total_tax() : 0.0 );
+                                        $fallback_net_total = max( 0.0, $fallback_total - $fallback_tax_total );
+                                        if ( method_exists( $refund_object, 'get_total' ) ) {
+                                                $candidate = $this->abs_float( $refund_object->get_total() );
+                                                if ( $candidate > 0 && $this->totals_match( $candidate + $fallback_tax_total, $fallback_total ) ) {
+                                                        $fallback_net_total = $candidate;
+                                                } elseif ( $candidate > 0 && 0.0 === $fallback_tax_total ) {
+                                                        $fallback_net_total = $candidate;
+                                                }
+                                        }
                                         $description = trim( (string) ( $context['reason'] ?? '' ) );
                                         if ( '' === $description ) {
                                                 $description = __( 'Reembolso parcial del pedido', 'sii-boleta-dte' );
@@ -557,13 +569,15 @@ class Woo {
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => $description,
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_total,
-                                                'MontoItem' => $fallback_total,
+                                                'PrcItem'   => $fallback_net_total,
+                                                'MontoItem' => $fallback_net_total,
                                         );
                                 }
                         } elseif ( method_exists( $order, 'get_total' ) ) {
                                 $fallback_total = (float) $order->get_total();
                                 if ( $fallback_total > 0 ) {
+                                        $fallback_tax_total = method_exists( $order, 'get_total_tax' ) ? (float) $order->get_total_tax() : 0.0;
+                                        $fallback_net_total = max( 0.0, $fallback_total - $fallback_tax_total );
                                         $items[] = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => sprintf(
@@ -572,8 +586,8 @@ class Woo {
                                                         method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order_id
                                                 ),
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_total,
-                                                'MontoItem' => $fallback_total,
+                                                'PrcItem'   => $fallback_net_total,
+                                                'MontoItem' => $fallback_net_total,
                                         );
                                 }
                         }
@@ -685,9 +699,7 @@ class Woo {
                         }
 
                         $amount = $this->abs_float( method_exists( $item, 'get_total' ) ? $item->get_total() : 0.0 );
-                        $tax    = $this->abs_float( method_exists( $item, 'get_total_tax' ) ? $item->get_total_tax() : 0.0 );
-                        $line_total = $amount + $tax;
-                        if ( $line_total <= 0 ) {
+                        if ( $amount <= 0 ) {
                                 continue;
                         }
 
@@ -696,7 +708,7 @@ class Woo {
                                 $quantity = 1.0;
                         }
 
-                        $unit_price = $quantity > 0 ? $line_total / $quantity : $line_total;
+                        $unit_price = $quantity > 0 ? $amount / $quantity : $amount;
                         $name = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : __( 'Reembolso', 'sii-boleta-dte' );
 
                         if ( method_exists( $item, 'get_type' ) ) {
@@ -713,7 +725,7 @@ class Woo {
                                 'NmbItem'   => $name,
                                 'QtyItem'   => $quantity,
                                 'PrcItem'   => $unit_price,
-                                'MontoItem' => $line_total,
+                                'MontoItem' => $amount,
                         );
                         ++$line;
                 }
@@ -1010,6 +1022,10 @@ class Woo {
                 foreach ( array( '_pdf', '_pdf_path', '_pdf_url' ) as $suffix ) {
                         $this->delete_order_meta( $order_id, $meta_prefix . $suffix );
                 }
+        }
+
+        private function totals_match( float $first, float $second, float $tolerance = 0.51 ): bool {
+                return abs( $first - $second ) <= $tolerance;
         }
 
         private function delete_order_meta( int $order_id, string $meta_key ): void {

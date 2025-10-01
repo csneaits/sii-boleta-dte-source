@@ -174,26 +174,35 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                 $taxable = (int) round( $taxable );
                 $exempt  = (int) round( $exempt );
 
-                $totals = array(
-                        'MntTotal' => $taxable + $exempt,
-                );
+                $totals = array();
 
-                if ( 0 !== $exempt ) {
+                if ( $exempt > 0 ) {
                         $totals['MntExe'] = $exempt;
                 }
 
-                if ( null !== $tasaIva && $tasaIva > 0 && 0 !== $taxable ) {
-                        $rate     = 1 + ( $tasaIva / 100 );
-                        $neto     = (int) round( $taxable / $rate );
-                        $iva      = $taxable - $neto;
-                        $totals['MntNeto'] = $neto;
-                        if ( 0 !== $iva ) {
-                                $totals['IVA'] = $iva;
-                        }
-                        $totals['TasaIVA'] = $tasaIva;
-                } elseif ( null !== $tasaIva ) {
+                if ( null !== $tasaIva ) {
                         $totals['TasaIVA'] = $tasaIva;
                 }
+
+                if ( null !== $tasaIva && $tasaIva > 0 && $taxable > 0 ) {
+                        $iva  = (int) round( $taxable * ( $tasaIva / 100 ) );
+                        $neto = $taxable;
+
+                        $totals['MntNeto']  = $neto;
+                        if ( $iva > 0 ) {
+                                $totals['IVA'] = $iva;
+                        }
+
+                        $totals['MntTotal'] = $neto + $iva + $exempt;
+
+                        return $totals;
+                }
+
+                if ( $taxable > 0 ) {
+                        $totals['MntNeto'] = $taxable;
+                }
+
+                $totals['MntTotal'] = $taxable + $exempt;
 
                 return $totals;
         }

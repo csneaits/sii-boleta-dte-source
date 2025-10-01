@@ -58,7 +58,7 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
                     'NroLinDet' => 1,
                     'NmbItem'   => 'TEST',
                     'QtyItem'   => 1,
-                    'PrcItem'   => 1200,
+                    'PrcItem'   => 1000,
                 ),
             ),
         );
@@ -84,9 +84,9 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         $totals = $document->Documento->Encabezado->Totales ?? null;
         $this->assertNotNull( $totals );
 
-        $this->assertSame( 1200, (int) $totals->MntTotal );
-        $this->assertSame( 1008, (int) $totals->MntNeto );
-        $this->assertSame( 192, (int) $totals->IVA );
+        $this->assertSame( 1190, (int) $totals->MntTotal );
+        $this->assertSame( 1000, (int) $totals->MntNeto );
+        $this->assertSame( 190, (int) $totals->IVA );
     }
 
     public function test_engine_skips_adjustment_when_not_supported(): void {

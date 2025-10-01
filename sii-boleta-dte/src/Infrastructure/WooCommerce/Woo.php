@@ -594,21 +594,6 @@ class Woo {
                         );
                 }
 
-                $global_discount = array();
-                if ( ! $using_refund && method_exists( $order, 'get_discount_total' ) ) {
-                        $discount_amount = $this->abs_float( $order->get_discount_total() );
-                        $discount_tax    = method_exists( $order, 'get_discount_tax' ) ? $this->abs_float( $order->get_discount_tax() ) : 0.0;
-                        $discount_total  = $discount_amount + $discount_tax;
-
-                        if ( $discount_total > 0 ) {
-                                $global_discount = array(
-                                        'TpoMov'   => 'D',
-                                        'TpoValor' => '$',
-                                        'ValorDR'  => (int) round( $discount_total ),
-                                );
-                        }
-                }
-
                 if ( empty( $items ) ) {
                         return array();
                 }
@@ -639,10 +624,6 @@ class Woo {
                                 'Totales' => $totals,
                         ),
                 );
-
-                if ( ! empty( $global_discount ) ) {
-                        $data['DscRcgGlobal'] = $global_discount;
-                }
 
                 if ( ! empty( $totals ) ) {
                         $data['Totales'] = $totals;

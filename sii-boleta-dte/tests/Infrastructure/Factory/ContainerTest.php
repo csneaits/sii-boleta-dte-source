@@ -33,24 +33,25 @@ namespace {
     }
 }
 
-namespace Sii\BoletaDte\Tests\Infrastructure\Factory;
+namespace Sii\BoletaDte\Tests\Infrastructure\Factory {
 
-use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Factory\Container;
-use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
+    use PHPUnit\Framework\TestCase;
+    use Sii\BoletaDte\Infrastructure\Factory\Container;
+    use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
 
-final class ContainerTest extends TestCase
-{
-    protected function setUp(): void
+    final class ContainerTest extends TestCase
     {
-        parent::setUp();
-        Container::init();
-    }
+        protected function setUp(): void
+        {
+            parent::setUp();
+            Container::init();
+        }
 
-    public function test_it_resolves_woo_without_type_error(): void
-    {
-        $woo = Container::get( Woo::class );
+        public function test_it_resolves_woo_without_type_error(): void
+        {
+            $woo = Container::get( Woo::class );
 
-        $this->assertInstanceOf( Woo::class, $woo );
+            $this->assertInstanceOf( Woo::class, $woo );
+        }
     }
 }

@@ -530,14 +530,15 @@ class Woo {
                                 }
                                 $qty = method_exists( $item, 'get_quantity' ) ? (float) $item->get_quantity() : 1.0;
                                 $qty = $qty > 0 ? $qty : 1.0;
-                                $prc = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
-                                $unit_price = $qty > 0 ? $prc / $qty : $prc;
+                                $total_excluding_tax = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
+                                $line_total          = $total_excluding_tax;
+                                $unit_price          = $qty > 0 ? $line_total / $qty : $line_total;
                                 $items[]    = array(
                                         'NroLinDet' => $line,
                                         'NmbItem'   => (string) $item->get_name(),
                                         'QtyItem'   => $qty,
                                         'PrcItem'   => $unit_price,
-                                        'MontoItem' => $prc,
+                                        'MontoItem' => $line_total,
                                 );
                                 ++$line;
                         }
@@ -546,6 +547,7 @@ class Woo {
                 if ( empty( $items ) ) {
                         if ( $using_refund && $refund_object ) {
                                 $fallback_total = $this->resolve_refund_total_amount( $refund_object );
+                                $tax_total      = $this->abs_float( method_exists( $refund_object, 'get_total_tax' ) ? $refund_object->get_total_tax() : 0.0 );
                                 if ( $fallback_total > 0 ) {
                                         $description = trim( (string) ( $context['reason'] ?? '' ) );
                                         if ( '' === $description ) {
@@ -555,13 +557,15 @@ class Woo {
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => $description,
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_total,
-                                                'MontoItem' => $fallback_total,
+                                                'PrcItem'   => max( 0.0, $fallback_total - $tax_total ),
+                                                'MontoItem' => max( 0.0, $fallback_total - $tax_total ),
                                         );
                                 }
                         } elseif ( method_exists( $order, 'get_total' ) ) {
                                 $fallback_total = (float) $order->get_total();
-                                if ( $fallback_total > 0 ) {
+                                $tax_total      = method_exists( $order, 'get_total_tax' ) ? (float) $order->get_total_tax() : 0.0;
+                                $fallback_net   = max( 0.0, $fallback_total - $tax_total );
+                                if ( $fallback_net > 0 ) {
                                         $items[] = array(
                                                 'NroLinDet' => 1,
                                                 'NmbItem'   => sprintf(
@@ -570,8 +574,8 @@ class Woo {
                                                         method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order_id
                                                 ),
                                                 'QtyItem'   => 1,
-                                                'PrcItem'   => $fallback_total,
-                                                'MontoItem' => $fallback_total,
+                                                'PrcItem'   => $fallback_net,
+                                                'MontoItem' => $fallback_net,
                                         );
                                 }
                         }
@@ -660,8 +664,8 @@ class Woo {
                         }
 
                         $amount = $this->abs_float( method_exists( $item, 'get_total' ) ? $item->get_total() : 0.0 );
-                        $tax    = $this->abs_float( method_exists( $item, 'get_total_tax' ) ? $item->get_total_tax() : 0.0 );
-                        if ( $amount <= 0 && $tax <= 0 ) {
+                        $line_total = $amount;
+                        if ( $line_total <= 0 ) {
                                 continue;
                         }
 
@@ -670,7 +674,7 @@ class Woo {
                                 $quantity = 1.0;
                         }
 
-                        $unit_price = $quantity > 0 ? $amount / $quantity : $amount;
+                        $unit_price = $quantity > 0 ? $line_total / $quantity : $line_total;
                         $name = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : __( 'Reembolso', 'sii-boleta-dte' );
 
                         if ( method_exists( $item, 'get_type' ) ) {
@@ -687,7 +691,7 @@ class Woo {
                                 'NmbItem'   => $name,
                                 'QtyItem'   => $quantity,
                                 'PrcItem'   => $unit_price,
-                                'MontoItem' => $amount,
+                                'MontoItem' => $line_total,
                         );
                         ++$line;
                 }

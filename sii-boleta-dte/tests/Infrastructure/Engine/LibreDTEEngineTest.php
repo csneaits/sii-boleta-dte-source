@@ -3,7 +3,6 @@ use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\Engine\Caf\CafProviderInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
-use Sii\BoletaDte\Infrastructure\Engine\Factory\DefaultDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\DteDocumentFactoryRegistry;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
@@ -203,7 +202,7 @@ class LibreDTEEngineTest extends TestCase {
         $this->assertInstanceOf(DteDocumentFactoryRegistry::class, $registry);
 
         $defaultFactory = $registry->getFactory(39);
-        $this->assertInstanceOf(DefaultDteDocumentFactory::class, $defaultFactory);
+        $this->assertInstanceOf(BoletaDteDocumentFactory::class, $defaultFactory);
 
         $templatesRoot = dirname(__DIR__, 3) . '/resources/yaml/';
         $boletaFactory = new BoletaDteDocumentFactory($templatesRoot);

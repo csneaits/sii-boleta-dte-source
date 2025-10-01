@@ -1012,6 +1012,19 @@ class GenerateDtePage {
 					}
 				}
 
+				// If the store is configured to show prices inclusive of tax,
+				// mark manual item lines as gross so the totals adjuster will
+				// convert them to net amounts before rendering totals.
+				$prices_include_tax = false;
+				if ( function_exists( 'wc_prices_include_tax' ) ) {
+					$prices_include_tax = (bool) wc_prices_include_tax();
+				} elseif ( function_exists( 'get_option' ) ) {
+					$prices_include_tax = ( 'yes' === get_option( 'woocommerce_prices_include_tax', 'no' ) );
+				}
+				if ( $prices_include_tax ) {
+					$line['MntBruto'] = 1;
+				}
+
 				$items[] = $line;
 			}
 		}

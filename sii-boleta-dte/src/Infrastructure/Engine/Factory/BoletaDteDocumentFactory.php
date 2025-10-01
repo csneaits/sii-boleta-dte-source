@@ -13,6 +13,7 @@ use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\SectionSanitizer;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\TemplateLoaderInterface;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\Components\YamlTemplateLoader;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\NullTotalsAdjuster;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\VatInclusiveTotalsAdjuster;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\TotalsAdjusterInterface;
 
 /**
@@ -51,6 +52,8 @@ class BoletaDteDocumentFactory implements DteDocumentFactory {
         }
 
         public function createTotalsAdjuster(): TotalsAdjusterInterface {
-                return new NullTotalsAdjuster();
+                // Use VAT-inclusive adjuster for boletas so lines that include VAT
+                // (MntBruto) are converted to net amounts before rendering the PDF.
+                return new VatInclusiveTotalsAdjuster();
         }
 }

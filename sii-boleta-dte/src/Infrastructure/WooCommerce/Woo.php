@@ -547,7 +547,9 @@ class Woo {
                                         'MontoItem' => $line_total,
                                 );
 
-                                if ( $prices_include_tax && $line_tax > 0 ) {
+                                // If store prices include tax, mark line as gross so the totals
+                                // adjuster converts gross amounts to net before rendering.
+                                if ( $prices_include_tax ) {
                                         $item_data['MntBruto'] = 1;
                                 }
 
@@ -583,7 +585,9 @@ class Woo {
                                                 'MontoItem' => $normalized_amount,
                                         );
 
-                                        if ( $prices_include_tax && $fallback_tax_total > 0 ) {
+                                        // If prices include tax, mark fallback item as gross so it's
+                                        // handled consistently by the totals adjuster.
+                                        if ( $prices_include_tax ) {
                                                 $item_data['MntBruto'] = 1;
                                         }
 
@@ -736,7 +740,9 @@ class Woo {
                                 'MontoItem' => $amount,
                         );
 
-                        if ( $prices_include_tax && $tax_amount > 0 ) {
+                        // When store prices include tax, mark refund lines as gross so
+                        // the totals adjuster can convert them to net amounts.
+                        if ( $prices_include_tax ) {
                                 $item_data['MntBruto'] = 1;
                         }
 

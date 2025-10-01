@@ -21,7 +21,7 @@ class PdfGenerator {
          * generated file.
          */
         public function generate( string $xml ): string {
-                $options = $this->build_render_options();
+                $options = $this->build_render_options( $xml );
 
                 return (string) $this->engine->render_pdf( $xml, $options );
         }
@@ -31,24 +31,81 @@ class PdfGenerator {
          *
          * @return array<string,mixed>
          */
-        private function build_render_options(): array {
-                $settings = $this->settings->get_settings();
+        /**
+         * Builds render options based on plugin configuration.
+         * If $xml is provided, attempts to detect the TipoDTE to apply per-type overrides.
+         *
+         * @param string|null $xml
+         * @return array<string,mixed>
+         */
+        private function build_render_options( ?string $xml = null ): array {
+                        $settings = $this->settings->get_settings();
+                        // Default template from global setting
+                        $format   = isset( $settings['pdf_format'] ) ? strtolower( trim( (string) $settings['pdf_format'] ) ) : '';
+                        $template = 'boleta' === $format ? 'boleta_ticket' : 'estandar';
 
-                if ( empty( $settings['pdf_show_logo'] ) ) {
-                        return array();
+                        $options = array(
+                                'renderer' => array(
+                                        'template' => $template,
+                                ),
+                        );
+
+                        // If XML provided, try to extract the TipoDTE and apply per-type PDF settings
+                        if ( null !== $xml && '' !== trim( $xml ) ) {
+                                libxml_use_internal_errors( true );
+                                $doc = simplexml_load_string( $xml );
+                                if ( $doc !== false ) {
+                                        // Namespace-agnostic lookup for Encabezado/IdDoc/TipoDTE
+                                        $tipo = null;
+                                        $encabezado = $doc->xpath('//Encabezado');
+                                        if ( ! empty( $encabezado ) ) {
+                                                $id = $encabezado[0]->xpath('.//IdDoc');
+                                                if ( ! empty( $id ) ) {
+                                                        $tipoNode = $id[0]->xpath('.//TipoDTE');
+                                                        if ( ! empty( $tipoNode ) ) {
+                                                                $tipo = (string) $tipoNode[0];
+                                                        }
+                                                }
+                                        }
+                                        if ( null !== $tipo && isset( $settings['pdf_per_type'][ (int) $tipo ] ) ) {
+                                                $cfg = $settings['pdf_per_type'][ (int) $tipo ];
+                                                if ( isset( $cfg['template'] ) ) {
+                                                        $options['renderer']['template'] = $cfg['template'];
+                                                }
+                                                if ( isset( $cfg['paper_width'] ) || isset( $cfg['paper_height'] ) ) {
+                                                        // Convert numeric millimeter values into the renderer-expected
+                                                        // width/height strings (e.g. "80mm") so engines like mPDF
+                                                        // receive the proper MediaBox size.
+                                                        $w = isset( $cfg['paper_width'] ) ? (string) $cfg['paper_width'] : '';
+                                                        $h = isset( $cfg['paper_height'] ) ? (string) $cfg['paper_height'] : '';
+                                                        $paper = array();
+                                                        if ( '' !== $w ) {
+                                                                $paper['width'] = $w . 'mm';
+                                                        }
+                                                        if ( '' !== $h ) {
+                                                                $paper['height'] = $h . 'mm';
+                                                        }
+                                                        if ( ! empty( $paper ) ) {
+                                                                $options['renderer']['paper'] = $paper;
+                                                        }
+                                                }
+                                        }
+                                }
+                                libxml_clear_errors();
+                        }
+
+
+                if ( ! empty( $settings['pdf_show_logo'] ) ) {
+                        $logo = $this->resolve_logo_data( $settings );
+
+                        if ( null !== $logo ) {
+                                $options['document_overrides'] = array(
+                                        'logo' => $logo,
+                                );
+                        }
                 }
 
-                $logo = $this->resolve_logo_data( $settings );
-
-                if ( null === $logo ) {
-                        return array();
-                }
-
-                return array(
-                        'document_overrides' => array(
-                                'logo' => $logo,
-                        ),
-                );
+                return $options;
         }
 
         /**

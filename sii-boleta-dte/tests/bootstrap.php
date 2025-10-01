@@ -41,3 +41,19 @@ if ( ! function_exists( 'delete_option' ) ) {
         return true;
     }
 }
+
+if ( ! function_exists( 'esc_html_x' ) ) {
+    /**
+     * Minimal polyfill for WordPress' esc_html_x translation helper.
+     *
+     * The actual function translates the string before escaping it. For
+     * the purposes of the test environment we simply return the original
+     * string so that template rendering can continue without requiring
+     * WordPress core.
+     */
+    function esc_html_x( $text, $context, $domain = 'default' ) {
+        unset( $context, $domain );
+
+        return $text;
+    }
+}

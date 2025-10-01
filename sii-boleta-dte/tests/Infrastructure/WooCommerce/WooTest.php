@@ -87,6 +87,89 @@ final class WooTest extends TestCase {
         $this->assertSame( 2000.0, $data['Totales']['MntNeto'] );
     }
 
+    public function test_prepare_order_data_converts_tax_inclusive_line_totals(): void {
+        $order = new class() {
+            public function get_id(): int {
+                return 101;
+            }
+
+            public function get_items(): array {
+                return array(
+                    new class() {
+                        public function get_name(): string {
+                            return 'Producto con precio bruto';
+                        }
+
+                        public function get_quantity(): float {
+                            return 1.0;
+                        }
+
+                        public function get_total(): float {
+                            return 1190.0;
+                        }
+
+                        public function get_total_tax(): float {
+                            return 190.0;
+                        }
+                    }
+                );
+            }
+
+            public function get_total(): float {
+                return 1190.0;
+            }
+
+            public function get_total_tax(): float {
+                return 190.0;
+            }
+
+            public function get_formatted_billing_full_name(): string {
+                return 'Cliente IVA incluido';
+            }
+
+            public function get_billing_phone(): string {
+                return '';
+            }
+
+            public function get_billing_email(): string {
+                return 'iva@example.com';
+            }
+
+            public function get_billing_address_1(): string {
+                return 'Dirección IVA 123';
+            }
+
+            public function get_billing_city(): string {
+                return 'Santiago';
+            }
+
+            public function get_order_number(): string {
+                return '101';
+            }
+        };
+
+        $woo = new class( null ) extends Woo {
+            protected function prices_include_tax(): bool {
+                return true;
+            }
+        };
+
+        $method = new ReflectionMethod( Woo::class, 'prepare_order_data' );
+        $method->setAccessible( true );
+
+        $data = $method->invoke( $woo, $order, 39, 101 );
+
+        $this->assertArrayHasKey( 'Detalles', $data );
+        $detail = $data['Detalles'][0];
+        $this->assertSame( 1000, (int) round( $detail['PrcItem'] ) );
+        $this->assertSame( 1000, (int) round( $detail['MontoItem'] ) );
+
+        $totals = $data['Totales'];
+        $this->assertSame( 1000.0, $totals['MntNeto'] );
+        $this->assertSame( 190.0, $totals['IVA'] );
+        $this->assertSame( 1190.0, $totals['MntTotal'] );
+    }
+
     public function test_prepare_order_data_does_not_include_global_discount_when_totals_are_net(): void {
         $order = new class() {
             public function get_id(): int {

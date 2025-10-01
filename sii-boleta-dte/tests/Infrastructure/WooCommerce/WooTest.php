@@ -87,7 +87,7 @@ final class WooTest extends TestCase {
         $this->assertSame( 2000.0, $data['Totales']['MntNeto'] );
     }
 
-    public function test_prepare_order_data_includes_global_discount_when_available(): void {
+    public function test_prepare_order_data_does_not_include_global_discount_when_totals_are_net(): void {
         $order = new class() {
             public function get_id(): int {
                 return 77;
@@ -163,10 +163,9 @@ final class WooTest extends TestCase {
 
         $data = $method->invoke( $woo, $order, 33, 77 );
 
-        $this->assertArrayHasKey( 'DscRcgGlobal', $data );
-        $this->assertSame( 'D', $data['DscRcgGlobal']['TpoMov'] );
-        $this->assertSame( '$', $data['DscRcgGlobal']['TpoValor'] );
-        $this->assertSame( 476, $data['DscRcgGlobal']['ValorDR'] );
+        $this->assertArrayNotHasKey( 'DscRcgGlobal', $data );
+        $this->assertArrayHasKey( 'Totales', $data );
+        $this->assertSame( 3332.0, $data['Totales']['MntTotal'] );
     }
 
     public function test_prepare_order_data_uses_refund_totals_without_global_discount(): void {

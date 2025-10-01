@@ -565,7 +565,8 @@ class GenerateDtePage {
 								</section>
 								<section class="sii-dte-step" data-step="resumen" aria-labelledby="sii-dte-step-resumen">
 										<h2 id="sii-dte-step-resumen" class="sii-dte-step-heading"><?php esc_html_e( 'Resumen y referencias', 'sii-boleta-dte' ); ?></h2>
-										<table class="form-table" role="presentation">
+								<div class="sii-dte-tabla-scroll">		
+								<table class="form-table" role="presentation">
 												<tbody>
 
                                                                                 <tr class="dte-section" data-types="33,39,41" style="display:none">
@@ -674,7 +675,8 @@ class GenerateDtePage {
 												</td>
 										</tr>
 																</tbody>
-																</table>
+								</table>
+								</div>
 												<div class="sii-step-navigation sii-step-navigation--start">
 														<button type="button" class="button sii-step-prev"><?php esc_html_e( 'Anterior', 'sii-boleta-dte' ); ?></button>
 												</div>

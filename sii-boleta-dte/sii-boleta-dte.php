@@ -43,6 +43,25 @@ if ( file_exists( SII_BOLETA_DTE_PATH . 'vendor/autoload.php' ) ) {
 	require_once WP_CONTENT_DIR . '/vendor/autoload.php';
 }
 
+// Fallback PSR-4 autoloader for plugin classes when Composer autoload is not present.
+// This keeps the plugin usable on installations where 'vendor/' was not installed
+// and provides a conservative mapping: Sii\BoletaDte\ -> src/
+if ( ! class_exists( '\Sii\BoletaDte\Infrastructure\Plugin' ) ) {
+	spl_autoload_register( function ( $class ) {
+		$prefix = 'Sii\\BoletaDte\\';
+		// Only handle our namespace
+		if ( 0 !== strpos( $class, $prefix ) ) {
+			return;
+		}
+
+		$relative = substr( $class, strlen( $prefix ) );
+		$file = SII_BOLETA_DTE_PATH . 'src/' . str_replace( '\\', '/', $relative ) . '.php';
+		if ( file_exists( $file ) ) {
+			require_once $file;
+		}
+	} );
+}
+
 // Cargar autoload de Composer desde ubicaciones comunes
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	// CLI commands autoloaded via Composer classes
@@ -100,6 +119,180 @@ register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persist
 // Migrar ajustes y logs de versiones anteriores.
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\SettingsMigration::class, 'migrate' ) );
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorageMigrator::class, 'migrate' ) );
+
+// Número de días que conservamos las copias de debug de PDFs. Se puede redefinir antes de incluir el plugin.
+if ( ! defined( 'SII_BOLETA_DTE_DEBUG_RETENTION_DAYS' ) ) {
+	define( 'SII_BOLETA_DTE_DEBUG_RETENTION_DAYS', 7 );
+}
+
+// Programar / limpiar job de limpieza de copias de debug (rotación)
+register_activation_hook( __FILE__, 'sii_boleta_dte_activate_prune_job' );
+register_deactivation_hook( __FILE__, 'sii_boleta_dte_deactivate_prune_job' );
+
+// Admin UI: Tools -> SII Boleta DTE Debug Renders
+add_action( 'admin_menu', function() {
+	if ( function_exists( 'add_management_page' ) ) {
+		add_management_page(
+			'SII Boleta DTE Debug Renders',
+			'SII Boleta DTE Renders',
+			'manage_options',
+			'sii-boleta-dte-renders',
+			'sii_boleta_dte_admin_renders_page'
+		);
+	}
+} );
+
+/**
+ * Admin page that lists recent debug renders and exposes a manual prune action.
+ */
+function sii_boleta_dte_admin_renders_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'No tienes permisos para ver esta página.', 'sii-boleta-dte' ) );
+	}
+
+	$uploads = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : null;
+	$basedir = $uploads && isset( $uploads['basedir'] ) ? rtrim( $uploads['basedir'], '/\\' ) : '';
+	$dir = $basedir ? $basedir . '/sii-boleta-dte/private/last_renders_debug' : '';
+
+	echo '<div class="wrap"><h1>SII Boleta DTE — Debug Renders</h1>';
+	echo '<p>Directorio de debug: <code>' . esc_html( $dir ) . '</code></p>';
+
+	// Show next scheduled run (if WP cron available)
+	if ( function_exists( 'wp_next_scheduled' ) ) {
+		$next = wp_next_scheduled( 'sii_boleta_dte_prune_debug_pdfs' );
+		if ( $next ) {
+			echo '<p><strong>Siguiente ejecución programada:</strong> ' . esc_html( date( 'Y-m-d H:i:s', $next ) ) . '</p>';
+		} else {
+			echo '<p><strong>Siguiente ejecución programada:</strong> <em>No programada</em></p>';
+		}
+	}
+
+	if ( $dir && is_dir( $dir ) ) {
+		$files = glob( $dir . '/*.pdf' );
+		usort( $files, function( $a, $b ) { return filemtime($b) - filemtime($a); } );
+		echo '<h2>Archivos recientes</h2>';
+		echo '<table class="widefat"><thead><tr><th>Nombre</th><th>Tamaño</th><th>Modificado</th></tr></thead><tbody>';
+		$count = 0;
+		foreach ( $files as $f ) {
+			$count++;
+			$name = basename( $f );
+			$size = size_format( filesize( $f ) );
+			$mtime = date( 'Y-m-d H:i:s', filemtime( $f ) );
+			$link = esc_url( str_replace( ABSPATH, site_url( '/' ), $f ) );
+			echo '<tr><td>' . esc_html( $name ) . '</td><td>' . esc_html( $size ) . '</td><td>' . esc_html( $mtime ) . '</td></tr>';
+			if ( $count >= 50 ) break;
+		}
+		echo '</tbody></table>';
+		if ( 0 === $count ) {
+			echo '<p>No se encontraron archivos.</p>';
+		}
+	} else {
+		echo '<p>Directorio no encontrado.</p>';
+	}
+
+	// Show recent debug.log entries for job execution visibility
+	$logs_dir = $basedir ? $basedir . '/sii-boleta-dte/private/logs' : '';
+	$log_file = $logs_dir ? $logs_dir . '/debug.log' : '';
+	echo '<h2>Registros de depuración (últimas líneas)</h2>';
+	if ( $log_file && is_file( $log_file ) ) {
+		$lines = file( $log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
+		if ( $lines === false ) {
+			echo '<p>No se pudo leer el archivo de log.</p>';
+		} else {
+			$tail = array_slice( $lines, -120 );
+			echo '<pre style="max-height: 400px; overflow:auto; background:#fff; padding:8px; border:1px solid #ddd;">' . esc_html( implode( "\n", $tail ) ) . '</pre>';
+		}
+	} else {
+		echo '<p>No se encontró el archivo de logs de depuración.</p>';
+	}
+
+	// Manual prune form
+	$nonce = wp_create_nonce( 'sii_boleta_dte_prune_now' );
+	$action_url = admin_url( 'admin-post.php' );
+	echo '<form method="post" action="' . esc_url( $action_url ) . '">';
+	echo '<input type="hidden" name="action" value="sii_boleta_dte_prune_now">';
+	echo '<input type="hidden" name="_wpnonce" value="' . esc_attr( $nonce ) . '">';
+	submit_button( 'Ejecutar limpieza ahora', 'secondary' );
+	echo '</form>';
+
+	echo '</div>';
+}
+
+// Handle manual prune via admin-post
+add_action( 'admin_post_sii_boleta_dte_prune_now', function() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'No tienes permisos para ejecutar esta acción.', 'sii-boleta-dte' ) );
+	}
+	check_admin_referer( 'sii_boleta_dte_prune_now' );
+	do_action( 'sii_boleta_dte_prune_debug_pdfs' );
+	wp_redirect( admin_url( 'tools.php?page=sii-boleta-dte-renders&prune=1' ) );
+	exit;
+} );
+
+/**
+ * Programar el evento diario que pruna las copias de debug.
+ */
+function sii_boleta_dte_activate_prune_job() {
+	if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( 'sii_boleta_dte_prune_debug_pdfs' ) ) {
+		wp_schedule_event( time(), 'daily', 'sii_boleta_dte_prune_debug_pdfs' );
+	}
+}
+
+/**
+ * Eliminar el evento programado al desactivar el plugin.
+ */
+function sii_boleta_dte_deactivate_prune_job() {
+	if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+		wp_clear_scheduled_hook( 'sii_boleta_dte_prune_debug_pdfs' );
+	}
+}
+
+/**
+ * Handler del cron que elimina PDFs de debugging más antiguos que el periodo de retención.
+ */
+add_action( 'sii_boleta_dte_prune_debug_pdfs', 'sii_boleta_dte_prune_debug_pdfs_handler' );
+function sii_boleta_dte_prune_debug_pdfs_handler() {
+	// Intentar obtener el directorio de uploads
+	if ( ! function_exists( 'wp_upload_dir' ) ) {
+		return;
+	}
+	$uploads = wp_upload_dir();
+	// Target debug folder only so definitive PDFs are unaffected.
+	$dir = trailingslashit( $uploads['basedir'] ) . 'sii-boleta-dte/private/last_renders_debug';
+	if ( ! is_dir( $dir ) ) {
+		return;
+	}
+
+	$retention_days = defined( 'SII_BOLETA_DTE_DEBUG_RETENTION_DAYS' ) ? SII_BOLETA_DTE_DEBUG_RETENTION_DAYS : 7;
+	$threshold = time() - ( $retention_days * DAY_IN_SECONDS );
+
+	$files = glob( $dir . '/*.pdf' );
+	if ( ! $files ) {
+		return;
+	}
+	foreach ( $files as $file ) {
+		if ( ! is_file( $file ) ) {
+			continue;
+		}
+		// Safety: only remove files that look like debug/preview renders by filename.
+		// This prevents accidental deletion of final PDFs stored elsewhere or with different names.
+		$base = basename( $file );
+		if ( ! preg_match( '/(render_|debug_|tmp_|preview_|test_|_temp|last_render)/i', $base ) ) {
+			// Skip files that don't match debug naming patterns.
+			continue;
+		}
+
+		$mtime = filemtime( $file );
+		if ( $mtime !== false && $mtime < $threshold ) {
+			@unlink( $file );
+			if ( function_exists( 'sii_boleta_write_log' ) ) {
+				sii_boleta_write_log( "Pruned debug PDF: $file", 'INFO' );
+			} else {
+				error_log( "[sii-boleta-dte] Pruned debug PDF: $file" );
+			}
+		}
+	}
+}
 
 if ( ! function_exists( 'sii_boleta_write_log' ) ) {
 	/**

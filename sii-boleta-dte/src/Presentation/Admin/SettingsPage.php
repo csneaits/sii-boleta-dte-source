@@ -58,6 +58,9 @@ class SettingsPage {
                 add_settings_field( 'pdf_show_logo', __( 'Show Logo', 'sii-boleta-dte' ), array( $this, 'field_pdf_show_logo' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
                 add_settings_field( 'pdf_footer', __( 'Footer Note', 'sii-boleta-dte' ), array( $this, 'field_pdf_footer' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
 
+                // Per-DTE PDF/print settings
+                add_settings_field( 'pdf_per_type', __( 'Per-type PDF Settings', 'sii-boleta-dte' ), array( $this, 'field_pdf_per_type' ), 'sii-boleta-dte', 'sii_boleta_pdf' );
+
                 // Automation.
                 add_settings_section( 'sii_boleta_automation', __( 'Automation', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
                 add_settings_field( 'rvd_auto', __( 'Daily RVD', 'sii-boleta-dte' ), array( $this, 'field_rvd_auto' ), 'sii-boleta-dte', 'sii_boleta_automation' );
@@ -232,6 +235,39 @@ class SettingsPage {
                 $settings = $this->settings->get_settings();
                 $value    = esc_textarea( $settings['pdf_footer'] ?? '' );
                 echo '<textarea name="' . esc_attr( Settings::OPTION_NAME ) . '[pdf_footer]" rows="3" cols="40">' . $value . '</textarea>';
+        }
+
+        /**
+         * Renders a simple per-DTE settings UI allowing different template/format and paper size per type.
+         */
+        public function field_pdf_per_type(): void {
+                $settings = $this->settings->get_settings();
+                $per_type = isset( $settings['pdf_per_type'] ) && is_array( $settings['pdf_per_type'] ) ? $settings['pdf_per_type'] : array();
+                $types = array(
+                        33 => __( 'Factura (33)', 'sii-boleta-dte' ),
+                        39 => __( 'Boleta (39)', 'sii-boleta-dte' ),
+                );
+                $option_key = esc_attr( Settings::OPTION_NAME );
+                echo '<div class="sii-dte-per-type">';
+                foreach ( $types as $code => $label ) {
+                        $cfg = isset( $per_type[ $code ] ) && is_array( $per_type[ $code ] ) ? $per_type[ $code ] : array();
+                        $template = esc_attr( $cfg['template'] ?? ( 39 === (int) $code ? 'boleta_ticket' : 'estandar' ) );
+                        $paper_w = esc_attr( $cfg['paper_width'] ?? '' );
+                        $paper_h = esc_attr( $cfg['paper_height'] ?? '' );
+
+                        echo '<fieldset style="border:1px solid #eee; padding:8px; margin-bottom:8px;">';
+                        echo '<legend style="font-weight:700;">' . esc_html( $label ) . '</legend>';
+                        echo '<p><label>' . esc_html__( 'Template', 'sii-boleta-dte' ) . ': ';
+                        echo '<select name="' . $option_key . '[pdf_per_type][' . esc_attr( $code ) . '][template]">';
+                        echo '<option value="estandar"' . selected( 'estandar', $template, false ) . '>Estandar</option>';
+                        echo '<option value="boleta_ticket"' . selected( 'boleta_ticket', $template, false ) . '>Boleta (ticket)</option>';
+                        echo '</select></label></p>';
+                        echo '<p>' . esc_html__( 'Paper size (width x height in mm). Leave empty to use defaults.', 'sii-boleta-dte' ) . '</p>';
+                        echo '<p><input type="text" name="' . $option_key . '[pdf_per_type][' . esc_attr( $code ) . '][paper_width]" value="' . $paper_w . '" size="6" placeholder="Width mm" /> × ';
+                        echo '<input type="text" name="' . $option_key . '[pdf_per_type][' . esc_attr( $code ) . '][paper_height]" value="' . $paper_h . '" size="6" placeholder="Height mm" /></p>';
+                        echo '</fieldset>';
+                }
+                echo '</div>';
         }
 
         public function field_rvd_auto(): void {
@@ -682,6 +718,34 @@ class SettingsPage {
 		if ( isset( $input['pdf_footer'] ) ) {
 			$output['pdf_footer'] = sanitize_text_field( $input['pdf_footer'] );
 		}
+
+                // Sanitize per-type PDF settings
+                if ( isset( $input['pdf_per_type'] ) && is_array( $input['pdf_per_type'] ) ) {
+                        $allowed_templates = array( 'estandar', 'boleta_ticket' );
+                        $per_type_clean = array();
+                        foreach ( $input['pdf_per_type'] as $type_code => $cfg ) {
+                                $type_int = (int) $type_code;
+                                if ( $type_int <= 0 ) {
+                                        continue;
+                                }
+                                if ( ! is_array( $cfg ) ) {
+                                        continue;
+                                }
+                                $template = isset( $cfg['template'] ) ? sanitize_text_field( $cfg['template'] ) : '';
+                                if ( ! in_array( $template, $allowed_templates, true ) ) {
+                                        $template = 'estandar';
+                                }
+                                $w = isset( $cfg['paper_width'] ) ? preg_replace( '/[^0-9\.]/', '', (string) $cfg['paper_width'] ) : '';
+                                $h = isset( $cfg['paper_height'] ) ? preg_replace( '/[^0-9\.]/', '', (string) $cfg['paper_height'] ) : '';
+                                $entry = array( 'template' => $template );
+                                if ( '' !== $w ) { $entry['paper_width'] = $w; }
+                                if ( '' !== $h ) { $entry['paper_height'] = $h; }
+                                $per_type_clean[ $type_int ] = $entry;
+                        }
+                        if ( ! empty( $per_type_clean ) ) {
+                                $output['pdf_per_type'] = $per_type_clean;
+                        }
+                }
 
 		if ( isset( $input['smtp_profile'] ) ) {
 			$output['smtp_profile'] = sanitize_text_field( $input['smtp_profile'] );

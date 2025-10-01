@@ -76,7 +76,10 @@ class FactoryBackedDocumentPreparationPipeline implements DocumentPreparationPip
         } elseif (isset($template['Encabezado']['Totales']['TasaIVA'])) {
             $tasa_iva = (float) $template['Encabezado']['Totales']['TasaIVA'];
         }
-        if (null === $tasa_iva && in_array($tipo, array(33, 39, 43, 46), true)) {
+        // Default to 19% for document types that normally use IVA when not
+        // provided explicitly. Include VAT-inclusive document types so the
+        // VatInclusiveTotalsAdjuster has a TasaIVA to work with.
+        if (null === $tasa_iva && in_array($tipo, array(33, 39, 43, 46, 52, 56, 61), true)) {
             $tasa_iva = 19.0;
         }
 

@@ -93,3 +93,48 @@ Los tests bootstrappean WordPress mínimo desde `tests/bootstrap.php` y utilizan
 ## Licencia
 
 GPL v2 o posterior. Consulta los encabezados de cada archivo para más detalles.
+
+## Cambios recientes y reproducción rápida
+
+Se incorporaron varios arreglos y herramientas de diagnosis orientadas a resolver un fallo donde las boletas (formato tipo ticket) se generaban con páginas en blanco en algunos entornos:
+
+- Eliminación de una llamada a formateador inexistente (`Acteco`) en `resources/templates/.../boleta_ticket.html.twig`.
+- Ajustes de template para evitar layouts basados en flex/min-height y uso de `@page` explícito para mejorar compatibilidad con motores HTML→PDF (mPDF en este proyecto).
+- Inyección en tiempo de ejecución del tamaño de papel desde `LibreDteEngine` cuando el template es `boleta_ticket` (ajustado a 215.9mm × 225.8mm en la sesión de debugging).
+- Mecanismo condicional (gated by WP_DEBUG) que copia la última salida PDF a `wp-content/uploads/sii-boleta-dte/private/last_renders/` y registra la ruta para inspección.
+- Fallback PSR-4 autoloader agregado en `sii-boleta-dte.php` para evitar fallos cuando Composer no está presente.
+- Pipeline Node simple para minificar assets y su integración opcional en `build.sh`.
+
+Para reproducir localmente:
+
+1. Habilita WP_DEBUG en `wp-config.php`:
+
+  ```php
+  define('WP_DEBUG', true);
+  ```
+
+2. Genera una boleta desde el flujo de tu instalación (pedido de prueba, vista previa o desde admin).
+
+3. Revisa `wp-content/uploads/sii-boleta-dte/private/logs/debug.log` para ver líneas como:
+
+  - `[debug] renderer options=...`
+  - `[debug] forcing boleta renderer paper=...`
+  - `[debug] rendered_pdf_copy=/.../last_renders/render_YYYYmmdd_HHis_temp.pdf`
+
+4. Descarga la copia del PDF y valida MediaBox/Producer; si sigue habiendo páginas en blanco, adjunta el PDF o una captura con las propiedades.
+
+Mejoras sugeridas:
+
+- Añadir CI que ejecute PHPUnit y phpcs para detectar regresiones al tocar `PdfGenerator` o `LibreDteEngine`.
+- Tests de integración que validen HTML→PDF y que verifiquen MediaBox y número de páginas.
+- Considerar empaquetar `vendor/` en los artefactos de release o documentar la necesidad de instalar dependencias con Composer en entornos productivos.
+- Añadir una pequeña herramienta/diagnóstico que recupere metadatos (MediaBox, Producer) de los PDFs generados y los registre en logs para revisiones rápidas.
+
+### Rotación de copias de debugging
+
+El plugin ahora incluye un job WP-Cron que elimina diariamente las copias de PDF generadas para debugging ubicadas en `wp-content/uploads/sii-boleta-dte/private/last_renders/`.
+
+- Retención por defecto: 7 días. Para cambiarlo, define `SII_BOLETA_DTE_DEBUG_RETENTION_DAYS` en tu entorno antes de activar el plugin.
+- Si no quieres usar WP-Cron en tu instalación, ejecuta manualmente `do_action('sii_boleta_dte_prune_debug_pdfs')` desde WP-CLI o un mu-plugin.
+
+Nota de seguridad: el job de rotación filtra por nombre de fichero y solo eliminará PDFs con patrones típicos de debug/preview (por ejemplo `render_*.pdf`, `debug_*.pdf`, `preview_*.pdf`, `*_temp.pdf`, `last_render_*.pdf`). Los PDFs definitivos guardados por otros subsistemas con nombres distintos no se verán afectados.

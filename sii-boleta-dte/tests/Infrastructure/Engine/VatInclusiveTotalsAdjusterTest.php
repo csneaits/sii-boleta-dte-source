@@ -34,6 +34,27 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
     }
 
     /**
+     * @return array<string,array{int,array<string,int|string>}>
+     */
+    public static function pdfExampleTotalsProvider(): array {
+        $expected = array(
+            'MntNeto'  => 1000,
+            'IVA'      => 190,
+            'MntExe'   => 500,
+            'MntTotal' => 1690,
+            'TasaIVA'  => '19',
+        );
+
+        return array(
+            'factura_afecta' => array( 33, $expected ),
+            'factura_compra' => array( 46, $expected ),
+            'guia_despacho'  => array( 52, $expected ),
+            'nota_debito'    => array( 56, $expected ),
+            'nota_credito'   => array( 61, $expected ),
+        );
+    }
+
+    /**
      * @dataProvider vatInclusiveTypesProvider
      */
     public function test_adjuster_preserves_gross_totals_for_vat_inclusive_documents( int $tipo ): void {
@@ -87,6 +108,48 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         $this->assertSame( 1190, (int) $totals->MntTotal );
         $this->assertSame( 1000, (int) $totals->MntNeto );
         $this->assertSame( 190, (int) $totals->IVA );
+    }
+
+    public function test_adjuster_converts_gross_line_amounts_to_net_totals(): void {
+        $engine = $this->createEngineWithFactories();
+
+        $data = array(
+            'Folio'      => 1,
+            'FchEmis'    => '2024-05-01',
+            'Encabezado' => array(
+                'Totales' => array(
+                    'TasaIVA' => 19,
+                ),
+            ),
+            'Receptor'   => array(
+                'RUTRecep'    => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep'    => 'Dir',
+                'CmnaRecep'   => 'Comuna',
+            ),
+            'Detalles'   => array(
+                array(
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'TEST',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1200,
+                    'MntBruto'  => 1,
+                ),
+            ),
+        );
+
+        $xml = $engine->generate_dte_xml( $data, 33, true );
+        $this->assertIsString( $xml );
+
+        $document = simplexml_load_string( $xml );
+        $this->assertNotFalse( $document );
+
+        $totals = $document->Documento->Encabezado->Totales ?? null;
+        $this->assertNotNull( $totals );
+
+        $this->assertSame( 1200, (int) $totals->MntTotal );
+        $this->assertSame( 1008, (int) $totals->MntNeto );
+        $this->assertSame( 192, (int) $totals->IVA );
     }
 
     public function test_engine_skips_adjustment_when_not_supported(): void {
@@ -150,6 +213,50 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         $this->assertNotSame( 'adjusted', $xml );
     }
 
+    /**
+     * @dataProvider pdfExampleTotalsProvider
+     *
+     * @param array<string,int|string> $expectedTotals
+     */
+    public function test_pdf_example_totals_match_expected_values( int $tipo, array $expectedTotals ): void {
+        $engine = $this->createEngineWithFactories();
+
+        $data = $this->createPdfExampleData();
+
+        if ( 61 === $tipo ) {
+            $data['Referencia'] = array(
+                array(
+                    'NroLinRef' => 1,
+                    'TpoDocRef' => 33,
+                    'FolioRef'  => 123,
+                    'CodRef'    => 1,
+                    'RazonRef'  => 'Ajuste de prueba',
+                ),
+            );
+        }
+
+        $xml = $engine->generate_dte_xml( $data, $tipo, true );
+        $this->assertIsString( $xml );
+
+        $document = simplexml_load_string( $xml );
+        $this->assertNotFalse( $document );
+
+        $totals = $document->Documento->Encabezado->Totales ?? null;
+        $this->assertNotNull( $totals );
+
+        foreach ( $expectedTotals as $field => $value ) {
+            $actual = $totals->{$field} ?? null;
+            $this->assertNotNull( $actual, 'Missing field ' . $field . ' for tipo ' . $tipo );
+
+            if ( is_numeric( $value ) ) {
+                $this->assertSame( (int) $value, (int) $actual, 'Failed asserting totals for field ' . $field . ' on tipo ' . $tipo );
+                continue;
+            }
+
+            $this->assertSame( (string) $value, (string) $actual, 'Failed asserting totals for field ' . $field . ' on tipo ' . $tipo );
+        }
+    }
+
     private function createEngineWithFactories(): LibreDteEngine {
         $engine = new LibreDteEngine( new Dummy_Vat_Settings() );
         $root   = __DIR__ . '/../../../resources/yaml/';
@@ -172,5 +279,42 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         }
 
         return $engine;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function createPdfExampleData(): array {
+        return array(
+            'Folio'      => 1,
+            'FchEmis'    => '2024-05-01',
+            'Encabezado' => array(
+                'Totales' => array(
+                    'TasaIVA' => 19,
+                ),
+            ),
+            'Receptor'   => array(
+                'RUTRecep'    => '22222222-2',
+                'RznSocRecep' => 'Cliente',
+                'DirRecep'    => 'Dir',
+                'CmnaRecep'   => 'Comuna',
+            ),
+            'Detalles'   => array(
+                array(
+                    'NroLinDet' => 1,
+                    'NmbItem'   => 'Servicio afecto',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 1190,
+                    'MntBruto'  => 1,
+                ),
+                array(
+                    'NroLinDet' => 2,
+                    'NmbItem'   => 'Servicio exento',
+                    'QtyItem'   => 1,
+                    'PrcItem'   => 500,
+                    'IndExe'    => 1,
+                ),
+            ),
+        );
     }
 }

@@ -88,8 +88,9 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
          * @return array<string,mixed>
          */
         private function calculateTotals( array $detalle, ?float $tasaIva, array $globalDiscounts ): array {
-                $taxable = 0.0;
-                $exempt  = 0.0;
+                $taxable         = 0.0;
+                $exempt          = 0.0;
+                $hasGrossTaxable = false;
 
                 foreach ( $detalle as $line ) {
                         $baseAmount = (float) ( $line['MontoItem'] ?? 0 );
@@ -118,6 +119,11 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                         if ( ! empty( $line['IndExe'] ) ) {
                                 $exempt += $amount;
                                 continue;
+                        }
+
+                        if ( ! empty( $line['MntBruto'] ) && null !== $tasaIva && $tasaIva > 0 ) {
+                                $hasGrossTaxable = true;
+                                $amount          = $this->convertGrossToNet( $amount, $tasaIva );
                         }
 
                         $taxable += $amount;
@@ -155,6 +161,9 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                                 $change = $baseAmount * ( $rawValue / 100 );
                         } else {
                                 $change = $rawValue;
+                                if ( 1 !== $indicator && $hasGrossTaxable && null !== $tasaIva && $tasaIva > 0 ) {
+                                        $change = $this->convertGrossToNet( $change, $tasaIva );
+                                }
                         }
 
                         if ( $change <= 0 ) {
@@ -171,13 +180,14 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                         }
                 }
 
-                $taxable = (int) round( $taxable );
-                $exempt  = (int) round( $exempt );
+                $taxable = max( 0.0, $taxable );
+                $exempt  = max( 0.0, $exempt );
 
                 $totals = array();
 
-                if ( $exempt > 0 ) {
-                        $totals['MntExe'] = $exempt;
+                $roundedExempt = (int) round( $exempt );
+                if ( $roundedExempt > 0 ) {
+                        $totals['MntExe'] = $roundedExempt;
                 }
 
                 if ( null !== $tasaIva ) {
@@ -185,24 +195,25 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                 }
 
                 if ( null !== $tasaIva && $tasaIva > 0 && $taxable > 0 ) {
-                        $iva  = (int) round( $taxable * ( $tasaIva / 100 ) );
-                        $neto = $taxable;
+                        $roundedNet = (int) round( $taxable );
+                        $roundedIva = (int) round( $taxable * ( $tasaIva / 100 ) );
 
-                        $totals['MntNeto']  = $neto;
-                        if ( $iva > 0 ) {
-                                $totals['IVA'] = $iva;
+                        $totals['MntNeto'] = $roundedNet;
+                        if ( $roundedIva > 0 ) {
+                                $totals['IVA'] = $roundedIva;
                         }
 
-                        $totals['MntTotal'] = $neto + $iva + $exempt;
+                        $totals['MntTotal'] = $roundedNet + $roundedIva + $roundedExempt;
 
                         return $totals;
                 }
 
-                if ( $taxable > 0 ) {
-                        $totals['MntNeto'] = $taxable;
+                $roundedTaxable = (int) round( $taxable );
+                if ( $roundedTaxable > 0 ) {
+                        $totals['MntNeto'] = $roundedTaxable;
                 }
 
-                $totals['MntTotal'] = $taxable + $exempt;
+                $totals['MntTotal'] = $roundedTaxable + $roundedExempt;
 
                 return $totals;
         }
@@ -211,5 +222,22 @@ class VatInclusiveTotalsAdjuster implements TotalsAdjusterInterface {
                 $formatted = sprintf( '%.2F', $rate );
                 $formatted = rtrim( rtrim( $formatted, '0' ), '.' );
                 return '' === $formatted ? '0' : $formatted;
+        }
+
+        private function convertGrossToNet( float $amount, float $taxRate ): float {
+                if ( $amount <= 0 ) {
+                        return 0.0;
+                }
+
+                if ( $taxRate <= 0 ) {
+                        return $amount;
+                }
+
+                $divisor = 1 + ( $taxRate / 100 );
+                if ( $divisor <= 0 ) {
+                        return $amount;
+                }
+
+                return $amount / $divisor;
         }
 }

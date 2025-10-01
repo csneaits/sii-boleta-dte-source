@@ -241,7 +241,7 @@ class LibreDteEngine implements DteEngine {
      * Renders a PDF using LibreDTE templates.
      */
     private function debug_log( string $message ): void {
-        if ( defined( 'WP_DEBUG' ) && ! WP_DEBUG ) {
+        if ( defined( 'WP_DEBUG' ) && ! constant('WP_DEBUG') ) {
             return;
         }
 
@@ -338,15 +338,101 @@ class LibreDteEngine implements DteEngine {
             }
             $parsedXml               = $this->reset_total_before_rendering( $parsedXml );
             $options['normalizer']   = array( 'normalize' => false );
+            // Normalize renderer options: if a template key is provided but no
+            // explicit strategy, add a conservative default so older/newer
+            // renderer implementations pick it up.
+            if ( isset( $options['renderer'] ) && is_array( $options['renderer'] ) ) {
+                if ( isset( $options['renderer']['template'] ) && ! isset( $options['renderer']['strategy'] ) ) {
+                    $options['renderer']['strategy'] = 'template.estandar';
+                }
+                // If the template is the compact ticket (boleta), ensure we
+                // provide an explicit paper size so HTML->PDF engines like mPDF
+                // can create a proper 80mm-wide page instead of defaulting to A4.
+                if ( isset( $options['renderer']['template'] ) && 'boleta_ticket' === $options['renderer']['template'] ) {
+                    if ( ! isset( $options['renderer']['paper'] ) || ! is_array( $options['renderer']['paper'] ) ) {
+                        // Use the page size provided by the user example (in mm).
+                        $options['renderer']['paper'] = array(
+                            'width'  => '215.9mm',
+                            'height' => '225.8mm',
+                        );
+                    }
+                    try {
+                        if ( defined( 'WP_DEBUG' ) && constant('WP_DEBUG') ) {
+                            $this->debug_log( '[debug] forcing boleta renderer paper=' . json_encode( $options['renderer']['paper'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                        }
+                    } catch ( \Throwable $e ) {
+                        // ignore logging failures
+                    }
+                }
+            }
+
             $bag                     = new DocumentBag( parsedData: $parsedXml, options: $options );
             $bag->setNormalizedData( $parsedXml );
         } else {
             $bag = new DocumentBag( $xml, options: $options );
         }
 
+        // Debug: capture renderer options and rendered HTML when debugging
+        try {
+            if ( defined( 'WP_DEBUG' ) && constant('WP_DEBUG') ) {
+                $rendererOptions = $bag->getRendererOptions();
+                $this->debug_log( '[debug] renderer options=' . json_encode( $rendererOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+            }
+        } catch ( \Throwable $e ) {
+            $this->debug_log( '[debug] renderer debug failed: ' . $e->getMessage() );
+        }
+
         $pdf  = $this->renderer->render( $bag );
         $file = tempnam( sys_get_temp_dir(), 'pdf' );
         file_put_contents( $file, $pdf );
+
+        // If possible, mirror the generated PDF into the WP uploads area
+        // under sii-boleta-dte/private/last_renders so admins can download it
+        // and inspect properties (Producer, page size). This is only attempted
+        // when WP functions are available.
+        try {
+            $dest = '';
+            if ( function_exists( 'wp_upload_dir' ) ) {
+                $uploads = wp_upload_dir();
+                $basedir = isset( $uploads['basedir'] ) && is_string( $uploads['basedir'] ) ? rtrim( $uploads['basedir'], '/\\' ) : '';
+                if ( '' !== $basedir ) {
+                    $dir = $basedir . '/sii-boleta-dte/private/last_renders';
+                        if ( function_exists( 'wp_mkdir_p' ) ) {
+                            wp_mkdir_p( $dir );
+                        } elseif ( ! is_dir( $dir ) ) {
+                            @mkdir( $dir, 0755, true );
+                        }
+
+                        // Use a dedicated debug folder so final PDFs never mix with
+                        // transient/preview renders. Directory: last_renders_debug
+                        $dir = $basedir . '/sii-boleta-dte/private/last_renders_debug';
+                        if ( function_exists( 'wp_mkdir_p' ) ) {
+                            wp_mkdir_p( $dir );
+                        } elseif ( ! is_dir( $dir ) ) {
+                            @mkdir( $dir, 0755, true );
+                        }
+
+                        $name = 'debug_render_' . gmdate( 'Ymd_His' ) . '_' . basename( $file ) . '.pdf';
+                        $dest = $dir . '/' . $name;
+                        @copy( $file, $dest );
+                }
+            }
+
+            if ( defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' ) ) {
+                if ( '' !== $dest ) {
+                    $this->debug_log( '[debug] rendered_pdf_copy=' . $dest );
+                } else {
+                    $this->debug_log( '[debug] rendered_pdf_temp=' . $file );
+                }
+            }
+        } catch ( \Throwable $e ) {
+            // Don't break rendering on logging/copy failures.
+            try {
+                $this->debug_log( '[debug] rendered_pdf_error=' . $e->getMessage() );
+            } catch ( \Throwable $_ ) {
+            }
+        }
+
         return $file;
     }
 

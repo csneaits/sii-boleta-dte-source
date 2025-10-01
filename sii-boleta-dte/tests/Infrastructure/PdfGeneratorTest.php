@@ -54,6 +54,11 @@ class PdfGeneratorTest extends TestCase {
                 $this->equalTo( '<xml />' ),
                 $this->callback( function ( $options ) {
                     $this->assertIsArray( $options );
+                    $this->assertArrayHasKey( 'renderer', $options );
+                    $this->assertSame(
+                        array( 'template' => 'estandar' ),
+                        $options['renderer']
+                    );
                     $this->assertArrayHasKey( 'document_overrides', $options );
                     $this->assertArrayHasKey( 'logo', $options['document_overrides'] );
                     $this->assertStringStartsWith( 'data:image/', $options['document_overrides']['logo'] );
@@ -78,7 +83,19 @@ class PdfGeneratorTest extends TestCase {
         $engine = $this->createMock( DteEngine::class );
         $engine->expects( $this->once() )
             ->method( 'render_pdf' )
-            ->with( $this->equalTo( '<xml />' ), $this->identicalTo( array() ) )
+            ->with(
+                $this->equalTo( '<xml />' ),
+                $this->callback( function ( $options ) {
+                    $this->assertIsArray( $options );
+                    $this->assertSame(
+                        array( 'template' => 'estandar' ),
+                        $options['renderer'] ?? null
+                    );
+                    $this->assertArrayNotHasKey( 'document_overrides', $options );
+
+                    return true;
+                } )
+            )
             ->willReturn( '/tmp/pdf' );
 
         $generator = new PdfGenerator( $engine, $settings );

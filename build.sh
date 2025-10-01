@@ -33,6 +33,14 @@ fi
 # Crear archivo ZIP (excluyendo tests y archivos de desarrollo)
 echo "Generando $ZIP_NAME..."
 cd sii-boleta-dte
+## Build frontend assets with node if available
+if command -v npm >/dev/null 2>&1; then
+  echo "Node detected — installing npm deps and building assets..."
+  (cd .. && cd sii-boleta-dte && npm ci --no-audit --no-fund >/dev/null 2>&1 || true)
+  (cd .. && cd sii-boleta-dte && npm run build >/dev/null 2>&1 || true)
+else
+  echo "Node/npm not found — skipping frontend build"
+fi
 zip -r "../$DEST_DIR/$ZIP_NAME" . \
   -x '*.DS_Store' \
   -x 'tests/*' \

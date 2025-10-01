@@ -87,7 +87,7 @@ final class WooTest extends TestCase {
         $this->assertSame( 2000.0, $data['Totales']['MntNeto'] );
     }
 
-    public function test_prepare_order_data_converts_tax_inclusive_line_totals(): void {
+    public function test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross(): void {
         $order = new class() {
             public function get_id(): int {
                 return 101;
@@ -161,8 +161,9 @@ final class WooTest extends TestCase {
 
         $this->assertArrayHasKey( 'Detalles', $data );
         $detail = $data['Detalles'][0];
-        $this->assertSame( 1000, (int) round( $detail['PrcItem'] ) );
-        $this->assertSame( 1000, (int) round( $detail['MontoItem'] ) );
+        $this->assertSame( 1190, (int) round( $detail['PrcItem'] ) );
+        $this->assertSame( 1190, (int) round( $detail['MontoItem'] ) );
+        $this->assertSame( 1, $detail['MntBruto'] ?? null );
 
         $totals = $data['Totales'];
         $this->assertSame( 1000.0, $totals['MntNeto'] );

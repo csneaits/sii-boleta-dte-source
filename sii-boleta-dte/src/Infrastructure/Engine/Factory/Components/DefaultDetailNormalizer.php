@@ -49,6 +49,15 @@ class DefaultDetailNormalizer implements DetailNormalizerInterface {
                                 $line['MontoItem'] = 0;
                         }
 
+                        if ( isset( $line['MntBruto'] ) ) {
+                                $gross_flag = (int) $line['MntBruto'];
+                                if ( $gross_flag > 0 ) {
+                                        $line['MntBruto'] = 1;
+                                } else {
+                                        unset( $line['MntBruto'] );
+                                }
+                        }
+
                         $indicator = isset( $line['IndExe'] ) ? (int) $line['IndExe'] : 0;
                         if ( 0 === $indicator && isset( $d['IndExe'] ) ) {
                                 $indicator = (int) $d['IndExe'];

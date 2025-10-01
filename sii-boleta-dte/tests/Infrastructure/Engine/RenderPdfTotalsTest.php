@@ -44,12 +44,14 @@ class RenderPdfTotalsTest extends TestCase {
                     'NmbItem'   => 'A',
                     'QtyItem'   => 1,
                     'PrcItem'   => 1200,
+                    'MntBruto'  => 1,
                 ),
                 array(
                     'NroLinDet' => 2,
                     'NmbItem'   => 'B',
                     'QtyItem'   => 1,
                     'PrcItem'   => 1200,
+                    'MntBruto'  => 1,
                 ),
             ),
         );

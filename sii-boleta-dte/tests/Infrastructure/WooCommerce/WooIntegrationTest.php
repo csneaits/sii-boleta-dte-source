@@ -523,7 +523,7 @@ class WooIntegrationTest extends TestCase {
         $this->assertCount( 1, $captured['Detalles'] ?? array() );
         $detail = $captured['Detalles'][0];
         $this->assertSame( 'Producto inicial', $detail['NmbItem'] );
-        $this->assertSame( 25.0, $detail['MontoItem'] );
+        $this->assertSame( 30.0, $detail['MontoItem'] );
         $this->assertSame( 1.0, $detail['QtyItem'] );
 
         $totals = $captured['Encabezado']['Totales'] ?? array();

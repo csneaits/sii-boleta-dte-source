@@ -530,14 +530,16 @@ class Woo {
                                 }
                                 $qty = method_exists( $item, 'get_quantity' ) ? (float) $item->get_quantity() : 1.0;
                                 $qty = $qty > 0 ? $qty : 1.0;
-                                $prc = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
-                                $unit_price = $qty > 0 ? $prc / $qty : $prc;
+                                $total_excluding_tax = method_exists( $item, 'get_total' ) ? (float) $item->get_total() : 0.0;
+                                $total_tax           = method_exists( $item, 'get_total_tax' ) ? (float) $item->get_total_tax() : 0.0;
+                                $line_total          = $total_excluding_tax + $total_tax;
+                                $unit_price          = $qty > 0 ? $line_total / $qty : $line_total;
                                 $items[]    = array(
                                         'NroLinDet' => $line,
                                         'NmbItem'   => (string) $item->get_name(),
                                         'QtyItem'   => $qty,
                                         'PrcItem'   => $unit_price,
-                                        'MontoItem' => $prc,
+                                        'MontoItem' => $line_total,
                                 );
                                 ++$line;
                         }
@@ -661,7 +663,8 @@ class Woo {
 
                         $amount = $this->abs_float( method_exists( $item, 'get_total' ) ? $item->get_total() : 0.0 );
                         $tax    = $this->abs_float( method_exists( $item, 'get_total_tax' ) ? $item->get_total_tax() : 0.0 );
-                        if ( $amount <= 0 && $tax <= 0 ) {
+                        $line_total = $amount + $tax;
+                        if ( $line_total <= 0 ) {
                                 continue;
                         }
 
@@ -670,7 +673,7 @@ class Woo {
                                 $quantity = 1.0;
                         }
 
-                        $unit_price = $quantity > 0 ? $amount / $quantity : $amount;
+                        $unit_price = $quantity > 0 ? $line_total / $quantity : $line_total;
                         $name = method_exists( $item, 'get_name' ) ? (string) $item->get_name() : __( 'Reembolso', 'sii-boleta-dte' );
 
                         if ( method_exists( $item, 'get_type' ) ) {
@@ -687,7 +690,7 @@ class Woo {
                                 'NmbItem'   => $name,
                                 'QtyItem'   => $quantity,
                                 'PrcItem'   => $unit_price,
-                                'MontoItem' => $amount,
+                                'MontoItem' => $line_total,
                         );
                         ++$line;
                 }

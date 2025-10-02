@@ -67,6 +67,13 @@ class PdfGenerator {
                                                         }
                                                 }
                                         }
+                                        // Fallback: if XPath failed (namespaces or unexpected), try a regex on raw XML
+                                        if ( null === $tipo || '' === trim( (string) $tipo ) ) {
+                                                $matches = array();
+                                                if ( preg_match('/<(?:[a-zA-Z0-9_\-]+:)?TipoDTE[^>]*>(\d+)<\/+(?:[a-zA-Z0-9_\-]+:)?TipoDTE>/i', (string) $xml, $matches) ) {
+                                                        $tipo = $matches[1];
+                                                }
+                                        }
                                         if ( null !== $tipo && isset( $settings['pdf_per_type'][ (int) $tipo ] ) ) {
                                                 $cfg = $settings['pdf_per_type'][ (int) $tipo ];
                                                 if ( isset( $cfg['template'] ) ) {

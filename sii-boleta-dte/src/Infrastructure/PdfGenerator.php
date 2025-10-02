@@ -94,6 +94,17 @@ class PdfGenerator {
                                 libxml_clear_errors();
                         }
 
+                        // Debug: log detected tipo and resolved renderer options when WP_DEBUG is enabled.
+                        try {
+                                if ( defined( 'WP_DEBUG' ) && constant( 'WP_DEBUG' ) ) {
+                                        $detected = isset( $tipo ) ? (string) $tipo : '(none)';
+                                        $ro = isset( $options['renderer'] ) ? $options['renderer'] : array();
+                                        error_log( '[sii-boleta-dte] build_render_options: detected TipoDTE=' . $detected . ' renderer=' . json_encode( $ro, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+                                }
+                        } catch ( \Throwable $e ) {
+                                // ignore logging failures
+                        }
+
 
                 if ( ! empty( $settings['pdf_show_logo'] ) ) {
                         $logo = $this->resolve_logo_data( $settings );

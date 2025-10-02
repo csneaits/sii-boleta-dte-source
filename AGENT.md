@@ -16,13 +16,55 @@
 - Contenedor de dependencias (`Infrastructure\Factory\Container`) registra servicios para inyección perezosa: ajustes, motor LibreDTE, API SII, gestor de folios, cola, generador PDF, páginas administrativas, etc.
 - Persistencia especializada en tablas personalizadas (`QueueDb`, `FoliosDb`, `LogDb`) con fallback en memoria para pruebas.
 
+### Acceso centralizado a LibreDTE (libredte_lib + PackageRegistry)
+
+- El acceso a los paquetes de LibreDTE se unificó mediante `Infrastructure\LibredteBridge`, que resuelve la `Application` preferentemente con `libredte_lib()` y hace fallback a `Application::getInstance()` cuando no está disponible. El bridge aplica el entorno desde `Settings`.
+- Desde el bridge accedemos de forma segura a:
+    - `BillingPackage` y su `DocumentComponent` (builder, renderer, validator, sanitizer),
+    - `TradingParties` (factorías oficiales de `Emisor` y `Receptor`).
+- Preferimos siempre las factorías oficiales cuando existen:
+    - `EmisorFactory->create([...])` con mapeo conservador de campos (rut, razón social, giro, dirección, comuna, ciudad, acteco, teléfono, email) y fallback al constructor mínimo `new Emisor($rut, $razon)`,
+    - `ReceptorFactory` integrada vía un `ReceptorProvider` propio (ver abajo) para evitar hidrataciones automáticas con datos ficticios.
+
+### Proveedor de Receptor sin placeholders
+
+- Se reemplaza el `ReceptorProviderInterface` por `Infrastructure\Engine\EmptyReceptorProvider`, que usa la `ReceptorFactory` oficial pero NO inyecta datos ficticios cuando faltan campos (evita direcciones/correos dummy en DTE reales).
+- Este provider respeta el payload preparado por el pipeline y sólo crea la entidad tipada cuando recibe un RUT escalar. No realiza mapeos extra (éstos se hacen en la preparación del documento).
+
+### Validación y sanitización (LibreDTE) – por defecto ACTIVADAS
+
+- Tras construir el `DocumentBag`, el engine intenta (sin romper compatibilidad):
+    - Sanitizar el documento con `SanitizerWorker` (si existe),
+    - Validar contra XSD con `ValidatorWorker::validateSchema`,
+    - Validar firma con `ValidatorWorker::validateSignature`.
+- Estos pasos están controlados por Ajustes → Paso “Validación” con tres interruptores:
+    - `sanitize_with_libredte`, `validate_schema_libredte`, `validate_signature_libredte`.
+- Comportamiento por defecto: si las claves no están presentes en ajustes, se consideran ACTIVADAS en todos los entornos (opt‑out destildando las casillas). Cualquier error en estos pasos se registra y no interrumpe la emisión.
+
+### CAF y folios: bridge y auto-asignación opcional
+
+- El CAF se resuelve mediante un provider puente que primero intenta usar el `IdentifierComponent` de LibreDTE (worker), y si no es posible, cae al proveedor histórico (base de datos local `FoliosDb`).
+- Cuando está activo “auto_folio_libredte” y no hay folio definido, se intenta recuperar el siguiente folio y CAF desde el worker oficial; si falla, se usa el camino tradicional.
+
 ## Interacción entre componentes
 - **Checkout → Emisión automática**: `Presentation\WooCommerce\CheckoutFields` captura RUT/tipo DTE. Al completar el pedido, `Infrastructure\WooCommerce\Woo` orquesta el caso de uso: prepara datos, usa `Infrastructure\Engine\LibreDteEngine` para generar XML, obtiene token con `Infrastructure\TokenManager`, envía vía `Infrastructure\Rest\Api`, guarda `trackId`, persiste PDF en `Infrastructure\WooCommerce\PdfStorage` y activa `Infrastructure\PdfGenerator` para entregar PDF y correos.
 - **Emisión manual y gestión operativa**: páginas de `Presentation\Admin` permiten cargar CAF, generar DTE ad-hoc, monitorear cola, revisar logs y ejecutar diagnósticos contra el SII.
 - **Procesamiento diferido**: `Application\Queue` y `Application\QueueProcessor` persisten trabajos en `sii_boleta_dte_queue`. El cron `sii_boleta_dte_process_queue` (configurado en `Infrastructure\Cron`) consume pendientes y reintenta con backoff mientras migra XML/PDF al almacenamiento seguro.
 - **Compartición segura**: `Infrastructure\Rest\SignedUrlService` crea enlaces temporales para boletas, `Infrastructure\Rest\Endpoints` sirve HTML desde `uploads/sii-boleta-dte-secure` y `Presentation\Admin\Ajax` valida claves/nonce antes de transmitir PDFs del directorio privado `wp-content/sii-boleta-dte/private`.
 
+### Transporte WS LibreDTE (SiiLazy) y fallback
+
+- El cliente `Infrastructure/Rest/Api` soporta un camino de transporte opcional vía el componente WS (SiiLazy) de LibreDTE cuando la opción “Usar cliente WS de LibreDTE” está activa en Ajustes.
+- Cobertura: envíos de DTE/Libros/EnvioRecibos y consulta de estado (trackId).
+- Resiliencia: ante ausencia del componente o error WS, se hace fallback silencioso al camino HTTP actual preservando contratos y logging.
+- Esta preferencia es independiente de la delegación opcional de firma de EnvioRecibos (que decide entre LibreDTE y xmlseclibs para la firma del sobre de recibos).
+
+### Notas de compatibilidad
+
+- Todas las integraciones con LibreDTE están encapsuladas mediante `method_exists`/`try-catch` y cuentan con fallbacks conservadores para mantener compatibilidad con versiones previas del núcleo.
+
 ## Patrones de diseño y prácticas
+
 - Ports & Adapters / Hexagonal para aislar dominio de WordPress y servicios externos.
 - Inversión de dependencias mediante contenedor propio, interfaces (`Domain\DteRepository`, `Domain\Logger`) y factorías.
 - Repositorios para folios/DTE, objetos de valor para datos tributarios, servicios de dominio para validaciones.
@@ -30,6 +72,7 @@
 - Cobertura por pruebas unitarias bootstrappeadas en `tests/bootstrap.php`, con uso de dobles in-memory para evitar dependencias de WordPress/SII.
 
 ## Reglas de negocio y expectativas
+
 - Cumplir normativas del SII: uso correcto de CAF vigentes, firmas válidas, envíos en ambientes certificados y producción.
 - Asegurar trazabilidad completa: cada DTE debe almacenar XML, PDF, `trackId`, folio y bitácora de eventos dentro del pedido o tablas auxiliares.
 - Mantener la integridad de folios: validar rangos, evitar saltos y bloquear reutilización hasta confirmar rechazo.
@@ -37,6 +80,7 @@
 - Proteger datos sensibles (RUT, XML firmados, certificados) respetando permisos de WordPress y minimizando exposición. No deshabilitar el almacenamiento seguro ni exponer rutas públicas sin validaciones de token/nonce.
 
 ## Lineamientos para nuevas intervenciones del agente
+
 - Reutiliza el contenedor para acceder a servicios; evita instanciar dependencias manualmente salvo en tests controlados.
 - Al tocar flujos de emisión, cola, almacenamiento seguro o migraciones, agrega pruebas en `tests/` o scripts de integración y ejecuta `composer test`.
 - Respeta estándares de código WordPress/PSR aplicando `composer phpcs` antes de entregar cambios.
@@ -52,6 +96,11 @@
 - Se añadió un mecanismo seguro y condicionado por `WP_DEBUG` para copiar el PDF generado a `wp-content/uploads/sii-boleta-dte/private/last_renders/` y registrar la ruta en el log para inspección manual.
 - Añadido un autoloader PSR-4 de contingencia en `sii-boleta-dte.php` para evitar fallos fatales cuando Composer no está presente en la instalación.
 - Incorporado un pipeline Node simple (`sii-boleta-dte/package.json` + `scripts/build-assets.js`) para minificar CSS/JS de `Presentation/assets` y añadido su ejecución opcional en `build.sh`.
+- Añadida funcionalidad de previsualización y validación de XML en la emisión manual: botón "Previsualizar XML" abre modal con código, acciones (copiar, descargar, validar XSD) y endpoints `sii_boleta_dte_preview_xml` / `sii_boleta_dte_validate_xml` protegidos por nonce y capability.
+
+- Notas de crédito (61) y débito (56): ahora el formulario de emisión manual muestra y envía los campos de dirección del receptor (Dirección, Comuna y Ciudad). Los templates `estandar` y `boleta_ticket` ya consideran `CiudadRecep` junto a `DirRecep` y `CmnaRecep`, por lo que la dirección completa se refleja en los PDFs.
+
+- Firma EnvioRecibos: se migró la firma a `xmlseclibs` (RSA‑SHA256) referenciando `SetRecibos@ID`. Además, se añadió una preferencia opcional en ajustes para delegar la firma a LibreDTE cuando la biblioteca lo exponga; el plugin hace fallback automático a `xmlseclibs` si la funcionalidad no está presente.
 
 ## Cómo reproducir localmente (rápido)
 

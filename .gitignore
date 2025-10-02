@@ -28,8 +28,8 @@ Thumbs.db
 *.log
 src/admin/css/main.bundle.css
 src/admin/css/main.bundle.css
-sii-boleta-dte/.phpunit.result.cache
+.phpunit.result.cache
 sii-boleta-dte/var/
 
 # Composer
-sii-boleta-dte/vendor/
+vendor/

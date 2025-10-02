@@ -2,55 +2,257 @@
 <head>
     <meta charset="utf-8">
     <style>
-        /* Page */
-        html, body { width: 80mm; margin: 0; font-family: 'Liberation Sans', Arial, Helvetica, sans-serif; font-size: 10px; color: #111; }
-        body { padding: 6mm; background: #fff; }
+        html, body {
+            width: 80mm;
+            margin: 0;
+            font-family: 'Liberation Sans', Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            color: #202020;
+            background: #f7f7f7;
+        }
 
-        /* Ticket container with outer border like the sample */
-        .ticket { width: 100%; background: #fff; padding: 6px; box-sizing: border-box; border: 1px solid #111; }
+        body {
+            padding: 3mm;
+            box-sizing: border-box;
+        }
 
-        /* Header: logo left, company details right */
-        .brand-header { display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: start; }
-        .brand-logo { width: 56px; height: auto; display: block; }
-        .brand-info { text-align: left; }
-        .brand-name { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: 0.6px; }
-        .brand-rut { font-size: 12px; font-weight: 700; margin: 2px 0; }
-        .brand-giro { font-size: 9px; margin: 2px 0; color: #333; }
-        .brand-address { font-size: 9px; color: #333; }
+        .ticket {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #1b1b1b;
+            box-sizing: border-box;
+        }
 
-        .divider { border: 0; border-top: 1px solid #111; margin: 8px 0; }
+        .ticket-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 10px;
+            background: #0a9a52;
+            color: #fff;
+        }
 
-        .document-meta { text-align: left; font-family: monospace; }
-        .document-title { font-weight: 700; font-size: 12px; margin: 0; text-align: center; }
-        .document-number { font-weight: 700; }
+        .header-logo {
+            width: 48px;
+            height: 48px;
+            background: #fff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            box-sizing: border-box;
+        }
 
-        /* Receptor + detalle grid */
-        .receptor-detalle-grid { display: grid; grid-template-columns: 60% 40%; gap: 8px; align-items: start; }
-        .info-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .info-table td.label { font-weight: 700; font-size: 9px; vertical-align: top; padding-right: 6px; }
+        .header-logo img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
 
-        /* Items */
-        .items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .items-table thead th { text-align: left; font-weight: 700; font-family: monospace; font-size: 11px; padding-bottom: 6px; border-bottom: 1px solid #111; }
-        .items-table th.amount, .items-table td.amount { text-align: right; font-family: monospace; }
-        .items-table td { padding: 6px 0; border-bottom: 1px dotted #ccc; }
-        .item-description { font-weight: 700; }
-        .item-qty { font-size: 9px; color: #666; }
+        .header-logo--placeholder {
+            font-size: 9px;
+            color: #0a9a52;
+            font-weight: 700;
+        }
 
-        /* Totals block uses monospace and right alignment similar to sample */
-        .totals { width: 100%; margin-top: 8px; font-family: monospace; }
-        .totals .row { display: flex; justify-content: space-between; padding: 3px 0; }
-        .totals .label { font-weight: 700; }
-        .totals .value { text-align: right; min-width: 60px; }
+        .header-info {
+            flex: 1;
+            line-height: 1.25;
+        }
 
-        .section-title { font-weight: 700; font-size: 11px; margin: 6px 0 4px; }
+        .header-name {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 0;
+        }
 
-    /* Barcode / timbre area (placeholder) */
-    .barcode-area { margin-top: 10px; border-top: 1px solid #111; padding-top: 8px; text-align: center; }
-    .barcode-placeholder { width: 100%; height: 64px; background: repeating-linear-gradient(90deg,#000 0 2px, #fff 2px 6px); margin: 6px 0; }
-    .stamp-text { font-size: 9px; margin: 6px 0 0; color: #333; }
+        .header-rut {
+            margin: 2px 0 0;
+            font-weight: 700;
+        }
 
-        @page { size: 80mm 400mm; margin: 2mm; }
+        .header-extra {
+            font-size: 9px;
+            margin: 2px 0 0;
+        }
+
+        .ticket-body {
+            padding: 12px 10px 14px;
+        }
+
+        .section {
+            margin-top: 10px;
+        }
+
+        .section:first-of-type {
+            margin-top: 0;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            margin: 0 0 4px;
+            letter-spacing: 0.35px;
+            text-transform: uppercase;
+            color: #404040;
+        }
+
+        .document-meta {
+            border: 1px solid #1b1b1b;
+            padding: 6px;
+            font-family: 'Liberation Mono', 'Courier New', monospace;
+            font-size: 10px;
+            line-height: 1.25;
+        }
+
+        .document-meta .doc-title {
+            margin: 0 0 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            text-align: center;
+        }
+
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .doc-table td {
+            padding: 1px 0;
+        }
+
+        .doc-table .doc-label {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .doc-table .doc-value {
+            text-align: right;
+        }
+
+        .doc-table .doc-value-left {
+            text-align: left;
+        }
+
+        .info-table,
+        .items-table,
+        .totals-table,
+        .references-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .info-table td {
+            padding: 2px 0;
+            vertical-align: top;
+        }
+
+        .info-table td.label {
+            width: 32%;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .info-table td.amount {
+            text-align: right;
+            font-family: 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .items-table thead th {
+            text-align: left;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 4px 0;
+            border-bottom: 1px solid #1b1b1b;
+            letter-spacing: 0.4px;
+        }
+
+        .items-table thead th.amount {
+            text-align: right;
+        }
+
+        .items-table tbody td {
+            padding: 5px 0;
+            border-bottom: 1px dotted #b5b5b5;
+        }
+
+        .items-table tbody td.code {
+            width: 22%;
+            font-family: 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .items-table tbody td.amount {
+            text-align: right;
+            font-family: 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .item-description {
+            font-weight: 700;
+        }
+
+        .item-extra {
+            font-size: 9px;
+            color: #555;
+        }
+
+        .item-qty {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .totals-table td {
+            padding: 3px 0;
+            font-family: 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        .totals-table td.label {
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .totals-table td.amount {
+            text-align: right;
+            width: 40%;
+        }
+
+        .references-table td {
+            padding: 3px 0;
+            font-size: 9px;
+        }
+
+        .stamp {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #1b1b1b;
+            text-align: center;
+        }
+
+        .stamp img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 6px;
+        }
+
+        .stamp .stamp-text {
+            font-size: 9px;
+            margin: 2px 0;
+            color: #333;
+        }
+
+        @page {
+            size: 80mm auto;
+            margin: 2mm;
+        }
     </style>
 </head>
 <body>
@@ -61,79 +263,145 @@
     {% set otraMoneda = totales.TpoMoneda is not empty and totales.TpoMoneda == 'DOLAR USA' %}
 
     <div class="ticket">
-        <div class="brand-block">
+        <div class="ticket-header">
             {% if document.logo is not empty %}
-                <img class="brand-logo" src="{{ document.logo }}" alt="Logo">
+                <div class="header-logo">
+                    <img src="{{ document.logo }}" alt="Logo">
+                </div>
+            {% else %}
+                <div class="header-logo header-logo--placeholder">LOGO</div>
             {% endif %}
-            <p class="brand-name">{{ emisor.RznSoc | default(emisor.RznSocEmisor) }}</p>
-            <p class="brand-extra">RUT {{ emisor.RUTEmisor | format_as('billing_document.RUTEmisor') }}</p>
-            {% set direccion = [emisor.DirOrigen, emisor.CmnaOrigen] | filter(v => v is not empty) | join(', ') %}
-            {% if direccion is not empty %}
-                <p class="brand-extra">{{ direccion }}</p>
-            {% endif %}
+            <div class="header-info">
+                <p class="header-name">{{ emisor.RznSoc | default(emisor.RznSocEmisor) }}</p>
+                <p class="header-rut">RUT {{ emisor.RUTEmisor | format_as('billing_document.RUTEmisor') }}</p>
+                {% if emisor.GiroEmis is not empty %}
+                    <p class="header-extra">{{ emisor.GiroEmis }}</p>
+                {% endif %}
+                {% set direccion = [emisor.DirOrigen, emisor.CmnaOrigen] | filter(v => v is not empty) | join(', ') %}
+                {% if direccion is not empty %}
+                    <p class="header-extra">{{ direccion }}</p>
+                {% endif %}
+            </div>
         </div>
 
-        <hr class="divider">
+        <div class="ticket-body">
+            <div class="section">
+                <div class="document-meta">
+                    <p class="doc-title">{{ iddoc.TipoDTE | format_as('billing_document.TipoDTE') }}</p>
+                    <table class="doc-table">
+                        {% if iddoc.Folio is not empty %}
+                            <tr>
+                                <td class="doc-label">Boleta No</td>
+                                <td class="doc-value">{{ iddoc.Folio }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if iddoc.FchEmis is not empty %}
+                            <tr>
+                                <td class="doc-label">Fecha</td>
+                                <td class="doc-value">{{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if iddoc.Hora is not empty %}
+                            <tr>
+                                <td class="doc-label">Hora</td>
+                                <td class="doc-value">{{ iddoc.Hora }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if iddoc.FchVenc is not empty %}
+                            <tr>
+                                <td class="doc-label">Vence</td>
+                                <td class="doc-value">{{ iddoc.FchVenc | format_as('billing_document.FchVenc') }}</td>
+                            </tr>
+                        {% endif %}
+                        {% set terminal = document.Encabezado.Terminal is defined and document.Encabezado.Terminal is not empty ? document.Encabezado.Terminal : (document.Terminal is defined ? document.Terminal : '') %}
+                        {% if terminal is not empty %}
+                            <tr>
+                                <td class="doc-label">Terminal</td>
+                                <td class="doc-value">{{ terminal }}</td>
+                            </tr>
+                        {% endif %}
+                        {% set secuencia = iddoc.Secuencia is defined and iddoc.Secuencia is not empty ? iddoc.Secuencia : (document.Secuencia is defined ? document.Secuencia : '') %}
+                        {% if secuencia is not empty %}
+                            <tr>
+                                <td class="doc-label">Secuencia</td>
+                                <td class="doc-value">{{ secuencia }}</td>
+                            </tr>
+                        {% endif %}
+                        {% set local_label = document.Local is defined and document.Local is not empty ? document.Local : (document.Encabezado.Emisor.CdgLocal is defined ? document.Encabezado.Emisor.CdgLocal : '') %}
+                        {% if local_label is not empty %}
+                            <tr>
+                                <td class="doc-label">Local</td>
+                                <td class="doc-value-left">{{ local_label }}</td>
+                            </tr>
+                        {% endif %}
+                        {% if document.Encabezado.Emisor.CdgVendedor is not empty %}
+                            <tr>
+                                <td class="doc-label">Vendedor</td>
+                                <td class="doc-value-left">{{ document.Encabezado.Emisor.CdgVendedor }}</td>
+                            </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
 
-        <div class="document-meta">
-            <p class="document-title">{{ iddoc.TipoDTE | format_as('billing_document.TipoDTE') }}</p>
-            <p class="document-number">No. {{ iddoc.Folio }}</p>
-            <p class="document-emission">Fecha: {{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}{% if iddoc.FchVenc is not empty %} • Vence: {{ iddoc.FchVenc | format_as('billing_document.FchVenc') }}{% endif %}</p>
-        </div>
-        
-        {# Compact monospace header block: LOCAL / DIRECCION / COMUNA / Terminal / Fecha / Vendedor #}
-        <div class="header-info" style="margin-top:6px;">
-            <pre style="font-family:monospace; font-size:10px; line-height:1.15; margin:0;">
-{% if iddoc is not empty %}BOLETA ELECTRONICA N° {{ iddoc.Folio }}{% endif %}
-
-{% set local_label = document.Local is defined and document.Local is not empty ? document.Local : (document.Encabezado.Emisor.CdgLocal is defined ? document.Encabezado.Emisor.CdgLocal : '') %}
-{% if local_label is not empty %}LOCAL    : {{ local_label }}{% endif %}{% if receptor.DirRecep is not empty %}
-DIRECCION: {{ receptor.DirRecep }}{% endif %}{% if receptor.CmnaRecep is not empty %}
-COMUNA   : {{ receptor.CmnaRecep }}{% endif %}
-
-{% set terminal = document.Encabezado.Terminal is defined and document.Encabezado.Terminal is not empty ? document.Encabezado.Terminal : (document.Terminal is defined ? document.Terminal : '') %}
-{% set secuencia = iddoc.Secuencia is defined and iddoc.Secuencia is not empty ? iddoc.Secuencia : (document.Secuencia is defined ? document.Secuencia : '') %}
-{% if terminal is not empty or secuencia is not empty %}{% if terminal is not empty %}Terminal : {{ terminal }}{% endif %}{% if secuencia is not empty %}  Secuencia: {{ secuencia }}{% endif %}{% endif %}
-
-Fecha    : {{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}{% if iddoc.Hora is not empty %}  Hora: {{ iddoc.Hora }}{% endif %}
-{% if document.Encabezado.Emisor.CdgVendedor is not empty %}Vendedor : {{ document.Encabezado.Emisor.CdgVendedor }}{% endif %}
-            </pre>
-        </div>
-
-        <div class="receptor-detalle-grid">
-            <div class="receptor-column">
+            <div class="section">
                 <p class="section-title">Receptor</p>
                 <table class="info-table">
                     <tbody>
                         {% if receptor.RUTRecep != '66666666-6' %}
-                            <tr><td class="label">RUT</td><td>{{ receptor.RUTRecep | format_as('billing_document.RUTRecep') }}</td></tr>
+                            <tr>
+                                <td class="label">RUT</td>
+                                <td>{{ receptor.RUTRecep | format_as('billing_document.RUTRecep') }}</td>
+                            </tr>
                         {% endif %}
                         {% if receptor.RznSocRecep is not empty %}
-                            <tr><td class="label">Nombre</td><td>{{ receptor.RznSocRecep }}</td></tr>
+                            <tr>
+                                <td class="label">Nombre</td>
+                                <td>{{ receptor.RznSocRecep }}</td>
+                            </tr>
                         {% endif %}
                         {% set recep_dir = [receptor.DirRecep, receptor.CmnaRecep] | filter(v => v is not empty) | join(', ') %}
                         {% if recep_dir is not empty %}
-                            <tr><td class="label">Direccion</td><td>{{ recep_dir }}</td></tr>
+                            <tr>
+                                <td class="label">Dirección</td>
+                                <td>{{ recep_dir }}</td>
+                            </tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
 
-            <div class="detalle-column">
+            <div class="section">
+                <p class="section-title">Detalle</p>
                 <table class="items-table" role="presentation">
                     <thead>
-                        <tr><th class="code">CODIGO</th><th class="description">DESCRIPCION</th><th class="amount">MONTO</th></tr>
+                        <tr>
+                            <th class="code">Código</th>
+                            <th class="description">Descripción</th>
+                            <th class="amount">Monto</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for detalle in document.Detalle %}
                             <tr>
                                 <td class="code">{% if detalle.CdgItem is not empty and detalle.CdgItem.VlrCodigo is not empty %}{{ detalle.CdgItem.VlrCodigo }}{% else %}&nbsp;{% endif %}</td>
                                 <td class="description">
-                                    {% if detalle.NmbItem is not empty %}<div class="item-description">{{ detalle.NmbItem }}</div>{% endif %}
-                                    {% if detalle.DscItem is not empty %}<div class="item-extra">{{ detalle.DscItem }}</div>{% endif %}
+                                    {% if detalle.NmbItem is not empty %}
+                                        <div class="item-description">{{ detalle.NmbItem }}</div>
+                                    {% endif %}
+                                    {% if detalle.DscItem is not empty %}
+                                        <div class="item-extra">{{ detalle.DscItem }}</div>
+                                    {% endif %}
                                     {% set qty = detalle.QtyItem %}{% set price = detalle.PrcItem %}
                                     {% if qty is not empty or price is not empty %}
-                                        <div class="item-qty">{% if qty is not empty %}Cant: {{ qty | number_format(0, ',', '.') }}{% endif %}{% if price is not empty %}{% if qty is not empty %} x {% endif %}{{ '$' ~ (price | number_format(0, ',', '.')) }}{% endif %}</div>
+                                        <div class="item-qty">
+                                            {% if qty is not empty %}
+                                                Cant: {{ qty | number_format(0, ',', '.') }}
+                                            {% endif %}
+                                            {% if price is not empty %}
+                                                {% if qty is not empty %} x {% endif %}${{ price | number_format(0, ',', '.') }}
+                                            {% endif %}
+                                        </div>
                                     {% endif %}
                                 </td>
                                 <td class="amount">{% if detalle.MontoItem is not empty %}{{ detalle.MontoItem | number_format(0, ',', '.') }}{% else %}&nbsp;{% endif %}</td>
@@ -142,61 +410,85 @@ Fecha    : {{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}{% if iddo
                     </tbody>
                 </table>
             </div>
-        </div>
 
-        <div>
-            <p class="section-title">Totales</p>
-            <div class="totals">
-                {% if totales.MntNeto is not empty %}<div class="row"><div class="label">Neto</div><div class="value">{% if otraMoneda %}{{ totales.MntNeto | number_format(2, '.', ',') }}{% else %}{{ totales.MntNeto | number_format(0, ',', '.') }}{% endif %}</div></div>{% endif %}
-                {% if totales.IVA is not empty %}<div class="row"><div class="label">IVA{% if totales.TasaIVA is not empty %} ({{ totales.TasaIVA }}%){% endif %}</div><div class="value">{% if otraMoneda %}{{ totales.IVA | number_format(2, '.', ',') }}{% else %}{{ totales.IVA | number_format(0, ',', '.') }}{% endif %}</div></div>{% endif %}
-                {% if totales.MntTotal is not empty %}<div class="row"><div class="label">Total</div><div class="value">{% if otraMoneda %}{{ totales.MntTotal | number_format(2, '.', ',') }}{% else %}{{ totales.MntTotal | number_format(0, ',', '.') }}{% endif %}</div></div>{% endif %}
-            </div>
-        </div>
-
-        {% if document.DscRcgGlobal is not empty %}
-            <div>
-                <p class="section-title">Descuentos / Recargos</p>
-                <table class="info-table"><tbody>
-                    {% for ajuste in document.DscRcgGlobal %}
-                        {% if ajuste is iterable %}
-                            <tr><td>{{ ajuste.TpoMov == 'D' ? 'Descuento' : 'Recargo' }}{% if ajuste.GlosaDR is not empty %} - {{ ajuste.GlosaDR }}{% endif %}</td><td style="text-align:right;">{{ ajuste.ValorDR }}{{ ajuste.TpoValor }}</td></tr>
+            <div class="section">
+                <p class="section-title">Totales</p>
+                <table class="totals-table">
+                    <tbody>
+                        {% if totales.MntNeto is not empty %}
+                            <tr>
+                                <td class="label">Neto</td>
+                                <td class="amount">{% if otraMoneda %}{{ totales.MntNeto | number_format(2, '.', ',') }}{% else %}{{ totales.MntNeto | number_format(0, ',', '.') }}{% endif %}</td>
+                            </tr>
                         {% endif %}
-                    {% endfor %}
-                </tbody></table>
+                        {% if totales.IVA is not empty %}
+                            <tr>
+                                <td class="label">IVA{% if totales.TasaIVA is not empty %} ({{ totales.TasaIVA }}%){% endif %}</td>
+                                <td class="amount">{% if otraMoneda %}{{ totales.IVA | number_format(2, '.', ',') }}{% else %}{{ totales.IVA | number_format(0, ',', '.') }}{% endif %}</td>
+                            </tr>
+                        {% endif %}
+                        {% if totales.MntTotal is not empty %}
+                            <tr>
+                                <td class="label">Total</td>
+                                <td class="amount">{% if otraMoneda %}{{ totales.MntTotal | number_format(2, '.', ',') }}{% else %}{{ totales.MntTotal | number_format(0, ',', '.') }}{% endif %}</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
-        {% endif %}
 
-        {% if document.Referencia is not empty %}
-            <div>
-                <p class="section-title">Referencias</p>
-                <table class="info-table"><tbody>
-                    {% for referencia in document.Referencia %}
-                        <tr><td>
-                            {% if referencia.TpoDocRef is not empty %}{{ referencia.TpoDocRef | format_as('billing_document.TpoDocRef') }}{% endif %}
-                            {% if referencia.FolioRef is defined and referencia.IndGlobal != 1 %} No. {{ referencia.FolioRef }}{% endif %}
-                            {% if referencia.FchRef is not empty %} del {{ referencia.FchRef | format_as('billing_document.FchRef') }}{% endif %}
-                            {% if referencia.RazonRef is not empty %} - {{ referencia.RazonRef }}{% endif %}
-                        </td></tr>
-                    {% endfor %}
-                </tbody></table>
-            </div>
-        {% endif %}
-
-        <div class="barcode-area">
-            {% if document_stamp is not empty %}
-                <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="Timbre Electronico SII" style="width:100%; height:auto; display:block; margin:0 auto;" />
-                <p class="stamp-text">TIMBRE ELECTRONICO SII</p>
-                {% if document_auth is not empty %}
-                    <p class="stamp-text">Res. {{ document_auth.NroResol }} del {{ document_auth.FchResol | format_as('billing_document.FchResol') }}</p>
-                {% endif %}
-                <p class="stamp-text">Verifique documento en www.sii.cl</p>
-                {# Optional small barcode line under the timbre: reuse the same image scaled down if needed #}
-                <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="codigo" style="width:100%; height:34px; object-fit:contain; margin-top:8px;" />
-            {% else %}
-                <div class="barcode-placeholder" aria-hidden="true"></div>
+            {% if document.DscRcgGlobal is not empty %}
+                <div class="section">
+                    <p class="section-title">Descuentos / Recargos</p>
+                    <table class="info-table">
+                        <tbody>
+                            {% for ajuste in document.DscRcgGlobal %}
+                                {% if ajuste is iterable %}
+                                    <tr>
+                                        <td class="label">{{ ajuste.TpoMov == 'D' ? 'Descuento' : 'Recargo' }}</td>
+                                        <td>{% if ajuste.GlosaDR is not empty %}{{ ajuste.GlosaDR }}{% else %}&nbsp;{% endif %}</td>
+                                        <td class="amount">{{ ajuste.ValorDR }}{{ ajuste.TpoValor }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% endif %}
-        </div>
 
-    </div> <!-- .ticket -->
+            {% if document.Referencia is not empty %}
+                <div class="section">
+                    <p class="section-title">Referencias</p>
+                    <table class="references-table">
+                        <tbody>
+                            {% for referencia in document.Referencia %}
+                                <tr>
+                                    <td>
+                                        {% if referencia.TpoDocRef is not empty %}{{ referencia.TpoDocRef | format_as('billing_document.TpoDocRef') }}{% endif %}
+                                        {% if referencia.FolioRef is defined and referencia.IndGlobal != 1 %} N° {{ referencia.FolioRef }}{% endif %}
+                                        {% if referencia.FchRef is not empty %} del {{ referencia.FchRef | format_as('billing_document.FchRef') }}{% endif %}
+                                        {% if referencia.RazonRef is not empty %} - {{ referencia.RazonRef }}{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            <div class="stamp">
+                {% if document_stamp is not empty %}
+                    <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="Timbre Electronico SII" />
+                    <p class="stamp-text">TIMBRE ELECTRONICO SII</p>
+                    {% if document_auth is not empty %}
+                        <p class="stamp-text">Res. {{ document_auth.NroResol }} del {{ document_auth.FchResol | format_as('billing_document.FchResol') }}</p>
+                    {% endif %}
+                    <p class="stamp-text">Verifique documento en www.sii.cl</p>
+                {% else %}
+                    <div class="stamp-text">[Timbre electrónico no disponible]</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </body>
 </html>

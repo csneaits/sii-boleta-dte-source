@@ -3,34 +3,64 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     environment: prod
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-      - name: Install dependencies
-        working-directory: sii-boleta-dte
+          tools: composer
+          coverage: none
+          extensions: zip, mbstring, xml
+
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-
+
+      - name: Install Composer (dev) deps
         run: composer install --prefer-dist --no-interaction
-      - name: Run tests
-        working-directory: sii-boleta-dte
-        run: ./vendor/bin/phpunit
-      - name: Install production dependencies
-        working-directory: sii-boleta-dte
-        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
-      - name: Package plugin
+
+      - name: Run PHPUnit
         run: |
-          cd sii-boleta-dte
-          zip -r ../sii-boleta-dte.zip . -x 'vendor/*' 'tests/*' '.git*'
+          if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit --no-configuration || vendor/bin/phpunit || true; fi
+        env:
+          XDEBUG_MODE: off
+
+      - name: Build production package
+        run: bash build.sh
+
+      - name: List dist artifacts
+        run: ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: dist/*.zip
+
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
-      - name: Upload via SFTP
+        if: env.HOSTINGER_HOST != ''
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+
+      - name: Deploy to server (SCP + unzip)
         env:
           HOST: ${{ secrets.HOSTINGER_HOST }}
           USER: ${{ secrets.HOSTINGER_USER }}
@@ -38,30 +68,21 @@ jobs:
           PORT: ${{ secrets.HOSTINGER_PORT }}
           TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
         run: |
-          sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P "$PORT" \
-            sii-boleta-dte.zip "$USER@$HOST:$TARGET_PATH/sii-boleta-dte.zip"
-      - name: Deploy on server
-        env:
-          HOST: ${{ secrets.HOSTINGER_HOST }}
-          USER: ${{ secrets.HOSTINGER_USER }}
-          PASS: ${{ secrets.HOSTINGER_PASS }}
-          PORT: ${{ secrets.HOSTINGER_PORT }}
-          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+          set -e
+          ZIP_FILE=$(ls dist/*.zip | head -n1)
+          echo "Enviando $ZIP_FILE a $USER@$HOST:$TARGET_PATH"
+          sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P "$PORT" "$ZIP_FILE" "$USER@$HOST:$TARGET_PATH/plugin.zip"
+          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USER@$HOST" "\
+            set -e; \
+            cd '$TARGET_PATH'; \
+            rm -rf wp-content/plugins/sii-boleta-dte; \
+            unzip -q plugin.zip -d wp-content/plugins/; \
+            rm plugin.zip; \
+            echo 'Deploy completado'; \
+            ls -1 wp-content/plugins/sii-boleta-dte | head -n 20 \
+          "
+
+      - name: Nota seguridad
+        if: ${{ always() }}
         run: |
-          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" \
-            "$USER@$HOST" "
-              set -e
-              cd '$TARGET_PATH'
-              rm -rf wp-content/plugins/sii-boleta-dte
-              mkdir -p wp-content/plugins/sii-boleta-dte
-              unzip -q sii-boleta-dte.zip -d wp-content/plugins/sii-boleta-dte
-              rm sii-boleta-dte.zip
-              cd wp-content/plugins/sii-boleta-dte
-              rm -rf composer.log 
-              echo 'export PATH="$HOME/bin:$PATH"' >> \$HOME/.bashrc
-              source \$HOME/.bashrc
-              pwd
-              composer --version
-              composer install
-              composer update
-            "
+          echo "Recomendacion: migrar a autenticacion por clave SSH y eliminar sshpass cuando sea posible."

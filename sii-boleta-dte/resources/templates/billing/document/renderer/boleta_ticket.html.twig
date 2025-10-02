@@ -2,31 +2,54 @@
 <head>
     <meta charset="utf-8">
     <style>
-        html, body { width: 80mm; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #111; }
-        body { padding: 4mm; }
-        .ticket { width: 100%; background: #fff; padding: 4px; box-sizing: border-box; border: none; }
-        .brand-block { text-align: center; }
-        .brand-logo { width: 48px; height: auto; display: block; margin: 0 auto 4px; }
-        .brand-name { font-size: 13px; font-weight: 700; margin: 0; }
-        .brand-extra { font-size: 9px; margin: 2px 0 0; }
-        .divider { border: 0; border-top: 1px dashed #bbb; margin: 6px 0; }
-        .document-meta { text-align: center; }
-        .document-title { font-weight: 700; font-size: 11px; margin: 0; }
-        .document-number { margin: 0; font-weight: 700; }
-        .receptor-detalle-grid { display: grid; grid-template-columns: 58% 42%; gap: 6px; align-items: start; }
+        /* Page */
+        html, body { width: 80mm; margin: 0; font-family: 'Liberation Sans', Arial, Helvetica, sans-serif; font-size: 10px; color: #111; }
+        body { padding: 6mm; background: #fff; }
+
+        /* Ticket container with outer border like the sample */
+        .ticket { width: 100%; background: #fff; padding: 6px; box-sizing: border-box; border: 1px solid #111; }
+
+        /* Header: logo left, company details right */
+        .brand-header { display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: start; }
+        .brand-logo { width: 56px; height: auto; display: block; }
+        .brand-info { text-align: left; }
+        .brand-name { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: 0.6px; }
+        .brand-rut { font-size: 12px; font-weight: 700; margin: 2px 0; }
+        .brand-giro { font-size: 9px; margin: 2px 0; color: #333; }
+        .brand-address { font-size: 9px; color: #333; }
+
+        .divider { border: 0; border-top: 1px solid #111; margin: 8px 0; }
+
+        .document-meta { text-align: left; font-family: monospace; }
+        .document-title { font-weight: 700; font-size: 12px; margin: 0; text-align: center; }
+        .document-number { font-weight: 700; }
+
+        /* Receptor + detalle grid */
+        .receptor-detalle-grid { display: grid; grid-template-columns: 60% 40%; gap: 8px; align-items: start; }
         .info-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .info-table td.label { font-weight: 700; font-size: 9px; vertical-align: top; padding-right: 4px; }
-        .items-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .items-table thead th { text-align: left; font-weight: 700; font-size: 10px; padding-bottom: 4px; border-bottom: 1px solid #111; }
-        .items-table th.amount, .items-table td.amount { text-align: right; }
-        .items-table td { padding: 4px 0; border-bottom: 1px dotted #e6e6e6; }
+        .info-table td.label { font-weight: 700; font-size: 9px; vertical-align: top; padding-right: 6px; }
+
+        /* Items */
+        .items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .items-table thead th { text-align: left; font-weight: 700; font-family: monospace; font-size: 11px; padding-bottom: 6px; border-bottom: 1px solid #111; }
+        .items-table th.amount, .items-table td.amount { text-align: right; font-family: monospace; }
+        .items-table td { padding: 6px 0; border-bottom: 1px dotted #ccc; }
         .item-description { font-weight: 700; }
         .item-qty { font-size: 9px; color: #666; }
-        .totals { width: 100%; margin-top: 6px; }
-        .totals .row { display: flex; justify-content: space-between; padding: 2px 0; }
+
+        /* Totals block uses monospace and right alignment similar to sample */
+        .totals { width: 100%; margin-top: 8px; font-family: monospace; }
+        .totals .row { display: flex; justify-content: space-between; padding: 3px 0; }
         .totals .label { font-weight: 700; }
         .totals .value { text-align: right; min-width: 60px; }
-        .section-title { font-weight: 700; font-size: 10px; margin: 6px 0 4px; }
+
+        .section-title { font-weight: 700; font-size: 11px; margin: 6px 0 4px; }
+
+    /* Barcode / timbre area (placeholder) */
+    .barcode-area { margin-top: 10px; border-top: 1px solid #111; padding-top: 8px; text-align: center; }
+    .barcode-placeholder { width: 100%; height: 64px; background: repeating-linear-gradient(90deg,#000 0 2px, #fff 2px 6px); margin: 6px 0; }
+    .stamp-text { font-size: 9px; margin: 6px 0 0; color: #333; }
+
         @page { size: 80mm 400mm; margin: 2mm; }
     </style>
 </head>
@@ -56,6 +79,25 @@
             <p class="document-title">{{ iddoc.TipoDTE | format_as('billing_document.TipoDTE') }}</p>
             <p class="document-number">No. {{ iddoc.Folio }}</p>
             <p class="document-emission">Fecha: {{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}{% if iddoc.FchVenc is not empty %} • Vence: {{ iddoc.FchVenc | format_as('billing_document.FchVenc') }}{% endif %}</p>
+        </div>
+        
+        {# Compact monospace header block: LOCAL / DIRECCION / COMUNA / Terminal / Fecha / Vendedor #}
+        <div class="header-info" style="margin-top:6px;">
+            <pre style="font-family:monospace; font-size:10px; line-height:1.15; margin:0;">
+{% if iddoc is not empty %}BOLETA ELECTRONICA N° {{ iddoc.Folio }}{% endif %}
+
+{% set local_label = document.Local is defined and document.Local is not empty ? document.Local : (document.Encabezado.Emisor.CdgLocal is defined ? document.Encabezado.Emisor.CdgLocal : '') %}
+{% if local_label is not empty %}LOCAL    : {{ local_label }}{% endif %}{% if receptor.DirRecep is not empty %}
+DIRECCION: {{ receptor.DirRecep }}{% endif %}{% if receptor.CmnaRecep is not empty %}
+COMUNA   : {{ receptor.CmnaRecep }}{% endif %}
+
+{% set terminal = document.Encabezado.Terminal is defined and document.Encabezado.Terminal is not empty ? document.Encabezado.Terminal : (document.Terminal is defined ? document.Terminal : '') %}
+{% set secuencia = iddoc.Secuencia is defined and iddoc.Secuencia is not empty ? iddoc.Secuencia : (document.Secuencia is defined ? document.Secuencia : '') %}
+{% if terminal is not empty or secuencia is not empty %}{% if terminal is not empty %}Terminal : {{ terminal }}{% endif %}{% if secuencia is not empty %}  Secuencia: {{ secuencia }}{% endif %}{% endif %}
+
+Fecha    : {{ iddoc.FchEmis | format_as('billing_document.FchEmis') }}{% if iddoc.Hora is not empty %}  Hora: {{ iddoc.Hora }}{% endif %}
+{% if document.Encabezado.Emisor.CdgVendedor is not empty %}Vendedor : {{ document.Encabezado.Emisor.CdgVendedor }}{% endif %}
+            </pre>
         </div>
 
         <div class="receptor-detalle-grid">
@@ -140,13 +182,20 @@
             </div>
         {% endif %}
 
-        {% if document_stamp is not empty %}
-            <div class="stamp">
-                <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="Timbre Electronico">
-                <p class="stamp-text">Timbre Electronico SII</p>
-                {% if document_auth is not empty %}<p class="stamp-text">Resolucion {{ document_auth.NroResol }} del {{ document_auth.FchResol | format_as('billing_document.FchResol') }}</p>{% endif %}
-            </div>
-        {% endif %}
+        <div class="barcode-area">
+            {% if document_stamp is not empty %}
+                <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="Timbre Electronico SII" style="width:100%; height:auto; display:block; margin:0 auto;" />
+                <p class="stamp-text">TIMBRE ELECTRONICO SII</p>
+                {% if document_auth is not empty %}
+                    <p class="stamp-text">Res. {{ document_auth.NroResol }} del {{ document_auth.FchResol | format_as('billing_document.FchResol') }}</p>
+                {% endif %}
+                <p class="stamp-text">Verifique documento en www.sii.cl</p>
+                {# Optional small barcode line under the timbre: reuse the same image scaled down if needed #}
+                <img src="{{ document_stamp | format_as('billing_document.TED') }}" alt="codigo" style="width:100%; height:34px; object-fit:contain; margin-top:8px;" />
+            {% else %}
+                <div class="barcode-placeholder" aria-hidden="true"></div>
+            {% endif %}
+        </div>
 
     </div> <!-- .ticket -->
 </body>

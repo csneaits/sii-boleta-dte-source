@@ -360,7 +360,32 @@ class LibreDteEngine implements DteEngine {
         // ignore normalization errors and continue
     }
 
-    $bag = new DocumentBag( parsedData: $documentData, normalizedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+    $bag = new DocumentBag( inputData: $documentData, parsedData: $documentData, normalizedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+
+        // Re-assert normalized data safety directly on the bag for compatibility across libredte versions
+        try {
+            $norm = $bag->getNormalizedData() ?? $bag->getParsedData();
+            if (is_array($norm) && isset($norm['Detalle'])) {
+                if (!is_array($norm['Detalle'])) { $norm['Detalle'] = [ (array) $norm['Detalle'] ]; }
+                elseif (!array_is_list($norm['Detalle'])) { $norm['Detalle'] = [ $norm['Detalle'] ]; }
+                foreach ($norm['Detalle'] as $i => $ln) {
+                    if (!is_array($ln)) { $norm['Detalle'][$i] = [ 'NmbItem' => 'Item' ]; continue; }
+                    if (!array_key_exists('NmbItem', $ln) || $ln['NmbItem'] === false || $ln['NmbItem'] === null || $ln['NmbItem'] === '') {
+                        $norm['Detalle'][$i]['NmbItem'] = 'Item';
+                    } elseif (!is_string($ln['NmbItem'])) {
+                        $norm['Detalle'][$i]['NmbItem'] = (string) $ln['NmbItem'];
+                    }
+                    if (array_key_exists('DscItem', $ln)) {
+                        if ($ln['DscItem'] === false || $ln['DscItem'] === null) {
+                            unset($norm['Detalle'][$i]['DscItem']);
+                        } elseif (!is_string($ln['DscItem'])) {
+                            $norm['Detalle'][$i]['DscItem'] = (string) $ln['DscItem'];
+                        }
+                    }
+                }
+                if (method_exists($bag, 'setNormalizedData')) { $bag->setNormalizedData($norm); }
+            }
+        } catch (\Throwable $_) { /* ignore */ }
 
         try {
             $this->builder->build( $bag );

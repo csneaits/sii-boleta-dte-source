@@ -35,6 +35,21 @@ class Settings {
         }
 
         /**
+         * Builds a human readable label for the provided environment value.
+         */
+        public static function environment_label( string $environment ): string {
+                $environment = trim( $environment );
+                $normalized  = strtolower( $environment );
+
+                return match ( $normalized ) {
+                        'prod', 'production', '1' => __( 'Producción', 'sii-boleta-dte' ),
+                        'test', 'certificacion', 'certification', '0' => __( 'Certificación', 'sii-boleta-dte' ),
+                        'dev', 'development', '2' => __( 'Desarrollo', 'sii-boleta-dte' ),
+                        default => '' !== $environment ? $environment : __( 'desconocido', 'sii-boleta-dte' ),
+                };
+        }
+
+        /**
          * Determines if WooCommerce orders should only generate preview PDFs while testing.
          */
         public function is_woocommerce_preview_only_enabled(): bool {

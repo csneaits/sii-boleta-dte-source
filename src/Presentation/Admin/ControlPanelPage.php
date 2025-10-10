@@ -250,12 +250,14 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 $cfg = $this->settings->get_settings();
                 $env = $this->settings->get_environment();
                 // Map to libredte env label similar to LibredteBridge
-                $envMap = \Sii\BoletaDte\Infrastructure\Settings::normalize_environment( $env );
-                $libredteEnv = ('1' === $envMap) ? 'prod' : (('2' === $envMap) ? 'dev' : 'cert');
+                $envMap         = \Sii\BoletaDte\Infrastructure\Settings::normalize_environment( $env );
+                $libredteEnv    = ('1' === $envMap) ? 'prod' : ( ( '2' === $envMap ) ? 'dev' : 'cert' );
+                $libredteLabel  = Settings::environment_label( $envMap );
+                $libredteOutput = sprintf( '%s (%s)', $libredteLabel, $libredteEnv );
                 $wsEnabled = ! empty( $cfg['use_libredte_ws'] );
 ?>
 <div class="card" id="sii-libredte-diagnostics">
-        <p><strong><?php echo esc_html__( 'Ambiente LibreDTE:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html( $libredteEnv ); ?></p>
+        <p><strong><?php echo esc_html__( 'Ambiente LibreDTE:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html( $libredteOutput ); ?></p>
         <p><strong><?php echo esc_html__( 'WS LibreDTE habilitado:', 'sii-boleta-dte' ); ?></strong> <?php echo $wsEnabled ? '<span class="status-ok">' . esc_html__( 'Sí', 'sii-boleta-dte' ) . '</span>' : '<span class="status-off">' . esc_html__( 'No', 'sii-boleta-dte' ) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p>
         <form method="post" style="margin-top:8px;display:inline-block;">
                 <?php $this->output_nonce_field( 'sii_boleta_libredte_auth', 'sii_boleta_libredte_auth_nonce' ); ?>

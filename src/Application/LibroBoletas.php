@@ -20,6 +20,9 @@ class LibroBoletas {
         public function __construct( Settings $settings, Api $api = null, Queue $queue = null, FolioManager $folio_manager = null ) {
                 $this->settings      = $settings;
                 $this->api           = $api ?? new Api();
+                if ( method_exists( $this->api, 'setSettings' ) ) {
+                        $this->api->setSettings( $settings );
+                }
                 $this->queue         = $queue ?? new Queue();
                 $this->signer        = new Signer();
                 $this->folio_manager = $folio_manager ?? new FolioManager( $settings );

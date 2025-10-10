@@ -352,12 +352,15 @@ class LibreDteEngine implements DteEngine {
                     }
                 }
             }
+        } else {
+            // Ensure at least one safe detail line exists
+            $documentData['Detalle'] = [ [ 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 0 ] ];
         }
     } catch (\Throwable $_) {
         // ignore normalization errors and continue
     }
 
-    $bag = new DocumentBag( parsedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
+    $bag = new DocumentBag( parsedData: $documentData, normalizedData: $documentData, caf: $cafBag->getCaf(), certificate: $certificate );
 
         try {
             $this->builder->build( $bag );

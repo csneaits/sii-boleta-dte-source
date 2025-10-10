@@ -95,7 +95,7 @@ class Container {
                                 }
                         );
 						self::bind( SettingsPage::class, fn() => new SettingsPage( self::get( Settings::class ) ) );
-						self::bind( LogsPage::class, fn() => new LogsPage() );
+                        self::bind( LogsPage::class, fn() => new LogsPage( self::get( Settings::class ) ) );
 						self::bind( DiagnosticsPage::class, fn() => new DiagnosticsPage( self::get( Settings::class ), self::get( TokenManager::class ), self::get( Api::class ) ) );
                                                 self::bind( Help::class, fn() => new Help( self::get( Settings::class ), array( FoliosDb::class, 'has_type' ) ) );
 						self::bind( CheckoutFields::class, fn() => new CheckoutFields( self::get( Settings::class ) ) );

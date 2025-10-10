@@ -33,7 +33,8 @@ class QueueProcessor {
 				static fn( array $job ) => $job['id'] === $id
 			);
 		}
-		foreach ( $jobs as $job ) {
+                foreach ( $jobs as $job ) {
+                        $environment = isset( $job['payload']['environment'] ) ? (string) $job['payload']['environment'] : '0';
                         $result = null;
                         if ( 'dte' === $job['type'] ) {
                                 $file_path = isset( $job['payload']['file'] ) ? (string) $job['payload']['file'] : '';
@@ -44,53 +45,53 @@ class QueueProcessor {
                                         }
                                 }
 
-				if ( '' === $file_path || ! file_exists( $file_path ) ) {
-					// Permanent error: file missing. Mark as failed and remove without retrying.
-					LogDb::add_entry( '', 'failed', 'Queued XML file is missing.' );
-					QueueDb::delete( (int) $job['id'] );
-					continue;
+                                if ( '' === $file_path || ! file_exists( $file_path ) ) {
+                                        // Permanent error: file missing. Mark as failed and remove without retrying.
+                                        LogDb::add_entry( '', 'failed', 'Queued XML file is missing.', $environment );
+                                        QueueDb::delete( (int) $job['id'] );
+                                        continue;
                                 } else {
                                         $result = $this->api->send_dte_to_sii(
                                                 $file_path,
-                                                $job['payload']['environment'],
+                                                $environment,
                                                 $job['payload']['token']
                                         );
                                 }
-			} elseif ( in_array( $job['type'], array( 'libro', 'rvd' ), true ) ) {
+                        } elseif ( in_array( $job['type'], array( 'libro', 'rvd' ), true ) ) {
                                 $result = $this->api->send_libro_to_sii(
                                         $job['payload']['xml'],
-                                        $job['payload']['environment'],
+                                        $environment,
                                         $job['payload']['token']
                                 );
-			} elseif ( 'recibos' === $job['type'] ) {
-				if ( method_exists( $this->api, 'send_recibos_to_sii' ) ) {
-					$result = $this->api->send_recibos_to_sii(
-						$job['payload']['xml'],
-						$job['payload']['environment'],
-						$job['payload']['token']
-					);
-				} else {
-					$result = $this->api->send_libro_to_sii(
-						$job['payload']['xml'],
-						$job['payload']['environment'],
-						$job['payload']['token']
-					);
-				}
+                        } elseif ( 'recibos' === $job['type'] ) {
+                                if ( method_exists( $this->api, 'send_recibos_to_sii' ) ) {
+                                        $result = $this->api->send_recibos_to_sii(
+                                                $job['payload']['xml'],
+                                                $environment,
+                                                $job['payload']['token']
+                                        );
+                                } else {
+                                        $result = $this->api->send_libro_to_sii(
+                                                $job['payload']['xml'],
+                                                $environment,
+                                                $job['payload']['token']
+                                        );
+                                }
                         }
-			if ( is_wp_error( $result ) ) {
-				LogDb::add_entry( '', 'error', $result->get_error_message() );
-				if ( $job['attempts'] < 3 ) {
-					QueueDb::increment_attempts( $job['id'] );
-				} else {
-					QueueDb::delete( $job['id'] );
-				}
-			} else {
-				$track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;
-				LogDb::add_entry( $track, 'sent', '' );
-				QueueDb::delete( $job['id'] );
-			}
-		}
-	}
+                        if ( is_wp_error( $result ) ) {
+                                LogDb::add_entry( '', 'error', $result->get_error_message(), $environment );
+                                if ( $job['attempts'] < 3 ) {
+                                        QueueDb::increment_attempts( $job['id'] );
+                                } else {
+                                        QueueDb::delete( $job['id'] );
+                                }
+                        } else {
+                                $track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;
+                                LogDb::add_entry( $track, 'sent', '', $environment );
+                                QueueDb::delete( $job['id'] );
+                        }
+                }
+        }
 
 	/** Resets attempts counter for a job. */
 	public function retry( int $id ): void {

@@ -46,10 +46,19 @@ namespace {
 namespace Sii\BoletaDte\Presentation\Admin {
 
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+use Sii\BoletaDte\Infrastructure\Settings;
 use WP_List_Table;
 
 class LogsTable extends WP_List_Table {
-	private array $items_data = array();
+        private array $items_data = array();
+        private string $environment;
+
+        public function __construct( string $environment ) {
+                $this->environment = Settings::normalize_environment( $environment );
+                if ( is_callable( array( 'WP_List_Table', '__construct' ) ) ) {
+                        parent::__construct( array( 'singular' => 'log', 'plural' => 'logs', 'ajax' => false ) );
+                }
+        }
 
 	public function get_columns() {
 		return array(
@@ -68,19 +77,21 @@ class LogsTable extends WP_List_Table {
 		if ( $status ) {
 			$args['status'] = $status;
 		}
-		$logs = LogDb::get_logs( $args );
-		if ( $track_id ) {
-			$logs = array_values( array_filter( $logs, static fn( $row ) => $row['track_id'] === $track_id ) );
-		}
-		$this->items = $logs;
-		$total       = count(
-			LogDb::get_logs(
-				array(
-					'status' => $status,
-					'limit'  => PHP_INT_MAX,
-				)
-			)
-		);
+                $args['environment'] = $this->environment;
+                $logs                = LogDb::get_logs( $args );
+                if ( $track_id ) {
+                        $logs = array_values( array_filter( $logs, static fn( $row ) => $row['track_id'] === $track_id ) );
+                }
+                $this->items = $logs;
+                $total       = count(
+                        LogDb::get_logs(
+                                array(
+                                        'status' => $status,
+                                        'limit'  => PHP_INT_MAX,
+                                        'environment' => $this->environment,
+                                )
+                        )
+                );
 		$this->set_pagination_args(
 			array(
 				'total_items' => $total,
@@ -97,9 +108,15 @@ class LogsTable extends WP_List_Table {
 }
 
 class LogsPage {
-	public function register(): void {
-		if ( function_exists( 'add_submenu_page' ) ) {
-			add_submenu_page(
+        private Settings $settings;
+
+        public function __construct( Settings $settings ) {
+                $this->settings = $settings;
+        }
+
+        public function register(): void {
+                if ( function_exists( 'add_submenu_page' ) ) {
+                        add_submenu_page(
 				'sii-boleta-dte',
 				__( 'Logs', 'sii-boleta-dte' ),
 				__( 'Logs', 'sii-boleta-dte' ),
@@ -108,10 +125,10 @@ class LogsPage {
 				array( $this, 'render_page' )
 			);
 		}
-	}
+        }
 
         public function render_page(): void {
-                $table = new LogsTable();
+                $table = new LogsTable( $this->settings->get_environment() );
                 $table->prepare_items();
                 AdminStyles::open_container( 'sii-logs-page' );
 				echo '<h1>' . esc_html__( 'Registros', 'sii-boleta-dte' ) . '</h1>';

@@ -33,6 +33,7 @@ class ControlPanelPageTest extends TestCase {
         $id = QueueDb::enqueue( 'dte', array( 'file' => 'x' ) );
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array() ) );
+        $settings->method( 'get_environment' )->willReturn( '0' );
         $folio = $this->createMock( FolioManager::class );
         $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
         $page = $this->create_page( $settings, $folio, $processor );
@@ -43,10 +44,11 @@ class ControlPanelPageTest extends TestCase {
     }
 
     public function test_render_displays_logs(): void {
-        LogDb::add_entry( '1', 'sent', '' );
+        LogDb::add_entry( '1', 'sent', '', '0' );
         $settings = $this->createMock( Settings::class );
         // Folios tab was removed; settings content is no longer relevant to this view.
         $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
         $folio = $this->createMock( FolioManager::class );
         $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
         ob_start();
@@ -62,6 +64,7 @@ class ControlPanelPageTest extends TestCase {
         $id = QueueDb::enqueue( 'dte', array( 'file' => 'x' ) );
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
         $folio = $this->createMock( FolioManager::class );
         $page = $this->create_page( $settings, $folio, $processor );
         $_POST['sii_boleta_queue_nonce'] = 'x';
@@ -75,6 +78,7 @@ class ControlPanelPageTest extends TestCase {
         QueueDb::increment_attempts( $id );
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
         $folio = $this->createMock( FolioManager::class );
         $page = $this->create_page( $settings, $folio, $processor );
         $_POST['sii_boleta_queue_nonce'] = 'x';

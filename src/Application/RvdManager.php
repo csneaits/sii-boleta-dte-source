@@ -16,6 +16,9 @@ class RvdManager {
     public function __construct( Settings $settings, Api $api = null, Queue $queue = null ) {
         $this->settings = $settings;
         $this->api      = $api ?? new Api();
+        if ( method_exists( $this->api, 'setSettings' ) ) {
+            $this->api->setSettings( $settings );
+        }
         $this->queue    = $queue ?? new Queue();
         if ( function_exists( 'add_action' ) ) {
             add_action( Cron::HOOK, array( $this, 'maybe_run' ) );

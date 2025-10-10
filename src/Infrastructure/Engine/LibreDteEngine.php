@@ -320,7 +320,7 @@ class LibreDteEngine implements DteEngine {
             // Normalize Detalle to an array of arrays
             if (!is_array($documentData['Detalle'])) {
                 $documentData['Detalle'] = [ (array) $documentData['Detalle'] ];
-            } elseif (!array_is_list($documentData['Detalle'])) {
+            } elseif (! $this->isSequentialArray( $documentData['Detalle'] ) ) {
                 $documentData['Detalle'] = [ $documentData['Detalle'] ];
             }
             foreach ($documentData['Detalle'] as $idx => $line) {
@@ -367,7 +367,7 @@ class LibreDteEngine implements DteEngine {
             $norm = $bag->getNormalizedData() ?? $bag->getParsedData();
             if (is_array($norm) && isset($norm['Detalle'])) {
                 if (!is_array($norm['Detalle'])) { $norm['Detalle'] = [ (array) $norm['Detalle'] ]; }
-                elseif (!array_is_list($norm['Detalle'])) { $norm['Detalle'] = [ $norm['Detalle'] ]; }
+                elseif (! $this->isSequentialArray( $norm['Detalle'] ) ) { $norm['Detalle'] = [ $norm['Detalle'] ]; }
                 foreach ($norm['Detalle'] as $i => $ln) {
                     if (!is_array($ln)) { $norm['Detalle'][$i] = [ 'NmbItem' => 'Item' ]; continue; }
                     if (!array_key_exists('NmbItem', $ln) || $ln['NmbItem'] === false || $ln['NmbItem'] === null || $ln['NmbItem'] === '') {
@@ -478,6 +478,28 @@ class LibreDteEngine implements DteEngine {
         );
 
         return $xmlString;
+    }
+
+    /**
+     * Determines if the given array uses sequential integer keys starting at zero.
+     * Provides compatibility for environments running PHP < 8.1 where array_is_list is unavailable.
+     *
+     * @param array<mixed> $value
+     */
+    private function isSequentialArray( array $value ): bool {
+        if ( function_exists( 'array_is_list' ) ) {
+            return array_is_list( $value );
+        }
+
+        $expected = 0;
+        foreach ( $value as $key => $_ ) {
+            if ( $key !== $expected ) {
+                return false;
+            }
+            $expected++;
+        }
+
+        return true;
     }
 
     /**
@@ -894,7 +916,7 @@ class LibreDteEngine implements DteEngine {
 
         if ( isset( $data['Detalle'] ) ) {
             $detalles = $data['Detalle'];
-            if ( ! is_array( $detalles ) || ! array_is_list( $detalles ) ) {
+            if ( ! is_array( $detalles ) || ! $this->isSequentialArray( $detalles ) ) {
                 $detalles = array( $detalles );
             }
 

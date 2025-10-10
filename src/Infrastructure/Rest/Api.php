@@ -96,12 +96,12 @@ trait LibreDteWsSupport {
             // Map response into our existing return contracts
             if ( 'dte' === $kind ) {
                 $trackId = is_array( $resp ) && isset( $resp['trackId'] ) ? (string) $resp['trackId'] : '';
-                if ( '' !== $trackId ) { LogDb::add_entry( $trackId, 'sent', json_encode( $resp ) ); return $trackId; }
+                if ( '' !== $trackId ) { LogDb::add_entry( $trackId, 'sent', json_encode( $resp ), $environment ); return $trackId; }
                 return new WP_Error( 'sii_boleta_http_error', 'WS error', $resp );
             }
             if ( in_array( $kind, array( 'libro', 'recibos' ), true ) ) {
                 $trackId = is_array( $resp ) && isset( $resp['trackId'] ) ? (string) $resp['trackId'] : '';
-                if ( '' !== $trackId ) { LogDb::add_entry( $trackId, 'sent', json_encode( $resp ) ); return array( 'trackId' => $trackId ); }
+                if ( '' !== $trackId ) { LogDb::add_entry( $trackId, 'sent', json_encode( $resp ), $environment ); return array( 'trackId' => $trackId ); }
                 return new WP_Error( 'sii_boleta_http_error', 'WS error', $resp );
             }
         } catch ( \Throwable $e ) {
@@ -123,7 +123,7 @@ trait LibreDteWsSupport {
 
             $resp = \call_user_func_array( array( $sii, 'consumeWebservice' ), array( $request, 'EstadoDTE', 'query', array( 'trackId' => $trackId ), $this->retries ) );
             if ( is_array( $resp ) && isset( $resp['status'] ) ) {
-                LogDb::add_entry( $trackId, (string) $resp['status'], json_encode( $resp ) );
+                LogDb::add_entry( $trackId, (string) $resp['status'], json_encode( $resp ), $environment );
                 return $resp['status'];
             }
             return new WP_Error( 'sii_boleta_http_error', 'WS error', $resp );
@@ -191,7 +191,7 @@ class Api {
             }
             $data = json_decode( $body, true );
             if ( isset( $data['trackId'] ) ) {
-                LogDb::add_entry( (string) $data['trackId'], 'sent', $body );
+                LogDb::add_entry( (string) $data['trackId'], 'sent', $body, $environment );
                 $this->maybe_mark_certification_progress( $environment );
                 return (string) $data['trackId'];
             }
@@ -229,13 +229,13 @@ class Api {
             $sx = simplexml_load_string( $body );
             \libxml_clear_errors();
             if ( false !== $sx && isset( $sx->trackId ) ) {
-                LogDb::add_entry( (string) $sx->trackId, 'sent', $body );
+                LogDb::add_entry( (string) $sx->trackId, 'sent', $body, $environment );
                 return array( 'trackId' => (string) $sx->trackId );
             }
 
             $json = json_decode( $body, true );
             if ( is_array( $json ) && isset( $json['trackId'] ) ) {
-                LogDb::add_entry( (string) $json['trackId'], 'sent', $body );
+                LogDb::add_entry( (string) $json['trackId'], 'sent', $body, $environment );
                 return array( 'trackId' => (string) $json['trackId'] );
             }
 
@@ -273,13 +273,13 @@ class Api {
             $sx = simplexml_load_string( $body );
             \libxml_clear_errors();
             if ( false !== $sx && isset( $sx->trackId ) ) {
-                LogDb::add_entry( (string) $sx->trackId, 'sent', $body );
+                LogDb::add_entry( (string) $sx->trackId, 'sent', $body, $environment );
                 return array( 'trackId' => (string) $sx->trackId );
             }
 
             $json = json_decode( $body, true );
             if ( is_array( $json ) && isset( $json['trackId'] ) ) {
-                LogDb::add_entry( (string) $json['trackId'], 'sent', $body );
+                LogDb::add_entry( (string) $json['trackId'], 'sent', $body, $environment );
                 return array( 'trackId' => (string) $json['trackId'] );
             }
 
@@ -316,7 +316,7 @@ class Api {
         }
         $data = json_decode( $body, true );
         if ( isset( $data['status'] ) ) {
-            LogDb::add_entry( $track_id, (string) $data['status'], $body );
+            LogDb::add_entry( $track_id, (string) $data['status'], $body, $environment );
             return $data['status'];
         }
         return new WP_Error(

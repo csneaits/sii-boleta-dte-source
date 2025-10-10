@@ -125,7 +125,8 @@ class ControlPanelPage {
         }
 
         private function render_certification_tools(): void {
-                $plan = array();
+                $environment = $this->settings->get_environment();
+                $plan         = array();
                 if ( function_exists( 'get_option' ) ) {
                         $plan = (array) get_option( 'sii_boleta_cert_plan', array() );
                 } elseif ( isset( $GLOBALS['wp_options']['sii_boleta_cert_plan'] ) ) {
@@ -180,7 +181,12 @@ class ControlPanelPage {
 <hr/>
 <h3><?php echo esc_html__( 'Métricas', 'sii-boleta-dte' ); ?></h3>
 <?php
-        $logs = \Sii\BoletaDte\Infrastructure\Persistence\LogDb::get_logs( array( 'limit' => 200 ) );
+        $logs = \Sii\BoletaDte\Infrastructure\Persistence\LogDb::get_logs(
+                array(
+                        'limit'       => 200,
+                        'environment' => $environment,
+                )
+        );
         $counts = array( 'sent' => 0, 'accepted' => 0, 'rejected' => 0, 'error' => 0 );
         foreach ( $logs as $row ) {
                 $st = (string) $row['status'];
@@ -355,8 +361,8 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                         return;
                 }
                 $environment = $this->settings->get_environment();
-                $token = $this->token_manager->get_token( $environment );
-                $ids = \Sii\BoletaDte\Infrastructure\Persistence\LogDb::get_pending_track_ids( 50 );
+                $token       = $this->token_manager->get_token( $environment );
+                $ids         = \Sii\BoletaDte\Infrastructure\Persistence\LogDb::get_pending_track_ids( 50, $environment );
                 $polled = 0;
                 foreach ( $ids as $track ) {
                         $status = $this->api->get_dte_status( (string) $track, $environment, $token );
@@ -404,8 +410,14 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
 	}
 
 	/** Shows latest log entries. */
-	private function render_recent_logs(): void {
-			$logs = LogDb::get_logs( array( 'limit' => 5 ) );
+        private function render_recent_logs(): void {
+                $environment = $this->settings->get_environment();
+                $logs        = LogDb::get_logs(
+                        array(
+                                'limit'       => 5,
+                                'environment' => $environment,
+                        )
+                );
 		?>
 <div class="sii-section">
 <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
@@ -437,7 +449,14 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
 
 /** Lists queue items with controls. */
 private function render_queue(): void {
-$jobs = QueueDb::get_pending_jobs();
+        $environment = $this->settings->get_environment();
+        $jobs        = array_filter(
+                QueueDb::get_pending_jobs(),
+                static function ( array $job ) use ( $environment ) {
+                        $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
+                        return $job_env === $environment;
+                }
+        );
 ?>
 <div class="sii-section">
 <h2><?php echo esc_html__( 'Cola', 'sii-boleta-dte' ); ?></h2>
@@ -518,7 +537,13 @@ echo '<button type="submit" class="button button-primary">' . esc_html__( 'Valid
 	}
 
         private function render_metrics_dashboard(): void {
-                $logs  = LogDb::get_logs( array( 'limit' => 500 ) );
+                $environment = $this->settings->get_environment();
+                $logs        = LogDb::get_logs(
+                        array(
+                                'limit'       => 500,
+                                'environment' => $environment,
+                        )
+                );
                 $years = array();
                 foreach ( $logs as $row ) {
                         $timestamp = isset( $row['created_at'] ) ? strtotime( (string) $row['created_at'] ) : false;
@@ -749,7 +774,6 @@ array(
                 }
 
                 $cfg         = $this->settings->get_settings();
-                $environment = $this->settings->get_environment();
                 $rvd_enabled = ! empty( $cfg['rvd_auto_enabled'] );
                 $rvd_time    = isset( $cfg['rvd_auto_time'] ) ? (string) $cfg['rvd_auto_time'] : '02:00';
                 if ( ! preg_match( '/^(\d{2}):(\d{2})$/', $rvd_time ) ) {
@@ -771,7 +795,13 @@ array(
                 $libro_next     = $libro_enabled ? $this->next_monthly_run_timestamp( $libro_day, $libro_time ) : 0;
                 $libro_period   = $this->previous_month_period( $this->current_timestamp() );
 
-                $queue_jobs   = QueueDb::get_pending_jobs( 50 );
+                $queue_jobs   = array_filter(
+                        QueueDb::get_pending_jobs( 50 ),
+                        static function ( array $job ) use ( $environment ) {
+                                $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
+                                return $job_env === $environment;
+                        }
+                );
                 $queue_counts = array(
                         'dte'   => 0,
                         'rvd'   => 0,
@@ -1111,7 +1141,14 @@ $this->add_notice( __( 'El XML del Libro no pasó la validación. Revisa la estr
 
         /** Renders maintenance/cleanup jobs and status. */
         private function render_maintenance(): void {
-                $jobs = QueueDb::get_pending_jobs( 100 );
+                $environment = $this->settings->get_environment();
+                $jobs        = array_filter(
+                        QueueDb::get_pending_jobs( 100 ),
+                        static function ( array $job ) use ( $environment ) {
+                                $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
+                                return $job_env === $environment;
+                        }
+                );
                 // Datos del cron de limpieza de renders debug
                 $next        = function_exists( 'wp_next_scheduled' ) ? wp_next_scheduled( 'sii_boleta_dte_prune_debug_pdfs' ) : 0;
                 $last_run    = (int) get_option( 'sii_boleta_dte_prune_debug_last_run', 0 );

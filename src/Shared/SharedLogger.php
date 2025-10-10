@@ -28,7 +28,8 @@ class SharedLogger implements LoggerContract {
         $log_db    = $opts['log_to_db'] ?? true;
 
         if ( $log_db ) {
-            LogDb::add_entry( '', $level, $message );
+            $environment = $this->settings->get_environment();
+            LogDb::add_entry( '', $level, $message, $environment );
         }
 
         if ( $log_file ) {

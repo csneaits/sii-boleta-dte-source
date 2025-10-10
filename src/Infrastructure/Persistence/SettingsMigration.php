@@ -88,7 +88,7 @@ class SettingsMigration {
             }
             foreach ( $lines as $line ) {
                 if ( preg_match( '/^\[(.+)\]\s+(\w+):\s+(.*)$/', $line, $m ) ) {
-                    LogDb::add_entry( '', strtolower( $m[2] ), $m[3] );
+                    LogDb::add_entry( '', strtolower( $m[2] ), $m[3], '0' );
                 }
             }
         }

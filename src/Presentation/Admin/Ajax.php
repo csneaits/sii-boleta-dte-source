@@ -46,8 +46,22 @@ class Ajax {
             \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
         }
 
-        $logs      = LogDb::get_logs( array( 'limit' => 5 ) );
-        $jobs      = QueueDb::get_pending_jobs();
+        $settings      = $this->core->get_settings();
+        $environment   = method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0';
+        $normalized_env = Settings::normalize_environment( (string) $environment );
+        $logs        = LogDb::get_logs(
+                array(
+                        'limit'       => 5,
+                        'environment' => $environment,
+                )
+        );
+        $jobs = array_filter(
+                QueueDb::get_pending_jobs(),
+                static function ( array $job ) use ( $normalized_env ) {
+                        $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
+                        return $job_env === $normalized_env;
+                }
+        );
         $logs_html = $this->render_logs_rows( $logs );
         $queue     = $this->render_queue_rows( $jobs );
 

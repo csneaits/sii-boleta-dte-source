@@ -162,6 +162,27 @@
             if (btn){ btn.textContent = xmlWrap ? 'No wrap' : 'Wrap'; }
         }
 
+        function decodeXmlPayload(data){
+            if (!data){ return ''; }
+            var base64 = (typeof data.xml_base64 === 'string') ? data.xml_base64 : '';
+            if (base64){
+                try {
+                    if (typeof window.atob === 'function'){
+                        return window.atob(base64);
+                    }
+                } catch (e) {
+                    // fall back to raw XML below.
+                }
+            }
+            if (typeof data.xml === 'string'){
+                return data.xml;
+            }
+            if (data.xml){
+                return String(data.xml);
+            }
+            return '';
+        }
+
         function fetchXmlPreview(){
             if (!form || !supportsAjax){ return; }
             if (xmlValidationBox){ xmlValidationBox.textContent=''; }
@@ -178,7 +199,7 @@
                         if (xmlMeta){ xmlMeta.textContent=getText('xmlError','No se pudo generar el XML.'); }
                         return;
                     }
-                    currentXml = json.data && json.data.xml ? String(json.data.xml) : '';
+                    currentXml = decodeXmlPayload(json.data);
                     currentXmlTipo = json.data && json.data.tipo ? parseInt(json.data.tipo,10) : 0;
                     if (xmlCode && xmlCodeContainer){ xmlCode.innerHTML = ''; xmlCodeContainer.innerHTML = buildCodeHtml(currentXml); }
                     if (xmlMeta){ xmlMeta.textContent = 'bytes: '+ (json.data.size||0) + ' · líneas: ' + (json.data.lines||0); }

@@ -30,6 +30,8 @@ src/admin/css/main.bundle.css
 src/admin/css/main.bundle.css
 .phpunit.result.cache
 sii-boleta-dte/var/
+tests/output/
+var/
 
 # Composer
 vendor/

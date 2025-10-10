@@ -640,7 +640,15 @@ class Ajax {
         $tipo = isset( $result['tipo'] ) ? (int) $result['tipo'] : ( isset( $post['tipo'] ) ? (int) $post['tipo'] : 0 );
         $size  = strlen( $xml );
         $lines = substr_count( $xml, "\n" ) + 1;
-        \wp_send_json_success( array( 'xml' => $xml, 'size' => $size, 'lines' => $lines, 'tipo' => $tipo ) );
+        $payload = array(
+                'xml'        => $xml,
+                'xml_base64' => base64_encode( $xml ),
+                'size'       => $size,
+                'lines'      => $lines,
+                'tipo'       => $tipo,
+        );
+
+        \wp_send_json_success( $payload );
     }
 
     /**

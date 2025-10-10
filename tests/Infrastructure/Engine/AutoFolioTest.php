@@ -25,7 +25,7 @@ final class AutoFolioTest extends TestCase
         return $settings;
     }
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         // reset last folio counters

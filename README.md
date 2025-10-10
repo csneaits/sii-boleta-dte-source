@@ -74,6 +74,7 @@ El contenedor `Infrastructure\Factory\Container` registra servicios y los resuel
 - **CAF determinista**: el bridge actualiza el último folio observado +1 incluso cuando LibreDTE sólo expone rangos, evitando saltos al volver al proveedor histórico (`FoliosDb`).
 - **Normalización de items para auto folio**: el motor sanea `Detalle` antes de invocar LibreDTE, asegurando que `NmbItem` sea siempre cadena y evitando el `TypeError` `mb_substr(false)`. También se añadió `isSequentialArray()` para entornos sin `array_is_list`.
 - **Etiquetas de retención en PDF**: se normalizan los totales retenidos (`ImptoReten`) para que las plantillas estándar muestren los textos aunque LibreDTE entregue valores *false*.
+- **Simulación de envíos en desarrollo**: desde Ajustes → Ambiente se puede forzar que los envíos al SII respondan como éxito o error cuando el ambiente activo es Desarrollo, ideal para probar la cola sin contactar servicios reales.
 - **Validaciones opcionales reforzadas**: sanitización, XSD y firmas se ejecutan cuando LibreDTE lo permite, con protecciones `method_exists` y *fallbacks* no disruptivos.
 
 ## Instalación y build

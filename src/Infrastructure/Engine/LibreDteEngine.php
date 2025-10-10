@@ -323,8 +323,11 @@ class LibreDteEngine implements DteEngine {
             } elseif (! $this->isSequentialArray( $documentData['Detalle'] ) ) {
                 $documentData['Detalle'] = [ $documentData['Detalle'] ];
             }
+
+            $hasDetailLine = false;
             foreach ($documentData['Detalle'] as $idx => $line) {
                 if (!is_array($line)) { continue; }
+                $hasDetailLine = true;
                 // NmbItem: cast non-string scalars and replace false/null/empty with safe placeholder
                 if (!array_key_exists('NmbItem', $line) || $line['NmbItem'] === false || $line['NmbItem'] === null || $line['NmbItem'] === '') {
                     $documentData['Detalle'][$idx]['NmbItem'] = 'Item';
@@ -352,6 +355,9 @@ class LibreDteEngine implements DteEngine {
                     }
                 }
             }
+            if (!$hasDetailLine) {
+                $documentData['Detalle'] = [ [ 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 0 ] ];
+            }
         } else {
             // Ensure at least one safe detail line exists
             $documentData['Detalle'] = [ [ 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 0 ] ];
@@ -368,8 +374,10 @@ class LibreDteEngine implements DteEngine {
             if (is_array($norm) && isset($norm['Detalle'])) {
                 if (!is_array($norm['Detalle'])) { $norm['Detalle'] = [ (array) $norm['Detalle'] ]; }
                 elseif (! $this->isSequentialArray( $norm['Detalle'] ) ) { $norm['Detalle'] = [ $norm['Detalle'] ]; }
+                $hasNormDetail = false;
                 foreach ($norm['Detalle'] as $i => $ln) {
-                    if (!is_array($ln)) { $norm['Detalle'][$i] = [ 'NmbItem' => 'Item' ]; continue; }
+                    if (!is_array($ln)) { $norm['Detalle'][$i] = [ 'NmbItem' => 'Item' ]; $hasNormDetail = true; continue; }
+                    $hasNormDetail = true;
                     if (!array_key_exists('NmbItem', $ln) || $ln['NmbItem'] === false || $ln['NmbItem'] === null || $ln['NmbItem'] === '') {
                         $norm['Detalle'][$i]['NmbItem'] = 'Item';
                     } elseif (!is_string($ln['NmbItem'])) {
@@ -383,6 +391,7 @@ class LibreDteEngine implements DteEngine {
                         }
                     }
                 }
+                if (!$hasNormDetail) { $norm['Detalle'] = [ [ 'NmbItem' => 'Item', 'QtyItem' => 1, 'PrcItem' => 0 ] ]; }
                 if (method_exists($bag, 'setNormalizedData')) { $bag->setNormalizedData($norm); }
             }
         } catch (\Throwable $_) { /* ignore */ }

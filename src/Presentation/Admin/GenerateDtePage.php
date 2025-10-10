@@ -902,19 +902,33 @@ class GenerateDtePage {
 												<div class="sii-step-navigation sii-step-navigation--start">
 														<button type="button" class="button sii-step-prev"><?php esc_html_e( 'Anterior', 'sii-boleta-dte' ); ?></button>
 												</div>
-																<div class="sii-generate-actions">
-                                                                                                                               <?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
-                                                                                                                               <?php if ( ! $is_development_environment ) : ?>
-                                                                                                                               <?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
-                                                                                                                               <?php else : ?>
-                                                                                                                               <p class="description" style="margin-top:8px;">
-                                                                                                                               <?php esc_html_e( 'El envío al SII está deshabilitado en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?>
-                                                                                                                               </p>
-                                                                                                                               <?php endif; ?>
-																<p class="description" style="margin-top:8px;">
-																	<button type="button" class="button" id="sii-preview-xml-btn"><?php esc_html_e( 'Previsualizar XML', 'sii-boleta-dte' ); ?></button>
-																</p>
-																<div id="sii-xml-preview-modal" class="sii-xml-modal" style="display:none">
+												<div class="sii-generate-actions">
+													<button type="submit" class="button sii-action-icon" name="preview" aria-label="<?php echo esc_attr__( 'Previsualizar PDF', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Previsualizar PDF', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Previsualizar PDF', 'sii-boleta-dte' ); ?>">
+														<span class="dashicons dashicons-media-document" aria-hidden="true"></span>
+														<span class="sii-action-text"><?php esc_html_e( 'Previsualizar PDF', 'sii-boleta-dte' ); ?></span>
+													</button>
+													<button type="button" class="button sii-action-icon" id="sii-preview-xml-btn" aria-label="<?php echo esc_attr__( 'Previsualizar XML', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Previsualizar XML', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Previsualizar XML', 'sii-boleta-dte' ); ?>">
+														<span class="dashicons dashicons-editor-code" aria-hidden="true"></span>
+														<span class="sii-action-text"><?php esc_html_e( 'Previsualizar XML', 'sii-boleta-dte' ); ?></span>
+													</button>
+													<?php if ( ! $is_development_environment ) : ?>
+														<button type="submit" class="button button-primary sii-action-icon" name="submit" aria-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>">
+															<span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+															<span class="sii-action-text"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></span>
+														</button>
+													<?php else : ?>
+														<button type="submit" class="button button-primary sii-action-icon" name="submit" aria-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" disabled>
+															<span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+															<span class="sii-action-text"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></span>
+														</button>
+													<?php endif; ?>
+												</div>
+												<?php if ( $is_development_environment ) : ?>
+													<p class="description" style="margin-top:8px;">
+														<?php esc_html_e( 'El envío al SII está deshabilitado en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?>
+													</p>
+												<?php endif; ?>
+												<div id="sii-xml-preview-modal" class="sii-xml-modal" style="display:none">
 																	<div class="sii-xml-modal-backdrop"></div>
 																	<div class="sii-xml-modal-content" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'XML Preview', 'sii-boleta-dte' ); ?>">
 																		<button type="button" class="sii-xml-modal-close" aria-label="<?php esc_attr_e( 'Cerrar', 'sii-boleta-dte' ); ?>">&times;</button>

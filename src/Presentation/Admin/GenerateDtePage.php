@@ -267,10 +267,11 @@ class GenerateDtePage {
 			$modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
 		}
 
-                $environment       = $this->settings->get_environment();
-                $environment_label = Settings::environment_label( $environment );
-		$rvd_automation    = ! empty( $settings_cfg['rvd_auto_enabled'] );
-		$libro_automation  = ! empty( $settings_cfg['libro_auto_enabled'] );
+                $environment               = $this->settings->get_environment();
+                $environment_label         = Settings::environment_label( $environment );
+                $is_development_environment = '2' === Settings::normalize_environment( $environment );
+                $rvd_automation            = ! empty( $settings_cfg['rvd_auto_enabled'] );
+                $libro_automation          = ! empty( $settings_cfg['libro_auto_enabled'] );
 		?>
 							<?php AdminStyles::open_container( 'sii-generate-dte' ); ?>
 												<h1><?php esc_html_e( 'Generar DTE', 'sii-boleta-dte' ); ?></h1>
@@ -902,8 +903,14 @@ class GenerateDtePage {
 														<button type="button" class="button sii-step-prev"><?php esc_html_e( 'Anterior', 'sii-boleta-dte' ); ?></button>
 												</div>
 																<div class="sii-generate-actions">
-																<?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
-																<?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
+                                                                                                                               <?php submit_button( __( 'Previsualizar', 'sii-boleta-dte' ), 'secondary', 'preview', false ); ?>
+                                                                                                                               <?php if ( ! $is_development_environment ) : ?>
+                                                                                                                               <?php submit_button( __( 'Enviar al SII', 'sii-boleta-dte' ) ); ?>
+                                                                                                                               <?php else : ?>
+                                                                                                                               <p class="description" style="margin-top:8px;">
+                                                                                                                               <?php esc_html_e( 'El envío al SII está deshabilitado en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?>
+                                                                                                                               </p>
+                                                                                                                               <?php endif; ?>
 																<p class="description" style="margin-top:8px;">
 																	<button type="button" class="button" id="sii-preview-xml-btn"><?php esc_html_e( 'Previsualizar XML', 'sii-boleta-dte' ); ?></button>
 																</p>

@@ -267,8 +267,8 @@ class GenerateDtePage {
 			$modal_preview_url = (string) ( $result['pdf_url'] ?? $result['pdf'] ?? '' );
 		}
 
-		$environment       = $this->settings->get_environment();
-		$environment_label = '1' === $environment ? __( 'Producción', 'sii-boleta-dte' ) : __( 'Certificación', 'sii-boleta-dte' );
+                $environment       = $this->settings->get_environment();
+                $environment_label = Settings::environment_label( $environment );
 		$rvd_automation    = ! empty( $settings_cfg['rvd_auto_enabled'] );
 		$libro_automation  = ! empty( $settings_cfg['libro_auto_enabled'] );
 		?>

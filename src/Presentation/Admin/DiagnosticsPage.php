@@ -193,14 +193,9 @@ class DiagnosticsPage {
 	/**
 	 * Traduce la clave del ambiente a una etiqueta legible.
 	 */
-	private function describe_environment( string $environment ): string {
-		$environment = strtolower( trim( $environment ) );
-		return match ( $environment ) {
-			'prod', 'production', '1' => __( 'Producción', 'sii-boleta-dte' ),
-			'test', 'certificacion', 'certification', '0' => __( 'Certificación', 'sii-boleta-dte' ),
-			default => $environment !== '' ? $environment : __( 'desconocido', 'sii-boleta-dte' ),
-		};
-	}
+        private function describe_environment( string $environment ): string {
+                return Settings::environment_label( $environment );
+        }
 }
 
 class_alias( DiagnosticsPage::class, 'SII_Boleta_Diagnostics_Page' );

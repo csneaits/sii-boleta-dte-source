@@ -54,6 +54,9 @@ class Plugin {
 			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
 			$this->signer         = $signer ?? new Signer();
                         $this->api            = $api ?? new Api();
+                        if ( method_exists( $this->api, 'setSettings' ) ) {
+                                $this->api->setSettings( $this->settings );
+                        }
                         $this->queue          = $queue ?? new Queue();
                         $this->rvd_manager    = $rvd_manager ?? new RvdManager( $this->settings, $this->api, $this->queue );
                         $this->endpoints      = $endpoints ?? new Endpoints();

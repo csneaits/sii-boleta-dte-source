@@ -26,7 +26,7 @@
     var xmlValidateAction = (window.siiBoletaGenerate && window.siiBoletaGenerate.xmlValidateAction) ? window.siiBoletaGenerate.xmlValidateAction : 'sii_boleta_dte_validate_xml';
     var xmlEnvioValidateAction = (window.siiBoletaGenerate && window.siiBoletaGenerate.xmlEnvioValidateAction) ? window.siiBoletaGenerate.xmlEnvioValidateAction : 'sii_boleta_dte_validate_envio';
         var supportsAjax = typeof window.fetch === 'function' && typeof window.URLSearchParams !== 'undefined';
-        var sendSubmit = form ? form.querySelector('input[type="submit"][name="submit"]') : null;
+        var sendSubmit = form ? form.querySelector('[name="submit"]') : null;
         var rutInput = document.getElementById('sii-rut');
         var refTable = document.getElementById('sii-ref-table');
         var refBody = refTable ? (refTable.tBodies && refTable.tBodies.length ? refTable.tBodies[0] : refTable.appendChild(document.createElement('tbody'))) : null;
@@ -58,6 +58,43 @@
                 return texts[key];
             }
             return fallback;
+        }
+
+        function getButtonLabel(button){
+            if (!button){ return ''; }
+            if (button.dataset && typeof button.dataset.label === 'string' && button.dataset.label){
+                return button.dataset.label;
+            }
+            var span = button.querySelector('.sii-action-text');
+            if (span && typeof span.textContent === 'string'){
+                return span.textContent.trim();
+            }
+            return (button.textContent || '').trim();
+        }
+
+        function rememberOriginalButtonLabel(button){
+            if (!button || !button.dataset){ return; }
+            if (!button.dataset.originalLabel){
+                var current = getButtonLabel(button);
+                if (current){
+                    button.dataset.originalLabel = current;
+                }
+            }
+        }
+
+        function setButtonLabel(button, label){
+            if (!button){ return; }
+            if (button.dataset){
+                button.dataset.label = label;
+            }
+            button.setAttribute('aria-label', label);
+            button.setAttribute('title', label);
+            var span = button.querySelector('.sii-action-text');
+            if (span && typeof span.textContent === 'string'){
+                span.textContent = label;
+            } else if (typeof button.textContent === 'string'){
+                button.textContent = label;
+            }
         }
 
         // --- XML Preview Modal Logic ---
@@ -1332,10 +1369,11 @@
                 }
                 form.setAttribute('data-preview-loading', '1');
                 var button = (submitter && submitter.tagName) ? submitter : previewSubmit;
-                var originalValue = button ? button.value : '';
+                var originalLabel = button ? getButtonLabel(button) : '';
                 if (button){
-                    var loadingText = texts.loading || originalValue;
-                    button.value = loadingText;
+                    rememberOriginalButtonLabel(button);
+                    var loadingText = texts.loading || originalLabel;
+                    setButtonLabel(button, loadingText);
                     button.disabled = true;
                     button.classList.add('updating-message');
                 }
@@ -1345,7 +1383,8 @@
                     if (button){
                         button.disabled = false;
                         button.classList.remove('updating-message');
-                        button.value = originalValue;
+                        var restoreLabel = button.dataset && button.dataset.originalLabel ? button.dataset.originalLabel : originalLabel;
+                        setButtonLabel(button, restoreLabel || originalLabel);
                     }
                 };
 
@@ -1415,10 +1454,11 @@
                 }
                 form.setAttribute('data-send-loading', '1');
                 var button = (submitter && submitter.tagName) ? submitter : sendSubmit;
-                var originalValue = button ? button.value : '';
+                var originalLabelSend = button ? getButtonLabel(button) : '';
                 if (button){
-                    var sendingText = texts.sending || originalValue;
-                    button.value = sendingText;
+                    rememberOriginalButtonLabel(button);
+                    var sendingText = texts.sending || originalLabelSend;
+                    setButtonLabel(button, sendingText);
                     button.disabled = true;
                     button.classList.add('updating-message');
                 }
@@ -1428,7 +1468,8 @@
                     if (button){
                         button.disabled = false;
                         button.classList.remove('updating-message');
-                        button.value = originalValue;
+                        var restoreSend = button.dataset && button.dataset.originalLabel ? button.dataset.originalLabel : originalLabelSend;
+                        setButtonLabel(button, restoreSend || originalLabelSend);
                     }
                 };
 

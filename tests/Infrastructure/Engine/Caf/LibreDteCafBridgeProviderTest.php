@@ -23,7 +23,7 @@ final class LibreDteCafBridgeProviderTest extends TestCase
         return $settings;
     }
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         FoliosDb::purge();

@@ -40,6 +40,12 @@ class FactoryBackedDocumentPreparationPipeline implements DocumentPreparationPip
         }
 
         $detalles = is_array($data['Detalles'] ?? null) ? $data['Detalles'] : array();
+        if (empty($detalles) && isset($data['Detalle'])) {
+            $detalleNode = $data['Detalle'];
+            if (is_array($detalleNode)) {
+                $detalles = $this->isList($detalleNode) ? $detalleNode : array($detalleNode);
+            }
+        }
         $detalle = $factory->createDetailNormalizer()->normalize($detalles, $tipo);
 
         $emisorBuilder = $factory->createEmisorDataBuilder();

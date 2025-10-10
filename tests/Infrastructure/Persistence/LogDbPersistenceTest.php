@@ -9,9 +9,9 @@ class LogDbPersistenceTest extends TestCase {
     }
 
     public function test_add_entry_and_get_pending_ids(): void {
-        LogDb::add_entry( '123', 'sent', 'payload' );
-        LogDb::add_entry( '456', 'accepted', 'ok' );
-        LogDb::add_entry( '789', 'sent', 'payload2' );
+        LogDb::add_entry( '123', 'sent', 'payload', '0' );
+        LogDb::add_entry( '456', 'accepted', 'ok', '0' );
+        LogDb::add_entry( '789', 'sent', 'payload2', '0' );
 
         $pending = LogDb::get_pending_track_ids();
         $this->assertSame( array( '789', '123' ), $pending );
@@ -21,9 +21,9 @@ class LogDbPersistenceTest extends TestCase {
     }
 
     public function test_get_logs_filters_by_status(): void {
-        LogDb::add_entry( '1', 'sent', 'a' );
-        LogDb::add_entry( '2', 'accepted', 'b' );
-        LogDb::add_entry( '3', 'rejected', 'c' );
+        LogDb::add_entry( '1', 'sent', 'a', '0' );
+        LogDb::add_entry( '2', 'accepted', 'b', '0' );
+        LogDb::add_entry( '3', 'rejected', 'c', '0' );
 
         $all = LogDb::get_logs();
         $this->assertCount( 3, $all );
@@ -35,7 +35,7 @@ class LogDbPersistenceTest extends TestCase {
     }
 
     public function test_purge_clears_entries(): void {
-        LogDb::add_entry( '100', 'sent', 'body' );
+        LogDb::add_entry( '100', 'sent', 'body', '0' );
         $this->assertNotEmpty( LogDb::get_logs() );
 
         LogDb::purge();

@@ -27,6 +27,7 @@ final class LibreDteCafBridgeProviderTest extends TestCase
     {
         parent::setUp();
         FoliosDb::purge();
+        Settings::update_last_folio_value(39, '2', 0);
     }
 
     public function testDevEnvironmentUsesFakerAndAdvancesFolio(): void
@@ -42,11 +43,12 @@ final class LibreDteCafBridgeProviderTest extends TestCase
         $tipo   = new TipoDocumento(39, 'Boleta');
 
         $bag = $provider->retrieve($emisor, $tipo, null);
-        $this->assertGreaterThan(0, $bag->getSiguienteFolio());
+        $firstFolio = $bag->getSiguienteFolio();
+        $this->assertGreaterThan(0, $firstFolio);
 
         // next call should advance
         $next = $provider->retrieve($emisor, $tipo, null);
-        $this->assertSame($bag->getSiguienteFolio() + 1, $next->getSiguienteFolio());
+        $this->assertSame($firstFolio + 1, $next->getSiguienteFolio());
     }
 
     public function testCertWithoutCafFallsBackToFaker(): void

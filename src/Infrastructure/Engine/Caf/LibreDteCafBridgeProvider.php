@@ -36,24 +36,22 @@ class LibreDteCafBridgeProvider implements CafProviderInterface
 
         // Development: always fake CAF/folio.
         if ($env === '2') {
-            // En desarrollo, el faker recibe como parámetro el último folio usado,
-            // por lo tanto el siguiente disponible es base+1. Persistimos ese
-            // "siguiente" para que la próxima llamada avance en +1 respecto al
-            // valor devuelto por getSiguienteFolio().
+            // En desarrollo, el faker recibe como parámetro el primer folio del rango,
+            // por lo tanto calculamos el siguiente disponible a partir del último folio usado.
             $last = Settings::get_last_folio_value($tipo, $env);
             // Si se entrega folio explícito, trátalo como el siguiente a usar ⇒ base = folio-1.
             $base = ($folio !== null && $folio > 0) ? ($folio - 1) : ($last > 0 ? $last : 0);
             $next = $base + 1;
 
-            $bag = $this->cafFaker->create($emisor, $tipo, $base);
+            // Genera un CAF falso cuyo rango comience en el folio calculado.
+            $bag = $this->cafFaker->create($emisor, $tipo, $next, $next + 10);
             // Entregar una ventana de folios empezando en el siguiente calculado.
             $folios = range($next, $next + 10);
             if ($bag instanceof CafBag) { $bag = $bag->setFoliosDisponibles($folios); }
             elseif (method_exists($bag, 'setFoliosDisponibles')) { $bag->setFoliosDisponibles($folios); }
-            // Persistimos el "siguiente" OBSERVADO del bag para alinear el avance con lo que ve el test
-            $observed = (int) $bag->getSiguienteFolio();
-            // Persist the next to be returned on subsequent calls to guarantee +1 advancement
-            Settings::update_last_folio_value($tipo, $env, $observed + 1);
+            // Persistimos el primer folio disponible para mantener un avance +1 estable entre llamadas.
+            $observed = (int) ($folios[0] ?? $next);
+            Settings::update_last_folio_value($tipo, $env, $observed);
             return $bag;
         }
 
@@ -104,12 +102,12 @@ class LibreDteCafBridgeProvider implements CafProviderInterface
             // Para el faker, el parámetro es la base (último usado). Si llega un folio, úsalo como siguiente ⇒ base = folio-1.
             $base = ($finalFolio > 0) ? ($finalFolio - 1) : ($last > 0 ? $last : 0);
             $next = $base + 1;
-            $bag = $this->cafFaker->create($emisor, $tipo, $base);
+            $bag = $this->cafFaker->create($emisor, $tipo, $next, $next + 10);
             $folios = range($next, $next + 10);
             if ($bag instanceof CafBag) { $bag = $bag->setFoliosDisponibles($folios); }
             elseif (method_exists($bag, 'setFoliosDisponibles')) { $bag->setFoliosDisponibles($folios); }
-            $observed = (int) $bag->getSiguienteFolio();
-            Settings::update_last_folio_value($tipo, $env, $observed + 1);
+            $observed = (int) ($folios[0] ?? $next);
+            Settings::update_last_folio_value($tipo, $env, $observed);
             return $bag;
         }
 

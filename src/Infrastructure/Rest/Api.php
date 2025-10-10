@@ -166,6 +166,10 @@ class Api {
      * Sends a DTE XML file to SII and returns the track ID or WP_Error.
      */
     public function send_dte_to_sii( string $file, string $environment, string $token ) {
+        $simulated = $this->maybe_simulate_send( 'dte', $environment );
+        if ( null !== $simulated ) {
+            return $simulated;
+        }
         // Try LibreDTE WS client when enabled; fallback to HTTP
         $wsResult = $this->maybe_send_with_libredte_ws( 'dte', $environment, $token, $file );
         if ( null !== $wsResult ) { return $wsResult; }
@@ -205,6 +209,10 @@ class Api {
      * Sends a Libro or RVD XML and returns the response array or WP_Error.
      */
     public function send_libro_to_sii( string $xml, string $environment, string $token ) {
+        $simulated = $this->maybe_simulate_send( 'libro', $environment );
+        if ( null !== $simulated ) {
+            return $simulated;
+        }
         $wsResult = $this->maybe_send_with_libredte_ws( 'libro', $environment, $token, $xml );
         if ( null !== $wsResult ) { return $wsResult; }
         $url  = $this->build_url( $environment, 'libro/' . rawurlencode( $environment ) );
@@ -248,6 +256,10 @@ class Api {
      * Sends an EnvioRecibos XML and returns the response array or WP_Error.
      */
     public function send_recibos_to_sii( string $xml, string $environment, string $token ) {
+        $simulated = $this->maybe_simulate_send( 'recibos', $environment );
+        if ( null !== $simulated ) {
+            return $simulated;
+        }
         $wsResult = $this->maybe_send_with_libredte_ws( 'recibos', $environment, $token, $xml );
         if ( null !== $wsResult ) { return $wsResult; }
         $url  = $this->build_url( $environment, 'recibos/' . rawurlencode( $environment ) );
@@ -292,6 +304,10 @@ class Api {
      * Queries the status of a previously sent DTE.
      */
     public function get_dte_status( string $track_id, string $environment, string $token ) {
+        $simulated = $this->maybe_simulate_status( $track_id, $environment );
+        if ( null !== $simulated ) {
+            return $simulated;
+        }
         $wsResult = $this->maybe_query_with_libredte_ws( $track_id, $environment, $token );
         if ( null !== $wsResult ) { return $wsResult; }
         $url  = $this->build_url( $environment, 'status/' . rawurlencode( $track_id ) . '/' . rawurlencode( $environment ) );
@@ -327,6 +343,90 @@ class Api {
                 'url'  => $url,
             )
         );
+    }
+
+    private function get_simulation_mode( string $environment ): string {
+        if ( ! $this->settings instanceof Settings ) {
+            return 'disabled';
+        }
+        $env = Settings::normalize_environment( $environment );
+        if ( '2' !== $env ) {
+            return 'disabled';
+        }
+        $cfg  = $this->settings->get_settings();
+        $mode = isset( $cfg['dev_sii_simulation_mode'] ) ? (string) $cfg['dev_sii_simulation_mode'] : 'disabled';
+        return in_array( $mode, array( 'success', 'error' ), true ) ? $mode : 'disabled';
+    }
+
+    private function maybe_simulate_send( string $kind, string $environment ) {
+        $mode = $this->get_simulation_mode( $environment );
+        if ( 'disabled' === $mode ) {
+            return null;
+        }
+
+        $track = $this->generate_simulation_track_id( $kind );
+        if ( 'success' === $mode ) {
+            $payload = json_encode(
+                array(
+                    'simulated' => true,
+                    'mode'      => 'success',
+                    'kind'      => $kind,
+                )
+            );
+            LogDb::add_entry( $track, 'sent', is_string( $payload ) ? $payload : '', $environment );
+            if ( 'dte' === $kind ) {
+                $this->maybe_mark_certification_progress( $environment );
+                return $track;
+            }
+            return array( 'trackId' => $track );
+        }
+
+        $message = __( 'Envío simulado con error desde ajustes de desarrollo.', 'sii-boleta-dte' );
+        LogDb::add_entry( $track, 'error', $message, $environment );
+        return new WP_Error(
+            'sii_boleta_dev_simulated_error',
+            $message,
+            array(
+                'kind'    => $kind,
+                'trackId' => $track,
+            )
+        );
+    }
+
+    private function maybe_simulate_status( string $track_id, string $environment ) {
+        $mode = $this->get_simulation_mode( $environment );
+        if ( 'disabled' === $mode ) {
+            return null;
+        }
+        if ( 'success' === $mode ) {
+            $payload = json_encode(
+                array(
+                    'simulated' => true,
+                    'mode'      => 'success',
+                    'trackId'   => $track_id,
+                )
+            );
+            LogDb::add_entry( $track_id, 'accepted', is_string( $payload ) ? $payload : '', $environment );
+            return 'accepted';
+        }
+
+        return new WP_Error(
+            'sii_boleta_dev_simulated_error',
+            __( 'Estado simulado no disponible: el último envío fue forzado a error.', 'sii-boleta-dte' ),
+            array(
+                'trackId' => $track_id,
+            )
+        );
+    }
+
+    private function generate_simulation_track_id( string $kind ): string {
+        $prefix = strtoupper( substr( $kind, 0, 3 ) );
+        try {
+            $random = bin2hex( random_bytes( 4 ) );
+        } catch ( \Throwable $e ) {
+            $random = (string) mt_rand( 1000, 9999 );
+        }
+        return $prefix . '-SIM-' . $random;
     }
 
     private function maybe_mark_certification_progress( string $environment ): void {

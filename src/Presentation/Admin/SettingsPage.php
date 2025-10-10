@@ -54,6 +54,7 @@ class SettingsPage {
                 add_settings_field( 'enabled_types', __( 'Tipos DTE habilitados', 'sii-boleta-dte' ), array( $this, 'field_enabled_types' ), 'sii-boleta-dte', 'sii_boleta_env' );
                 add_settings_field( 'woocommerce_preview_only', __( 'Previsualizar WooCommerce (pruebas)', 'sii-boleta-dte' ), array( $this, 'field_woocommerce_preview_only' ), 'sii-boleta-dte', 'sii_boleta_env' );
                 add_settings_field( 'auto_folio_libredte', __( 'Asignación automática de folios (LibreDTE)', 'sii-boleta-dte' ), array( $this, 'field_auto_folio_libredte' ), 'sii-boleta-dte', 'sii_boleta_env' );
+                add_settings_field( 'dev_sii_simulation_mode', __( 'Simulación de envíos al SII (desarrollo)', 'sii-boleta-dte' ), array( $this, 'field_dev_sii_simulation_mode' ), 'sii-boleta-dte', 'sii_boleta_env' );
 
                 // Validation & Sanitization (LibreDTE)
                 add_settings_section( 'sii_boleta_validation', __( 'Validación y sanitización (LibreDTE)', 'sii-boleta-dte' ), '__return_false', 'sii-boleta-dte' );
@@ -211,6 +212,31 @@ class SettingsPage {
                         $name     = esc_attr( Settings::OPTION_NAME ) . '[auto_folio_libredte]';
                         echo '<label><input type="checkbox" name="' . $name . '" value="1"' . ( $checked ? ' checked' : '' ) . ' /> ' . esc_html__( 'Usar CafProviderWorker para asignar el próximo folio y CAF automáticamente cuando no se indique Folio.', 'sii-boleta-dte' ) . '</label>';
                         echo '<p class="description">' . esc_html__( 'En desarrollo se usan CAF ficticios. En certificación y producción se usan los CAF cargados en Folios.', 'sii-boleta-dte' ) . '</p>';
+                }
+
+                public function field_dev_sii_simulation_mode(): void {
+                        $settings    = $this->settings->get_settings();
+                        $environment = $this->settings->get_environment();
+                        $current     = isset( $settings['dev_sii_simulation_mode'] ) ? (string) $settings['dev_sii_simulation_mode'] : 'disabled';
+                        $name        = esc_attr( Settings::OPTION_NAME ) . '[dev_sii_simulation_mode]';
+                        $options     = array(
+                                'disabled' => esc_html__( 'Desactivado (enviar al SII normalmente)', 'sii-boleta-dte' ),
+                                'success'  => esc_html__( 'Simular envíos exitosos (cola marcada como "sent")', 'sii-boleta-dte' ),
+                                'error'    => esc_html__( 'Simular errores al enviar (cola reintentará)', 'sii-boleta-dte' ),
+                        );
+                        $disabled_attr = '2' === $environment ? '' : ' disabled="disabled"';
+
+                        echo '<fieldset class="sii-dte-dev-simulation">';
+                        foreach ( $options as $value => $label ) {
+                                echo '<label style="display:block; margin-bottom:4px;"><input type="radio" name="' . $name . '" value="' . esc_attr( $value ) . '"' . checked( $current, $value, false ) . $disabled_attr . ' /> ' . $label . '</label>';
+                        }
+                        echo '</fieldset>';
+
+                        if ( '2' === $environment ) {
+                                echo '<p class="description">' . esc_html__( 'Disponible solo en el ambiente de desarrollo para probar integraciones sin contactar al SII real.', 'sii-boleta-dte' ) . '</p>';
+                        } else {
+                                echo '<p class="description">' . esc_html__( 'Solo modificable en desarrollo. En certificación y producción los envíos se ejecutan normalmente.', 'sii-boleta-dte' ) . '</p>';
+                        }
                 }
 
         public function field_iva_rate(): void {
@@ -629,6 +655,17 @@ class SettingsPage {
                 }
 
                 $output['woocommerce_preview_only'] = '0' === $requested_environment && ! empty( $input['woocommerce_preview_only'] ) ? 1 : 0;
+
+                $allowed_simulation_modes = array( 'disabled', 'success', 'error' );
+                if ( '2' === $requested_environment ) {
+                        if ( isset( $input['dev_sii_simulation_mode'] ) && in_array( (string) $input['dev_sii_simulation_mode'], $allowed_simulation_modes, true ) ) {
+                                $output['dev_sii_simulation_mode'] = (string) $input['dev_sii_simulation_mode'];
+                        } elseif ( ! isset( $output['dev_sii_simulation_mode'] ) || ! in_array( (string) $output['dev_sii_simulation_mode'], $allowed_simulation_modes, true ) ) {
+                                $output['dev_sii_simulation_mode'] = 'disabled';
+                        }
+                } else {
+                        $output['dev_sii_simulation_mode'] = 'disabled';
+                }
 
 		if ( isset( $input['rut_emisor'] ) ) {
 			$rut = sanitize_text_field( $input['rut_emisor'] );

@@ -1556,15 +1556,22 @@
                         throw new Error(msg);
                     }
                     var payload = data.data || {};
-                    var message = payload.message || texts.sendSuccess || '';
+                    var message = payload.message || '';
                     var trackId = payload.track_id ? payload.track_id.toString() : '';
+                    if (!message){
+                        if (payload.simulated && texts.sendSimulated){
+                            message = texts.sendSimulated;
+                        } else if (texts.sendSuccess){
+                            message = texts.sendSuccess;
+                        }
+                    }
                     if (message && message.indexOf('%s') !== -1 && trackId){
                         message = message.replace('%s', trackId);
                     } else if (!message && trackId){
                         message = 'Tracking ID: ' + trackId;
                     }
                     var pdfUrl = payload.pdf_url || '';
-                    var noticeType = payload.notice_type || (payload.queued ? 'warning' : 'success');
+                    var noticeType = payload.notice_type || (payload.simulated ? 'info' : (payload.queued ? 'warning' : 'success'));
                     var linkText = texts.viewPdf || 'Descargar PDF';
                     var link = null;
                     if (pdfUrl){

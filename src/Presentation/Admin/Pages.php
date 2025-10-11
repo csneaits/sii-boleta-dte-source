@@ -165,38 +165,58 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
                                 array( 'sii-boleta-admin-shared' ),
                                 $style_version
                         );
-                                                                                                                               \wp_enqueue_script(
-                                                                                                                               'sii-boleta-generate-dte',
-                                                                                                                               SII_BOLETA_DTE_URL . $script_relative,
-                                                                                                                               array(),
-                                                                                                                               $script_version,
-																	true
-																);
-                    \wp_localize_script(
-                        'sii-boleta-generate-dte',
-                        'siiBoletaGenerate',
-                        array(
-                            'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
-                            'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
-                            'previewAction' => 'sii_boleta_dte_generate_preview',
-                            'sendAction'    => 'sii_boleta_dte_send_document',
-                            'xmlPreviewAction' => 'sii_boleta_dte_preview_xml',
-                            'xmlValidateAction' => 'sii_boleta_dte_validate_xml',
-                            'xmlEnvioValidateAction' => 'sii_boleta_dte_validate_envio',
-                            'texts' => array(
-                                'previewReady' => __( 'Vista previa generada. Revisa el documento a continuación.', 'sii-boleta-dte' ),
-                                'previewError' => __( 'No se pudo generar la vista previa. Inténtalo nuevamente.', 'sii-boleta-dte' ),
-                                'openNewTab'   => __( 'Abrir vista previa en una pestaña nueva', 'sii-boleta-dte' ),
-                                'loading'      => __( 'Generando vista previa…', 'sii-boleta-dte' ),
+                        \wp_enqueue_script(
+                                'sii-boleta-generate-dte',
+                                SII_BOLETA_DTE_URL . $script_relative,
+                                array(),
+                                $script_version,
+                                true
+                        );
+                        $settings_obj          = $this->core->get_settings();
+                        $environment           = $settings_obj->get_environment();
+                        $normalized_environment = Settings::normalize_environment( $environment );
+                        $settings_data         = $settings_obj->get_settings();
+                        $dev_simulation_mode   = 'disabled';
+                        if ( '2' === $normalized_environment ) {
+                                $configured_mode = isset( $settings_data['dev_sii_simulation_mode'] ) ? (string) $settings_data['dev_sii_simulation_mode'] : '';
+                                $allowed_modes   = array( 'disabled', 'success', 'error' );
+                                if ( '' === $configured_mode ) {
+                                        $dev_simulation_mode = 'success';
+                                } elseif ( in_array( $configured_mode, $allowed_modes, true ) ) {
+                                        $dev_simulation_mode = $configured_mode;
+                                } else {
+                                        $dev_simulation_mode = 'success';
+                                }
+                        }
+                        \wp_localize_script(
+                                'sii-boleta-generate-dte',
+                                'siiBoletaGenerate',
+                                array(
+                                        'nonce' => \wp_create_nonce( 'sii_boleta_nonce' ),
+                                        'ajax'  => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
+                                        'previewAction' => 'sii_boleta_dte_generate_preview',
+                                        'sendAction'    => 'sii_boleta_dte_send_document',
+                                        'xmlPreviewAction' => 'sii_boleta_dte_preview_xml',
+                                        'xmlValidateAction' => 'sii_boleta_dte_validate_xml',
+                                        'xmlEnvioValidateAction' => 'sii_boleta_dte_validate_envio',
+                                        'environment' => $environment,
+                                        'normalizedEnvironment' => $normalized_environment,
+                                        'devSimulationMode' => $dev_simulation_mode,
+                                        'texts' => array(
+                                                'previewReady' => __( 'Vista previa generada. Revisa el documento a continuación.', 'sii-boleta-dte' ),
+                                                'previewError' => __( 'No se pudo generar la vista previa. Inténtalo nuevamente.', 'sii-boleta-dte' ),
+                                                'openNewTab'   => __( 'Abrir vista previa en una pestaña nueva', 'sii-boleta-dte' ),
+                                                'loading'      => __( 'Generando vista previa…', 'sii-boleta-dte' ),
                                 'rutInvalid'   => __( 'El RUT ingresado no es válido.', 'sii-boleta-dte' ),
-                                'rutRequired'  => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
-                                'sendError'    => __( 'No se pudo enviar el documento. Inténtalo nuevamente.', 'sii-boleta-dte' ),
-                                'sendSuccess'  => __( 'Documento enviado al SII. Track ID: %s.', 'sii-boleta-dte' ),
-                                'sending'      => __( 'Enviando…', 'sii-boleta-dte' ),
-                                'viewPdf'      => __( 'Descargar PDF', 'sii-boleta-dte' ),
-                                'stepIncomplete' => __( 'Completa los campos obligatorios antes de continuar.', 'sii-boleta-dte' ),
-                                'requiredBadge'  => __( 'Obligatorio', 'sii-boleta-dte' ),
-                                'optionalBadge'  => __( 'Opcional', 'sii-boleta-dte' ),
+                                                'rutRequired'  => __( 'El RUT del receptor es obligatorio para este tipo de documento.', 'sii-boleta-dte' ),
+                                                'sendError'    => __( 'No se pudo enviar el documento. Inténtalo nuevamente.', 'sii-boleta-dte' ),
+                                                'sendSuccess'  => __( 'Documento enviado al SII. Track ID: %s.', 'sii-boleta-dte' ),
+                                                'sendSimulated' => __( 'Envío simulado al SII. Track ID: %s.', 'sii-boleta-dte' ),
+                                                'sending'      => __( 'Enviando…', 'sii-boleta-dte' ),
+                                                'viewPdf'      => __( 'Descargar PDF', 'sii-boleta-dte' ),
+                                                'stepIncomplete' => __( 'Completa los campos obligatorios antes de continuar.', 'sii-boleta-dte' ),
+                                                'requiredBadge'  => __( 'Obligatorio', 'sii-boleta-dte' ),
+                                                'optionalBadge'  => __( 'Opcional', 'sii-boleta-dte' ),
                                 'itemsDescLabel'   => __( 'Descripción', 'sii-boleta-dte' ),
                                 'itemsQtyLabel'    => __( 'Cantidad', 'sii-boleta-dte' ),
                                 'itemsPriceLabel'  => __( 'Precio unitario', 'sii-boleta-dte' ),

@@ -270,6 +270,18 @@ class GenerateDtePage {
                 $environment               = $this->settings->get_environment();
                 $environment_label         = Settings::environment_label( $environment );
                 $is_development_environment = '2' === Settings::normalize_environment( $environment );
+                $dev_simulation_mode       = 'disabled';
+                if ( $is_development_environment ) {
+                        $allowed_modes   = array( 'disabled', 'success', 'error' );
+                        $configured_mode = isset( $settings_cfg['dev_sii_simulation_mode'] ) ? (string) $settings_cfg['dev_sii_simulation_mode'] : '';
+                        if ( '' === $configured_mode ) {
+                                $dev_simulation_mode = 'success';
+                        } elseif ( in_array( $configured_mode, $allowed_modes, true ) ) {
+                                $dev_simulation_mode = $configured_mode;
+                        } else {
+                                $dev_simulation_mode = 'success';
+                        }
+                }
                 $rvd_automation            = ! empty( $settings_cfg['rvd_auto_enabled'] );
                 $libro_automation          = ! empty( $settings_cfg['libro_auto_enabled'] );
 		?>
@@ -321,16 +333,38 @@ class GenerateDtePage {
 																		})();
 																		</script>
 																<?php endif; ?>
-												<?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
-																<div class="updated notice"><p>
-																				<?php printf( esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), esc_html( (string) $result['track_id'] ) ); ?>
-																				<?php
-																				$dl_url = (string) ( $result['pdf_url'] ?? '' );
-																				if ( ! empty( $dl_url ) ) :
-																					?>
-																								- <a href="<?php echo esc_url( $dl_url ); ?>"><?php esc_html_e( 'Descargar PDF', 'sii-boleta-dte' ); ?></a>
-																				<?php endif; ?>
-																</p></div>
+                                                                                                <?php elseif ( is_array( $result ) && empty( $result['error'] ) ) : ?>
+                                                                                                                               <?php
+                                                                                                                               $notice_type  = isset( $result['notice_type'] ) ? (string) $result['notice_type'] : 'success';
+                                                                                                                               $notice_class = 'notice notice-success';
+                                                                                                                               if ( 'info' === $notice_type ) {
+                                                                                                                               $notice_class = 'notice notice-info';
+                                                                                                                               } elseif ( 'warning' === $notice_type ) {
+                                                                                                                               $notice_class = 'notice notice-warning';
+                                                                                                                               } elseif ( 'error' === $notice_type ) {
+                                                                                                                               $notice_class = 'notice notice-error';
+                                                                                                                               }
+                                                                                                                               $track_id = (string) ( $result['track_id'] ?? '' );
+                                                                                                                               $message  = '';
+                                                                                                                               if ( isset( $result['message'] ) && is_string( $result['message'] ) ) {
+                                                                                                                               $message = (string) $result['message'];
+                                                                                                                               }
+                                                                                                                               if ( '' === $message ) {
+                                                                                                                               $message = '' !== $track_id
+                                                                                                                               ? sprintf( __( 'Track ID: %s', 'sii-boleta-dte' ), $track_id )
+                                                                                                                               : __( 'Documento enviado correctamente.', 'sii-boleta-dte' );
+                                                                                                                               }
+                                                                                                                               $dl_url = (string) ( $result['pdf_url'] ?? '' );
+                                                                                                                               ?>
+                                                                                                                               <div class="<?php echo esc_attr( $notice_class ); ?>"><p>
+                                                                                                                               <?php echo esc_html( $message ); ?>
+                                                                                                                               <?php if ( ! empty( $track_id ) && false === strpos( $message, $track_id ) ) : ?>
+                                                                                                                               <br /><?php printf( esc_html__( 'Track ID: %s', 'sii-boleta-dte' ), esc_html( $track_id ) ); ?>
+                                                                                                                               <?php endif; ?>
+                                                                                                                               <?php if ( ! empty( $dl_url ) ) : ?>
+                                                                                                                               - <a href="<?php echo esc_url( $dl_url ); ?>"><?php esc_html_e( 'Descargar PDF', 'sii-boleta-dte' ); ?></a>
+                                                                                                                               <?php endif; ?>
+                                                                                                                               </p></div>
 												<?php elseif ( is_array( $result ) && ! empty( $result['error'] ) ) : ?>
 																<div class="error notice"><p><?php echo esc_html( (string) $result['error'] ); ?></p></div>
 												<?php endif; ?>
@@ -342,7 +376,9 @@ class GenerateDtePage {
                                                        data-nc-required="<?php esc_attr_e( 'Debes ingresar al menos una referencia con folio y fecha para la nota de crédito.', 'sii-boleta-dte' ); ?>"
                                                        data-nc-incomplete="<?php esc_attr_e( 'Completa el tipo, el folio y la fecha del documento referenciado antes de continuar.', 'sii-boleta-dte' ); ?>"
                                                        data-nc-reason="<?php esc_attr_e( 'Describe la corrección en la glosa de la referencia para finalizar la nota de crédito.', 'sii-boleta-dte' ); ?>"
-																						data-nc-reason-placeholder="<?php esc_attr_e( 'Describe la corrección aplicada al documento original', 'sii-boleta-dte' ); ?>">
+                                                       data-nc-reason-placeholder="<?php esc_attr_e( 'Describe la corrección aplicada al documento original', 'sii-boleta-dte' ); ?>"
+                                                       data-environment="<?php echo esc_attr( (string) $environment ); ?>"
+                                                       data-dev-simulation-mode="<?php echo esc_attr( $dev_simulation_mode ); ?>">
                                 <?php wp_nonce_field( 'sii_boleta_generate_dte', 'sii_boleta_generate_dte_nonce' ); ?>
                                 <ol class="sii-generate-dte-steps" id="sii-generate-dte-steps" data-current-step="identificacion" aria-label="<?php esc_attr_e( 'Progreso del formulario', 'sii-boleta-dte' ); ?>">
                                                 <li data-step="identificacion" class="is-active">
@@ -911,23 +947,24 @@ class GenerateDtePage {
 														<span class="dashicons dashicons-editor-code" aria-hidden="true"></span>
 														<span class="sii-action-text"><?php esc_html_e( 'Previsualizar XML', 'sii-boleta-dte' ); ?></span>
 													</button>
-													<?php if ( ! $is_development_environment ) : ?>
-														<button type="submit" class="button button-primary sii-action-icon" name="submit" aria-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>">
-															<span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
-															<span class="sii-action-text"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></span>
-														</button>
-													<?php else : ?>
-														<button type="submit" class="button button-primary sii-action-icon" name="submit" aria-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" disabled>
-															<span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
-															<span class="sii-action-text"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></span>
-														</button>
-													<?php endif; ?>
+                                                                                                        <button type="submit" class="button button-primary sii-action-icon" name="submit" aria-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" title="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-label="<?php echo esc_attr__( 'Enviar al SII', 'sii-boleta-dte' ); ?>" data-dev-simulation-mode="<?php echo esc_attr( $dev_simulation_mode ); ?>">
+                                                                                                                <span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+                                                                                                                <span class="sii-action-text"><?php esc_html_e( 'Enviar al SII', 'sii-boleta-dte' ); ?></span>
+                                                                                                        </button>
 												</div>
-												<?php if ( $is_development_environment ) : ?>
-													<p class="description" style="margin-top:8px;">
-														<?php esc_html_e( 'El envío al SII está deshabilitado en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?>
-													</p>
-												<?php endif; ?>
+                                                                                                <?php if ( $is_development_environment ) : ?>
+                                                                                                        <p class="description" style="margin-top:8px;">
+                                                                                                                <?php
+                                                                                                                if ( 'error' === $dev_simulation_mode ) {
+                                                                                                                        esc_html_e( 'Los envíos se simulan con error en desarrollo para probar los reintentos automáticos.', 'sii-boleta-dte' );
+                                                                                                                } elseif ( 'disabled' === $dev_simulation_mode ) {
+                                                                                                                        esc_html_e( 'Has desactivado la simulación: el plugin intentará contactar al SII real incluso en desarrollo.', 'sii-boleta-dte' );
+                                                                                                                } else {
+                                                                                                                        esc_html_e( 'Los envíos al SII se simulan como exitosos en desarrollo. Ajusta este comportamiento desde Ajustes → Integraciones.', 'sii-boleta-dte' );
+                                                                                                                }
+                                                                                                                ?>
+                                                                                                        </p>
+                                                                                                <?php endif; ?>
 												<div id="sii-xml-preview-modal" class="sii-xml-modal" style="display:none">
 																	<div class="sii-xml-modal-backdrop"></div>
 																	<div class="sii-xml-modal-content" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e( 'XML Preview', 'sii-boleta-dte' ); ?>">
@@ -1728,13 +1765,22 @@ class GenerateDtePage {
                                         ProgressTracker::mark( ProgressTracker::OPTION_TEST_SEND );
                                 }
 
-																return array(
-																	'track_id'    => trim( (string) $track ),
-																	'pdf'         => $pdf,      // keep raw path for tests
-																	'pdf_url'     => $pdf_url,  // public URL for link
-																	'notice_type' => 'success',
-																	'tipo'        => $tipo,
-																);
+                                                                $track_value     = trim( (string) $track );
+                                                                $simulated_send = false !== strpos( $track_value, 'SIM-' );
+                                                                $message        = '';
+                                                                if ( $simulated_send ) {
+                                                                        $message = sprintf( __( 'Envío simulado al SII. Track ID: %s.', 'sii-boleta-dte' ), $track_value );
+                                                                }
+
+                                                                return array(
+                                                                        'track_id'    => $track_value,
+                                                                        'pdf'         => $pdf,      // keep raw path for tests
+                                                                        'pdf_url'     => $pdf_url,  // public URL for link
+                                                                        'notice_type' => $simulated_send ? 'info' : 'success',
+                                                                        'message'     => $message,
+                                                                        'simulated'   => $simulated_send,
+                                                                        'tipo'        => $tipo,
+                                                                );
 	}
 
 		/**

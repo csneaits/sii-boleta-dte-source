@@ -354,8 +354,14 @@ class Api {
             return 'disabled';
         }
         $cfg  = $this->settings->get_settings();
-        $mode = isset( $cfg['dev_sii_simulation_mode'] ) ? (string) $cfg['dev_sii_simulation_mode'] : 'disabled';
-        return in_array( $mode, array( 'success', 'error' ), true ) ? $mode : 'disabled';
+        $mode = isset( $cfg['dev_sii_simulation_mode'] ) ? (string) $cfg['dev_sii_simulation_mode'] : '';
+        if ( '' === $mode ) {
+            return 'success';
+        }
+        if ( in_array( $mode, array( 'success', 'error' ), true ) ) {
+            return $mode;
+        }
+        return 'disabled' === $mode ? 'disabled' : 'success';
     }
 
     private function maybe_simulate_send( string $kind, string $environment ) {

@@ -974,12 +974,24 @@ class Ajax {
 
                 $pdf_url = (string) ( $result['pdf_url'] ?? '' );
 
+                $message = '';
+                if ( isset( $result['message'] ) && is_string( $result['message'] ) ) {
+                        $message = (string) $result['message'];
+                }
+                if ( '' === $message ) {
+                        $message = sprintf( \__( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ), $track_id );
+                }
+
+                $notice_type = isset( $result['notice_type'] ) && is_string( $result['notice_type'] ) ? $result['notice_type'] : 'success';
+                $simulated   = ! empty( $result['simulated'] );
+
                 \wp_send_json_success(
                         array(
                                 'track_id' => $track_id,
                                 'pdf_url'  => $pdf_url,
-                                'message'  => sprintf( \__( 'Document sent to SII. Tracking ID: %s.', 'sii-boleta-dte' ), $track_id ),
-                                'notice_type' => isset( $result['notice_type'] ) && is_string( $result['notice_type'] ) ? $result['notice_type'] : 'success',
+                                'message'  => $message,
+                                'notice_type' => $notice_type,
+                                'simulated'   => $simulated,
                         )
                 );
         }

@@ -1,6 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
+use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlPlaceholderCleaner;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Infrastructure\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
@@ -168,5 +169,50 @@ class DteEngineGenerateTest extends TestCase {
         $this->assertStringNotContainsString( 'correo.sii@example.com', $contents );
         $this->assertStringNotContainsString( '+56 2 32525575', $contents );
         @unlink( $pdfPath );
+    }
+
+    public function test_generate_dte_xml_strips_bom_and_leading_whitespace(): void {
+        FoliosDb::purge();
+        FoliosDb::insert( 39, 1, 50 );
+
+        $settings = new class extends Settings {
+            public function get_settings(): array {
+                return array(
+                    'rut_emisor'   => '76086428-5',
+                    'razon_social' => 'Test',
+                    'giro'         => 'GIRO',
+                    'direccion'    => 'Calle',
+                    'comuna'       => 'Santiago',
+                );
+            }
+        };
+
+        $placeholder = new class implements XmlPlaceholderCleaner {
+            public function clean( string $xml, array $rawReceptor, bool $hasReferences ): string {
+                return "\xEF\xBB\xBF  \n\t" . $xml;
+            }
+        };
+
+        $engine = new LibreDteEngine( $settings, null, null, null, null, null, $placeholder );
+
+        $xml = $engine->generate_dte_xml(
+            array(
+                'Detalles' => array(
+                    array(
+                        'NmbItem' => 'Item',
+                        'QtyItem' => 1,
+                        'PrcItem' => 1000,
+                    ),
+                ),
+            ),
+            39
+        );
+
+        $this->assertIsString( $xml );
+        $this->assertNotSame( '', $xml );
+        $this->assertSame( '<', substr( $xml, 0, 1 ) );
+
+        $dom = new \DOMDocument();
+        $this->assertTrue( $dom->loadXML( $xml ) );
     }
 }

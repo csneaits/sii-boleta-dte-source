@@ -22,6 +22,61 @@
     var defaultQueueOk = (cfg.texts && cfg.texts.queueActionOk) ? cfg.texts.queueActionOk : 'Acción de cola ejecutada.';
     var defaultQueueFail = (cfg.texts && cfg.texts.queueActionFail) ? cfg.texts.queueActionFail : 'No se pudo ejecutar la acción seleccionada.';
 
+    function initQueueFilters() {
+        var applyFiltersBtn = document.getElementById('apply-filters');
+        var clearFiltersBtn = document.getElementById('clear-filters');
+        var showHelpBtn = document.getElementById('show-help');
+        var helpPanel = document.getElementById('sii-queue-help');
+        var attemptsFilter = document.getElementById('filter_attempts');
+        var ageFilter = document.getElementById('filter_age');
+
+        var currentParams = new URLSearchParams(window.location.search);
+        if (attemptsFilter) {
+            attemptsFilter.value = currentParams.get('filter_attempts') || '';
+        }
+        if (ageFilter) {
+            ageFilter.value = currentParams.get('filter_age') || '';
+        }
+
+        if (applyFiltersBtn && !applyFiltersBtn.dataset.bound) {
+            applyFiltersBtn.dataset.bound = '1';
+            applyFiltersBtn.addEventListener('click', function () {
+                var attempts = attemptsFilter ? attemptsFilter.value : '';
+                var age = ageFilter ? ageFilter.value : '';
+                var url = new URL(window.location.href);
+                if (attempts) {
+                    url.searchParams.set('filter_attempts', attempts);
+                } else {
+                    url.searchParams.delete('filter_attempts');
+                }
+                if (age) {
+                    url.searchParams.set('filter_age', age);
+                } else {
+                    url.searchParams.delete('filter_age');
+                }
+                window.location.href = url.toString();
+            });
+        }
+
+        if (clearFiltersBtn && !clearFiltersBtn.dataset.bound) {
+            clearFiltersBtn.dataset.bound = '1';
+            clearFiltersBtn.addEventListener('click', function () {
+                var url = new URL(window.location.href);
+                url.searchParams.delete('filter_attempts');
+                url.searchParams.delete('filter_age');
+                window.location.href = url.toString();
+            });
+        }
+
+        if (showHelpBtn && !showHelpBtn.dataset.bound) {
+            showHelpBtn.dataset.bound = '1';
+            showHelpBtn.addEventListener('click', function () {
+                if (!helpPanel) return;
+                helpPanel.style.display = helpPanel.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+    }
+
     function showNotice(type, message) {
         if (!noticesContainer || !message) {
             return;
@@ -127,6 +182,7 @@
     }
 
     requestSnapshot();
+    initQueueFilters();
 
     document.addEventListener('submit', function (e) {
         var form = e.target;
@@ -232,6 +288,7 @@
                   // For logs/queue tab, refresh snapshot right away
                   if (tab === 'logs' || tab === 'queue') {
                       requestSnapshot();
+                      initQueueFilters();
                   }
               })
               .catch(function () {

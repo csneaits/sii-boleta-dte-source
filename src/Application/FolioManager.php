@@ -58,6 +58,15 @@ class FolioManager {
 
         $environment = $this->settings->get_environment();
         $expected    = max( 0, $folio - 1 );
+        $current     = Settings::get_last_folio_value( $type, $environment );
+
+        if ( $current >= $folio ) {
+            return $current === $folio;
+        }
+
+        if ( $current < $expected ) {
+            return Settings::compare_and_update_last_folio_value( $type, $environment, $current, $folio );
+        }
 
         return Settings::compare_and_update_last_folio_value( $type, $environment, $expected, $folio );
     }

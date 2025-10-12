@@ -14,7 +14,7 @@ namespace Sii\BoletaDte\Infrastructure\Persistence;
 class QueueDb {
 	public const TABLE = 'sii_boleta_dte_queue';
 
-	/** @var array<int,array{ id:int,type:string,payload:array<string,mixed>,attempts:int,created_at:string }> */
+        /** @var array<int,array{ id:int,type:string,payload:array<string,mixed>,attempts:int,available_at:string }> */
 	private static array $jobs      = array();
 	private static int $auto_inc    = 1;
 	private static bool $use_memory = true;
@@ -61,7 +61,7 @@ KEY type (type)
 	 */
 	public static function enqueue( string $type, array $payload ): int {
 		global $wpdb;
-		$created = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
+                $created = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
 		if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
 			$json   = function_exists( 'wp_json_encode' ) ? wp_json_encode( $payload ) : json_encode( $payload );
 			$result = $wpdb->insert(
@@ -70,9 +70,9 @@ KEY type (type)
 					'type'       => $type,
 					'payload'    => $json,
 					'attempts'   => 0,
-					'created_at' => $created,
-				)
-			);
+                                        'created_at' => $created,
+                                )
+                        );
 			if ( false !== $result ) {
 				self::$use_memory = false;
 				return (int) $wpdb->insert_id;
@@ -85,50 +85,87 @@ KEY type (type)
 			'type'       => $type,
 			'payload'    => $payload,
 			'attempts'   => 0,
-			'created_at' => $created,
-		);
-		return $id;
-	}
+                        'available_at' => $created,
+                );
+                return $id;
+        }
 
-	/**
-	 * Retrieves pending jobs.
-	 *
-	 * @return array<int,array{ id:int,type:string,payload:array<string,mixed>,attempts:int }>
-	 */
-	public static function get_pending_jobs( int $limit = 20 ): array {
-		global $wpdb;
-		if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
-			$table = self::table();
-			$sql   = $wpdb->prepare( "SELECT id,type,payload,attempts FROM {$table} ORDER BY id ASC LIMIT %d", $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$rows  = $wpdb->get_results( $sql, 'ARRAY_A' );
-			if ( is_array( $rows ) ) {
-				$jobs = array();
-				foreach ( $rows as $row ) {
-					$payload = json_decode( (string) $row['payload'], true );
-					$jobs[]  = array(
-						'id'       => (int) $row['id'],
-						'type'     => (string) $row['type'],
-						'payload'  => is_array( $payload ) ? $payload : array(),
-						'attempts' => (int) $row['attempts'],
-					);
-				}
-				return $jobs;
-			}
-		}
-		return array_values( self::$jobs );
-	}
+        /**
+         * Retrieves pending jobs.
+         *
+         * @return array<int,array{ id:int,type:string,payload:array<string,mixed>,attempts:int }>
+         */
+        public static function get_pending_jobs( int $limit = 20 ): array {
+                global $wpdb;
+                $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
+                if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
+                        $table = self::table();
+                        $sql   = $wpdb->prepare( "SELECT id,type,payload,attempts,created_at FROM {$table} WHERE created_at <= %s ORDER BY created_at ASC, id ASC LIMIT %d", $now, $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                        $rows  = $wpdb->get_results( $sql, 'ARRAY_A' );
+                        if ( is_array( $rows ) ) {
+                                $jobs = array();
+                                foreach ( $rows as $row ) {
+                                        $payload = json_decode( (string) $row['payload'], true );
+                                        $jobs[]  = array(
+                                                'id'       => (int) $row['id'],
+                                                'type'     => (string) $row['type'],
+                                                'payload'  => is_array( $payload ) ? $payload : array(),
+                                                'attempts' => (int) $row['attempts'],
+                                                'available_at' => isset( $row['created_at'] ) ? (string) $row['created_at'] : $now,
+                                        );
+                                }
+                                return $jobs;
+                        }
+                }
+                $jobs = array_filter(
+                        self::$jobs,
+                        static function ( array $job ) use ( $now ) {
+                                return $job['available_at'] <= $now;
+                        }
+                );
 
-		/** Increments the attempts counter for a job. */
-	public static function increment_attempts( int $id ): void {
-			global $wpdb;
+                usort(
+                        $jobs,
+                        static function ( array $a, array $b ): int {
+                                if ( $a['available_at'] === $b['available_at'] ) {
+                                        return $a['id'] <=> $b['id'];
+                                }
+
+                                return strcmp( $a['available_at'], $b['available_at'] );
+                        }
+                );
+
+                return array_values( $jobs );
+        }
+
+                /** Increments the attempts counter for a job. */
+        public static function increment_attempts( int $id ): void {
+                        global $wpdb;
 		if ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) && method_exists( $wpdb, 'prepare' ) ) {
 				$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET attempts = attempts + 1 WHERE id = %d', $id ) );
 				return;
 		}
-		if ( isset( self::$jobs[ $id ] ) ) {
-				++self::$jobs[ $id ]['attempts'];
-		}
-	}
+                if ( isset( self::$jobs[ $id ] ) ) {
+                                ++self::$jobs[ $id ]['attempts'];
+                }
+        }
+
+        /** Schedules the next retry time for a job. */
+        public static function schedule_retry( int $id, int $delay_seconds ): void {
+                global $wpdb;
+                $timestamp = function_exists( 'current_time' ) ? current_time( 'timestamp', true ) : time();
+                $timestamp = max( 0, (int) $timestamp ) + max( 0, $delay_seconds );
+                $next_run  = gmdate( 'Y-m-d H:i:s', $timestamp );
+
+                if ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) && method_exists( $wpdb, 'prepare' ) ) {
+                        $wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET created_at = %s WHERE id = %d', $next_run, $id ) );
+                        return;
+                }
+
+                if ( isset( self::$jobs[ $id ] ) ) {
+                        self::$jobs[ $id ]['available_at'] = $next_run;
+                }
+        }
 
 		/** Resets the attempts counter for a job. */
 	public static function reset_attempts( int $id ): void {

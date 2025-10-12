@@ -42,7 +42,9 @@ class ControlPanelPage {
 		}
 
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			if ( isset( $_POST['queue_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['queue_mass_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				$this->handle_queue_mass_action( sanitize_text_field( (string) ( $_POST['queue_mass_action'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			} elseif ( isset( $_POST['queue_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$this->handle_queue_action( sanitize_text_field( (string) ( $_POST['queue_action'] ?? '' ) ), (int) ( $_POST['job_id'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			} elseif ( isset( $_POST['rvd_action'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$this->handle_rvd_action( sanitize_text_field( (string) ( $_POST['rvd_action'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -107,6 +109,7 @@ class ControlPanelPage {
                 }
                 ob_start();
                 if ( 'queue' === $tab ) {
+                        $this->render_health_dashboard();
                         $this->render_queue();
                 } elseif ( 'rvd' === $tab ) {
                         $this->render_rvd_tools();
@@ -460,24 +463,314 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
 <?php
 }
 
+/** Renders system health dashboard with key metrics. */
+private function render_health_dashboard(): void {
+        $health_metrics = LogDb::get_health_metrics();
+        $error_breakdown = LogDb::get_error_breakdown();
+        $alerts = $this->get_system_alerts();
+        ?>
+        <div class="sii-section">
+                <h2><?php echo esc_html__( 'Estado de Salud del Sistema', 'sii-boleta-dte' ); ?></h2>
+                
+                <!-- Alertas del Sistema -->
+                <?php if ( ! empty( $alerts ) ) : ?>
+                <div style="margin-bottom: 20px;">
+                        <?php foreach ( $alerts as $alert ) : ?>
+                        <div style="background: <?php echo $alert['severity'] === 'error' ? '#f8d7da' : ( $alert['severity'] === 'warning' ? '#fff3cd' : '#d1ecf1' ); ?>; 
+                                    border-left: 4px solid <?php echo $alert['severity'] === 'error' ? '#dc3545' : ( $alert['severity'] === 'warning' ? '#ffc107' : '#17a2b8' ); ?>; 
+                                    padding: 15px; margin-bottom: 10px; border-radius: 0 5px 5px 0;">
+                                <strong><?php echo $alert['severity'] === 'error' ? '🚨' : ( $alert['severity'] === 'warning' ? '⚠️' : 'ℹ️' ); ?></strong>
+                                <?php echo esc_html( $alert['message'] ); ?>
+                        </div>
+                        <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                        <!-- Tasa de Éxito -->
+                        <div style="background: <?php echo $health_metrics['success_rate'] >= 95 ? '#d4edda' : ( $health_metrics['success_rate'] >= 80 ? '#fff3cd' : '#f8d7da' ); ?>; 
+                                    border: 1px solid <?php echo $health_metrics['success_rate'] >= 95 ? '#c3e6cb' : ( $health_metrics['success_rate'] >= 80 ? '#ffeaa7' : '#f5c6cb' ); ?>; 
+                                    border-radius: 5px; padding: 15px; text-align: center;">
+                                <h3 style="margin: 0; color: <?php echo $health_metrics['success_rate'] >= 95 ? '#155724' : ( $health_metrics['success_rate'] >= 80 ? '#856404' : '#721c24' ); ?>;">
+                                        <?php echo (float) $health_metrics['success_rate']; ?>%
+                                </h3>
+                                <p style="margin: 5px 0 0; color: #666;"><?php echo esc_html__( 'Tasa de Éxito (24h)', 'sii-boleta-dte' ); ?></p>
+                        </div>
+                        
+                        <!-- Total Procesados -->
+                        <div style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 5px; padding: 15px; text-align: center;">
+                                <h3 style="margin: 0; color: #004085;"><?php echo (int) $health_metrics['total_last_24h']; ?></h3>
+                                <p style="margin: 5px 0 0; color: #666;"><?php echo esc_html__( 'Documentos (24h)', 'sii-boleta-dte' ); ?></p>
+                        </div>
+                        
+                        <!-- Errores -->
+                        <div style="background: <?php echo $health_metrics['errors_last_24h'] === 0 ? '#d4edda' : '#fff3cd'; ?>; 
+                                    border: 1px solid <?php echo $health_metrics['errors_last_24h'] === 0 ? '#c3e6cb' : '#ffeaa7'; ?>; 
+                                    border-radius: 5px; padding: 15px; text-align: center;">
+                                <h3 style="margin: 0; color: <?php echo $health_metrics['errors_last_24h'] === 0 ? '#155724' : '#856404'; ?>;">
+                                        <?php echo (int) $health_metrics['errors_last_24h']; ?>
+                                </h3>
+                                <p style="margin: 5px 0 0; color: #666;"><?php echo esc_html__( 'Errores (24h)', 'sii-boleta-dte' ); ?></p>
+                        </div>
+                        
+                        <!-- Tiempo Promedio de Cola -->
+                        <?php if ( $health_metrics['avg_queue_time'] > 0 ) : ?>
+                        <div style="background: <?php echo $health_metrics['avg_queue_time'] <= 60 ? '#d4edda' : '#fff3cd'; ?>; 
+                                    border: 1px solid <?php echo $health_metrics['avg_queue_time'] <= 60 ? '#c3e6cb' : '#ffeaa7'; ?>; 
+                                    border-radius: 5px; padding: 15px; text-align: center;">
+                                <h3 style="margin: 0; color: <?php echo $health_metrics['avg_queue_time'] <= 60 ? '#155724' : '#856404'; ?>;">
+                                        <?php echo (int) $health_metrics['avg_queue_time']; ?> min
+                                </h3>
+                                <p style="margin: 5px 0 0; color: #666;"><?php echo esc_html__( 'Tiempo Prom. Cola', 'sii-boleta-dte' ); ?></p>
+                        </div>
+                        <?php endif; ?>
+                </div>
+                
+                <!-- Error más común -->
+                <?php if ( ! empty( $health_metrics['most_common_error'] ) ) : ?>
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                        <strong><?php echo esc_html__( 'Error más frecuente:', 'sii-boleta-dte' ); ?></strong>
+                        <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">
+                                <?php echo esc_html( $health_metrics['most_common_error'] ); ?>
+                        </code>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Desglose de errores -->
+                <?php if ( ! empty( $error_breakdown ) ) : ?>
+                <details style="margin-bottom: 20px;">
+                        <summary style="cursor: pointer; font-weight: bold; padding: 10px; background: #f1f1f1; border-radius: 5px;">
+                                📊 <?php echo esc_html__( 'Desglose de Errores (últimos 7 días)', 'sii-boleta-dte' ); ?>
+                        </summary>
+                        <div style="margin-top: 10px;">
+                                <table class="wp-list-table widefat fixed striped" style="max-width: 600px;">
+                                        <thead>
+                                                <tr>
+                                                        <th><?php echo esc_html__( 'Tipo de Error', 'sii-boleta-dte' ); ?></th>
+                                                        <th><?php echo esc_html__( 'Cantidad', 'sii-boleta-dte' ); ?></th>
+                                                        <th><?php echo esc_html__( 'Última Vez', 'sii-boleta-dte' ); ?></th>
+                                                </tr>
+                                        </thead>
+                                        <tbody>
+                                                <?php foreach ( $error_breakdown as $error ) : ?>
+                                                <tr>
+                                                        <td><code style="font-size: 12px;"><?php echo esc_html( $error['error_type'] ); ?></code></td>
+                                                        <td><?php echo (int) $error['count']; ?></td>
+                                                        <td><?php echo esc_html( $error['last_seen'] ); ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                        </tbody>
+                                </table>
+                        </div>
+                </details>
+                <?php endif; ?>
+                
+                <!-- Recomendaciones -->
+                <div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px;">
+                        <h4 style="margin-top: 0;"><?php echo esc_html__( '💡 Recomendaciones', 'sii-boleta-dte' ); ?></h4>
+                        <ul style="margin-bottom: 0;">
+                                <?php if ( $health_metrics['success_rate'] < 95 ) : ?>
+                                <li><?php echo esc_html__( 'La tasa de éxito está por debajo del 95%. Revisa los errores más comunes.', 'sii-boleta-dte' ); ?></li>
+                                <?php endif; ?>
+                                <?php if ( $health_metrics['avg_queue_time'] > 120 ) : ?>
+                                <li><?php echo esc_html__( 'Los documentos están tardando más de 2 horas en procesarse. Considera revisar la frecuencia del cron.', 'sii-boleta-dte' ); ?></li>
+                                <?php endif; ?>
+                                <?php if ( $health_metrics['errors_last_24h'] > 10 ) : ?>
+                                <li><?php echo esc_html__( 'Alto número de errores en las últimas 24 horas. Revisa la conectividad con el SII.', 'sii-boleta-dte' ); ?></li>
+                                <?php endif; ?>
+                                <?php if ( $health_metrics['success_rate'] >= 95 && $health_metrics['errors_last_24h'] <= 5 ) : ?>
+                                <li style="color: #155724;">✅ <?php echo esc_html__( 'El sistema está funcionando correctamente.', 'sii-boleta-dte' ); ?></li>
+                                <?php endif; ?>
+                        </ul>
+                </div>
+        </div>
+        <?php
+}
+
 /** Lists queue items with controls. */
 private function render_queue(): void {
         $environment = $this->settings->get_environment();
-        $jobs        = array_filter(
+        
+        // Aplicar filtros básicos de ambiente
+        $all_jobs = array_filter(
                 QueueDb::get_pending_jobs(),
                 static function ( array $job ) use ( $environment ) {
                         $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
                         return $job_env === $environment;
                 }
         );
+        
+        // Aplicar filtros adicionales del usuario
+        $filters = [];
+        if ( ! empty( $_GET['filter_attempts'] ) ) {
+                $filters['attempts'] = sanitize_text_field( $_GET['filter_attempts'] );
+        }
+        if ( ! empty( $_GET['filter_age'] ) ) {
+                $filters['age'] = sanitize_text_field( $_GET['filter_age'] );
+        }
+        
+        $jobs = $this->apply_queue_filters( $all_jobs, $filters );
+        
+        // Información del filtrado
+        $has_filters = ! empty( $filters );
+        $filtered_count = count( $jobs );
+        $total_count = count( $all_jobs );
+        
+        // Obtener estadísticas de la cola
+        $stats = $this->processor->get_stats();
+        $failed_jobs = QueueDb::get_failed_jobs();
         ?>
         <div class="sii-section">
-                <h2><?php echo esc_html__( 'Cola', 'sii-boleta-dte' ); ?></h2>
+                <h2><?php echo esc_html__( 'Cola de Procesamiento', 'sii-boleta-dte' ); ?></h2>
+                
+                <!-- Panel de Estadísticas -->
+                <div class="sii-queue-stats" style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0;"><?php echo esc_html__( 'Estado de la Cola', 'sii-boleta-dte' ); ?></h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div>
+                                        <strong><?php echo esc_html__( 'Total trabajos:', 'sii-boleta-dte' ); ?></strong> 
+                                        <span style="color: <?php echo $stats['total'] > 0 ? '#135e96' : '#666'; ?>;">
+                                                <?php echo (int) $stats['total']; ?>
+                                        </span>
+                                </div>
+                                <div>
+                                        <strong><?php echo esc_html__( 'Pendientes:', 'sii-boleta-dte' ); ?></strong> 
+                                        <span style="color: <?php echo $stats['pending'] > 0 ? '#d54e21' : '#46b450'; ?>;">
+                                                <?php echo (int) $stats['pending']; ?>
+                                        </span>
+                                </div>
+                                <div>
+                                        <strong><?php echo esc_html__( 'Fallidos:', 'sii-boleta-dte' ); ?></strong> 
+                                        <span style="color: <?php echo $stats['failed'] > 0 ? '#dc3232' : '#46b450'; ?>;">
+                                                <?php echo (int) $stats['failed']; ?>
+                                        </span>
+                                </div>
+                                <div>
+                                        <strong><?php echo esc_html__( 'Trabajos antiguos (>1h):', 'sii-boleta-dte' ); ?></strong> 
+                                        <span style="color: <?php echo $stats['old_jobs'] > 0 ? '#ffb900' : '#666'; ?>;">
+                                                <?php echo (int) $stats['old_jobs']; ?>
+                                        </span>
+                                </div>
+                                <div>
+                                        <strong><?php echo esc_html__( 'Intentos promedio:', 'sii-boleta-dte' ); ?></strong> 
+                                        <span style="color: <?php echo $stats['avg_attempts'] > 2 ? '#dc3232' : '#666'; ?>;">
+                                                <?php echo (float) $stats['avg_attempts']; ?>
+                                        </span>
+                                </div>
+                        </div>
+                        
+                        <!-- Alertas -->
+                        <?php if ( $stats['failed'] > 0 ) : ?>
+                                <div style="background: #ffeaa7; border-left: 4px solid #fdcb6e; padding: 10px; margin-top: 15px;">
+                                        <strong>⚠️ <?php echo esc_html__( 'Atención:', 'sii-boleta-dte' ); ?></strong>
+                                        <?php echo sprintf( 
+                                                esc_html__( 'Hay %d trabajos que han fallado después de 3 intentos.', 'sii-boleta-dte' ), 
+                                                (int) $stats['failed'] 
+                                        ); ?>
+                                </div>
+                        <?php endif; ?>
+                        
+                        <?php if ( $stats['old_jobs'] > 5 ) : ?>
+                                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 15px;">
+                                        <strong>📊 <?php echo esc_html__( 'Información:', 'sii-boleta-dte' ); ?></strong>
+                                        <?php echo sprintf( 
+                                                esc_html__( 'Hay %d trabajos antiguos que podrían necesitar atención.', 'sii-boleta-dte' ), 
+                                                (int) $stats['old_jobs'] 
+                                        ); ?>
+                                </div>
+                        <?php endif; ?>
+                </div>
+
+                <!-- Filtros -->
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <form method="get" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
+                                <input type="hidden" name="page" value="<?php echo esc_attr( $_GET['page'] ?? '' ); ?>" />
+                                <input type="hidden" name="tab" value="queue" />
+                                
+                                <div>
+                                        <label for="filter_attempts" style="display: block; font-size: 12px; margin-bottom: 3px;">
+                                                <?php echo esc_html__( 'Intentos:', 'sii-boleta-dte' ); ?>
+                                        </label>
+                                        <select name="filter_attempts" id="filter_attempts">
+                                                <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
+                                                <option value="0" <?php selected( $_GET['filter_attempts'] ?? '', '0', true ); ?>><?php echo esc_html__( 'Sin intentos (0)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="1" <?php selected( $_GET['filter_attempts'] ?? '', '1', true ); ?>><?php echo esc_html__( '1 intento', 'sii-boleta-dte' ); ?></option>
+                                                <option value="2" <?php selected( $_GET['filter_attempts'] ?? '', '2', true ); ?>><?php echo esc_html__( '2 intentos', 'sii-boleta-dte' ); ?></option>
+                                                <option value="3+" <?php selected( $_GET['filter_attempts'] ?? '', '3+', true ); ?>><?php echo esc_html__( '3+ intentos (fallidos)', 'sii-boleta-dte' ); ?></option>
+                                        </select>
+                                </div>
+                                
+                                <div>
+                                        <label for="filter_age" style="display: block; font-size: 12px; margin-bottom: 3px;">
+                                                <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?>
+                                        </label>
+                                        <select name="filter_age" id="filter_age">
+                                                <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
+                                                <option value="new" <?php selected( $_GET['filter_age'] ?? '', 'new', true ); ?>><?php echo esc_html__( 'Recientes (<1h)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="old" <?php selected( $_GET['filter_age'] ?? '', 'old', true ); ?>><?php echo esc_html__( 'Antiguos (>1h)', 'sii-boleta-dte' ); ?></option>
+                                        </select>
+                                </div>
+                                
+                                <div>
+                                        <button type="submit" class="button"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
+                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . ( $_GET['page'] ?? '' ) . '&tab=queue' ) ); ?>" 
+                                           class="button"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></a>
+                                </div>
+                        </form>
+                </div>
+                
+                <!-- Información de filtros activos -->
+                <?php if ( $has_filters ) : ?>
+                        <div style="background: #e7f3ff; border-left: 4px solid #0073aa; padding: 10px; margin-bottom: 15px;">
+                                <strong><?php echo esc_html__( 'Filtros activos:', 'sii-boleta-dte' ); ?></strong>
+                                <?php echo sprintf( 
+                                        esc_html__( 'Mostrando %d de %d elementos', 'sii-boleta-dte' ),
+                                        $filtered_count,
+                                        $total_count
+                                ); ?>
+                                <?php if ( isset( $filters['attempts'] ) ) : ?>
+                                        | <?php echo esc_html__( 'Intentos:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $filters['attempts'] ); ?>
+                                <?php endif; ?>
+                                <?php if ( isset( $filters['age'] ) ) : ?>
+                                        | <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?> 
+                                        <?php echo $filters['age'] === 'new' ? esc_html__( 'Recientes', 'sii-boleta-dte' ) : esc_html__( 'Antiguos', 'sii-boleta-dte' ); ?>
+                                <?php endif; ?>
+                        </div>
+                <?php endif; ?>
+
+                <!-- Controles -->
                 <p>
                         <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="queue">
                                 <?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?>
                         </button>
+                        
+                        <?php if ( $stats['failed'] > 0 ) : ?>
+                                <form method="post" style="display: inline-block; margin-left: 10px;">
+                                        <?php $this->output_nonce_field( 'sii_boleta_queue_mass', 'sii_boleta_queue_mass_nonce' ); ?>
+                                        <button type="submit" name="queue_mass_action" value="retry_all" 
+                                                class="button button-primary"
+                                                onclick="return confirm('<?php echo esc_attr( __( '¿Reintentar todos los trabajos fallidos?', 'sii-boleta-dte' ) ); ?>');">
+                                                🔄 <?php echo esc_html__( 'Reintentar Todos los Fallidos', 'sii-boleta-dte' ); ?> (<?php echo (int) $stats['failed']; ?>)
+                                        </button>
+                                </form>
+                        <?php endif; ?>
+                        
+                        <button type="button" class="button" 
+                                onclick="document.getElementById('sii-queue-help').style.display = document.getElementById('sii-queue-help').style.display === 'none' ? 'block' : 'none';">
+                                <?php echo esc_html__( 'Ayuda', 'sii-boleta-dte' ); ?>
+                        </button>
                 </p>
+                
+                <!-- Panel de Ayuda -->
+                <div id="sii-queue-help" style="display: none; background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <h4><?php echo esc_html__( 'Sistema de Cola Automática', 'sii-boleta-dte' ); ?></h4>
+                        <ul>
+                                <li><strong><?php echo esc_html__( 'Procesamiento:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Cada hora automáticamente', 'sii-boleta-dte' ); ?></li>
+                                <li><strong><?php echo esc_html__( 'Reintentos:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Máximo 3 intentos con 2 minutos entre cada uno', 'sii-boleta-dte' ); ?></li>
+                                <li><strong><?php echo esc_html__( 'Errores temporales:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Se encolan automáticamente (conexión, timeouts, SII no disponible)', 'sii-boleta-dte' ); ?></li>
+                                <li><strong><?php echo esc_html__( 'Control manual:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Puedes procesar, reintentar o cancelar trabajos individuales', 'sii-boleta-dte' ); ?></li>
+                        </ul>
+                </div>
                 <p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
                 <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
                         <thead>
@@ -555,6 +848,9 @@ echo '<button type="submit" class="button button-primary">' . esc_html__( 'Valid
 	}
 
         private function render_metrics_dashboard(): void {
+                // Mostrar dashboard de salud primero
+                $this->render_health_dashboard();
+                
                 $environment = $this->settings->get_environment();
                 $logs        = LogDb::get_logs(
                         array(
@@ -1368,14 +1664,159 @@ $this->add_notice( __( 'El XML del Libro no pasó la validación. Revisa la estr
 	}
 
 	private function format_datetime( int $timestamp ): string {
-if ( $timestamp <= 0 ) {
-return __( 'Sin programación', 'sii-boleta-dte' );
+		if ( $timestamp <= 0 ) {
+			return __( 'Sin programación', 'sii-boleta-dte' );
 		}
-                if ( function_exists( 'wp_date' ) ) {
-                                return \call_user_func( 'wp_date', 'Y-m-d H:i', $timestamp );
+		if ( function_exists( 'wp_date' ) ) {
+			return \call_user_func( 'wp_date', 'Y-m-d H:i', $timestamp );
 		}
-			return gmdate( 'Y-m-d H:i', $timestamp );
+		return gmdate( 'Y-m-d H:i', $timestamp );
 	}
+
+	/**
+	 * Checks system health and returns alerts if needed.
+	 * 
+	 * @return array<array{type:string,message:string,severity:string}>
+	 */
+	private function get_system_alerts(): array {
+		$alerts = array();
+		$stats = $this->processor->get_stats();
+		$health = LogDb::get_health_metrics();
+		
+		// Alerta crítica: muchos trabajos fallidos
+		if ( $stats['failed'] >= 5 ) {
+			$alerts[] = array(
+				'type'     => 'critical',
+				'message'  => sprintf( 
+					__( 'CRÍTICO: %d trabajos han fallado después de 3 intentos. Requiere atención inmediata.', 'sii-boleta-dte' ), 
+					$stats['failed'] 
+				),
+				'severity' => 'error',
+			);
+		}
+		
+		// Alerta: tasa de éxito baja
+		if ( $health['success_rate'] < 80 && $health['total_last_24h'] > 0 ) {
+			$alerts[] = array(
+				'type'     => 'performance',
+				'message'  => sprintf( 
+					__( 'ATENCIÓN: Tasa de éxito del %.1f%% está por debajo del umbral recomendado (80%%).', 'sii-boleta-dte' ), 
+					$health['success_rate'] 
+				),
+				'severity' => 'warning',
+			);
+		}
+		
+		// Alerta: cola creciendo
+		if ( $stats['total'] >= 20 ) {
+			$alerts[] = array(
+				'type'     => 'queue_size',
+				'message'  => sprintf( 
+					__( 'INFORMACIÓN: La cola tiene %d trabajos pendientes. Considera verificar el procesamiento.', 'sii-boleta-dte' ), 
+					$stats['total'] 
+				),
+				'severity' => 'info',
+			);
+		}
+		
+		// Alerta: trabajos muy antiguos
+		if ( $stats['old_jobs'] >= 10 ) {
+			$alerts[] = array(
+				'type'     => 'stale_jobs',
+				'message'  => sprintf( 
+					__( 'ATENCIÓN: %d trabajos tienen más de 1 hora sin procesarse. Verifica el cron de WordPress.', 'sii-boleta-dte' ), 
+					$stats['old_jobs'] 
+				),
+				'severity' => 'warning',
+			);
+		}
+		
+		// Alerta: tiempo de cola muy alto
+		if ( $health['avg_queue_time'] > 180 ) { // más de 3 horas
+			$alerts[] = array(
+				'type'     => 'slow_processing',
+				'message'  => sprintf( 
+					__( 'INFORMACIÓN: Los documentos tardan en promedio %d minutos en procesarse. Considera aumentar la frecuencia del cron.', 'sii-boleta-dte' ), 
+					$health['avg_queue_time'] 
+				),
+				'severity' => 'info',
+			);
+		}
+		
+		return $alerts;
+	}
+
+	/**
+	 * Handles mass queue actions like retry all failed jobs.
+	 */
+	private function handle_queue_mass_action( string $action ): void {
+		if ( ! $this->verify_nonce( 'sii_boleta_queue_mass_nonce', 'sii_boleta_queue_mass' ) ) {
+			$this->add_notice( __( 'Token de seguridad inválido.', 'sii-boleta-dte' ), 'error' );
+			return;
+		}
+
+		if ( 'retry_all' === $action ) {
+			$count = $this->processor->retry_all_failed();
+			if ( $count > 0 ) {
+				$this->add_notice( 
+					sprintf( 
+						__( 'Se han reintentado %d trabajos fallidos. Se procesarán en la próxima ejecución de la cola.', 'sii-boleta-dte' ), 
+						$count 
+					), 
+					'success' 
+				);
+			} else {
+				$this->add_notice( __( 'No había trabajos fallidos para reintentar.', 'sii-boleta-dte' ), 'info' );
+			}
+		}
+	}
+		
+	/**
+	 * Aplica filtros a los trabajos de la cola
+	 */
+	private function apply_queue_filters( array $jobs, array $filters ): array {
+			if ( empty( $filters ) ) {
+				return $jobs;
+			}
+
+			return array_filter( $jobs, function( $job ) use ( $filters ) {
+				// Filtro por intentos
+				if ( isset( $filters['attempts'] ) ) {
+					$job_attempts = (int) ( $job['attempts'] ?? 0 );
+					switch ( $filters['attempts'] ) {
+						case '0':
+							if ( $job_attempts !== 0 ) return false;
+							break;
+						case '1':
+							if ( $job_attempts !== 1 ) return false;
+							break;
+						case '2':
+							if ( $job_attempts !== 2 ) return false;
+							break;
+						case '3+':
+							if ( $job_attempts < 3 ) return false;
+							break;
+					}
+				}
+
+				// Filtro por antigüedad
+				if ( isset( $filters['age'] ) ) {
+					$created_at = $job['created_at'] ?? '';
+					if ( $created_at ) {
+						$job_time = strtotime( $created_at );
+						$one_hour_ago = time() - 3600;
+						
+						if ( $filters['age'] === 'new' && $job_time < $one_hour_ago ) {
+							return false;
+						} elseif ( $filters['age'] === 'old' && $job_time >= $one_hour_ago ) {
+							return false;
+						}
+					}
+				}
+
+				return true;
+			});
+		}
 }
 
 class_alias( ControlPanelPage::class, 'SII_Boleta_Control_Panel_Page' );

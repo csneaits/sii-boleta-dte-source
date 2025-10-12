@@ -1733,12 +1733,16 @@ class GenerateDtePage {
 							$trackData = $track->get_error_data();
 						}
 				}
-				$trackId   = '';
-				if ( is_array( $trackData ) && isset( $trackData['trackId'] ) ) {
-						$trackId = (string) $trackData['trackId'];
-				}
-				$message = $this->normalize_api_error_message( $message );
-					if ( $this->should_queue_for_error( $code ) ) {
+		
+		// Extraer trackId directamente si está disponible
+		$trackId = '';
+		if ( is_array( $trackData ) && isset( $trackData['trackId'] ) ) {
+			$trackId = (string) $trackData['trackId'];
+		} elseif ( is_array( $trackData ) && isset( $trackData['track_id'] ) ) {
+			$trackId = (string) $trackData['track_id'];
+		}
+		$message = $this->normalize_api_error_message( $message );
+			if ( $this->should_queue_for_error( $code ) ) {
                                         $context        = array(
                                                 'label'        => $pdf_label,
                                                 'type'         => $tipo,
@@ -1758,6 +1762,9 @@ class GenerateDtePage {
 												$queue_message = __( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
 										}
 					$log_payload = $context;
+					if ( null !== $trackData ) {
+						$log_payload['error_data'] = $trackData;
+					}
 					$log_payload['code']    = $code;
 					$log_payload['message'] = $message;
 					if ( '' !== $trackId ) {
@@ -2159,10 +2166,12 @@ class GenerateDtePage {
 		}
 
 					$temporary = array(
-						'http_request_failed',
-						'http_request_timeout',
-						'sii_boleta_http_error',
-						'sii_boleta_dev_simulated_error',
+						'http_request_failed',      // Error de conexión HTTP de WordPress
+						'http_request_timeout',     // Timeout de conexión HTTP de WordPress  
+						'sii_boleta_http_error',    // Errores HTTP del SII (5xx, conexión, etc)
+						'sii_boleta_ws_unavailable', // WebService LibreDTE no disponible
+						'sii_boleta_ws_error',      // Error temporal del WebService
+						'sii_boleta_dev_simulated_error', // Errores simulados (solo desarrollo)
 					);
 
 					return in_array( $code, $temporary, true );
@@ -2191,6 +2200,116 @@ class GenerateDtePage {
                 }
 
                                         return $trimmed;
+        }
+
+        /**
+         * Best-effort resolution of a track identifier from error payloads.
+         *
+         * @param mixed  $payload Error data returned by API.
+         * @param string $message Error message returned by API.
+         */
+        private function resolve_track_id_from_error_data( $payload, string $message ): string {
+                // Buscar directamente en el payload si es un array
+                if ( is_array( $payload ) ) {
+                        if ( isset( $payload['trackId'] ) && is_scalar( $payload['trackId'] ) ) {
+                                return (string) $payload['trackId'];
+                        }
+                        if ( isset( $payload['track_id'] ) && is_scalar( $payload['track_id'] ) ) {
+                                return (string) $payload['track_id'];
+                        }
+                }
+                
+                // Buscar en objetos
+                if ( is_object( $payload ) ) {
+                        if ( isset( $payload->trackId ) && is_scalar( $payload->trackId ) ) {
+                                return (string) $payload->trackId;
+                        }
+                        if ( isset( $payload->track_id ) && is_scalar( $payload->track_id ) ) {
+                                return (string) $payload->track_id;
+                        }
+                }
+
+                // Buscar patterns de simulación en el mensaje
+                if ( preg_match( '/([A-Z0-9]+-SIM-[A-Z0-9\-]+)/i', $message, $match ) ) {
+                        return (string) $match[1];
+                }
+
+                return '';
+        }
+
+        /**
+         * Attempts to find a track identifier from various error payload shapes.
+         *
+         * @param mixed  $payload Raw error payload data.
+         * @param string $message Human readable error message.
+         */
+        private function extract_track_id_from_error_payload( $payload, string $message = '' ): string {
+                $track_id = $this->search_track_id_value( $payload );
+                if ( '' !== $track_id ) {
+                        return $track_id;
+                }
+
+                if ( '' !== $message && preg_match( '/([A-Z0-9]+-SIM-[A-Z0-9\-]+)/i', $message, $match ) ) {
+                        return (string) $match[1];
+                }
+
+                return '';
+        }
+
+        /**
+         * Recursively inspects payload structures for a track identifier.
+         *
+         * @param mixed $payload Potentially nested payload.
+         */
+        private function search_track_id_value( $payload ): string {
+                if ( is_array( $payload ) ) {
+                        foreach ( $payload as $key => $value ) {
+                                if ( is_string( $key ) ) {
+                                        $normalized_key = strtolower( $key );
+                                        if ( 'trackid' === $normalized_key || 'track_id' === $normalized_key ) {
+                                                $candidate = trim( (string) $value );
+                                                if ( '' !== $candidate ) {
+                                                        return $candidate;
+                                                }
+                                        }
+                                }
+
+                                $candidate = $this->search_track_id_value( $value );
+                                if ( '' !== $candidate ) {
+                                        return $candidate;
+                                }
+                        }
+
+                        return '';
+                }
+
+                if ( is_object( $payload ) ) {
+                        return $this->search_track_id_value( get_object_vars( $payload ) );
+                }
+
+                if ( is_string( $payload ) || is_numeric( $payload ) ) {
+                        return $this->normalize_track_id_candidate( (string) $payload );
+                }
+
+                return '';
+        }
+
+        private function normalize_track_id_candidate( string $value ): string {
+                $trimmed = trim( $value );
+                if ( '' === $trimmed ) {
+                        return '';
+                }
+
+                if ( preg_match( '/([A-Z0-9]+-SIM-[A-Z0-9\-]+)/i', $trimmed, $match ) ) {
+                        return (string) $match[1];
+                }
+
+                // Solo retornar como track ID válido si parece un identificador de tracking
+                if ( preg_match( '/^[A-Z0-9\-_]+$/i', $trimmed ) && strlen( $trimmed ) > 5 ) {
+                        return $trimmed;
+                }
+
+                return '';
         }
 
                                 /**

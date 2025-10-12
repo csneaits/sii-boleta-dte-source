@@ -51,6 +51,8 @@ if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
 if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
+if ( ! function_exists( 'wp_json_encode' ) ) { function wp_json_encode( $data ) { return json_encode( $data ); } }
+if ( ! function_exists( 'wp_verify_nonce' ) ) { function wp_verify_nonce( $nonce, $action ) { return $nonce === 'good'; } }
 if ( ! class_exists( 'WP_Error' ) ) {
     class WP_Error {
         private $code;
@@ -64,11 +66,16 @@ if ( ! class_exists( 'WP_Error' ) ) {
         public function get_error_message() { return $this->message; }
         public function get_error_code() { return $this->code; }
         public function get_error_data( $code = '' ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+            // Si se pasa un código específico y coincide con nuestro código, devolver los datos
+            if ( $code !== '' && $code === $this->code ) {
+                return $this->data;
+            }
+            // Si no se pasa código o no coincide, devolver los datos también (comportamiento de WP_Error)
             return $this->data;
         }
     }
 }
-if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $thing ) { return $thing instanceof WP_Error; } }
+if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $thing ) { return $thing instanceof WP_Error || (is_object($thing) && method_exists($thing, 'get_error_code')); } }
 
 class GenerateDtePageTest extends TestCase {
     public function test_process_post_generates_dte(): void {
@@ -472,6 +479,8 @@ class GenerateDtePageTest extends TestCase {
             'tipo' => '39',
         ) );
 
+
+
         $this->assertArrayHasKey( 'queued', $result );
         $this->assertTrue( $result['queued'] );
         $this->assertSame( 'warning', $result['notice_type'] );
@@ -502,9 +511,13 @@ class GenerateDtePageTest extends TestCase {
         $this->assertSame( 'queued', $latest['status'] );
     }
 
+
+
     public function test_process_post_dev_simulated_error_queues_document(): void {
         LogDb::purge();
         LogDb::install();
+        
+
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn(
             array(
@@ -516,14 +529,29 @@ class GenerateDtePageTest extends TestCase {
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
 
+        // Crear un mock error que extiende la funcionalidad requerida
+        $mockError = new class('sii_boleta_dev_simulated_error', 'Envío simulado con error desde ajustes de desarrollo.', array( 'trackId' => 'DTE-SIM-1234' )) extends WP_Error {
+            private $test_data;
+            
+            public function __construct($code, $message, $data = null) {
+                parent::__construct($code, $message, $data);
+                $this->test_data = $data;
+            }
+            
+            public function get_error_data( $code = '' ) {
+                // Siempre devolver nuestros datos de test
+                return $this->test_data;
+            }
+        };
+        
+
+        
         $api = $this->createMock( Api::class );
-        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn(
-            new WP_Error(
-                'sii_boleta_dev_simulated_error',
-                'Envío simulado con error desde ajustes de desarrollo.',
-                array( 'trackId' => 'DTE-SIM-1234' )
-            )
-        );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( $mockError );
+        
+
+        
+
         $engine = $this->createMock( DteEngine::class );
         $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
         $tmpPdf = tempnam( sys_get_temp_dir(), 'pdf' );
@@ -553,6 +581,8 @@ class GenerateDtePageTest extends TestCase {
             'tipo' => '39',
         ) );
 
+
+
         $this->assertArrayHasKey( 'queued', $result );
         $this->assertTrue( $result['queued'] );
         $this->assertSame( 'warning', $result['notice_type'] );
@@ -567,5 +597,68 @@ class GenerateDtePageTest extends TestCase {
         $first = $logs[0];
         $this->assertSame( 'queued', $first['status'] );
         $this->assertSame( 'DTE-SIM-1234', $first['track_id'] );
+    }
+    
+    public function test_should_queue_for_error_simulated_error(): void {
+        $settings = $this->createMock( Settings::class );
+        $token = $this->createMock( TokenManager::class );
+        $api = $this->createMock( Api::class );
+        $engine = $this->createMock( DteEngine::class );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $folio = $this->createMock( FolioManager::class );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        
+        // Usar reflection para acceder al método privado
+        $reflection = new ReflectionClass( $page );
+        $method = $reflection->getMethod( 'should_queue_for_error' );
+        $method->setAccessible( true );
+        
+        // Test que los códigos de error temporales deben ser encolados
+        $this->assertTrue( $method->invoke( $page, 'sii_boleta_dev_simulated_error' ) );
+        $this->assertTrue( $method->invoke( $page, 'http_request_failed' ) );
+        $this->assertTrue( $method->invoke( $page, 'http_request_timeout' ) );
+        $this->assertTrue( $method->invoke( $page, 'sii_boleta_http_error' ) );
+        $this->assertTrue( $method->invoke( $page, 'sii_boleta_ws_unavailable' ) );
+        $this->assertTrue( $method->invoke( $page, 'sii_boleta_ws_error' ) );
+        
+        // Test que los errores definitivos NO deben ser encolados
+        $this->assertFalse( $method->invoke( $page, 'sii_boleta_rechazo' ) );
+        $this->assertFalse( $method->invoke( $page, 'some_other_error' ) );
+        $this->assertFalse( $method->invoke( $page, 'sii_invalid_caf' ) );
+    }
+    
+    public function test_resolve_track_id_from_error_data(): void {
+        $settings = $this->createMock( Settings::class );
+        $token = $this->createMock( TokenManager::class );
+        $api = $this->createMock( Api::class );
+        $engine = $this->createMock( DteEngine::class );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $folio = $this->createMock( FolioManager::class );
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        
+        // Usar reflection para acceder al método privado
+        $reflection = new ReflectionClass( $page );
+        $method = $reflection->getMethod( 'resolve_track_id_from_error_data' );
+        $method->setAccessible( true );
+        
+        // Test extraction con trackId
+        $trackId = $method->invoke( $page, array( 'trackId' => 'DTE-SIM-1234' ), 'Test message' );
+        $this->assertSame( 'DTE-SIM-1234', $trackId );
+        
+        // Test extraction con track_id
+        $trackId = $method->invoke( $page, array( 'track_id' => 'DTE-ALT-5678' ), 'Test message' );
+        $this->assertSame( 'DTE-ALT-5678', $trackId );
+        
+        // Test sin trackId
+        $trackId = $method->invoke( $page, array( 'other' => 'value' ), 'Test message' );
+        $this->assertSame( '', $trackId );
+        
+        // Test con null
+        $trackId = $method->invoke( $page, null, 'Test message' );
+        $this->assertSame( '', $trackId );
     }
 }

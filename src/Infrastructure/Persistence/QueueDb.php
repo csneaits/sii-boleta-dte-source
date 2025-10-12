@@ -35,6 +35,7 @@ class QueueDb {
 			self::$use_memory = true;
 			return;
 		}
+		self::$use_memory = false;
 		$table           = self::table();
 		$charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : '';
 		$sql             = "CREATE TABLE {$table} (
@@ -98,7 +99,8 @@ KEY type (type)
         public static function get_pending_jobs( int $limit = 20 ): array {
                 global $wpdb;
                 $now = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
-                if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
+                if ( is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
+                        self::$use_memory = false;
                         $table = self::table();
                         $sql   = $wpdb->prepare( "SELECT id,type,payload,attempts,created_at FROM {$table} WHERE created_at <= %s ORDER BY created_at ASC, id ASC LIMIT %d", $now, $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                         $rows  = $wpdb->get_results( $sql, 'ARRAY_A' );
@@ -147,30 +149,31 @@ KEY type (type)
         public static function get_all_jobs( int $limit = 50 ): array {
                 global $wpdb;
 
-                if ( self::$use_memory || ! is_object( $wpdb ) ) {
-                        $jobs = self::$jobs;
-                        usort(
-                                $jobs,
-                                static function ( array $a, array $b ): int {
-                                        return $b['id'] <=> $a['id']; // Más recientes primero
-                                }
+                if ( is_object( $wpdb ) && method_exists( $wpdb, 'prepare' ) && method_exists( $wpdb, 'get_results' ) ) {
+                        self::$use_memory = false;
+                        $table            = self::table();
+                        $sql              = $wpdb->prepare( "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit );
+                        $rows             = (array) $wpdb->get_results( $sql, 'ARRAY_A' );
+
+                        return array_map(
+                                static function ( array $row ): array {
+                                        $row['id']       = (int) $row['id'];
+                                        $row['attempts'] = (int) $row['attempts'];
+                                        $row['payload']  = (array) json_decode( (string) $row['payload'], true );
+                                        return $row;
+                                },
+                                $rows
                         );
-                        return array_slice( array_values( $jobs ), 0, $limit );
                 }
 
-                $table = self::table();
-                $sql   = $wpdb->prepare( "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit );
-                $rows  = (array) $wpdb->get_results( $sql, 'ARRAY_A' );
-
-                return array_map(
-                        static function ( array $row ): array {
-                                $row['id']       = (int) $row['id'];
-                                $row['attempts'] = (int) $row['attempts'];
-                                $row['payload']  = (array) json_decode( (string) $row['payload'], true );
-                                return $row;
-                        },
-                        $rows
+                $jobs = self::$jobs;
+                usort(
+                        $jobs,
+                        static function ( array $a, array $b ): int {
+                                return $b['id'] <=> $a['id']; // Más recientes primero
+                        }
                 );
+                return array_slice( array_values( $jobs ), 0, $limit );
         }
 
                 /** Increments the attempts counter for a job. */

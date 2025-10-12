@@ -5,6 +5,12 @@ use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Settings;
 
+if ( ! function_exists( '__' ) ) {
+    function __( $text, $domain = null ) {
+        return $text;
+    }
+}
+
 class FolioManagerTest extends TestCase {
     protected function setUp(): void {
         FoliosDb::purge();
@@ -56,6 +62,15 @@ class FolioManagerTest extends TestCase {
 
         $this->assertTrue( $manager->mark_folio_used( 39, 6 ) );
         $this->assertSame( 6, Settings::get_last_folio_value( 39, '0' ) );
+    }
+
+    public function test_mark_folio_used_advances_when_behind_expected_value(): void {
+        $manager = new FolioManager( $this->createSettings() );
+
+        Settings::update_last_folio_value( 39, '0', 10 );
+
+        $this->assertTrue( $manager->mark_folio_used( 39, 50 ) );
+        $this->assertSame( 50, Settings::get_last_folio_value( 39, '0' ) );
     }
 
     public function test_get_caf_info_returns_defaults_without_ranges(): void {

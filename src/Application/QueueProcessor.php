@@ -12,9 +12,10 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
  * Processes queued jobs, handles retries and logs outcomes.
  */
 class QueueProcessor {
-	private Api $api;
-	/** @var callable */
-	private $sleep;
+        private const RETRY_DELAY_SECONDS = 120;
+        private Api $api;
+        /** @var callable */
+        private $sleep;
 
 	public function __construct( Api $api, callable $sleep = null ) {
 		$this->api   = $api;
@@ -82,6 +83,7 @@ class QueueProcessor {
                                 LogDb::add_entry( '', 'error', $result->get_error_message(), $environment );
                                 if ( $job['attempts'] < 3 ) {
                                         QueueDb::increment_attempts( $job['id'] );
+                                        QueueDb::schedule_retry( $job['id'], self::RETRY_DELAY_SECONDS );
                                 } else {
                                         QueueDb::delete( $job['id'] );
                                 }

@@ -7,6 +7,7 @@
     var nonce = cfg.nonce || '';
     var refreshInterval = parseInt(cfg.refreshInterval || 0, 10);
     var tabAction = cfg.tabAction || '';
+    var isRefreshing = false;
 
     if (!action || !nonce) {
         return;
@@ -50,7 +51,28 @@
         }
     }
 
+    function setRefreshButtonsState(disabled) {
+        var buttons = document.querySelectorAll('.sii-control-refresh');
+        Array.prototype.forEach.call(buttons, function (button) {
+            button.disabled = !!disabled;
+            if (disabled) {
+                button.setAttribute('aria-busy', 'true');
+            } else {
+                button.removeAttribute('aria-busy');
+            }
+        });
+    }
+
     function requestSnapshot() {
+        if (isRefreshing) {
+            return;
+        }
+        isRefreshing = true;
+        setRefreshButtonsState(true);
+        var finalize = function () {
+            isRefreshing = false;
+            setRefreshButtonsState(false);
+        };
         var params = new URLSearchParams();
         params.append('action', action);
         params.append('nonce', nonce);
@@ -83,7 +105,8 @@
             })
             .catch(function () {
                 // Silently ignore errors to avoid interrupting the UI.
-            });
+            })
+            .then(finalize, finalize);
     }
 
     requestSnapshot();
@@ -164,6 +187,13 @@
                   tabContent.innerHTML = '<p style="color:#d63638;">' + (cfg.texts && cfg.texts.loadError ? cfg.texts.loadError : 'Error al cargar métricas.') + '</p>';
               }
           });
+    });
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sii-control-refresh');
+        if (!btn) return;
+        e.preventDefault();
+        requestSnapshot();
     });
 
     // Reiniciar métricas sin recargar

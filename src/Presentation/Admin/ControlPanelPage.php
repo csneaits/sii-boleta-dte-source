@@ -418,12 +418,17 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 'environment' => $environment,
                         )
                 );
-		?>
-<div class="sii-section">
-<h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
-<table class="widefat striped">
-<thead>
-<tr>
+        ?>
+        <div class="sii-section">
+                <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
+                <p>
+                        <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="logs">
+                                <?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?>
+                        </button>
+                </p>
+                <table class="widefat striped">
+                        <thead>
+                                <tr>
 <th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
 </tr>
@@ -457,12 +462,17 @@ private function render_queue(): void {
                         return $job_env === $environment;
                 }
         );
-?>
-<div class="sii-section">
-<h2><?php echo esc_html__( 'Cola', 'sii-boleta-dte' ); ?></h2>
-<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
-<table id="sii-control-queue-table" class="wp-list-table widefat fixed striped"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
-<thead>
+        ?>
+        <div class="sii-section">
+                <h2><?php echo esc_html__( 'Cola', 'sii-boleta-dte' ); ?></h2>
+                <p>
+                        <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="queue">
+                                <?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?>
+                        </button>
+                </p>
+                <p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
+                <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
+                        <thead>
 <tr>
 <th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>

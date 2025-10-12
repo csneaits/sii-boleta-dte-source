@@ -81,14 +81,14 @@ KEY type (type)
 		}
 		self::$use_memory  = true;
 		$id                = self::$auto_inc++;
-		self::$jobs[ $id ] = array(
-			'id'          => $id,
-			'type'        => $type,
-			'payload'     => $payload,
-			'attempts'    => 0,
-	                    'created_at'  => $created,
-	                    'available_at' => $created,
-	        );
+	self::$jobs[ $id ] = array(
+		'id'           => $id,
+		'type'         => $type,
+		'payload'      => $payload,
+		'attempts'     => 0,
+		'created_at'   => $created,
+		'available_at' => $created,
+	);
                 return $id;
         }
 

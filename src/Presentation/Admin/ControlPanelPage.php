@@ -213,6 +213,7 @@ class ControlPanelPage {
 <th><?php echo esc_html__( 'Fecha', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Detalle', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
 </tr></thead>
 <tbody id="sii-cert-last">
@@ -806,6 +807,7 @@ private function render_queue(): void {
 <tr>
 <th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>
+<th><?php echo esc_html__( 'Detalle', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Intentos', 'sii-boleta-dte' ); ?></th>
 <th><?php echo esc_html__( 'Acciones', 'sii-boleta-dte' ); ?></th>
 </tr>
@@ -813,13 +815,14 @@ private function render_queue(): void {
 <tbody id="sii-control-queue-body">
 <?php if ( empty( $jobs ) ) : ?>
 <tr class="sii-control-empty-row">
-<td colspan="4"><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></td>
+<td colspan="5"><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></td>
 </tr>
 <?php else : ?>
 <?php foreach ( $jobs as $job ) : ?>
 <tr>
 <td><?php echo (int) $job['id']; ?></td>
 <td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
+<td><?php echo esc_html( $this->describe_queue_document( $job ) ); ?></td>
 <td><?php echo (int) $job['attempts']; ?></td>
 <td>
 <form method="post" class="sii-inline-form">
@@ -1503,6 +1506,65 @@ private function handle_libro_action( string $action, string $xml ): void {
 		}
 
 		$this->notices = array();
+	}
+
+	/**
+	 * Builds a human-readable description for a queue job document (type, folio, etc.).
+	 *
+	 * @param array<string,mixed> $job Queue job data.
+	 */
+	private function describe_queue_document( array $job ): string {
+		$type    = isset( $job['type'] ) ? (string) $job['type'] : '';
+		$payload = isset( $job['payload'] ) && is_array( $job['payload'] ) ? $job['payload'] : array();
+		$meta    = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+
+		$document_type = $payload['document_type'] ?? ( $meta['type'] ?? null );
+		if ( is_string( $document_type ) && '' !== $document_type ) {
+			$document_type = (int) $document_type;
+		}
+		if ( ! is_int( $document_type ) ) {
+			$document_type = null;
+		}
+
+		$folio = $payload['folio'] ?? ( $meta['folio'] ?? null );
+		if ( is_string( $folio ) && '' !== $folio ) {
+			$folio = (int) $folio;
+		}
+		if ( ! is_int( $folio ) ) {
+			$folio = null;
+		}
+
+		$label = isset( $payload['label'] ) ? (string) $payload['label'] : '';
+		if ( '' === $label && isset( $meta['label'] ) ) {
+			$label = (string) $meta['label'];
+		}
+
+		$parts = array();
+
+		if ( 'dte' === $type ) {
+			if ( null !== $document_type ) {
+				$parts[] = sprintf( __( 'DTE %d', 'sii-boleta-dte' ), $document_type );
+			} else {
+				$parts[] = $this->translate_type( 'dte' );
+			}
+			if ( null !== $folio && $folio > 0 ) {
+				$parts[] = sprintf( __( 'Folio %d', 'sii-boleta-dte' ), $folio );
+			}
+			if ( '' !== $label && stripos( $label, 'DTE' ) === false ) {
+				$parts[] = $label;
+			}
+		} elseif ( '' !== $label ) {
+			$parts[] = $label;
+		}
+
+		if ( empty( $parts ) ) {
+			if ( '' !== $type ) {
+				return $this->translate_type( $type );
+			}
+			return __( 'Sin detalles', 'sii-boleta-dte' );
+		}
+
+		return implode( ' · ', array_filter( array_map( 'trim', $parts ) ) );
 	}
 
 	/** Returns a translated label for a queue job type. */

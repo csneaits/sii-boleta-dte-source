@@ -16,19 +16,32 @@ class Queue {
                 QueueDb::install();
         }
 
-        public function enqueue_dte( string $file, string $environment, string $token, string $storage_key = '' ): void {
-                $payload = array(
-                        'file'        => $file,
-                        'environment' => $environment,
-                        'token'       => $token,
-                );
+	public function enqueue_dte( string $file, string $environment, string $token, string $storage_key = '', array $metadata = array() ): void {
+		$payload = array(
+			'file'        => $file,
+			'environment' => $environment,
+			'token'       => $token,
+		);
 
-                if ( '' !== $storage_key ) {
-                        $payload['file_key'] = $storage_key;
-                }
+		if ( '' !== $storage_key ) {
+			$payload['file_key'] = $storage_key;
+		}
 
-                QueueDb::enqueue( 'dte', $payload );
-        }
+		if ( ! empty( $metadata ) ) {
+			$payload['meta'] = $metadata;
+			if ( isset( $metadata['type'] ) ) {
+				$payload['document_type'] = (int) $metadata['type'];
+			}
+			if ( isset( $metadata['folio'] ) ) {
+				$payload['folio'] = (int) $metadata['folio'];
+			}
+			if ( isset( $metadata['label'] ) ) {
+				$payload['label'] = (string) $metadata['label'];
+			}
+		}
+
+		QueueDb::enqueue( 'dte', $payload );
+	}
 
         public function enqueue_libro( string $xml, string $environment, string $token ): void {
                 QueueDb::enqueue(

@@ -73,6 +73,7 @@ use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
+use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
 use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
@@ -1722,10 +1723,15 @@ class GenerateDtePage {
 								$env   = (string) ( $settings_cfg['environment'] ?? 'test' );
 								$token = $this->token_manager->get_token( $env );
 								$track = $this->api->send_dte_to_sii( $file, $env, $token );
-				if ( function_exists( 'is_wp_error' ) && is_wp_error( $track ) ) {
-								$code    = method_exists( $track, 'get_error_code' ) ? (string) $track->get_error_code() : '';
-								$message = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
-								$message = $this->normalize_api_error_message( $message );
+		if ( function_exists( 'is_wp_error' ) && is_wp_error( $track ) ) {
+				$code      = method_exists( $track, 'get_error_code' ) ? (string) $track->get_error_code() : '';
+				$message   = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
+				$trackData = method_exists( $track, 'get_error_data' ) ? $track->get_error_data( $code ) : null;
+				$trackId   = '';
+				if ( is_array( $trackData ) && isset( $trackData['trackId'] ) ) {
+						$trackId = (string) $trackData['trackId'];
+				}
+				$message = $this->normalize_api_error_message( $message );
 					if ( $this->should_queue_for_error( $code ) ) {
                                         $context        = array(
                                                 'label'        => $pdf_label,
@@ -1745,6 +1751,14 @@ class GenerateDtePage {
 										if ( 'sii_boleta_dev_simulated_error' === $code ) {
 												$queue_message = __( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
 										}
+					$log_payload = $context;
+					$log_payload['code']    = $code;
+					$log_payload['message'] = $message;
+					if ( '' !== $trackId ) {
+						$log_payload['trackId'] = $trackId;
+					}
+					$log_json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $log_payload ) : json_encode( $log_payload );
+					LogDb::add_entry( $trackId, 'queued', is_string( $log_json ) ? $log_json : '', $env );
 										return array(
 											'queued'      => true,
 											'pdf'         => $pdf,

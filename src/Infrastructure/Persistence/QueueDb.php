@@ -82,12 +82,13 @@ KEY type (type)
 		self::$use_memory  = true;
 		$id                = self::$auto_inc++;
 		self::$jobs[ $id ] = array(
-			'id'         => $id,
-			'type'       => $type,
-			'payload'    => $payload,
-			'attempts'   => 0,
-                        'available_at' => $created,
-                );
+			'id'          => $id,
+			'type'        => $type,
+			'payload'     => $payload,
+			'attempts'    => 0,
+	                    'created_at'  => $created,
+	                    'available_at' => $created,
+	        );
                 return $id;
         }
 
@@ -113,6 +114,7 @@ KEY type (type)
                                                 'type'     => (string) $row['type'],
                                                 'payload'  => is_array( $payload ) ? $payload : array(),
                                                 'attempts' => (int) $row['attempts'],
+                                                'created_at'   => isset( $row['created_at'] ) ? (string) $row['created_at'] : $now,
                                                 'available_at' => isset( $row['created_at'] ) ? (string) $row['created_at'] : $now,
                                         );
                                 }
@@ -122,7 +124,8 @@ KEY type (type)
                 $jobs = array_filter(
                         self::$jobs,
                         static function ( array $job ) use ( $now ) {
-                                return $job['available_at'] <= $now;
+                                $available = $job['available_at'] ?? $job['created_at'] ?? $now;
+                                return $available <= $now;
                         }
                 );
 

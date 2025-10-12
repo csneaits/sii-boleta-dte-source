@@ -271,7 +271,7 @@ class Ajax {
         $has_jobs = ! empty( $jobs );
         ob_start();
         if ( ! $has_jobs ) {
-            echo '<tr class="sii-control-empty-row"><td colspan="4">' . esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ) . '</td></tr>';
+            echo '<tr class="sii-control-empty-row"><td colspan="5">' . esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ) . '</td></tr>';
         } else {
             foreach ( $jobs as $job ) {
                 $id        = isset( $job['id'] ) ? (int) $job['id'] : 0;
@@ -280,6 +280,7 @@ class Ajax {
                 echo '<tr>';
                 echo '<td>' . (int) $id . '</td>';
                 echo '<td>' . esc_html( $this->translate_queue_type( $type ) ) . '</td>';
+                echo '<td>' . esc_html( $this->describe_queue_document( $job ) ) . '</td>';
                 echo '<td>' . (int) $attempts . '</td>';
                 echo '<td>' . $this->render_queue_actions( $id ) . '</td>';
                 echo '</tr>';
@@ -386,6 +387,65 @@ class Ajax {
         $html .= '<button class="button" name="queue_action" value="cancel">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</button>';
         $html .= '</form>';
         return $html;
+    }
+
+    /**
+     * Builds a human readable description for the given queue job.
+     *
+     * @param array<string,mixed> $job Job payload.
+     */
+    private function describe_queue_document( array $job ): string {
+        $type    = isset( $job['type'] ) ? (string) $job['type'] : '';
+        $payload = isset( $job['payload'] ) && is_array( $job['payload'] ) ? $job['payload'] : array();
+        $meta    = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+
+        $document_type = $payload['document_type'] ?? ( $meta['type'] ?? null );
+        if ( is_string( $document_type ) && '' !== $document_type ) {
+            $document_type = (int) $document_type;
+        }
+        if ( ! is_int( $document_type ) ) {
+            $document_type = null;
+        }
+
+        $folio = $payload['folio'] ?? ( $meta['folio'] ?? null );
+        if ( is_string( $folio ) && '' !== $folio ) {
+            $folio = (int) $folio;
+        }
+        if ( ! is_int( $folio ) ) {
+            $folio = null;
+        }
+
+        $label = isset( $payload['label'] ) ? (string) $payload['label'] : '';
+        if ( '' === $label && isset( $meta['label'] ) ) {
+            $label = (string) $meta['label'];
+        }
+
+        $parts = array();
+
+        if ( 'dte' === $type ) {
+            if ( null !== $document_type ) {
+                $parts[] = sprintf( __( 'DTE %d', 'sii-boleta-dte' ), $document_type );
+            } else {
+                $parts[] = $this->translate_queue_type( 'dte' );
+            }
+            if ( null !== $folio && $folio > 0 ) {
+                $parts[] = sprintf( __( 'Folio %d', 'sii-boleta-dte' ), $folio );
+            }
+            if ( '' !== $label && stripos( $label, 'DTE' ) === false ) {
+                $parts[] = $label;
+            }
+        } elseif ( '' !== $label ) {
+            $parts[] = $label;
+        }
+
+        if ( empty( $parts ) ) {
+            if ( '' !== $type ) {
+                return $this->translate_queue_type( $type );
+            }
+            return __( 'Sin detalles', 'sii-boleta-dte' );
+        }
+
+        return implode( ' · ', array_filter( array_map( 'trim', $parts ) ) );
     }
 
     private function nonce_field( string $action, string $name ): string {

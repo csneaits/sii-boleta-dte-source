@@ -460,6 +460,12 @@ class GenerateDtePageTest extends TestCase {
                 $this->assertNotSame( '', $key );
                 $this->assertMatchesRegularExpression( '/^[a-f0-9]{16,}$/', $key );
                 return true;
+            } ),
+            $this->callback( function ( $meta ) {
+                $this->assertIsArray( $meta );
+                $this->assertSame( 39, $meta['type'] ?? null );
+                $this->assertSame( 10, $meta['folio'] ?? null );
+                return true;
             } )
         );
 

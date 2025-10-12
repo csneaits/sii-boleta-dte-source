@@ -81,7 +81,16 @@ class CertificationRunner {
                 }
 
                 if ( ! $dryRun ) {
-                    $this->queue->enqueue_dte( $path, $environment, $token, $fileKey );
+                    $this->queue->enqueue_dte(
+                        $path,
+                        $environment,
+                        $token,
+                        $fileKey,
+                        array(
+                            'type'  => $tipo,
+                            'folio' => $folio,
+                        )
+                    );
                 }
 
                 $queued++;

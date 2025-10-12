@@ -1756,7 +1756,7 @@ class GenerateDtePage {
                                         if ( '' !== $storage_path ) {
                                                 $file = $storage_path;
                                         }
-										$this->queue->enqueue_dte( $file, $env, $token, $storage_key );
+										$this->queue->enqueue_dte( $file, $env, $token, $storage_key, $context );
 										$queue_message = __( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
 										if ( 'sii_boleta_dev_simulated_error' === $code ) {
 												$queue_message = __( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );

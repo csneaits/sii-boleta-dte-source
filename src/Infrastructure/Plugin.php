@@ -16,6 +16,8 @@ use Sii\BoletaDte\Application\ConsumoFolios;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\Cron;
+use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Presentation\Admin\Help;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\BoletaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\FacturaDteDocumentFactory;
@@ -50,6 +52,8 @@ class Plugin {
         public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
                         Container::init();
                         PdfStorageMigrator::migrate();
+                        LogDb::install();
+                        QueueDb::install();
 			$this->settings       = $settings ?? new Settings();
 			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
 			$this->signer         = $signer ?? new Signer();
@@ -126,7 +130,8 @@ class Plugin {
 
         public function fluent_smtp_profiles( $profiles ) {
                 if ( class_exists( '\\FluentMail\\App\\Models\\Settings' ) ) {
-                        $settings = new \FluentMail\App\Models\Settings();
+                        $class    = '\\FluentMail\\App\\Models\\Settings';
+                        $settings = new $class();
                         $config   = $settings->getConnections();
                         foreach ( $config as $key => $data ) {
                                 $label = $data['sender_email'] ?? ( $data['title'] ?? $key );

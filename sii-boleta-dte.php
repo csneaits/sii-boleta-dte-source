@@ -114,6 +114,7 @@ register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Cron::c
 register_deactivation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Cron::class, 'deactivate' ) );
 // Crear tabla de log consolidado al activar el plugin.
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\LogDb::class, 'install' ) );
+register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\QueueDb::class, 'install' ) );
 // Crear tabla de folios manuales.
 register_activation_hook( __FILE__, array( \Sii\BoletaDte\Infrastructure\Persistence\FoliosDb::class, 'install' ) );
 // Migrar ajustes y logs de versiones anteriores.

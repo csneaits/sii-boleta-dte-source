@@ -8,6 +8,7 @@ use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
+use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
@@ -54,12 +55,17 @@ if ( ! class_exists( 'WP_Error' ) ) {
     class WP_Error {
         private $code;
         private $message;
-        public function __construct( $code = '', $message = '' ) {
+        private $data;
+        public function __construct( $code = '', $message = '', $data = null ) {
             $this->code    = $code;
             $this->message = $message;
+            $this->data    = $data;
         }
         public function get_error_message() { return $this->message; }
         public function get_error_code() { return $this->code; }
+        public function get_error_data( $code = '' ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+            return $this->data;
+        }
     }
 }
 if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $thing ) { return $thing instanceof WP_Error; } }
@@ -407,6 +413,8 @@ class GenerateDtePageTest extends TestCase {
     }
 
     public function test_process_post_queues_when_sii_unavailable(): void {
+        LogDb::purge();
+        LogDb::install();
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn(
             array(
@@ -487,9 +495,16 @@ class GenerateDtePageTest extends TestCase {
         if ( file_exists( $tmpPdf ) ) {
             unlink( $tmpPdf );
         }
+
+        $logs = LogDb::get_logs();
+        $this->assertNotEmpty( $logs );
+        $latest = $logs[0];
+        $this->assertSame( 'queued', $latest['status'] );
     }
 
     public function test_process_post_dev_simulated_error_queues_document(): void {
+        LogDb::purge();
+        LogDb::install();
         $settings = $this->createMock( Settings::class );
         $settings->method( 'get_settings' )->willReturn(
             array(
@@ -503,7 +518,11 @@ class GenerateDtePageTest extends TestCase {
 
         $api = $this->createMock( Api::class );
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn(
-            new WP_Error( 'sii_boleta_dev_simulated_error', 'Envío simulado con error desde ajustes de desarrollo.' )
+            new WP_Error(
+                'sii_boleta_dev_simulated_error',
+                'Envío simulado con error desde ajustes de desarrollo.',
+                array( 'trackId' => 'DTE-SIM-1234' )
+            )
         );
         $engine = $this->createMock( DteEngine::class );
         $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
@@ -542,5 +561,11 @@ class GenerateDtePageTest extends TestCase {
         if ( file_exists( $tmpPdf ) ) {
             unlink( $tmpPdf );
         }
+
+        $logs = LogDb::get_logs();
+        $this->assertNotEmpty( $logs );
+        $first = $logs[0];
+        $this->assertSame( 'queued', $first['status'] );
+        $this->assertSame( 'DTE-SIM-1234', $first['track_id'] );
     }
 }

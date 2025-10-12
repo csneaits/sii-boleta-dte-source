@@ -58,7 +58,7 @@ class Ajax {
                 )
         );
         $raw_jobs = QueueDb::get_pending_jobs( 100 );
-        $jobs = array_filter(
+                $jobs = array_filter(
                 $raw_jobs,
                 static function ( array $job ) use ( $normalized_env ) {
                         $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
@@ -68,6 +68,14 @@ class Ajax {
         if ( empty( $jobs ) && ! empty( $raw_jobs ) ) {
                 $jobs = $raw_jobs;
         }
+        $filters = array();
+        if ( isset( $_POST['filter_attempts'] ) ) {
+                $filters['attempts'] = $this->sanitize_input_value( (string) $_POST['filter_attempts'] );
+        }
+        if ( isset( $_POST['filter_age'] ) ) {
+                $filters['age'] = $this->sanitize_input_value( (string) $_POST['filter_age'] );
+        }
+        $jobs = $this->filter_queue_jobs( $jobs, $filters );
         $logs_html = $this->render_logs_rows( $logs );
         $queue     = $this->render_queue_rows( $jobs );
 
@@ -149,7 +157,26 @@ class Ajax {
         $tab = isset( $_POST['tab'] ) ? (string) $_POST['tab'] : 'logs';
         /** @var ControlPanelPage $page */
         $page = Container::get( ControlPanelPage::class );
+        $original_query = array();
+        foreach ( array( 'filter_attempts', 'filter_age' ) as $key ) {
+                if ( isset( $_POST[ $key ] ) ) {
+                        $value                 = $this->sanitize_input_value( (string) $_POST[ $key ] );
+                        $original_query[ $key ] = $_GET[ $key ] ?? null;
+                        if ( '' === $value ) {
+                                unset( $_GET[ $key ] );
+                        } else {
+                                $_GET[ $key ] = $value;
+                        }
+                }
+        }
         $html = $page->get_tab_content_html( $tab );
+        foreach ( $original_query as $key => $value ) {
+                if ( null === $value ) {
+                        unset( $_GET[ $key ] );
+                } else {
+                        $_GET[ $key ] = $value;
+                }
+        }
         \wp_send_json_success( array( 'html' => $html, 'tab' => $tab ) );
     }
 
@@ -261,6 +288,90 @@ class Ajax {
         return array(
             'rows'     => (string) ob_get_clean(),
             'has_jobs' => $has_jobs,
+        );
+    }
+
+    private function sanitize_input_value( string $value ): string {
+        $value = trim( $value );
+        if ( '' === $value ) {
+            return '';
+        }
+        if ( function_exists( 'sanitize_text_field' ) ) {
+            $value = sanitize_text_field( $value );
+        } else {
+            $value = preg_replace( '/[^a-z0-9\+\-]/i', '', $value );
+        }
+        return (string) $value;
+    }
+
+    /**
+     * Aplica filtros manuales de intentos/antigüedad a la cola.
+     *
+     * @param array<int,array<string,mixed>> $jobs
+     * @param array<string,string>           $filters
+     * @return array<int,array<string,mixed>>
+     */
+    private function filter_queue_jobs( array $jobs, array $filters ): array {
+        if ( empty( $filters ) ) {
+            return array_values( $jobs );
+        }
+
+        $one_hour_ago = time() - 3600;
+
+        return array_values(
+            array_filter(
+                $jobs,
+                static function ( array $job ) use ( $filters, $one_hour_ago ): bool {
+                    if ( isset( $filters['attempts'] ) && '' !== $filters['attempts'] ) {
+                        $job_attempts = (int) ( $job['attempts'] ?? 0 );
+                        switch ( $filters['attempts'] ) {
+                            case '0':
+                                if ( 0 !== $job_attempts ) {
+                                    return false;
+                                }
+                                break;
+                            case '1':
+                                if ( 1 !== $job_attempts ) {
+                                    return false;
+                                }
+                                break;
+                            case '2':
+                                if ( 2 !== $job_attempts ) {
+                                    return false;
+                                }
+                                break;
+                            case '3+':
+                                if ( $job_attempts < 3 ) {
+                                    return false;
+                                }
+                                break;
+                        }
+                    }
+
+                    if ( isset( $filters['age'] ) && '' !== $filters['age'] ) {
+                        $created = '';
+                        if ( isset( $job['created_at'] ) ) {
+                            $created = (string) $job['created_at'];
+                        } elseif ( isset( $job['available_at'] ) ) {
+                            $created = (string) $job['available_at'];
+                        }
+
+                        if ( '' !== $created ) {
+                            $timestamp = strtotime( $created );
+                            if ( false !== $timestamp ) {
+                                if ( 'new' === $filters['age'] && $timestamp < $one_hour_ago ) {
+                                    return false;
+                                }
+                                if ( 'old' === $filters['age'] && $timestamp >= $one_hour_ago ) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+
+                    return true;
+                }
+            )
         );
     }
 

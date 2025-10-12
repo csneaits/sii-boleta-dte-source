@@ -15,14 +15,62 @@
     }
 
     var logsBody = document.getElementById('sii-control-logs-body');
-    var queueBody = document.getElementById('sii-control-queue-body');
-    var queueTable = document.getElementById('sii-control-queue-table');
-    var queueEmpty = document.getElementById('sii-control-queue-empty');
     var noticesContainer = document.getElementById('sii-control-panel-notices');
+    var tabContent = document.getElementById('sii-control-tab-content');
     var defaultQueueOk = (cfg.texts && cfg.texts.queueActionOk) ? cfg.texts.queueActionOk : 'Acción de cola ejecutada.';
     var defaultQueueFail = (cfg.texts && cfg.texts.queueActionFail) ? cfg.texts.queueActionFail : 'No se pudo ejecutar la acción seleccionada.';
+    var queueBody;
+    var queueTable;
+    var queueEmpty;
+    var queueFilters = { attempts: '', age: '' };
 
-    function initQueueFilters() {
+    (function seedFiltersFromUrl() {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            queueFilters.attempts = params.get('filter_attempts') || '';
+            queueFilters.age = params.get('filter_age') || '';
+        } catch (e) {
+            queueFilters.attempts = '';
+            queueFilters.age = '';
+        }
+    })();
+
+    function refreshDomRefs() {
+        queueBody = document.getElementById('sii-control-queue-body');
+        queueTable = document.getElementById('sii-control-queue-table');
+        queueEmpty = document.getElementById('sii-control-queue-empty');
+    }
+
+    function updateUrlFilters(filters) {
+        try {
+            var url = new URL(window.location.href);
+            if (filters.attempts) {
+                url.searchParams.set('filter_attempts', filters.attempts);
+            } else {
+                url.searchParams.delete('filter_attempts');
+            }
+            if (filters.age) {
+                url.searchParams.set('filter_age', filters.age);
+            } else {
+                url.searchParams.delete('filter_age');
+            }
+            window.history.replaceState({}, document.title, url.toString());
+        } catch (e) {
+            // Ignore browsers without URL API support.
+        }
+    }
+
+    function appendQueueFilters(params) {
+        if (!params) return;
+        if (queueFilters.attempts) {
+            params.append('filter_attempts', queueFilters.attempts);
+        }
+        if (queueFilters.age) {
+            params.append('filter_age', queueFilters.age);
+        }
+    }
+
+    function initQueueFilters(preserveState) {
         var applyFiltersBtn = document.getElementById('apply-filters');
         var clearFiltersBtn = document.getElementById('clear-filters');
         var showHelpBtn = document.getElementById('show-help');
@@ -30,41 +78,43 @@
         var attemptsFilter = document.getElementById('filter_attempts');
         var ageFilter = document.getElementById('filter_age');
 
-        var currentParams = new URLSearchParams(window.location.search);
-        if (attemptsFilter) {
-            attemptsFilter.value = currentParams.get('filter_attempts') || '';
+        if (!applyFiltersBtn && !clearFiltersBtn && !showHelpBtn) {
+            return;
         }
-        if (ageFilter) {
-            ageFilter.value = currentParams.get('filter_age') || '';
+
+        if (preserveState) {
+            if (attemptsFilter) {
+                attemptsFilter.value = queueFilters.attempts || '';
+            }
+            if (ageFilter) {
+                ageFilter.value = queueFilters.age || '';
+            }
+        } else {
+            if (attemptsFilter && !queueFilters.attempts) {
+                queueFilters.attempts = attemptsFilter.value || '';
+            }
+            if (ageFilter && !queueFilters.age) {
+                queueFilters.age = ageFilter.value || '';
+            }
         }
 
         if (applyFiltersBtn && !applyFiltersBtn.dataset.bound) {
             applyFiltersBtn.dataset.bound = '1';
             applyFiltersBtn.addEventListener('click', function () {
-                var attempts = attemptsFilter ? attemptsFilter.value : '';
-                var age = ageFilter ? ageFilter.value : '';
-                var url = new URL(window.location.href);
-                if (attempts) {
-                    url.searchParams.set('filter_attempts', attempts);
-                } else {
-                    url.searchParams.delete('filter_attempts');
-                }
-                if (age) {
-                    url.searchParams.set('filter_age', age);
-                } else {
-                    url.searchParams.delete('filter_age');
-                }
-                window.location.href = url.toString();
+                queueFilters.attempts = attemptsFilter ? attemptsFilter.value : '';
+                queueFilters.age = ageFilter ? ageFilter.value : '';
+                updateUrlFilters(queueFilters);
+                fetchQueueTabWithFilters();
             });
         }
 
         if (clearFiltersBtn && !clearFiltersBtn.dataset.bound) {
             clearFiltersBtn.dataset.bound = '1';
             clearFiltersBtn.addEventListener('click', function () {
-                var url = new URL(window.location.href);
-                url.searchParams.delete('filter_attempts');
-                url.searchParams.delete('filter_age');
-                window.location.href = url.toString();
+                queueFilters.attempts = '';
+                queueFilters.age = '';
+                updateUrlFilters(queueFilters);
+                fetchQueueTabWithFilters();
             });
         }
 
@@ -75,6 +125,40 @@
                 helpPanel.style.display = helpPanel.style.display === 'none' ? 'block' : 'none';
             });
         }
+    }
+
+    function fetchQueueTabWithFilters() {
+        if (!tabAction || !tabContent) {
+            requestSnapshot();
+            return;
+        }
+
+        tabContent.setAttribute('data-active-tab', 'queue');
+        tabContent.innerHTML = '<p style="padding:8px 0;">' + (cfg.texts && cfg.texts.loading ? cfg.texts.loading : 'Cargando…') + '</p>';
+
+        var params = new URLSearchParams();
+        params.append('action', tabAction);
+        params.append('nonce', nonce);
+        params.append('tab', 'queue');
+        appendQueueFilters(params);
+
+        fetch(ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+            body: params.toString()
+        })
+            .then(function (r) { if (!r.ok) throw new Error('net'); return r.json(); })
+            .then(function (payload) {
+                if (!payload || !payload.success || !payload.data) throw new Error('bad');
+                tabContent.innerHTML = payload.data.html || '';
+                refreshDomRefs();
+                initQueueFilters(true);
+                requestSnapshot();
+            })
+            .catch(function () {
+                tabContent.innerHTML = '<p style="color:#d63638;">' + (cfg.texts && cfg.texts.loadError ? cfg.texts.loadError : 'Error al cargar el contenido.') + '</p>';
+            });
     }
 
     function showNotice(type, message) {
@@ -111,6 +195,7 @@
     }
 
     function updateQueue(html, hasJobs) {
+        refreshDomRefs();
         if (!queueBody) {
             return;
         }
@@ -148,6 +233,7 @@
         var params = new URLSearchParams();
         params.append('action', action);
         params.append('nonce', nonce);
+        appendQueueFilters(params);
 
         fetch(ajaxUrl, {
             method: 'POST',
@@ -181,8 +267,9 @@
             .then(finalize, finalize);
     }
 
+    refreshDomRefs();
+    initQueueFilters(false);
     requestSnapshot();
-    initQueueFilters();
 
     document.addEventListener('submit', function (e) {
         var form = e.target;
@@ -213,6 +300,7 @@
         params.append('nonce', nonceField);
         params.append('queue_action', queueAction);
         params.append('job_id', jobId);
+        appendQueueFilters(params);
 
         fetch(ajaxUrl, {
             method: 'POST',
@@ -252,9 +340,14 @@
             });
     });
 
-    /* Navegación AJAX de tabs */
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sii-control-refresh');
+        if (!btn) return;
+        e.preventDefault();
+        requestSnapshot();
+    });
+
     var tabsWrapper = document.getElementById('sii-control-panel-tabs');
-    var tabContent = document.getElementById('sii-control-tab-content');
     if (tabsWrapper && tabContent && tabAction) {
         tabsWrapper.addEventListener('click', function (e) {
             var a = e.target.closest('a.nav-tab');
@@ -263,19 +356,19 @@
             var url = new URL(a.getAttribute('href'), window.location.origin);
             var tab = url.searchParams.get('tab') || 'logs';
             if (a.classList.contains('nav-tab-active')) return;
-            // Marcar activo
             Array.prototype.forEach.call(tabsWrapper.querySelectorAll('a.nav-tab'), function (el) {
                 el.classList.remove('nav-tab-active');
             });
             a.classList.add('nav-tab-active');
-            // Mostrar cargando
             tabContent.setAttribute('data-active-tab', tab);
             tabContent.innerHTML = '<p style="padding:8px 0;">' + (cfg.texts && cfg.texts.loading ? cfg.texts.loading : 'Cargando…') + '</p>';
-            // Fetch
             var params = new URLSearchParams();
             params.append('action', tabAction);
             params.append('nonce', nonce);
             params.append('tab', tab);
+            if (tab === 'queue') {
+                appendQueueFilters(params);
+            }
             fetch(ajaxUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -285,10 +378,10 @@
               .then(function (payload) {
                   if (!payload || !payload.success || !payload.data) throw new Error('bad');
                   tabContent.innerHTML = payload.data.html || '';
-                  // For logs/queue tab, refresh snapshot right away
+                  refreshDomRefs();
                   if (tab === 'logs' || tab === 'queue') {
                       requestSnapshot();
-                      initQueueFilters();
+                      initQueueFilters(true);
                   }
               })
               .catch(function () {
@@ -297,7 +390,6 @@
         });
     }
 
-    // Filtros de métricas por AJAX (delegado, se reinyecta HTML en cada carga de tab metrics)
     document.addEventListener('submit', function (e) {
         var form = e.target;
         if (!form.classList || !form.classList.contains('sii-metric-filter')) return;
@@ -332,14 +424,6 @@
     });
 
     document.addEventListener('click', function (e) {
-        var btn = e.target.closest('.sii-control-refresh');
-        if (!btn) return;
-        e.preventDefault();
-        requestSnapshot();
-    });
-
-    // Reiniciar métricas sin recargar
-    document.addEventListener('click', function (e) {
         var link = e.target.closest('a[data-metrics-reset="1"]');
         if (!link) return;
         if (!nonce) return;
@@ -367,7 +451,6 @@
           });
     });
 
-    // Ejecutar limpieza de renders debug vía AJAX
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('#sii-run-prune-debug');
         if (!btn) return;
@@ -391,11 +474,10 @@
               if (statusEl) {
                   statusEl.textContent = (cfg.texts && cfg.texts.done ? cfg.texts.done : 'Listo') + ' (' + (payload.data.deleted || 0) + ')';
               }
-              // Reemplazar sección mantenimiento si llega HTML parcial
               if (payload.data.html) {
-                  var tabContent = document.getElementById('sii-control-tab-content');
-                  if (tabContent && tabContent.getAttribute('data-active-tab') === 'maintenance') {
-                      tabContent.innerHTML = payload.data.html;
+                  var maintenanceContent = document.getElementById('sii-control-tab-content');
+                  if (maintenanceContent && maintenanceContent.getAttribute('data-active-tab') === 'maintenance') {
+                      maintenanceContent.innerHTML = payload.data.html;
                   }
               }
           })

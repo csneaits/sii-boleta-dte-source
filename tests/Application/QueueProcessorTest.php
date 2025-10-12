@@ -43,6 +43,16 @@ if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
         return $response['body'] ?? '';
     }
 }
+if ( ! function_exists( 'current_time' ) ) {
+    function current_time( $type, $gmt = false ) {
+        $timestamp = $GLOBALS['test_current_time'] ?? time();
+        if ( 'timestamp' === $type ) {
+            return $timestamp;
+        }
+
+        return gmdate( 'Y-m-d H:i:s', $timestamp );
+    }
+}
 if ( ! function_exists( 'wp_mkdir_p' ) ) {
     function wp_mkdir_p( $dir = '' ) {
         if ( '' !== $dir && ! is_dir( $dir ) ) {
@@ -122,5 +132,42 @@ class QueueProcessorTest extends TestCase {
 
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
         @unlink( $stored['path'] );
+    }
+
+    public function test_failed_jobs_are_delayed_before_retry(): void {
+        $GLOBALS['test_current_time'] = strtotime( '2024-01-01 00:00:00' );
+
+        $api = $this->getMockBuilder( Api::class )
+            ->onlyMethods( array( 'send_dte_to_sii' ) )
+            ->getMock();
+
+        $error = new WP_Error( 'api', 'fail' );
+        $api->expects( $this->exactly( 2 ) )->method( 'send_dte_to_sii' )
+            ->willReturnOnConsecutiveCalls( $error, 'track' );
+
+        $processor = new QueueProcessor( $api, static function(){} );
+
+        $file = $this->create_temp_xml();
+        QueueDb::enqueue( 'dte', array(
+            'file'        => $file,
+            'environment' => 'test',
+            'token'       => 'tok',
+        ) );
+
+        $processor->process();
+
+        $this->assertSame( array(), QueueDb::get_pending_jobs() );
+
+        $GLOBALS['test_current_time'] += 60;
+        $processor->process();
+
+        $this->assertSame( array(), QueueDb::get_pending_jobs() );
+
+        $GLOBALS['test_current_time'] += 120;
+        $processor->process();
+
+        $this->assertCount( 0, QueueDb::get_pending_jobs() );
+        unset( $GLOBALS['test_current_time'] );
+        unlink( $file );
     }
 }

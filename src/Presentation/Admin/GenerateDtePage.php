@@ -1740,12 +1740,16 @@ class GenerateDtePage {
                                         if ( '' !== $storage_path ) {
                                                 $file = $storage_path;
                                         }
-                                        $this->queue->enqueue_dte( $file, $env, $token, $storage_key );
+										$this->queue->enqueue_dte( $file, $env, $token, $storage_key );
+										$queue_message = __( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
+										if ( 'sii_boleta_dev_simulated_error' === $code ) {
+												$queue_message = __( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
+										}
 										return array(
 											'queued'      => true,
 											'pdf'         => $pdf,
 											'pdf_url'     => $pdf_url,
-											'message'     => __( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' ),
+											'message'     => $queue_message,
 											'notice_type' => 'warning',
 										);
 					}
@@ -2138,6 +2142,7 @@ class GenerateDtePage {
 						'http_request_failed',
 						'http_request_timeout',
 						'sii_boleta_http_error',
+						'sii_boleta_dev_simulated_error',
 					);
 
 					return in_array( $code, $temporary, true );

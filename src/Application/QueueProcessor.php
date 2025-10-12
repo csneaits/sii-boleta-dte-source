@@ -104,6 +104,16 @@ class QueueProcessor {
 	public function cancel( int $id ): void {
 		QueueDb::delete( $id );
 	}
+
+	/** Retries all failed jobs by resetting their attempts counter. */
+	public function retry_all_failed(): int {
+		return QueueDb::retry_all_failed();
+	}
+
+	/** Gets queue statistics for monitoring. */
+	public function get_stats(): array {
+		return QueueDb::get_stats();
+	}
 }
 
 class_alias( QueueProcessor::class, 'SII_Boleta_Queue_Processor' );

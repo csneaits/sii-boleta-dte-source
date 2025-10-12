@@ -193,6 +193,140 @@ KEY env_status (environment, status)
         }
 
         /**
+         * Returns system health metrics from the logs.
+         * 
+         * @return array{success_rate:float,total_last_24h:int,errors_last_24h:int,most_common_error:string,avg_queue_time:int}
+         */
+        public static function get_health_metrics(): array {
+                global $wpdb;
+                if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+                        // In-memory fallback with limited data
+                        $recent = array_filter( 
+                                self::$entries, 
+                                fn( $entry ) => strtotime( $entry['created_at'] ?? 'now' ) > strtotime( '-24 hours' ) 
+                        );
+                        $total = count( $recent );
+                        $errors = array_filter( $recent, fn( $entry ) => $entry['status'] === 'error' );
+                        $success_rate = $total > 0 ? ( ( $total - count( $errors ) ) / $total ) * 100 : 100;
+                        
+                        return array(
+                                'success_rate'       => round( $success_rate, 1 ),
+                                'total_last_24h'     => $total,
+                                'errors_last_24h'    => count( $errors ),
+                                'most_common_error'  => '',
+                                'avg_queue_time'     => 0,
+                        );
+                }
+
+                $table = self::table();
+                
+                // Métricas básicas últimas 24 horas
+                $stats = $wpdb->get_row( "
+                        SELECT 
+                                COUNT(*) as total,
+                                SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors,
+                                SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+                                SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) as queued
+                        FROM {$table} 
+                        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                " );
+
+                // Error más común en las últimas 24 horas
+                $common_error = $wpdb->get_var( "
+                        SELECT response
+                        FROM {$table} 
+                        WHERE status = 'error' 
+                        AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                        AND response != ''
+                        GROUP BY response 
+                        ORDER BY COUNT(*) DESC 
+                        LIMIT 1
+                " );
+
+                // Tiempo promedio entre encolado y envío exitoso (aproximado)
+                $avg_queue_time = $wpdb->get_var( "
+                        SELECT AVG(TIMESTAMPDIFF(MINUTE, q.created_at, s.created_at)) as avg_minutes
+                        FROM {$table} q
+                        JOIN {$table} s ON q.track_id = s.track_id
+                        WHERE q.status = 'queued' 
+                        AND s.status = 'sent'
+                        AND q.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                        AND s.created_at > q.created_at
+                " );
+
+                if ( ! $stats ) {
+                        return array(
+                                'success_rate'       => 100.0,
+                                'total_last_24h'     => 0,
+                                'errors_last_24h'    => 0,
+                                'most_common_error'  => '',
+                                'avg_queue_time'     => 0,
+                        );
+                }
+
+                $stats = (array) $stats;
+                $total = (int) ( $stats['total'] ?? 0 );
+                $errors = (int) ( $stats['errors'] ?? 0 );
+                $sent = (int) ( $stats['sent'] ?? 0 );
+                
+                $success_rate = $total > 0 ? ( $sent / $total ) * 100 : 100;
+
+                return array(
+                        'success_rate'       => round( $success_rate, 1 ),
+                        'total_last_24h'     => $total,
+                        'errors_last_24h'    => $errors,
+                        'most_common_error'  => is_string( $common_error ) ? $common_error : '',
+                        'avg_queue_time'     => (int) ( $avg_queue_time ?? 0 ),
+                );
+        }
+
+        /**
+         * Returns error breakdown by type for the last 7 days.
+         * 
+         * @return array<array{error_type:string,count:int,last_seen:string}>
+         */
+        public static function get_error_breakdown(): array {
+                global $wpdb;
+                if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+                        // Simplified in-memory version
+                        $errors = array_filter( self::$entries, fn( $entry ) => $entry['status'] === 'error' );
+                        $breakdown = array();
+                        foreach ( $errors as $error ) {
+                                $type = $error['response'] ?: 'Error desconocido';
+                                if ( ! isset( $breakdown[ $type ] ) ) {
+                                        $breakdown[ $type ] = array(
+                                                'error_type' => $type,
+                                                'count'      => 0,
+                                                'last_seen'  => $error['created_at'],
+                                        );
+                                }
+                                $breakdown[ $type ]['count']++;
+                        }
+                        return array_values( $breakdown );
+                }
+
+                $table = self::table();
+                $results = $wpdb->get_results( "
+                        SELECT 
+                                COALESCE(NULLIF(response, ''), 'Error desconocido') as error_type,
+                                COUNT(*) as count,
+                                MAX(created_at) as last_seen
+                        FROM {$table} 
+                        WHERE status = 'error' 
+                        AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                        GROUP BY response
+                        ORDER BY count DESC
+                        LIMIT 10
+                " );
+
+                if ( ! is_array( $results ) ) {
+                        return array();
+                }
+
+                return array_map( fn( $row ) => (array) $row, $results );
+        }
+
+        /**
          * Deletes stored logs.
          */
         public static function purge(): void {

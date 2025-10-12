@@ -199,6 +199,104 @@ KEY type (type)
 		self::$jobs     = array();
 		self::$auto_inc = 1;
 	}
+
+	/**
+	 * Returns queue statistics for monitoring.
+	 * 
+	 * @return array{total:int,pending:int,failed:int,old_jobs:int,avg_attempts:float}
+	 */
+	public static function get_stats(): array {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+			// In-memory fallback
+			$total = count( self::$jobs );
+			$failed = array_filter( self::$jobs, fn( $job ) => $job['attempts'] >= 3 );
+			$old_jobs = array_filter( self::$jobs, fn( $job ) => strtotime( $job['available_at'] ?? 'now' ) < strtotime( '-1 hour' ) );
+			$avg_attempts = $total > 0 ? array_sum( array_column( self::$jobs, 'attempts' ) ) / $total : 0;
+			
+			return array(
+				'total'        => $total,
+				'pending'      => $total - count( $failed ),
+				'failed'       => count( $failed ),
+				'old_jobs'     => count( $old_jobs ),
+				'avg_attempts' => round( $avg_attempts, 2 ),
+			);
+		}
+
+		$table = self::table();
+		$stats = $wpdb->get_row( "
+			SELECT 
+				COUNT(*) as total,
+				SUM(CASE WHEN attempts < 3 THEN 1 ELSE 0 END) as pending,
+				SUM(CASE WHEN attempts >= 3 THEN 1 ELSE 0 END) as failed,
+				SUM(CASE WHEN created_at < DATE_SUB(NOW(), INTERVAL 1 HOUR) THEN 1 ELSE 0 END) as old_jobs,
+				AVG(attempts) as avg_attempts
+			FROM {$table}
+		" );
+
+		if ( ! $stats ) {
+			return array(
+				'total'        => 0,
+				'pending'      => 0,
+				'failed'       => 0,
+				'old_jobs'     => 0,
+				'avg_attempts' => 0.0,
+			);
+		}
+
+		// Convert object to array if needed
+		$stats = (array) $stats;
+
+		return array(
+			'total'        => (int) ( $stats['total'] ?? 0 ),
+			'pending'      => (int) ( $stats['pending'] ?? 0 ),
+			'failed'       => (int) ( $stats['failed'] ?? 0 ),
+			'old_jobs'     => (int) ( $stats['old_jobs'] ?? 0 ),
+			'avg_attempts' => round( (float) ( $stats['avg_attempts'] ?? 0 ), 2 ),
+		);
+	}
+
+	/**
+	 * Returns jobs that have failed (attempts >= 3) for retry.
+	 * 
+	 * @return array<array{ id:int,type:string,payload:array<string,mixed>,attempts:int,created_at:string }>
+	 */
+	public static function get_failed_jobs(): array {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+			return array_filter( self::$jobs, fn( $job ) => $job['attempts'] >= 3 );
+		}
+
+		$table = self::table();
+		$results = $wpdb->get_results( "SELECT * FROM {$table} WHERE attempts >= 3 ORDER BY created_at DESC" );
+		if ( ! is_array( $results ) ) {
+			return array();
+		}
+		
+		// Convert objects to arrays
+		return array_map( fn( $row ) => (array) $row, $results );
+	}
+
+	/**
+	 * Resets attempts counter for all failed jobs (mass retry).
+	 */
+	public static function retry_all_failed(): int {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'query' ) ) {
+			$count = 0;
+			foreach ( self::$jobs as &$job ) {
+				if ( $job['attempts'] >= 3 ) {
+					$job['attempts'] = 0;
+					$count++;
+				}
+			}
+			return $count;
+		}
+
+		$table = self::table();
+		$affected = $wpdb->query( "UPDATE {$table} SET attempts = 0 WHERE attempts >= 3" );
+		return is_numeric( $affected ) ? (int) $affected : 0;
+	}
 }
 
 /* phpcs:enable */

@@ -75,7 +75,7 @@ class ControlPanelPage {
 'logs'    => __( 'DTE recientes', 'sii-boleta-dte' ),
 'queue'   => __( 'Cola', 'sii-boleta-dte' ),
 'rvd'     => __( 'RVD', 'sii-boleta-dte' ),
-'libro'   => __( 'Validación de Libros', 'sii-boleta-dte' ),
+'libro'   => __( 'Libros', 'sii-boleta-dte' ),
 'metrics' => __( 'Métricas', 'sii-boleta-dte' ),
                         'cert'    => __( 'Certificación', 'sii-boleta-dte' ),
  'maintenance' => __( 'Mantenimiento', 'sii-boleta-dte' ),
@@ -133,22 +133,18 @@ class ControlPanelPage {
                         $plan = (array) $GLOBALS['wp_options']['sii_boleta_cert_plan'];
                 }
 
-                $issues               = array();
-                $ok                   = true;
-                $should_run_preflight = '2' !== $environment;
-
-                if ( $should_run_preflight ) {
-                        try {
-                                $checker = \Sii\BoletaDte\Infrastructure\Factory\Container::get( \Sii\BoletaDte\Infrastructure\Certification\PreflightChecker::class );
-                                if ( is_object( $checker ) ) {
-                                        $result = (array) $checker->check( $this->settings, $plan );
-                                        $ok     = (bool) ( $result['ok'] ?? false );
-                                        $issues = (array) ( $result['issues'] ?? array() );
-                                }
-                        } catch ( \Throwable $e ) {
-                                $ok = false;
-                                $issues[] = __( 'Error al evaluar pre-flight.', 'sii-boleta-dte' );
+                $issues = array();
+                $ok = true;
+                try {
+                        $checker = \Sii\BoletaDte\Infrastructure\Factory\Container::get( \Sii\BoletaDte\Infrastructure\Certification\PreflightChecker::class );
+                        if ( is_object( $checker ) ) {
+                                $result = (array) $checker->check( $this->settings, $plan );
+                                $ok     = (bool) ( $result['ok'] ?? false );
+                                $issues = (array) ( $result['issues'] ?? array() );
                         }
+                } catch ( \Throwable $e ) {
+                        $ok = false;
+                        $issues[] = __( 'Error al evaluar pre-flight.', 'sii-boleta-dte' );
                 }
 
                 ?>
@@ -171,15 +167,11 @@ class ControlPanelPage {
         }
 ?>
 </ul>
-<?php if ( $should_run_preflight ) : ?>
 <h3><?php echo esc_html__( 'Pre-flight', 'sii-boleta-dte' ); ?></h3>
 <?php if ( $ok ) : ?>
 <div class="notice notice-success"><p><?php echo esc_html__( 'Listo para iniciar.', 'sii-boleta-dte' ); ?></p></div>
 <?php else : ?>
 <div class="notice notice-error"><p><?php echo esc_html__( 'Faltan requisitos:', 'sii-boleta-dte' ); ?></p><ul><?php foreach ( $issues as $msg ) { echo '<li>' . esc_html( (string) $msg ) . '</li>'; } ?></ul></div>
-<?php endif; ?>
-<?php else : ?>
-<div class="notice notice-info"><p><?php echo esc_html__( 'El pre-flight se omite en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?></p></div>
 <?php endif; ?>
 <form method="post">
 <?php $this->output_nonce_field( 'sii_boleta_cert_run', 'sii_boleta_cert_run_nonce' ); ?>
@@ -533,26 +525,21 @@ private function render_queue(): void {
 }
 
 private function render_libro_validation(): void {
+                $period = $this->previous_month_period( $this->current_timestamp() );
 ?>
 <div class="sii-section">
-<h2><?php echo esc_html__( 'Validar Libro XML', 'sii-boleta-dte' ); ?></h2>
-<p><?php echo esc_html__( 'Pega el XML del Libro para validarlo contra el esquema oficial.', 'sii-boleta-dte' ); ?></p>
-<?php $this->render_libro_schedule(); ?>
+<h2><?php echo esc_html__( 'Libros', 'sii-boleta-dte' ); ?></h2>
+<p><?php echo esc_html__( 'Genera el Libro de Boletas del período anterior y lo envía al SII.', 'sii-boleta-dte' ); ?></p>
+<p><?php echo esc_html__( 'Período objetivo:', 'sii-boleta-dte' ) . ' ' . esc_html( $period ); ?></p>
 <form method="post">
-<input type="hidden" name="libro_action" value="validate" />
+<input type="hidden" name="libro_action" value="generate_send" />
 <?php $this->output_nonce_field( 'sii_boleta_libro', 'sii_boleta_libro_nonce' ); ?>
-<textarea name="libro_xml" rows="10" class="large-text" placeholder="&lt;LibroBoleta&gt;...&lt;/LibroBoleta&gt;"></textarea>
-<?php
-if ( function_exists( 'submit_button' ) ) {
-submit_button( __( 'Validar XML', 'sii-boleta-dte' ) );
-} else {
-echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validar XML', 'sii-boleta-dte' ) . '</button>';
-}
-?>
+<button type="submit" class="button button-primary"><?php echo esc_html__( 'Generar y enviar Libro', 'sii-boleta-dte' ); ?></button>
 </form>
+<?php $this->render_libro_schedule(); ?>
 </div>
 <?php
-	}
+        }
 
         private function render_metrics_dashboard(): void {
                 $environment = $this->settings->get_environment();
@@ -1053,7 +1040,7 @@ $this->add_notice( __( 'El XML de RVD generado no es válido.', 'sii-boleta-dte'
 		$is_error            = false;
 		if ( function_exists( 'is_wp_error' ) && is_wp_error( $response ) ) {
 			$is_error = true;
-		} elseif ( class_exists( '\WP_Error' ) && $response instanceof \WP_Error ) {
+                } elseif ( class_exists( '\WP_Error' ) && $response instanceof \WP_Error ) {
 			$is_error = true;
 		}
 
@@ -1076,28 +1063,57 @@ if ( '' !== $track ) {
 		$this->add_notice( $message );
 	}
 
-	private function handle_libro_action( string $action, string $xml ): void {
-		if ( 'validate' !== $action ) {
-				return;
-		}
+private function handle_libro_action( string $action, string $xml ): void {
+                if ( 'generate_send' !== $action ) {
+                        return;
+                }
 
-if ( ! $this->verify_nonce( 'sii_boleta_libro_nonce', 'sii_boleta_libro' ) ) {
-$this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
-			return;
-		}
+                if ( ! $this->verify_nonce( 'sii_boleta_libro_nonce', 'sii_boleta_libro' ) ) {
+                        $this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
+                        return;
+                }
 
-			$xml = trim( $xml );
-if ( '' === $xml ) {
-$this->add_notice( __( 'Debes pegar el XML del Libro antes de validar.', 'sii-boleta-dte' ), 'error' );
-			return;
-		}
+                $period = $this->previous_month_period( $this->current_timestamp() );
+                $xml    = $this->libro_boletas->generate_monthly_xml( $period );
 
-if ( $this->libro_boletas->validate_libro_xml( $xml ) ) {
-$this->add_notice( __( 'El XML del Libro es válido.', 'sii-boleta-dte' ) );
-} else {
-$this->add_notice( __( 'El XML del Libro no pasó la validación. Revisa la estructura e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
-		}
-	}
+                if ( '' === $xml ) {
+                        $this->add_notice( sprintf( __( 'No fue posible generar el Libro para el período %s. Revisa la configuración e inténtalo nuevamente.', 'sii-boleta-dte' ), $period ), 'error' );
+                        return;
+                }
+
+                if ( ! $this->libro_boletas->validate_libro_xml( $xml ) ) {
+                        $this->add_notice( __( 'El Libro generado no pasó la validación. Revisa la estructura e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
+                        return;
+                }
+
+                $environment = $this->settings->get_environment();
+                $token       = $this->token_manager->get_token( $environment );
+                $response    = $this->api->send_libro_to_sii( $xml, $environment, $token );
+                $is_error    = false;
+                if ( function_exists( 'is_wp_error' ) && is_wp_error( $response ) ) {
+                        $is_error = true;
+                } elseif ( class_exists( '\WP_Error' ) && $response instanceof \WP_Error ) {
+                        $is_error = true;
+                }
+
+                if ( $is_error ) {
+                        $error_message = method_exists( $response, 'get_error_message' ) ? $response->get_error_message() : __( 'Error desconocido', 'sii-boleta-dte' );
+                        $this->add_notice( sprintf( __( 'Error al enviar el Libro: %s', 'sii-boleta-dte' ), $error_message ), 'error' );
+                        return;
+                }
+
+                $track = '';
+                if ( is_array( $response ) && isset( $response['trackId'] ) ) {
+                        $track = (string) $response['trackId'];
+                }
+
+                $message = __( 'Libro enviado correctamente.', 'sii-boleta-dte' );
+                if ( '' !== $track ) {
+                        $message .= ' ' . sprintf( __( 'Track ID: %s', 'sii-boleta-dte' ), $track );
+                }
+
+                $this->add_notice( $message );
+        }
 
 	private function output_nonce_field( string $action, string $name ): void {
 		if ( function_exists( 'wp_nonce_field' ) ) {

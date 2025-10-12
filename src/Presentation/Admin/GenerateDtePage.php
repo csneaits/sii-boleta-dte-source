@@ -1726,7 +1726,13 @@ class GenerateDtePage {
 		if ( function_exists( 'is_wp_error' ) && is_wp_error( $track ) ) {
 				$code      = method_exists( $track, 'get_error_code' ) ? (string) $track->get_error_code() : '';
 				$message   = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
-				$trackData = method_exists( $track, 'get_error_data' ) ? $track->get_error_data( $code ) : null;
+				$trackData = null;
+				if ( method_exists( $track, 'get_error_data' ) ) {
+						$trackData = $track->get_error_data( $code );
+						if ( null === $trackData ) {
+							$trackData = $track->get_error_data();
+						}
+				}
 				$trackId   = '';
 				if ( is_array( $trackData ) && isset( $trackData['trackId'] ) ) {
 						$trackId = (string) $trackData['trackId'];

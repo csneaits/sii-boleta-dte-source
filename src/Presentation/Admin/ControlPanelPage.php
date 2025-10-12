@@ -585,9 +585,9 @@ private function render_health_dashboard(): void {
 private function render_queue(): void {
         $environment = $this->settings->get_environment();
         
-        // Aplicar filtros básicos de ambiente
+        // Aplicar filtros básicos de ambiente - usar get_all_jobs() en lugar de get_pending_jobs()
         $all_jobs = array_filter(
-                QueueDb::get_pending_jobs(),
+                QueueDb::get_all_jobs(),
                 static function ( array $job ) use ( $environment ) {
                         $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
                         return $job_env === $environment;
@@ -609,6 +609,16 @@ private function render_queue(): void {
         $has_filters = ! empty( $filters );
         $filtered_count = count( $jobs );
         $total_count = count( $all_jobs );
+        
+        // Debug: Verificar si hay trabajos
+        if ( empty( $jobs ) && ! empty( $all_jobs ) ) {
+                // Si hay trabajos sin filtrar pero no filtrados, mostrar todos
+                $jobs = $all_jobs;
+                $filtered_count = count( $jobs );
+        }
+        
+        // Debug temporal - mostrar información (siempre mostrar por ahora)
+        echo '<!-- DEBUG: Total jobs: ' . count( $all_jobs ) . ', Filtered: ' . count( $jobs ) . ', Filters: ' . wp_json_encode( $filters ) . ' -->';
         
         // Obtener estadísticas de la cola
         $stats = $this->processor->get_stats();
@@ -803,7 +813,7 @@ private function render_queue(): void {
 </style>
 
 <script>
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
 	// Filtros AJAX para la cola
 	const applyFiltersBtn = document.getElementById('apply-filters');
 	const clearFiltersBtn = document.getElementById('clear-filters');
@@ -862,7 +872,7 @@ private function render_queue(): void {
 	if (ageFilter) {
 		ageFilter.value = urlParams.get('filter_age') || '';
 	}
-})();
+});
 </script>
 <?php
 }

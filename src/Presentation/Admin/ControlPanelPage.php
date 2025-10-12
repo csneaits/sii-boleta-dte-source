@@ -849,68 +849,6 @@ private function render_queue(): void {
 }
 </style>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-	// Filtros AJAX para la cola
-	const applyFiltersBtn = document.getElementById('apply-filters');
-	const clearFiltersBtn = document.getElementById('clear-filters');
-	const showHelpBtn = document.getElementById('show-help');
-	const helpPanel = document.getElementById('sii-queue-help');
-	
-	// Aplicar filtros
-	if (applyFiltersBtn) {
-		applyFiltersBtn.addEventListener('click', function() {
-			const attempts = document.getElementById('filter_attempts').value;
-			const age = document.getElementById('filter_age').value;
-			
-			// Actualizar URL con filtros
-			const url = new URL(window.location);
-			if (attempts) {
-				url.searchParams.set('filter_attempts', attempts);
-			} else {
-				url.searchParams.delete('filter_attempts');
-			}
-			if (age) {
-				url.searchParams.set('filter_age', age);
-			} else {
-				url.searchParams.delete('filter_age');
-			}
-			
-			// Recargar página con filtros
-			window.location.href = url.toString();
-		});
-	}
-	
-	// Limpiar filtros
-	if (clearFiltersBtn) {
-		clearFiltersBtn.addEventListener('click', function() {
-			const url = new URL(window.location);
-			url.searchParams.delete('filter_attempts');
-			url.searchParams.delete('filter_age');
-			window.location.href = url.toString();
-		});
-	}
-	
-	// Mostrar/ocultar ayuda
-	if (showHelpBtn && helpPanel) {
-		showHelpBtn.addEventListener('click', function() {
-			helpPanel.style.display = helpPanel.style.display === 'none' ? 'block' : 'none';
-		});
-	}
-	
-	// Inicializar filtros con valores actuales
-	const urlParams = new URLSearchParams(window.location.search);
-	const attemptsFilter = document.getElementById('filter_attempts');
-	const ageFilter = document.getElementById('filter_age');
-	
-	if (attemptsFilter) {
-		attemptsFilter.value = urlParams.get('filter_attempts') || '';
-	}
-	if (ageFilter) {
-		ageFilter.value = urlParams.get('filter_age') || '';
-	}
-});
-</script>
 <?php
 }
 

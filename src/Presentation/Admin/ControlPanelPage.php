@@ -133,18 +133,22 @@ class ControlPanelPage {
                         $plan = (array) $GLOBALS['wp_options']['sii_boleta_cert_plan'];
                 }
 
-                $issues = array();
-                $ok = true;
-                try {
-                        $checker = \Sii\BoletaDte\Infrastructure\Factory\Container::get( \Sii\BoletaDte\Infrastructure\Certification\PreflightChecker::class );
-                        if ( is_object( $checker ) ) {
-                                $result = (array) $checker->check( $this->settings, $plan );
-                                $ok     = (bool) ( $result['ok'] ?? false );
-                                $issues = (array) ( $result['issues'] ?? array() );
+                $issues               = array();
+                $ok                   = true;
+                $should_run_preflight = '2' !== $environment;
+
+                if ( $should_run_preflight ) {
+                        try {
+                                $checker = \Sii\BoletaDte\Infrastructure\Factory\Container::get( \Sii\BoletaDte\Infrastructure\Certification\PreflightChecker::class );
+                                if ( is_object( $checker ) ) {
+                                        $result = (array) $checker->check( $this->settings, $plan );
+                                        $ok     = (bool) ( $result['ok'] ?? false );
+                                        $issues = (array) ( $result['issues'] ?? array() );
+                                }
+                        } catch ( \Throwable $e ) {
+                                $ok = false;
+                                $issues[] = __( 'Error al evaluar pre-flight.', 'sii-boleta-dte' );
                         }
-                } catch ( \Throwable $e ) {
-                        $ok = false;
-                        $issues[] = __( 'Error al evaluar pre-flight.', 'sii-boleta-dte' );
                 }
 
                 ?>
@@ -167,11 +171,15 @@ class ControlPanelPage {
         }
 ?>
 </ul>
+<?php if ( $should_run_preflight ) : ?>
 <h3><?php echo esc_html__( 'Pre-flight', 'sii-boleta-dte' ); ?></h3>
 <?php if ( $ok ) : ?>
 <div class="notice notice-success"><p><?php echo esc_html__( 'Listo para iniciar.', 'sii-boleta-dte' ); ?></p></div>
 <?php else : ?>
 <div class="notice notice-error"><p><?php echo esc_html__( 'Faltan requisitos:', 'sii-boleta-dte' ); ?></p><ul><?php foreach ( $issues as $msg ) { echo '<li>' . esc_html( (string) $msg ) . '</li>'; } ?></ul></div>
+<?php endif; ?>
+<?php else : ?>
+<div class="notice notice-info"><p><?php echo esc_html__( 'El pre-flight se omite en el ambiente de desarrollo.', 'sii-boleta-dte' ); ?></p></div>
 <?php endif; ?>
 <form method="post">
 <?php $this->output_nonce_field( 'sii_boleta_cert_run', 'sii_boleta_cert_run_nonce' ); ?>

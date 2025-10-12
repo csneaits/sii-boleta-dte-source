@@ -171,10 +171,12 @@ class ControlPanelPage {
 ?>
 </ul>
 <h3><?php echo esc_html__( 'Pre-flight', 'sii-boleta-dte' ); ?></h3>
+<?php if ( $this->settings->get_environment() !== '0' ) : // Solo mostrar en certificación/producción ?>
 <?php if ( $ok ) : ?>
 <div class="notice notice-success"><p><?php echo esc_html__( 'Listo para iniciar.', 'sii-boleta-dte' ); ?></p></div>
 <?php else : ?>
 <div class="notice notice-error"><p><?php echo esc_html__( 'Faltan requisitos:', 'sii-boleta-dte' ); ?></p><ul><?php foreach ( $issues as $msg ) { echo '<li>' . esc_html( (string) $msg ) . '</li>'; } ?></ul></div>
+<?php endif; ?>
 <?php endif; ?>
 <form method="post">
 <?php $this->output_nonce_field( 'sii_boleta_cert_run', 'sii_boleta_cert_run_nonce' ); ?>
@@ -674,21 +676,18 @@ private function render_queue(): void {
                 </div>
 
                 <!-- Filtros -->
-                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <form method="get" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
-                                <input type="hidden" name="page" value="<?php echo esc_attr( $_GET['page'] ?? '' ); ?>" />
-                                <input type="hidden" name="tab" value="queue" />
-                                
+                <div id="queue-filters" style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <form id="queue-filter-form" style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
                                 <div>
                                         <label for="filter_attempts" style="display: block; font-size: 12px; margin-bottom: 3px;">
                                                 <?php echo esc_html__( 'Intentos:', 'sii-boleta-dte' ); ?>
                                         </label>
-                                        <select name="filter_attempts" id="filter_attempts">
+                                        <select name="filter_attempts" id="filter_attempts" class="queue-filter">
                                                 <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
-                                                <option value="0" <?php selected( $_GET['filter_attempts'] ?? '', '0', true ); ?>><?php echo esc_html__( 'Sin intentos (0)', 'sii-boleta-dte' ); ?></option>
-                                                <option value="1" <?php selected( $_GET['filter_attempts'] ?? '', '1', true ); ?>><?php echo esc_html__( '1 intento', 'sii-boleta-dte' ); ?></option>
-                                                <option value="2" <?php selected( $_GET['filter_attempts'] ?? '', '2', true ); ?>><?php echo esc_html__( '2 intentos', 'sii-boleta-dte' ); ?></option>
-                                                <option value="3+" <?php selected( $_GET['filter_attempts'] ?? '', '3+', true ); ?>><?php echo esc_html__( '3+ intentos (fallidos)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="0"><?php echo esc_html__( 'Sin intentos (0)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="1"><?php echo esc_html__( '1 intento', 'sii-boleta-dte' ); ?></option>
+                                                <option value="2"><?php echo esc_html__( '2 intentos', 'sii-boleta-dte' ); ?></option>
+                                                <option value="3+"><?php echo esc_html__( '3+ intentos (fallidos)', 'sii-boleta-dte' ); ?></option>
                                         </select>
                                 </div>
                                 
@@ -696,17 +695,17 @@ private function render_queue(): void {
                                         <label for="filter_age" style="display: block; font-size: 12px; margin-bottom: 3px;">
                                                 <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?>
                                         </label>
-                                        <select name="filter_age" id="filter_age">
+                                        <select name="filter_age" id="filter_age" class="queue-filter">
                                                 <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
-                                                <option value="new" <?php selected( $_GET['filter_age'] ?? '', 'new', true ); ?>><?php echo esc_html__( 'Recientes (<1h)', 'sii-boleta-dte' ); ?></option>
-                                                <option value="old" <?php selected( $_GET['filter_age'] ?? '', 'old', true ); ?>><?php echo esc_html__( 'Antiguos (>1h)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="new"><?php echo esc_html__( 'Recientes (<1h)', 'sii-boleta-dte' ); ?></option>
+                                                <option value="old"><?php echo esc_html__( 'Antiguos (>1h)', 'sii-boleta-dte' ); ?></option>
                                         </select>
                                 </div>
                                 
                                 <div>
-                                        <button type="submit" class="button"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
-                                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . ( $_GET['page'] ?? '' ) . '&tab=queue' ) ); ?>" 
-                                           class="button"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></a>
+                                        <button type="button" id="apply-filters" class="button"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
+                                        <button type="button" id="clear-filters" class="button"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></button>
+                                        <button type="button" id="show-help" class="button button-secondary"><?php echo esc_html__( 'Ayuda', 'sii-boleta-dte' ); ?></button>
                                 </div>
                         </form>
                 </div>
@@ -731,11 +730,7 @@ private function render_queue(): void {
                 <?php endif; ?>
 
                 <!-- Controles -->
-                <p>
-                        <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="queue">
-                                <?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?>
-                        </button>
-                        
+                <div id="queue-actions">
                         <?php if ( $stats['failed'] > 0 ) : ?>
                                 <form method="post" style="display: inline-block; margin-left: 10px;">
                                         <?php $this->output_nonce_field( 'sii_boleta_queue_mass', 'sii_boleta_queue_mass_nonce' ); ?>
@@ -746,12 +741,7 @@ private function render_queue(): void {
                                         </button>
                                 </form>
                         <?php endif; ?>
-                        
-                        <button type="button" class="button" 
-                                onclick="document.getElementById('sii-queue-help').style.display = document.getElementById('sii-queue-help').style.display === 'none' ? 'block' : 'none';">
-                                <?php echo esc_html__( 'Ayuda', 'sii-boleta-dte' ); ?>
-                        </button>
-                </p>
+                </div>
                 
                 <!-- Panel de Ayuda -->
                 <div id="sii-queue-help" style="display: none; background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
@@ -799,6 +789,81 @@ private function render_queue(): void {
 </tbody>
 </table>
 </div>
+
+<style>
+#queue-filters .button {
+	margin-right: 5px;
+}
+#queue-filters select {
+	min-width: 120px;
+}
+#sii-queue-help {
+	margin-top: 15px;
+}
+</style>
+
+<script>
+(function() {
+	// Filtros AJAX para la cola
+	const applyFiltersBtn = document.getElementById('apply-filters');
+	const clearFiltersBtn = document.getElementById('clear-filters');
+	const showHelpBtn = document.getElementById('show-help');
+	const helpPanel = document.getElementById('sii-queue-help');
+	
+	// Aplicar filtros
+	if (applyFiltersBtn) {
+		applyFiltersBtn.addEventListener('click', function() {
+			const attempts = document.getElementById('filter_attempts').value;
+			const age = document.getElementById('filter_age').value;
+			
+			// Actualizar URL con filtros
+			const url = new URL(window.location);
+			if (attempts) {
+				url.searchParams.set('filter_attempts', attempts);
+			} else {
+				url.searchParams.delete('filter_attempts');
+			}
+			if (age) {
+				url.searchParams.set('filter_age', age);
+			} else {
+				url.searchParams.delete('filter_age');
+			}
+			
+			// Recargar página con filtros
+			window.location.href = url.toString();
+		});
+	}
+	
+	// Limpiar filtros
+	if (clearFiltersBtn) {
+		clearFiltersBtn.addEventListener('click', function() {
+			const url = new URL(window.location);
+			url.searchParams.delete('filter_attempts');
+			url.searchParams.delete('filter_age');
+			window.location.href = url.toString();
+		});
+	}
+	
+	// Mostrar/ocultar ayuda
+	if (showHelpBtn && helpPanel) {
+		showHelpBtn.addEventListener('click', function() {
+			helpPanel.style.display = helpPanel.style.display === 'none' ? 'block' : 'none';
+		});
+	}
+	
+	// Inicializar filtros con valores actuales
+	const urlParams = new URLSearchParams(window.location.search);
+	const attemptsFilter = document.getElementById('filter_attempts');
+	const ageFilter = document.getElementById('filter_age');
+	
+	if (attemptsFilter) {
+		attemptsFilter.value = urlParams.get('filter_attempts') || '';
+	}
+	if (ageFilter) {
+		ageFilter.value = urlParams.get('filter_age') || '';
+	}
+})();
+</script>
 <?php
 }
 

@@ -134,6 +134,7 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
 			array(
 				'ajax'            => function_exists( 'admin_url' ) ? admin_url( 'admin-ajax.php' ) : ( ( defined( 'ABSPATH' ) ? ABSPATH : '' ) . 'wp-admin/admin-ajax.php' ),
 				'action'          => 'sii_boleta_dte_control_panel_data',
+                                'queueAction'    => 'sii_boleta_dte_queue_action',
                 'tabAction'      => 'sii_boleta_dte_control_panel_tab',
 				'nonce'           => function_exists( 'wp_create_nonce' ) ? \wp_create_nonce( 'sii_boleta_control_panel' ) : '',
 				'refreshInterval' => 30,
@@ -142,6 +143,8 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
                     'noQueue' => __( 'No hay elementos en la cola.', 'sii-boleta-dte' ),
                     'loading' => __( 'Cargando…', 'sii-boleta-dte' ),
                     'loadError' => __( 'No se pudo cargar el contenido.', 'sii-boleta-dte' ),
+                    'queueActionOk' => __( 'Acción de cola ejecutada.', 'sii-boleta-dte' ),
+                    'queueActionFail' => __( 'No se pudo ejecutar la acción seleccionada.', 'sii-boleta-dte' ),
                 ),
 			)
 		);

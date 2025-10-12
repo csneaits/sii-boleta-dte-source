@@ -382,9 +382,9 @@ class Ajax {
         $html  = '<form method="post" class="sii-inline-form">';
         $html .= '<input type="hidden" name="job_id" value="' . $id . '" />';
         $html .= $nonce;
-        $html .= '<button class="button" name="queue_action" value="process">' . esc_html__( 'Procesar', 'sii-boleta-dte' ) . '</button>';
-        $html .= '<button class="button" name="queue_action" value="requeue">' . esc_html__( 'Reintentar', 'sii-boleta-dte' ) . '</button>';
-        $html .= '<button class="button" name="queue_action" value="cancel">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</button>';
+        $html .= '<button class="button button-icon" name="queue_action" value="process" title="' . esc_attr__( 'Procesar este trabajo ahora', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Procesar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-controls-play" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Procesar', 'sii-boleta-dte' ) . '</span></button>';
+        $html .= '<button class="button button-icon" name="queue_action" value="requeue" title="' . esc_attr__( 'Reiniciar intentos y volver a encolar', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Reintentar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-update" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Reintentar', 'sii-boleta-dte' ) . '</span></button>';
+        $html .= '<button class="button button-icon" name="queue_action" value="cancel" title="' . esc_attr__( 'Eliminar este trabajo de la cola', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Cancelar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</span></button>';
         $html .= '</form>';
         return $html;
     }

@@ -4,6 +4,7 @@
     var cfg = window.siiBoletaControlPanel || {};
     var ajaxUrl = cfg.ajax || window.ajaxurl || '/wp-admin/admin-ajax.php';
     var action = cfg.action || '';
+    var queueActionEndpoint = cfg.queueAction || '';
     var nonce = cfg.nonce || '';
     var refreshInterval = parseInt(cfg.refreshInterval || 0, 10);
     var tabAction = cfg.tabAction || '';
@@ -17,6 +18,22 @@
     var queueBody = document.getElementById('sii-control-queue-body');
     var queueTable = document.getElementById('sii-control-queue-table');
     var queueEmpty = document.getElementById('sii-control-queue-empty');
+    var noticesContainer = document.getElementById('sii-control-panel-notices');
+    var defaultQueueOk = (cfg.texts && cfg.texts.queueActionOk) ? cfg.texts.queueActionOk : 'Acción de cola ejecutada.';
+    var defaultQueueFail = (cfg.texts && cfg.texts.queueActionFail) ? cfg.texts.queueActionFail : 'No se pudo ejecutar la acción seleccionada.';
+
+    function showNotice(type, message) {
+        if (!noticesContainer || !message) {
+            return;
+        }
+        noticesContainer.innerHTML = '';
+        var div = document.createElement('div');
+        div.className = 'notice ' + (type === 'error' ? 'notice-error' : 'notice-success');
+        var p = document.createElement('p');
+        p.textContent = message;
+        div.appendChild(p);
+        noticesContainer.appendChild(div);
+    }
 
     function ensureHtml(html, type) {
         if (typeof html === 'string' && html.length > 0) {
@@ -110,6 +127,74 @@
     }
 
     requestSnapshot();
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.classList || !form.classList.contains('sii-inline-form')) return;
+        if (!queueActionEndpoint) return;
+        e.preventDefault();
+        if (form.dataset && form.dataset.processing === '1') return;
+        var formData = new FormData(form);
+        var queueAction = formData.get('queue_action');
+        var jobId = formData.get('job_id');
+        var nonceField = formData.get('sii_boleta_queue_nonce') || formData.get('_wpnonce');
+        if (!queueAction || !jobId || !nonceField) {
+            showNotice('error', defaultQueueFail);
+            return;
+        }
+
+        var buttons = form.querySelectorAll('button');
+        Array.prototype.forEach.call(buttons, function (button) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+        });
+        if (form.dataset) {
+            form.dataset.processing = '1';
+        }
+
+        var params = new URLSearchParams();
+        params.append('action', queueActionEndpoint);
+        params.append('nonce', nonceField);
+        params.append('queue_action', queueAction);
+        params.append('job_id', jobId);
+
+        fetch(ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: params.toString()
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error(defaultQueueFail);
+                }
+                return response.json();
+            })
+            .then(function (payload) {
+                if (!payload || !payload.success) {
+                    var message = payload && payload.data && payload.data.message ? payload.data.message : defaultQueueFail;
+                    throw new Error(message);
+                }
+                var message = payload.data && payload.data.message ? payload.data.message : defaultQueueOk;
+                showNotice('success', message);
+                requestSnapshot();
+            })
+            .catch(function (err) {
+                var message = (err && err.message) ? err.message : defaultQueueFail;
+                showNotice('error', message);
+            })
+            .finally(function () {
+                if (form.dataset) {
+                    form.dataset.processing = '0';
+                }
+                Array.prototype.forEach.call(buttons, function (button) {
+                    button.disabled = false;
+                    button.removeAttribute('aria-busy');
+                });
+            });
+    });
 
     /* Navegación AJAX de tabs */
     var tabsWrapper = document.getElementById('sii-control-panel-tabs');

@@ -68,6 +68,7 @@ class ControlPanelPage {
         ?>
 <?php AdminStyles::open_container( 'sii-control-panel' ); ?>
 <?php $this->render_notices(); ?>
+<div id="sii-control-panel-notices"></div>
 <h1><?php echo esc_html__( 'Panel de control', 'sii-boleta-dte' ); ?></h1>
 <p><?php echo esc_html__( 'Supervisa tus operaciones DTE, las colas y las tareas programadas desde un panel unificado.', 'sii-boleta-dte' ); ?></p>
 <h2 class="nav-tab-wrapper" id="sii-control-panel-tabs" data-ajax-tabs="1">

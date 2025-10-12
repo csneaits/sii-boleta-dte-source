@@ -8,6 +8,7 @@ use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Infrastructure\LibredteBridge;
 use libredte\lib\Core\Application;
 
@@ -33,6 +34,7 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_save_folio_range', array( $this, 'save_folio_range' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_delete_folio_range', array( $this, 'delete_folio_range' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_control_panel_data', array( $this, 'control_panel_data' ) );
+        \add_action( 'wp_ajax_sii_boleta_dte_queue_action', array( $this, 'queue_action' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_control_panel_tab', array( $this, 'control_panel_tab' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_metrics_filter', array( $this, 'metrics_filter' ) );
         \add_action( 'wp_ajax_sii_boleta_dte_run_prune', array( $this, 'run_prune' ) );
@@ -55,13 +57,17 @@ class Ajax {
                         'environment' => $environment,
                 )
         );
+        $raw_jobs = QueueDb::get_pending_jobs( 100 );
         $jobs = array_filter(
-                QueueDb::get_pending_jobs(),
+                $raw_jobs,
                 static function ( array $job ) use ( $normalized_env ) {
                         $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
                         return $job_env === $normalized_env;
                 }
         );
+        if ( empty( $jobs ) && ! empty( $raw_jobs ) ) {
+                $jobs = $raw_jobs;
+        }
         $logs_html = $this->render_logs_rows( $logs );
         $queue     = $this->render_queue_rows( $jobs );
 
@@ -72,6 +78,64 @@ class Ajax {
                 'queueHasJobs' => $queue['has_jobs'],
             )
         );
+    }
+
+    /**
+     * Ejecuta acciones sobre un trabajo de la cola (procesar, reintentar, cancelar) vía AJAX.
+     */
+    public function queue_action(): void {
+        \check_ajax_referer( 'sii_boleta_queue', 'nonce' );
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_send_json_error( array( 'message' => \__( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+        }
+
+        $job_id = isset( $_POST['job_id'] ) ? (int) $_POST['job_id'] : 0;
+        $action = isset( $_POST['queue_action'] ) ? (string) $_POST['queue_action'] : '';
+        if ( function_exists( 'sanitize_key' ) ) {
+            $action = sanitize_key( $action );
+        } else {
+            $action = strtolower( preg_replace( '/[^a-z0-9_\-]/', '', $action ) );
+        }
+
+        if ( $job_id <= 0 || '' === $action ) {
+            \wp_send_json_error( array( 'message' => \__( 'Solicitud inválida.', 'sii-boleta-dte' ) ) );
+        }
+
+        try {
+            /** @var QueueProcessor $processor */
+            $processor = Container::get( QueueProcessor::class );
+        } catch ( \Throwable $th ) {
+            \wp_send_json_error( array( 'message' => \__( 'No se pudo inicializar el procesador de cola.', 'sii-boleta-dte' ) ) );
+        }
+
+        try {
+            switch ( $action ) {
+                case 'process':
+                    $processor->process( $job_id );
+                    break;
+                case 'requeue':
+                    $processor->retry( $job_id );
+                    break;
+                case 'cancel':
+                    $processor->cancel( $job_id );
+                    break;
+                default:
+                    \wp_send_json_error( array( 'message' => \__( 'Acción no válida.', 'sii-boleta-dte' ) ) );
+            }
+        } catch ( \Throwable $e ) {
+            $message = (string) $e->getMessage();
+            if ( function_exists( 'wp_strip_all_tags' ) ) {
+                $message = wp_strip_all_tags( $message );
+            } else {
+                $message = \strip_tags( $message );
+            }
+            if ( '' === trim( $message ) ) {
+                $message = \__( 'Error inesperado al ejecutar la acción.', 'sii-boleta-dte' );
+            }
+            \wp_send_json_error( array( 'message' => $message ) );
+        }
+
+        \wp_send_json_success( array( 'message' => \__( 'Acción de cola ejecutada.', 'sii-boleta-dte' ) ) );
     }
 
     /**

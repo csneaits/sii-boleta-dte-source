@@ -486,7 +486,7 @@ class LibreDteEngine implements DteEngine {
             $payload->hasReferences()
         );
 
-        return $xmlString;
+        return $this->normalizeXmlOutput( $xmlString );
     }
 
     /**
@@ -509,6 +509,44 @@ class LibreDteEngine implements DteEngine {
         }
 
         return true;
+    }
+
+    private function normalizeXmlOutput( string $xml ): string {
+        if ( '' === $xml ) {
+            return '';
+        }
+
+        // Strip UTF BOM variants that can sneak in when upstream libraries emit UTF-8 encoded strings.
+        $boms = array(
+            "\xEF\xBB\xBF",
+            "\xFE\xFF",
+            "\xFF\xFE",
+            "\x00\x00\xFE\xFF",
+            "\xFF\xFE\x00\x00",
+        );
+
+        foreach ( $boms as $bom ) {
+            if ( '' !== $bom && 0 === strncmp( $xml, $bom, strlen( $bom ) ) ) {
+                $xml = (string) substr( $xml, strlen( $bom ) );
+                break;
+            }
+        }
+
+        if ( function_exists( 'preg_replace' ) ) {
+            $maybe = preg_replace( '/^\x{FEFF}/u', '', $xml );
+            if ( is_string( $maybe ) ) {
+                $xml = $maybe;
+            }
+
+            $maybe = preg_replace( '/^[\x00-\x20]+/u', '', $xml );
+            if ( is_string( $maybe ) ) {
+                $xml = $maybe;
+            }
+        } else {
+            $xml = ltrim( $xml );
+        }
+
+        return $xml;
     }
 
     /**

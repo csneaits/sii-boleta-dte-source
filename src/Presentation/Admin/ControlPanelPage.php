@@ -828,9 +828,18 @@ private function render_queue(): void {
 <form method="post" class="sii-inline-form">
 <input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
 <?php $this->output_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
-<button class="button" name="queue_action" value="process"><?php echo esc_html__( 'Procesar', 'sii-boleta-dte' ); ?></button>
-<button class="button" name="queue_action" value="requeue"><?php echo esc_html__( 'Reintentar', 'sii-boleta-dte' ); ?></button>
-<button class="button" name="queue_action" value="cancel"><?php echo esc_html__( 'Cancelar', 'sii-boleta-dte' ); ?></button>
+<button class="button button-icon" name="queue_action" value="process" title="<?php echo esc_attr__( 'Procesar este trabajo ahora', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Procesar', 'sii-boleta-dte' ); ?>">
+	<span class="dashicons dashicons-controls-play" aria-hidden="true"></span>
+	<span class="screen-reader-text"><?php echo esc_html__( 'Procesar', 'sii-boleta-dte' ); ?></span>
+</button>
+<button class="button button-icon" name="queue_action" value="requeue" title="<?php echo esc_attr__( 'Reiniciar intentos y volver a encolar', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">
+	<span class="dashicons dashicons-update" aria-hidden="true"></span>
+	<span class="screen-reader-text"><?php echo esc_html__( 'Reintentar', 'sii-boleta-dte' ); ?></span>
+</button>
+<button class="button button-icon" name="queue_action" value="cancel" title="<?php echo esc_attr__( 'Eliminar este trabajo de la cola', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Cancelar', 'sii-boleta-dte' ); ?>">
+	<span class="dashicons dashicons-no" aria-hidden="true"></span>
+	<span class="screen-reader-text"><?php echo esc_html__( 'Cancelar', 'sii-boleta-dte' ); ?></span>
+</button>
 </form>
 </td>
 </tr>
@@ -849,6 +858,33 @@ private function render_queue(): void {
 }
 #sii-queue-help {
 	margin-top: 15px;
+}
+.sii-inline-form {
+	display: flex;
+	gap: 6px;
+}
+.sii-inline-form .button-icon {
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+}
+.sii-inline-form .dashicons {
+	font-size: 16px;
+	line-height: 1;
+}
+.screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
 }
 </style>
 

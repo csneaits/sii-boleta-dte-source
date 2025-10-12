@@ -801,8 +801,9 @@ private function render_queue(): void {
                                 <li><strong><?php echo esc_html__( 'Control manual:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Puedes procesar, reintentar o cancelar trabajos individuales', 'sii-boleta-dte' ); ?></li>
                         </ul>
                 </div>
-                <p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
-                <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
+<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
+                <div class="sii-control-queue-wrapper"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
+                <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped">
                         <thead>
 <tr>
 <th><?php echo esc_html__( 'ID', 'sii-boleta-dte' ); ?></th>
@@ -847,6 +848,7 @@ private function render_queue(): void {
 <?php endif; ?>
 </tbody>
 </table>
+                </div>
 </div>
 
 <style>
@@ -885,6 +887,13 @@ private function render_queue(): void {
 	overflow: hidden;
 	clip: rect(0, 0, 0, 0);
 	border: 0;
+}
+.sii-control-queue-wrapper {
+	overflow-x: auto;
+	padding-bottom: 8px;
+}
+#sii-control-queue-table {
+	min-width: 640px;
 }
 </style>
 

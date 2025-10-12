@@ -138,6 +138,41 @@ KEY type (type)
                 return array_values( $jobs );
         }
 
+        /**
+         * Returns all jobs (pending and failed) from the queue.
+         * 
+         * @param int $limit Maximum number of jobs to return.
+         * @return array<int,array{ id:int,type:string,payload:array<string,mixed>,attempts:int,available_at:string,created_at:string }>
+         */
+        public static function get_all_jobs( int $limit = 50 ): array {
+                global $wpdb;
+
+                if ( self::$use_memory || ! is_object( $wpdb ) ) {
+                        $jobs = self::$jobs;
+                        usort(
+                                $jobs,
+                                static function ( array $a, array $b ): int {
+                                        return $b['id'] <=> $a['id']; // Más recientes primero
+                                }
+                        );
+                        return array_slice( array_values( $jobs ), 0, $limit );
+                }
+
+                $table = self::table();
+                $sql   = $wpdb->prepare( "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d", $limit );
+                $rows  = (array) $wpdb->get_results( $sql, 'ARRAY_A' );
+
+                return array_map(
+                        static function ( array $row ): array {
+                                $row['id']       = (int) $row['id'];
+                                $row['attempts'] = (int) $row['attempts'];
+                                $row['payload']  = (array) json_decode( (string) $row['payload'], true );
+                                return $row;
+                        },
+                        $rows
+                );
+        }
+
                 /** Increments the attempts counter for a job. */
         public static function increment_attempts( int $id ): void {
                         global $wpdb;

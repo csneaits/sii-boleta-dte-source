@@ -586,13 +586,44 @@ private function render_queue(): void {
         $environment = $this->settings->get_environment();
         
         // Aplicar filtros básicos de ambiente - usar get_all_jobs() en lugar de get_pending_jobs()
+        $raw_jobs = QueueDb::get_all_jobs();
         $all_jobs = array_filter(
-                QueueDb::get_all_jobs(),
+                $raw_jobs,
                 static function ( array $job ) use ( $environment ) {
                         $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
                         return $job_env === $environment;
                 }
         );
+        
+        // Temporal: si no hay trabajos con filtro de ambiente, mostrar todos
+        if ( empty( $all_jobs ) && ! empty( $raw_jobs ) ) {
+                $all_jobs = $raw_jobs;
+        }
+        
+        // TEMPORAL: Si no hay trabajos, crear algunos de prueba para debugging
+        if ( empty( $all_jobs ) && isset( $_GET['create_test_jobs'] ) ) {
+                QueueDb::enqueue( 'boleta', [
+                        'environment' => $environment,
+                        'order_id' => 123,
+                        'track_id' => 'test123',
+                        'test' => true
+                ]);
+                QueueDb::enqueue( 'consumo_folios', [
+                        'environment' => $environment,
+                        'date' => date('Y-m-d'),
+                        'test' => true
+                ]);
+                
+                // Recargar trabajos después de crear los de prueba
+                $raw_jobs = QueueDb::get_all_jobs();
+                $all_jobs = array_filter(
+                        $raw_jobs,
+                        static function ( array $job ) use ( $environment ) {
+                                $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
+                                return $job_env === $environment;
+                        }
+                );
+        }
         
         // Aplicar filtros adicionales del usuario
         $filters = [];
@@ -618,7 +649,16 @@ private function render_queue(): void {
         }
         
         // Debug temporal - mostrar información (siempre mostrar por ahora)
-        echo '<!-- DEBUG: Total jobs: ' . count( $all_jobs ) . ', Filtered: ' . count( $jobs ) . ', Filters: ' . wp_json_encode( $filters ) . ' -->';
+        echo '<!-- DEBUG: Raw jobs: ' . count( $raw_jobs ) . ', Environment filtered: ' . count( $all_jobs ) . ', Final filtered: ' . count( $jobs ) . ', Current env: ' . $environment . ' -->';
+        
+        // Debug extra: Ver contenido de los trabajos
+        if ( ! empty( $all_jobs ) ) {
+                echo '<!-- DEBUG JOBS: ' . wp_json_encode( array_slice( $all_jobs, 0, 2 ) ) . ' -->';
+        } else {
+                // Intentar con get_pending_jobs para ver si hay diferencia
+                $pending_test = QueueDb::get_pending_jobs( 10 );
+                echo '<!-- DEBUG PENDING: ' . count( $pending_test ) . ' jobs: ' . wp_json_encode( array_slice( $pending_test, 0, 2 ) ) . ' -->';
+        }
         
         // Obtener estadísticas de la cola
         $stats = $this->processor->get_stats();

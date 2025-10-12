@@ -585,17 +585,22 @@ private function render_health_dashboard(): void {
 private function render_queue(): void {
         $environment = $this->settings->get_environment();
         
-        // Aplicar filtros básicos de ambiente - usar get_all_jobs() en lugar de get_pending_jobs()
-        $raw_jobs = QueueDb::get_all_jobs();
-        $all_jobs = array_filter(
+        // Obtener trabajos pendientes directamente para evitar desalineación con las estadísticas
+        // y minimizar riesgos de filtrados demasiado agresivos.
+        $raw_jobs = QueueDb::get_pending_jobs( 100 );
+        
+        // Filtrado por ambiente (suave): si el job no trae environment, no se filtra.
+        $all_jobs = array_values( array_filter(
                 $raw_jobs,
                 static function ( array $job ) use ( $environment ) {
-                        $job_env = Settings::normalize_environment( (string) ( $job['payload']['environment'] ?? '0' ) );
-                        return $job_env === $environment;
+                        $job_env = isset( $job['payload']['environment'] )
+                                ? Settings::normalize_environment( (string) $job['payload']['environment'] )
+                                : null; // si es null, no filtrar
+                        return ( null === $job_env ) || ( $job_env === $environment );
                 }
-        );
+        ) );
         
-        // Temporal: si no hay trabajos con filtro de ambiente, mostrar todos
+        // Si el filtro de ambiente dejó la lista vacía pero existen pendientes, mostrar todos.
         if ( empty( $all_jobs ) && ! empty( $raw_jobs ) ) {
                 $all_jobs = $raw_jobs;
         }
@@ -648,17 +653,8 @@ private function render_queue(): void {
                 $filtered_count = count( $jobs );
         }
         
-        // Debug temporal - mostrar información (siempre mostrar por ahora)
-        echo '<!-- DEBUG: Raw jobs: ' . count( $raw_jobs ) . ', Environment filtered: ' . count( $all_jobs ) . ', Final filtered: ' . count( $jobs ) . ', Current env: ' . $environment . ' -->';
-        
-        // Debug extra: Ver contenido de los trabajos
-        if ( ! empty( $all_jobs ) ) {
-                echo '<!-- DEBUG JOBS: ' . wp_json_encode( array_slice( $all_jobs, 0, 2 ) ) . ' -->';
-        } else {
-                // Intentar con get_pending_jobs para ver si hay diferencia
-                $pending_test = QueueDb::get_pending_jobs( 10 );
-                echo '<!-- DEBUG PENDING: ' . count( $pending_test ) . ' jobs: ' . wp_json_encode( array_slice( $pending_test, 0, 2 ) ) . ' -->';
-        }
+        // Debug temporal - comentar si molesta en HTML
+        // echo '<!-- DEBUG: raw=' . count( $raw_jobs ) . ' env=' . count( $all_jobs ) . ' final=' . count( $jobs ) . ' envKey=' . $environment . ' -->';
         
         // Obtener estadísticas de la cola
         $stats = $this->processor->get_stats();

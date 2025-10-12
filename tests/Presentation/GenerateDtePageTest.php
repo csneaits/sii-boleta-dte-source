@@ -488,4 +488,59 @@ class GenerateDtePageTest extends TestCase {
             unlink( $tmpPdf );
         }
     }
+
+    public function test_process_post_dev_simulated_error_queues_document(): void {
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn(
+            array(
+                'environment' => 'test',
+                'giro'        => 'Principal',
+                'rut_emisor'  => '11.111.111-1',
+            )
+        );
+        $token = $this->createMock( TokenManager::class );
+        $token->method( 'get_token' )->willReturn( 'tok' );
+
+        $api = $this->createMock( Api::class );
+        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn(
+            new WP_Error( 'sii_boleta_dev_simulated_error', 'Envío simulado con error desde ajustes de desarrollo.' )
+        );
+        $engine = $this->createMock( DteEngine::class );
+        $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
+        $tmpPdf = tempnam( sys_get_temp_dir(), 'pdf' );
+        file_put_contents( $tmpPdf, '%PDF fake' );
+        $pdf = $this->createMock( PdfGenerator::class );
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
+        $folio = $this->createMock( FolioManager::class );
+        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 10 );
+        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 10 )->willReturn( true );
+
+        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+        $queue->expects( $this->once() )->method( 'enqueue_dte' );
+
+        $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        $result = $page->process_post( array(
+            'sii_boleta_generate_dte_nonce' => 'good',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        ) );
+
+        $this->assertArrayHasKey( 'queued', $result );
+        $this->assertTrue( $result['queued'] );
+        $this->assertSame( 'warning', $result['notice_type'] );
+        $this->assertSame( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', $result['message'] );
+
+        if ( file_exists( $tmpPdf ) ) {
+            unlink( $tmpPdf );
+        }
+    }
 }

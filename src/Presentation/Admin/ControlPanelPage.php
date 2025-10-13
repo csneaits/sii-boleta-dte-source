@@ -635,14 +635,21 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                         </div>
                 </div>
 
-                <script>
-                (function() {
-                        'use strict';
+		<script>
+		(function() {
+			'use strict';
 
-                        var modal = document.getElementById('sii-track-modal');
-                        if (!modal) return;
+			// Error messages
+			var ERROR_MESSAGES = {
+				queryStatus: <?php echo \wp_json_encode( __( 'Error al consultar el estado.', 'sii-boleta-dte' ) ); ?>,
+				processResponse: <?php echo \wp_json_encode( __( 'Error al procesar la respuesta.', 'sii-boleta-dte' ) ); ?>,
+				connection: <?php echo \wp_json_encode( __( 'Error de conexión.', 'sii-boleta-dte' ) ); ?>,
+				network: <?php echo \wp_json_encode( __( 'Error de red.', 'sii-boleta-dte' ) ); ?>
+			};
+			var NONCE = <?php echo \wp_json_encode( \wp_create_nonce( 'sii_boleta_query_track' ) ); ?>;
 
-                        var overlay = modal.querySelector('.sii-modal-overlay');
+			var modal = document.getElementById('sii-track-modal');
+			if (!modal) return;                        var overlay = modal.querySelector('.sii-modal-overlay');
                         var closeButtons = modal.querySelectorAll('.sii-modal-close');
                         var loadingDiv = modal.querySelector('.sii-track-loading');
                         var resultDiv = modal.querySelector('.sii-track-result');
@@ -705,30 +712,28 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 
                                 xhr.onload = function() {
                                         if (xhr.status === 200) {
-                                                try {
-                                                        var response = JSON.parse(xhr.responseText);
-                                                        if (response.success) {
-                                                                showResult(response.data.html);
-                                                        } else {
-                                                                showResult('<div class="notice notice-error"><p>' + 
-                                                                        (response.data.message || '<?php echo esc_js( __( 'Error al consultar el estado.', 'sii-boleta-dte' ) ); ?>') + 
-                                                                        '</p></div>');
-                                                        }
-                                                } catch (e) {
-                                                        showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error al procesar la respuesta.', 'sii-boleta-dte' ) ); ?></p></div>');
-                                                }
-                                        } else {
-                                                showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error de conexión.', 'sii-boleta-dte' ) ); ?></p></div>');
-                                        }
-                                };
-
-                                xhr.onerror = function() {
-                                        showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error de red.', 'sii-boleta-dte' ) ); ?></p></div>');
+				try {
+					var response = JSON.parse(xhr.responseText);
+					if (response.success) {
+						showResult(response.data.html);
+					} else {
+						showResult('<div class="notice notice-error"><p>' + 
+							(response.data.message || ERROR_MESSAGES.queryStatus) + 
+							'</p></div>');
+					}
+				} catch (e) {
+					showResult('<div class="notice notice-error"><p>' + ERROR_MESSAGES.processResponse + '</p></div>');
+				}
+			} else {
+				showResult('<div class="notice notice-error"><p>' + ERROR_MESSAGES.connection + '</p></div>');
+			}
+		};                                xhr.onerror = function() {
+                                        showResult('<div class="notice notice-error"><p>' + ERROR_MESSAGES.network + '</p></div>');
                                 };
 
                                 xhr.send('action=sii_boleta_query_track_status&track_id=' + encodeURIComponent(trackId) + 
                                         '&environment=' + encodeURIComponent(environment) + 
-                                        '&nonce=<?php echo esc_js( wp_create_nonce( 'sii_boleta_query_track' ) ); ?>');
+                                        '&nonce=' + encodeURIComponent(NONCE));
                         });
                 })();
                 </script>
@@ -2022,16 +2027,14 @@ private function handle_libro_action( string $action, string $xml ): void {
 			return '—';
 		}
 		$timestamp = strtotime( $datetime );
-		if ( false === $timestamp ) {
-			return $datetime;
-		}
-		if ( function_exists( 'date_i18n' ) ) {
-			return (string) date_i18n( 'Y-m-d H:i', $timestamp );
-		}
-		return gmdate( 'Y-m-d H:i', $timestamp );
+	if ( false === $timestamp ) {
+		return $datetime;
 	}
-
-	/**
+	if ( function_exists( 'date_i18n' ) ) {
+		return (string) \date_i18n( 'Y-m-d H:i', $timestamp );
+	}
+	return gmdate( 'Y-m-d H:i', $timestamp );
+}	/**
 	 * Builds a human-readable description for a queue job document (type, folio, etc.).
 	 *
 	 * @param array<string,mixed> $job Queue job data.

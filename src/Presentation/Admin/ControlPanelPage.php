@@ -419,45 +419,136 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
 	/** Shows latest log entries. */
         private function render_recent_logs(): void {
                 $environment = $this->settings->get_environment();
-                $logs        = LogDb::get_logs(
+
+                $raw_status   = isset( $_GET['logs_status'] ) ? (string) $_GET['logs_status'] : '';
+                $status       = function_exists( 'sanitize_text_field' ) ? sanitize_text_field( $raw_status ) : preg_replace( '/[^a-z_]/i', '', $raw_status );
+                $raw_type     = isset( $_GET['logs_type'] ) ? (string) $_GET['logs_type'] : '';
+                $type         = '' !== $raw_type ? (int) $raw_type : null;
+                $date_from    = isset( $_GET['logs_from'] ) ? (string) $_GET['logs_from'] : '';
+                $date_to      = isset( $_GET['logs_to'] ) ? (string) $_GET['logs_to'] : '';
+                if ( function_exists( 'sanitize_text_field' ) ) {
+                        $date_from = sanitize_text_field( $date_from );
+                        $date_to   = sanitize_text_field( $date_to );
+                }
+                $page     = isset( $_GET['logs_page'] ) ? max( 1, (int) $_GET['logs_page'] ) : 1;
+                $per_page_raw = isset( $_GET['logs_per_page'] ) ? (string) $_GET['logs_per_page'] : '';
+                $per_page = '' === $per_page_raw ? 10 : max( 5, min( 50, (int) $per_page_raw ) );
+
+                $logs_data = LogDb::get_logs_paginated(
                         array(
-                                'limit'       => 5,
+                                'limit'       => $per_page,
+                                'page'        => $page,
                                 'environment' => $environment,
+                                'status'      => $status,
+                                'type'        => $type,
+                                'date_from'   => $date_from,
+                                'date_to'     => $date_to,
                         )
                 );
+
+                $rows       = $logs_data['rows'];
+                $total_rows = (int) $logs_data['total'];
+                $current_page = (int) $logs_data['page'];
+                $total_pages  = (int) $logs_data['pages'];
+                $limit_used   = (int) $logs_data['limit'];
+                $visible_count = count( $rows );
+                $start_index = $total_rows > 0 ? ( ( $limit_used * ( $current_page - 1 ) ) + 1 ) : 0;
+                $end_index   = $total_rows > 0 ? min( $start_index + $visible_count - 1, $total_rows ) : 0;
+
+                $available_statuses = array(
+                        ''          => __( 'Todos', 'sii-boleta-dte' ),
+                        'queued'    => __( 'En cola', 'sii-boleta-dte' ),
+                        'sent'      => __( 'Enviado (pendiente)', 'sii-boleta-dte' ),
+                        'accepted'  => __( 'Aceptado', 'sii-boleta-dte' ),
+                        'rejected'  => __( 'Rechazado', 'sii-boleta-dte' ),
+                        'error'     => __( 'Error', 'sii-boleta-dte' ),
+                        'failed'    => __( 'Fallido', 'sii-boleta-dte' ),
+                        'draft'     => __( 'Borrador', 'sii-boleta-dte' ),
+                );
+
+                $distinct_types = LogDb::get_distinct_types( $environment );
         ?>
         <div class="sii-section">
                 <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
-                <p>
-                        <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="logs">
-                                <?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?>
-                        </button>
-                </p>
-                <table class="widefat striped">
-                        <thead>
-                                <tr>
-<th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
-<th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
-</tr>
-</thead>
-<tbody id="sii-control-logs-body">
-<?php if ( empty( $logs ) ) : ?>
-<tr class="sii-control-empty-row">
-<td colspan="2"><?php echo esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ); ?></td>
-</tr>
-<?php else : ?>
-<?php foreach ( $logs as $row ) : ?>
-<tr>
-<td><?php echo esc_html( $row['track_id'] ); ?></td>
-<td><?php echo esc_html( $this->translate_status_label( (string) $row['status'] ) ); ?></td>
-</tr>
-<?php endforeach; ?>
-<?php endif; ?>
-</tbody>
-</table>
-</div>
-<?php
-}
+
+                <div class="sii-log-filters">
+                        <div class="sii-log-filter-row">
+                                <label for="log_status"><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></label>
+                                <select id="log_status" name="log_status">
+                                        <?php foreach ( $available_statuses as $key => $label ) : ?>
+                                                <option value="<?php echo esc_attr( $key ); ?>"<?php selected( $status, $key ); ?>><?php echo esc_html( $label ); ?></option>
+                                        <?php endforeach; ?>
+                                </select>
+                        </div>
+                        <div class="sii-log-filter-row">
+                                <label for="log_type"><?php echo esc_html__( 'Tipo DTE', 'sii-boleta-dte' ); ?></label>
+                                <select id="log_type" name="log_type">
+                                        <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
+                                        <?php foreach ( $distinct_types as $logged_type ) : ?>
+                                                <option value="<?php echo (int) $logged_type; ?>"<?php selected( (int) $logged_type, (int) ( $type ?? 0 ) ); ?>><?php echo esc_html( sprintf( 'DTE %d', (int) $logged_type ) ); ?></option>
+                                        <?php endforeach; ?>
+                                </select>
+                        </div>
+                        <div class="sii-log-filter-row">
+                                <label for="log_from"><?php echo esc_html__( 'Desde', 'sii-boleta-dte' ); ?></label>
+                                <input type="date" id="log_from" name="log_from" value="<?php echo esc_attr( $date_from ); ?>" />
+                        </div>
+                        <div class="sii-log-filter-row">
+                                <label for="log_to"><?php echo esc_html__( 'Hasta', 'sii-boleta-dte' ); ?></label>
+                                <input type="date" id="log_to" name="log_to" value="<?php echo esc_attr( $date_to ); ?>" />
+                        </div>
+                        <div class="sii-log-filter-actions">
+                                <button type="button" class="button button-primary" id="log-apply-filters"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
+                                <button type="button" class="button" id="log-clear-filters"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></button>
+                                <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="logs"><?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?></button>
+                        </div>
+                </div>
+
+                <div id="log-summary" data-total="<?php echo (int) $total_rows; ?>" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-limit="<?php echo (int) $limit_used; ?>">
+                        <?php if ( $total_rows > 0 ) : ?>
+                                <p><?php echo esc_html( sprintf( __( 'Mostrando %1$d-%2$d de %3$d registros', 'sii-boleta-dte' ), $start_index, $end_index, $total_rows ) ); ?></p>
+                        <?php else : ?>
+                                <p><?php echo esc_html__( 'Sin DTE registrados para los filtros seleccionados.', 'sii-boleta-dte' ); ?></p>
+                        <?php endif; ?>
+                </div>
+
+                <div class="sii-log-table-wrapper">
+                        <table class="widefat striped" id="sii-control-logs-table">
+                                <thead>
+                                        <tr>
+                                                <th><?php echo esc_html__( 'Track ID', 'sii-boleta-dte' ); ?></th>
+                                                <th><?php echo esc_html__( 'Tipo', 'sii-boleta-dte' ); ?></th>
+                                                <th><?php echo esc_html__( 'Folio', 'sii-boleta-dte' ); ?></th>
+                                                <th><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></th>
+                                                <th><?php echo esc_html__( 'Fecha', 'sii-boleta-dte' ); ?></th>
+                                        </tr>
+                                </thead>
+                                <tbody id="sii-control-logs-body">
+                                <?php if ( empty( $rows ) ) : ?>
+                                        <tr class="sii-control-empty-row"><td colspan="5"><?php echo esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ); ?></td></tr>
+                                <?php else : ?>
+                                        <?php foreach ( $rows as $row ) : ?>
+                                                <tr>
+                                                        <td><?php echo esc_html( (string) ( $row['track_id'] ?? '' ) ); ?></td>
+                                                        <td><?php echo esc_html( isset( $row['document_type'] ) && $row['document_type'] ? sprintf( 'DTE %d', (int) $row['document_type'] ) : '-' ); ?></td>
+                                                        <td><?php echo esc_html( isset( $row['folio'] ) && (int) $row['folio'] > 0 ? (string) (int) $row['folio'] : '-' ); ?></td>
+                                                        <td><?php echo esc_html( $this->translate_status_label( (string) ( $row['status'] ?? '' ) ) ); ?></td>
+                                                        <td><?php echo esc_html( $this->format_log_date( (string) ( $row['created_at'] ?? '' ) ) ); ?></td>
+                                                </tr>
+                                        <?php endforeach; ?>
+                                <?php endif; ?>
+                                </tbody>
+                        </table>
+                </div>
+
+                <div id="log-pagination" class="sii-log-pagination" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-total="<?php echo (int) $total_rows; ?>" data-limit="<?php echo (int) $limit_used; ?>">
+                        <button type="button" class="button" id="log-page-prev"<?php echo $current_page <= 1 ? ' disabled' : ''; ?>><?php echo esc_html__( 'Anterior', 'sii-boleta-dte' ); ?></button>
+                        <span><?php echo esc_html( sprintf( __( 'Página %1$d de %2$d', 'sii-boleta-dte' ), max( 1, $current_page ), max( 1, $total_pages ) ) ); ?></span>
+                        <button type="button" class="button" id="log-page-next"<?php echo $current_page >= $total_pages ? ' disabled' : ''; ?>><?php echo esc_html__( 'Siguiente', 'sii-boleta-dte' ); ?></button>
+                </div>
+        </div>
+        <?php
+        }
 
 /** Renders system health dashboard with key metrics. */
 private function render_health_dashboard(): void {
@@ -894,6 +985,38 @@ private function render_queue(): void {
 }
 #sii-control-queue-table {
 	min-width: 640px;
+}
+.sii-log-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	align-items: flex-end;
+	margin-bottom: 15px;
+}
+.sii-log-filter-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 150px;
+}
+.sii-log-filter-row input,
+.sii-log-filter-row select {
+	min-height: 30px;
+}
+.sii-log-filter-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.sii-log-table-wrapper {
+	overflow-x: auto;
+	padding-bottom: 8px;
+}
+.sii-log-pagination {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 12px;
 }
 </style>
 
@@ -1551,6 +1674,23 @@ private function handle_libro_action( string $action, string $xml ): void {
 		}
 
 		$this->notices = array();
+	}
+
+	/**
+	 * Formats a log timestamp into a human-readable value.
+	 */
+	private function format_log_date( string $datetime ): string {
+		if ( '' === $datetime ) {
+			return '—';
+		}
+		$timestamp = strtotime( $datetime );
+		if ( false === $timestamp ) {
+			return $datetime;
+		}
+		if ( function_exists( 'date_i18n' ) ) {
+			return (string) date_i18n( 'Y-m-d H:i', $timestamp );
+		}
+		return gmdate( 'Y-m-d H:i', $timestamp );
 	}
 
 	/**

@@ -23,6 +23,7 @@ if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } 
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
 if ( ! function_exists( 'submit_button' ) ) { function submit_button() {} }
 if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = 0 ) { return $d; } }
+if ( ! function_exists( 'selected' ) ) { function selected( $value, $current ) { return $value == $current ? ' selected="selected"' : ''; } }
 
 class ControlPanelPageTest extends TestCase {
     protected function setUp(): void {

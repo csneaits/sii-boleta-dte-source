@@ -145,9 +145,10 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
                     'loadError' => __( 'No se pudo cargar el contenido.', 'sii-boleta-dte' ),
                     'queueActionOk' => __( 'Acción de cola ejecutada.', 'sii-boleta-dte' ),
                     'queueActionFail' => __( 'No se pudo ejecutar la acción seleccionada.', 'sii-boleta-dte' ),
+                    'logsSummary' => __( 'Mostrando %start%-%end% de %total% registros', 'sii-boleta-dte' ),
                 ),
-			)
-		);
+            )
+        );
 }
         if ( 'sii-boleta-dte_page_sii-boleta-dte-generate' === $hook || false !== strpos( $hook, 'sii-boleta-dte-generate' ) ) {
                         $script_relative = 'src/Presentation/assets/js/generate-dte.js';

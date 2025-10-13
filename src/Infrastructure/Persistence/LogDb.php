@@ -17,7 +17,7 @@ class LogDb {
         /** Table name without prefix. */
         public const TABLE = 'sii_boleta_dte_logs';
 
-        /** @var array<int, array{track_id:string,status:string,response:string,environment:string,created_at:string}> */
+        /** @var array<int, array{track_id:string,status:string,response:string,environment:string,document_type:?int,folio:?int,created_at:string}> */
         private static array $entries = array();
 
         /** Indicates whether the in-memory store should be used. */
@@ -52,6 +52,8 @@ track_id varchar(50) NOT NULL,
 status varchar(20) NOT NULL,
 response longtext NOT NULL,
 environment varchar(20) NOT NULL DEFAULT '0',
+document_type smallint unsigned NULL,
+folio bigint(20) unsigned NULL,
 created_at datetime NOT NULL,
 PRIMARY KEY  (id),
 KEY track_id (track_id),
@@ -65,15 +67,29 @@ KEY env_status (environment, status)
                         // Fallback for environments without dbDelta (e.g. tests).
                         $wpdb->query( $sql );
                 }
+
+                if ( method_exists( $wpdb, 'query' ) ) {
+                        $table_name = self::table();
+                        $columns    = $wpdb->get_col( "SHOW COLUMNS FROM {$table_name} LIKE 'document_type'" );
+                        if ( empty( $columns ) ) {
+                                $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN document_type smallint unsigned NULL AFTER environment" );
+                        }
+                        $columns = $wpdb->get_col( "SHOW COLUMNS FROM {$table_name} LIKE 'folio'" );
+                        if ( empty( $columns ) ) {
+                                $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN folio bigint(20) unsigned NULL AFTER document_type" );
+                        }
+                }
         }
 
         /**
          * Persists a log entry.
          */
-        public static function add_entry( string $track_id, string $status, string $response, string $environment = '0' ): void {
+        public static function add_entry( string $track_id, string $status, string $response, string $environment = '0', array $meta = array() ): void {
                 global $wpdb;
                 $created = function_exists( 'current_time' ) ? current_time( 'mysql', true ) : gmdate( 'Y-m-d H:i:s' );
                 $env     = Settings::normalize_environment( $environment );
+                $doc_type = isset( $meta['type'] ) ? (int) $meta['type'] : ( isset( $meta['document_type'] ) ? (int) $meta['document_type'] : null );
+                $folio    = isset( $meta['folio'] ) ? (int) $meta['folio'] : null;
 
                 if ( is_object( $wpdb ) && method_exists( $wpdb, 'insert' ) ) {
                         $inserted = $wpdb->insert(
@@ -83,6 +99,8 @@ KEY env_status (environment, status)
                                         'status'    => $status,
                                         'response'  => $response,
                                         'environment' => $env,
+                                        'document_type' => $doc_type,
+                                        'folio'     => $folio,
                                         'created_at'=> $created,
                                 )
                         );
@@ -99,6 +117,8 @@ KEY env_status (environment, status)
                         'status'    => $status,
                         'response'  => $response,
                         'environment' => $env,
+                        'document_type' => $doc_type,
+                        'folio'     => $folio,
                         'created_at'=> $created,
                 );
         }
@@ -154,7 +174,7 @@ KEY env_status (environment, status)
                 global $wpdb;
                 if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
                         $table = self::table();
-                        $sql   = "SELECT track_id,status,response,environment,created_at FROM {$table}";
+                        $sql   = "SELECT track_id,status,response,environment,document_type,folio,created_at FROM {$table}";
                         $params = array();
                         $clauses = array();
                         if ( $status ) {
@@ -172,11 +192,14 @@ KEY env_status (environment, status)
                         $params[] = $limit;
                         $prepared = $wpdb->prepare( $sql, $params );
                         $rows     = $wpdb->get_results( $prepared, 'ARRAY_A' );
-                        return is_array( $rows ) ? $rows : array();
+                        if ( ! is_array( $rows ) ) {
+                                return array();
+                        }
+                        return array_map( static fn( $row ) => self::enrich_row( (array) $row ), $rows );
                 }
 
                 // Fallback to in-memory store.
-                $rows = self::$entries;
+                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::$entries );
                 if ( $status ) {
                         $rows = array_filter(
                                 $rows,
@@ -189,7 +212,230 @@ KEY env_status (environment, status)
                                 static fn( $row ) => $row['environment'] === $environment
                         );
                 }
-                return array_slice( array_reverse( $rows ), 0, $limit );
+                return array_slice( array_reverse( array_values( $rows ) ), 0, $limit );
+        }
+
+        /**
+         * Returns a paginated list of logs with optional filters.
+         *
+         * @param array<string,mixed> $args
+         * @return array{rows:array<int,array<string,mixed>>,total:int,page:int,pages:int,limit:int}
+         */
+        public static function get_logs_paginated( array $args = array() ): array {
+                $defaults = array(
+                        'limit'       => 10,
+                        'page'        => 1,
+                        'environment' => null,
+                        'status'      => '',
+                        'type'        => null,
+                        'date_from'   => '',
+                        'date_to'     => '',
+                );
+                $args = array_merge( $defaults, $args );
+
+                $limit = max( 1, min( 200, (int) $args['limit'] ) );
+                $page  = max( 1, (int) $args['page'] );
+                $offset = ( $page - 1 ) * $limit;
+                $environment = isset( $args['environment'] ) ? Settings::normalize_environment( (string) $args['environment'] ) : null;
+                $status      = isset( $args['status'] ) ? trim( (string) $args['status'] ) : '';
+                if ( 'all' === strtolower( $status ) ) {
+                        $status = '';
+                }
+                $type  = isset( $args['type'] ) && '' !== $args['type'] ? (int) $args['type'] : null;
+                $from  = isset( $args['date_from'] ) ? trim( (string) $args['date_from'] ) : '';
+                $to    = isset( $args['date_to'] ) ? trim( (string) $args['date_to'] ) : '';
+
+                global $wpdb;
+                if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
+                        $table   = self::table();
+                        $clauses = array();
+                        $params  = array();
+
+                        if ( $status ) {
+                                $clauses[] = 'status = %s';
+                                $params[]  = $status;
+                        }
+                        if ( null !== $environment ) {
+                                $clauses[] = 'environment = %s';
+                                $params[]  = $environment;
+                        }
+                        if ( null !== $type ) {
+                                $clauses[] = 'document_type = %d';
+                                $params[]  = $type;
+                        }
+                        if ( $from ) {
+                                $clauses[] = 'created_at >= %s';
+                                $params[]  = $from . ' 00:00:00';
+                        }
+                        if ( $to ) {
+                                $clauses[] = 'created_at <= %s';
+                                $params[]  = $to . ' 23:59:59';
+                        }
+
+                        $where = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
+
+                        $count_sql = "SELECT COUNT(*) FROM {$table} {$where}";
+                        $total = $clauses ? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $params ) ) : (int) $wpdb->get_var( $count_sql );
+                        $pages = $limit > 0 ? (int) max( 1, ceil( $total / $limit ) ) : 1;
+                        if ( $page > $pages ) {
+                                $page   = $pages;
+                                $offset = ( $page - 1 ) * $limit;
+                        }
+
+                        $rows_params = $params;
+                        $rows_sql    = "SELECT id,track_id,status,response,environment,document_type,folio,created_at FROM {$table} {$where} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+                        $rows_params[] = $limit;
+                        $rows_params[] = $offset;
+                        $rows = $wpdb->get_results( $wpdb->prepare( $rows_sql, $rows_params ), 'ARRAY_A' );
+                        if ( ! is_array( $rows ) ) {
+                                $rows = array();
+                        }
+                        $rows = array_map( static fn( $row ) => self::enrich_row( (array) $row ), $rows );
+
+                        return array(
+                                'rows'  => $rows,
+                                'total' => $total,
+                                'page'  => $page,
+                                'pages' => $pages,
+                                'limit' => $limit,
+                        );
+                }
+
+                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::$entries );
+                if ( $status ) {
+                        $rows = array_filter(
+                                $rows,
+                                static fn( $row ) => $row['status'] === $status
+                        );
+                }
+                if ( null !== $environment ) {
+                        $rows = array_filter(
+                                $rows,
+                                static fn( $row ) => ( $row['environment'] ?? null ) === $environment
+                        );
+                }
+                if ( null !== $type ) {
+                        $rows = array_filter(
+                                $rows,
+                                static fn( $row ) => isset( $row['document_type'] ) && (int) $row['document_type'] === $type
+                        );
+                }
+                if ( $from ) {
+                        $fromTs = strtotime( $from . ' 00:00:00' );
+                        $rows = array_filter(
+                                $rows,
+                                static fn( $row ) => strtotime( $row['created_at'] ?? 'now' ) >= $fromTs
+                        );
+                }
+                if ( $to ) {
+                        $toTs = strtotime( $to . ' 23:59:59' );
+                        $rows = array_filter(
+                                $rows,
+                                static fn( $row ) => strtotime( $row['created_at'] ?? 'now' ) <= $toTs
+                        );
+                }
+
+                $rows = array_reverse( array_values( $rows ) );
+                $total = count( $rows );
+                $pages = $limit > 0 ? (int) max( 1, ceil( $total / $limit ) ) : 1;
+                if ( $page > $pages ) {
+                        $page   = $pages;
+                        $offset = ( $page - 1 ) * $limit;
+                }
+                $paged_rows = array_slice( $rows, $offset, $limit );
+
+                return array(
+                                'rows'  => $paged_rows,
+                                'total' => $total,
+                                'page'  => $page,
+                                'pages' => $pages,
+                                'limit' => $limit,
+                );
+        }
+
+        /**
+         * Returns distinct document types present in logs.
+         *
+         * @return array<int,int>
+         */
+        public static function get_distinct_types( ?string $environment = null ): array {
+                $env = null === $environment ? null : Settings::normalize_environment( $environment );
+                global $wpdb;
+                if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_col' ) && method_exists( $wpdb, 'prepare' ) ) {
+                        $table = self::table();
+                        $sql   = "SELECT DISTINCT document_type FROM {$table} WHERE document_type IS NOT NULL";
+                        $params = array();
+                        if ( null !== $env ) {
+                                $sql    .= ' AND environment = %s';
+                                $params[] = $env;
+                        }
+                        $sql .= ' ORDER BY document_type ASC';
+                        $types = $params ? $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_col( $sql );
+                        return array_map( 'intval', array_filter( (array) $types ) );
+                }
+
+                $types = array();
+                foreach ( self::$entries as $row ) {
+                        if ( null !== $env && ( $row['environment'] ?? null ) !== $env ) {
+                                continue;
+                        }
+                        if ( isset( $row['document_type'] ) && null !== $row['document_type'] ) {
+                                $types[] = (int) $row['document_type'];
+                        }
+                }
+                $types = array_unique( $types );
+                sort( $types, SORT_NUMERIC );
+                return $types;
+        }
+
+        /**
+         * Ensures rows have document metadata populated even for legacy entries.
+         */
+        private static function enrich_row( array $row ): array {
+                if ( ! array_key_exists( 'document_type', $row ) ) {
+                        $row['document_type'] = null;
+                }
+                if ( ! array_key_exists( 'folio', $row ) ) {
+                        $row['folio'] = null;
+                }
+
+                if ( ( null === $row['document_type'] || 0 === (int) $row['document_type'] ) || null === $row['folio'] ) {
+                        $meta = self::extract_meta_from_response( (string) ( $row['response'] ?? '' ) );
+                        if ( null === $row['document_type'] && isset( $meta['type'] ) ) {
+                                $row['document_type'] = (int) $meta['type'];
+                        }
+                        if ( null === $row['folio'] && isset( $meta['folio'] ) ) {
+                                $row['folio'] = (int) $meta['folio'];
+                        }
+                }
+
+                if ( null !== $row['document_type'] ) {
+                        $row['document_type'] = (int) $row['document_type'];
+                }
+                if ( null !== $row['folio'] ) {
+                        $row['folio'] = (int) $row['folio'];
+                }
+
+                return $row;
+        }
+
+        /**
+         * Attempts to extract metadata from a response payload.
+         *
+         * @return array<string,mixed>
+         */
+        private static function extract_meta_from_response( string $response ): array {
+                if ( '' === $response ) {
+                        return array();
+                }
+                $decoded = json_decode( $response, true );
+                if ( ! is_array( $decoded ) ) {
+                        return array();
+                }
+                if ( isset( $decoded['meta'] ) && is_array( $decoded['meta'] ) ) {
+                        return $decoded['meta'];
+                }
+                return $decoded;
         }
 
         /**

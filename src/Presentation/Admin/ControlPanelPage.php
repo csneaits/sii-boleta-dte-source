@@ -832,12 +832,16 @@ private function render_queue(): void {
                         
                         <!-- Alertas -->
                         <?php if ( $stats['failed'] > 0 ) : ?>
-                                <div style="background: #ffeaa7; border-left: 4px solid #fdcb6e; padding: 10px; margin-top: 15px;">
+                                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 15px;">
                                         <strong>⚠️ <?php echo esc_html__( 'Atención:', 'sii-boleta-dte' ); ?></strong>
                                         <?php echo sprintf( 
-                                                esc_html__( 'Hay %d trabajos que han fallado después de 3 intentos.', 'sii-boleta-dte' ), 
+                                                esc_html__( 'Hay %d trabajos que han fallado después de 3 intentos automáticos.', 'sii-boleta-dte' ), 
                                                 (int) $stats['failed'] 
                                         ); ?>
+                                        <br>
+                                        <small style="color: #856404; display: block; margin-top: 6px;">
+                                                💡 <?php echo esc_html__( 'Estos trabajos permanecen en la cola hasta que los proceses manualmente o los canceles. Usa el botón "Procesar" para reintentarlos o "Reintentar" para resetear el contador de intentos.', 'sii-boleta-dte' ); ?>
+                                        </small>
                                 </div>
                         <?php endif; ?>
                         
@@ -983,11 +987,30 @@ private function render_queue(): void {
 </tr>
 <?php else : ?>
 <?php foreach ( $jobs as $job ) : ?>
-<tr>
+<?php 
+        $attempts = (int) $job['attempts'];
+        $is_failed = $attempts >= 3;
+        $row_class = $is_failed ? ' style="background-color: #fff3cd; border-left: 3px solid #ffc107;"' : '';
+?>
+<tr<?php echo $row_class; ?>>
 <td><?php echo (int) $job['id']; ?></td>
 <td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
-<td><?php echo esc_html( $this->describe_queue_document( $job ) ); ?></td>
-<td><?php echo (int) $job['attempts']; ?></td>
+<td>
+        <?php echo esc_html( $this->describe_queue_document( $job ) ); ?>
+        <?php if ( $is_failed ) : ?>
+                <br><span style="color: #dc3232; font-weight: bold; font-size: 12px;">
+                        ⚠️ <?php echo esc_html__( 'FALLIDO - Requiere atención manual', 'sii-boleta-dte' ); ?>
+                </span>
+        <?php endif; ?>
+</td>
+<td>
+        <span style="color: <?php echo $is_failed ? '#dc3232' : '#135e96'; ?>; font-weight: <?php echo $is_failed ? 'bold' : 'normal'; ?>;">
+                <?php echo $attempts; ?>
+        </span>
+        <?php if ( $is_failed ) : ?>
+                <br><small style="color: #856404;"><?php echo esc_html__( '(Pausado)', 'sii-boleta-dte' ); ?></small>
+        <?php endif; ?>
+</td>
 <td>
 <form method="post" class="sii-inline-form">
 <input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />

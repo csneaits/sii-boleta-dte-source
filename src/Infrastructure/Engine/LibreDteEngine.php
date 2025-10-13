@@ -186,7 +186,8 @@ class LibreDteEngine implements DteEngine {
         $environment = $this->settings->get_environment();
 
         $folioNumber = $this->extractFolio( $data );
-        if ( ! $preview && $folioNumber > 0 && ! FoliosDb::find_for_folio( $tipo, $folioNumber, $environment ) ) {
+        // En ambiente de desarrollo ('2'), el CAF faker se usa automáticamente, no validar DB
+        if ( ! $preview && $folioNumber > 0 && '2' !== $environment && ! FoliosDb::find_for_folio( $tipo, $folioNumber, $environment ) ) {
             return class_exists( '\\WP_Error' ) ? new \WP_Error( 'sii_boleta_missing_caf', 'Missing folio range' ) : false;
         }
 

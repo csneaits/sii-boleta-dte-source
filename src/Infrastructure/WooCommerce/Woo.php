@@ -415,14 +415,44 @@ class Woo {
                         }
                 }
 
-                $engine = $this->plugin->get_engine();
-                $xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );
-                if ( ! is_string( $xml ) || '' === trim( $xml ) ) {
-                        $this->add_order_note( $order, __( 'No fue posible generar el XML del documento tributario.', 'sii-boleta-dte' ) );
-                        return;
-                }
-
-                if ( $preview_mode ) {
+		$engine = $this->plugin->get_engine();
+		$xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );
+		
+		// Capturar error detallado si el motor devuelve WP_Error
+		if ( $xml instanceof \WP_Error ) {
+			$error_code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
+			$error_msg  = method_exists( $xml, 'get_error_message' ) ? $xml->get_error_message() : '';
+			
+			$detailed_message = __( 'No fue posible generar el XML del documento tributario.', 'sii-boleta-dte' );
+			
+			if ( 'sii_boleta_missing_caf' === $error_code ) {
+				$detailed_message .= ' ' . sprintf(
+					/* translators: %d: document type number */
+					__( 'No se encontró un archivo CAF válido para el tipo de documento %d. Por favor, carga un archivo CAF en la configuración del plugin.', 'sii-boleta-dte' ),
+					$document_type
+				);
+			} elseif ( 'sii_boleta_invalid_caf' === $error_code ) {
+				$detailed_message .= ' ' . sprintf(
+					/* translators: %d: document type number */
+					__( 'El archivo CAF para el tipo de documento %d es inválido o está corrupto. Verifica el archivo en la configuración.', 'sii-boleta-dte' ),
+					$document_type
+				);
+			} elseif ( '' !== $error_msg ) {
+				$detailed_message .= ' ' . sprintf(
+					/* translators: %s: specific error message */
+					__( 'Error: %s', 'sii-boleta-dte' ),
+					$error_msg
+				);
+			}
+			
+			$this->add_order_note( $order, $detailed_message );
+			return;
+		}
+		
+		if ( ! is_string( $xml ) || '' === trim( $xml ) ) {
+			$this->add_order_note( $order, __( 'No fue posible generar el XML del documento tributario.', 'sii-boleta-dte' ) );
+			return;
+		}                if ( $preview_mode ) {
                         $pdf_generator = $this->plugin->get_pdf_generator();
                         $pdf           = $pdf_generator->generate( $xml );
                         if ( ! is_string( $pdf ) || '' === $pdf ) {

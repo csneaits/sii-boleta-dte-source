@@ -687,9 +687,10 @@ private function render_health_dashboard(): void {
 private function render_queue(): void {
         $environment = $this->settings->get_environment();
         
-        // Obtener trabajos pendientes directamente para evitar desalineación con las estadísticas
-        // y minimizar riesgos de filtrados demasiado agresivos.
-        $raw_jobs = QueueDb::get_pending_jobs( 100 );
+	// Obtener trabajos pendientes directamente para evitar desalineación con las estadísticas
+	// y minimizar riesgos de filtrados demasiado agresivos. Se amplía el límite para
+	// permitir revisar trabajos antiguos cuando se aplican filtros por fecha.
+	$raw_jobs = QueueDb::get_pending_jobs( 300 );
         
         // Filtrado por ambiente (suave): si el job no trae environment, no se filtra.
         $all_jobs = array_values( array_filter(
@@ -733,13 +734,19 @@ private function render_queue(): void {
         }
         
         // Aplicar filtros adicionales del usuario
-        $filters = [];
-        if ( ! empty( $_GET['filter_attempts'] ) ) {
-                $filters['attempts'] = sanitize_text_field( $_GET['filter_attempts'] );
-        }
-        if ( ! empty( $_GET['filter_age'] ) ) {
-                $filters['age'] = sanitize_text_field( $_GET['filter_age'] );
-        }
+	$filters = [];
+	if ( ! empty( $_GET['filter_attempts'] ) ) {
+		$filters['attempts'] = sanitize_text_field( $_GET['filter_attempts'] );
+	}
+	if ( ! empty( $_GET['filter_age'] ) ) {
+		$filters['age'] = sanitize_text_field( $_GET['filter_age'] );
+	}
+	if ( ! empty( $_GET['filter_from'] ) ) {
+		$filters['from'] = sanitize_text_field( $_GET['filter_from'] );
+	}
+	if ( ! empty( $_GET['filter_to'] ) ) {
+		$filters['to'] = sanitize_text_field( $_GET['filter_to'] );
+	}
         
         $jobs = $this->apply_queue_filters( $all_jobs, $filters );
         
@@ -839,43 +846,61 @@ private function render_queue(): void {
                                         </select>
                                 </div>
                                 
-                                <div>
-                                        <label for="filter_age" style="display: block; font-size: 12px; margin-bottom: 3px;">
-                                                <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?>
-                                        </label>
-                                        <select name="filter_age" id="filter_age" class="queue-filter">
-                                                <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
-                                                <option value="new"><?php echo esc_html__( 'Recientes (<1h)', 'sii-boleta-dte' ); ?></option>
-                                                <option value="old"><?php echo esc_html__( 'Antiguos (>1h)', 'sii-boleta-dte' ); ?></option>
-                                        </select>
-                                </div>
-                                
-                                <div>
-                                        <button type="button" id="apply-filters" class="button"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
-                                        <button type="button" id="clear-filters" class="button"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></button>
-                                        <button type="button" id="show-help" class="button button-secondary"><?php echo esc_html__( 'Ayuda', 'sii-boleta-dte' ); ?></button>
-                                </div>
-                        </form>
+				<div>
+					<label for="filter_age" style="display: block; font-size: 12px; margin-bottom: 3px;">
+						<?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?>
+					</label>
+					<select name="filter_age" id="filter_age" class="queue-filter">
+						<option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
+						<option value="new"><?php echo esc_html__( 'Recientes (<1h)', 'sii-boleta-dte' ); ?></option>
+						<option value="old"><?php echo esc_html__( 'Antiguos (>1h)', 'sii-boleta-dte' ); ?></option>
+					</select>
+				</div>
+				<div>
+					<label for="filter_from" style="display: block; font-size: 12px; margin-bottom: 3px;">
+						<?php echo esc_html__( 'Desde (fecha):', 'sii-boleta-dte' ); ?>
+					</label>
+					<input type="date" name="filter_from" id="filter_from" class="queue-filter" />
+				</div>
+				<div>
+					<label for="filter_to" style="display: block; font-size: 12px; margin-bottom: 3px;">
+						<?php echo esc_html__( 'Hasta (fecha):', 'sii-boleta-dte' ); ?>
+					</label>
+					<input type="date" name="filter_to" id="filter_to" class="queue-filter" />
+				</div>
+				
+				<div>
+					<button type="button" id="apply-filters" class="button"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
+					<button type="button" id="clear-filters" class="button"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></button>
+					<button type="button" id="show-help" class="button button-secondary"><?php echo esc_html__( 'Ayuda', 'sii-boleta-dte' ); ?></button>
+				</div>
+			</form>
                 </div>
                 
                 <!-- Información de filtros activos -->
-                <?php if ( $has_filters ) : ?>
-                        <div style="background: #e7f3ff; border-left: 4px solid #0073aa; padding: 10px; margin-bottom: 15px;">
-                                <strong><?php echo esc_html__( 'Filtros activos:', 'sii-boleta-dte' ); ?></strong>
-                                <?php echo sprintf( 
-                                        esc_html__( 'Mostrando %d de %d elementos', 'sii-boleta-dte' ),
-                                        $filtered_count,
-                                        $total_count
-                                ); ?>
-                                <?php if ( isset( $filters['attempts'] ) ) : ?>
-                                        | <?php echo esc_html__( 'Intentos:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $filters['attempts'] ); ?>
-                                <?php endif; ?>
-                                <?php if ( isset( $filters['age'] ) ) : ?>
-                                        | <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?> 
-                                        <?php echo $filters['age'] === 'new' ? esc_html__( 'Recientes', 'sii-boleta-dte' ) : esc_html__( 'Antiguos', 'sii-boleta-dte' ); ?>
-                                <?php endif; ?>
-                        </div>
-                <?php endif; ?>
+	<?php if ( $has_filters ) : ?>
+		<div style="background: #e7f3ff; border-left: 4px solid #0073aa; padding: 10px; margin-bottom: 15px;">
+			<strong><?php echo esc_html__( 'Filtros activos:', 'sii-boleta-dte' ); ?></strong>
+			<?php echo sprintf( 
+				esc_html__( 'Mostrando %d de %d elementos', 'sii-boleta-dte' ),
+				$filtered_count,
+				$total_count
+			); ?>
+			<?php if ( isset( $filters['attempts'] ) ) : ?>
+				| <?php echo esc_html__( 'Intentos:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $filters['attempts'] ); ?>
+			<?php endif; ?>
+			<?php if ( isset( $filters['age'] ) ) : ?>
+				| <?php echo esc_html__( 'Antigüedad:', 'sii-boleta-dte' ); ?> 
+				<?php echo $filters['age'] === 'new' ? esc_html__( 'Recientes', 'sii-boleta-dte' ) : esc_html__( 'Antiguos', 'sii-boleta-dte' ); ?>
+			<?php endif; ?>
+			<?php if ( isset( $filters['from'] ) ) : ?>
+				| <?php echo esc_html__( 'Desde:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $filters['from'] ); ?>
+			<?php endif; ?>
+			<?php if ( isset( $filters['to'] ) ) : ?>
+				| <?php echo esc_html__( 'Hasta:', 'sii-boleta-dte' ); ?> <?php echo esc_html( $filters['to'] ); ?>
+			<?php endif; ?>
+		</div>
+	<?php endif; ?>
 
                 <!-- Controles -->
                 <div id="queue-actions">
@@ -955,8 +980,11 @@ private function render_queue(): void {
 #queue-filters .button {
 	margin-right: 5px;
 }
-#queue-filters select {
-	min-width: 120px;
+#queue-filters .queue-filter {
+	min-width: 140px;
+	min-height: 34px;
+	padding: 6px 10px;
+	box-sizing: border-box;
 }
 #sii-queue-help {
 	margin-top: 15px;
@@ -2153,7 +2181,24 @@ private function handle_libro_action( string $action, string $xml ): void {
 				return $jobs;
 			}
 
-			return array_filter( $jobs, function( $job ) use ( $filters ) {
+			$date_from     = null;
+			$date_to       = null;
+			$one_hour_ago  = time() - 3600;
+
+			if ( isset( $filters['from'] ) ) {
+				$parsed_from = strtotime( (string) $filters['from'] . ' 00:00:00' );
+				if ( false !== $parsed_from ) {
+					$date_from = $parsed_from;
+				}
+			}
+			if ( isset( $filters['to'] ) ) {
+				$parsed_to = strtotime( (string) $filters['to'] . ' 23:59:59' );
+				if ( false !== $parsed_to ) {
+					$date_to = $parsed_to;
+				}
+			}
+
+			return array_filter( $jobs, function( $job ) use ( $filters, $date_from, $date_to, $one_hour_ago ) {
 				// Filtro por intentos
 				if ( isset( $filters['attempts'] ) ) {
 					$job_attempts = (int) ( $job['attempts'] ?? 0 );
@@ -2173,19 +2218,26 @@ private function handle_libro_action( string $action, string $xml ): void {
 					}
 				}
 
+				$created_at = $job['created_at'] ?? '';
+				$job_time   = $created_at ? strtotime( $created_at ) : false;
+
 				// Filtro por antigüedad
 				if ( isset( $filters['age'] ) ) {
-					$created_at = $job['created_at'] ?? '';
-					if ( $created_at ) {
-						$job_time = strtotime( $created_at );
-						$one_hour_ago = time() - 3600;
-						
+					if ( $job_time ) {
 						if ( $filters['age'] === 'new' && $job_time < $one_hour_ago ) {
 							return false;
 						} elseif ( $filters['age'] === 'old' && $job_time >= $one_hour_ago ) {
 							return false;
 						}
 					}
+				}
+
+				// Filtro por rango de fechas
+				if ( $date_from && $job_time && $job_time < $date_from ) {
+					return false;
+				}
+				if ( $date_to && $job_time && $job_time > $date_to ) {
+					return false;
 				}
 
 				return true;

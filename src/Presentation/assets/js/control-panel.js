@@ -1,6 +1,108 @@
 (function (window, document) {
     'use strict';
 
+    // =====================================================
+    // SISTEMA DE MODALES REUTILIZABLE
+    // =====================================================
+    var SiiModal = {
+        show: function(type, title, message) {
+            var modal = document.getElementById('sii-notification-modal');
+            var icon = document.getElementById('sii-modal-icon');
+            var titleEl = document.getElementById('sii-modal-title');
+            var messageEl = document.getElementById('sii-modal-message');
+            
+            if (!modal || !icon || !titleEl || !messageEl) {
+                console.warn('Modal elements not found');
+                return;
+            }
+            
+            // Configurar icono y título según el tipo
+            icon.className = 'sii-modal-icon ' + type;
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            // Mostrar modal
+            modal.style.display = 'flex';
+            
+            // Evitar scroll del body
+            document.body.style.overflow = 'hidden';
+        },
+        
+        hide: function() {
+            var modal = document.getElementById('sii-notification-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        },
+        
+        success: function(message, title) {
+            this.show('success', title || '¡Éxito!', message);
+        },
+        
+        error: function(message, title) {
+            this.show('error', title || 'Error', message);
+        },
+        
+        warning: function(message, title) {
+            this.show('warning', title || 'Advertencia', message);
+        },
+        
+        info: function(message, title) {
+            this.show('info', title || 'Información', message);
+        }
+    };
+    
+    // Exponer globalmente para reutilización
+    window.SiiModal = SiiModal;
+    
+    // Manejar cierre del modal
+    document.addEventListener('DOMContentLoaded', function() {
+        var closeBtn = document.getElementById('sii-modal-close');
+        var modal = document.getElementById('sii-notification-modal');
+        var overlay = modal ? modal.querySelector('.sii-modal-overlay') : null;
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                SiiModal.hide();
+            });
+        }
+        
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                SiiModal.hide();
+            });
+        }
+        
+        // Cerrar con ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+                SiiModal.hide();
+            }
+        });
+        
+        // Procesar notificaciones del servidor
+        var noticesData = document.getElementById('sii-notices-data');
+        if (noticesData && noticesData.dataset.notices) {
+            try {
+                var notices = JSON.parse(noticesData.dataset.notices);
+                if (notices && notices.length > 0) {
+                    var notice = notices[0]; // Mostrar la primera notificación
+                    if (notice.type === 'error') {
+                        SiiModal.error(notice.message);
+                    } else {
+                        SiiModal.success(notice.message);
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing notices:', e);
+            }
+        }
+    });
+
+    // =====================================================
+    // CÓDIGO EXISTENTE
+    // =====================================================
     var cfg = window.siiBoletaControlPanel || {};
     var ajaxUrl = cfg.ajax || window.ajaxurl || '/wp-admin/admin-ajax.php';
     var action = cfg.action || '';

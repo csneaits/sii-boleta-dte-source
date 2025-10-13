@@ -1842,12 +1842,14 @@ private function handle_libro_action( string $action, string $xml ): void {
 		$notices_json = json_encode( $this->notices );
 		echo '<div id="sii-notices-data" data-notices="' . esc_attr( $notices_json ) . '" style="display:none;"></div>';
 
-		// Mantener las notificaciones tradicionales como fallback
+		// Mantener las notificaciones tradicionales como fallback (ocultas por CSS)
+		echo '<div class="sii-traditional-notices" style="display:none;">';
 		foreach ( $this->notices as $notice ) {
 			$type    = 'error' === $notice['type'] ? 'notice-error' : 'notice-success';
 			$message = $notice['message'];
 			echo '<div class="notice ' . esc_attr( $type ) . '"><p>' . esc_html( $message ) . '</p></div>';
 		}
+		echo '</div>';
 
 		$this->notices = array();
 	}

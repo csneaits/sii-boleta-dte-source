@@ -40,6 +40,8 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_dte_run_prune', array( $this, 'run_prune' ) );
         // Diagnostics: LibreDTE auth test
         \add_action( 'wp_ajax_sii_boleta_libredte_auth', array( $this, 'libredte_auth' ) );
+        // Track ID status query
+        \add_action( 'wp_ajax_sii_boleta_query_track_status', array( $this, 'query_track_status' ) );
     }
 
     public function control_panel_data(): void {
@@ -1626,6 +1628,148 @@ class Ajax {
         
         libxml_clear_errors();
         return $dom->saveXML($dom->documentElement);
+    }
+
+    /**
+     * Query Track ID status from SII (or simulation)
+     */
+    public function query_track_status(): void {
+        if ( ! function_exists( 'check_ajax_referer' ) || ! function_exists( 'current_user_can' ) ) {
+            \wp_send_json_error( array( 'message' => __( 'Funciones de WordPress no disponibles.', 'sii-boleta-dte' ) ) );
+            return;
+        }
+
+        \check_ajax_referer( 'sii_boleta_query_track', 'nonce' );
+
+        if ( ! \current_user_can( 'manage_options' ) ) {
+            \wp_send_json_error( array( 'message' => __( 'Permisos insuficientes.', 'sii-boleta-dte' ) ) );
+            return;
+        }
+
+        $track_id = isset( $_POST['track_id'] ) ? (string) $_POST['track_id'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        $environment = isset( $_POST['environment'] ) ? (string) $_POST['environment'] : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+        if ( '' === $track_id ) {
+            \wp_send_json_error( array( 'message' => __( 'Track ID no especificado.', 'sii-boleta-dte' ) ) );
+            return;
+        }
+
+        $settings = $this->core->get_settings();
+        $api = $this->core->get_api();
+        $token_manager = new \Sii\BoletaDte\Infrastructure\TokenManager( $api, $settings );
+
+        if ( '' === $environment ) {
+            $environment = $settings->get_environment();
+        }
+
+        $token = $token_manager->get_token( $environment );
+        $status = $api->get_dte_status( $track_id, $environment, $token );
+
+        $env_label = $this->get_environment_label( $environment );
+        $is_simulated = false !== strpos( $track_id, '-SIM-' );
+
+        $html = '<div class="sii-track-details">';
+        $html .= '<table class="widefat striped">';
+        $html .= '<tr><th>' . esc_html__( 'Track ID', 'sii-boleta-dte' ) . '</th><td><code>' . esc_html( $track_id ) . '</code></td></tr>';
+        $html .= '<tr><th>' . esc_html__( 'Ambiente', 'sii-boleta-dte' ) . '</th><td>' . esc_html( $env_label );
+        if ( $is_simulated ) {
+            $html .= ' <span class="sii-badge sii-badge-info">' . esc_html__( 'Simulado', 'sii-boleta-dte' ) . '</span>';
+        }
+        $html .= '</td></tr>';
+
+        if ( \is_wp_error( $status ) ) {
+            $error_msg = method_exists( $status, 'get_error_message' ) ? $status->get_error_message() : __( 'Error desconocido', 'sii-boleta-dte' );
+            $html .= '<tr><th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th><td>';
+            $html .= '<span class="sii-badge sii-badge-error">' . esc_html__( 'Error', 'sii-boleta-dte' ) . '</span>';
+            $html .= '</td></tr>';
+            $html .= '<tr><th>' . esc_html__( 'Mensaje', 'sii-boleta-dte' ) . '</th><td>' . esc_html( $error_msg ) . '</td></tr>';
+        } else {
+            $status_str = is_string( $status ) ? $status : __( 'Desconocido', 'sii-boleta-dte' );
+            $badge_class = $this->get_status_badge_class( $status_str );
+            $status_label = $this->translate_status_label( $status_str );
+
+            $html .= '<tr><th>' . esc_html__( 'Estado', 'sii-boleta-dte' ) . '</th><td>';
+            $html .= '<span class="sii-badge ' . esc_attr( $badge_class ) . '">' . esc_html( $status_label ) . '</span>';
+            $html .= '</td></tr>';
+
+            // Get latest log entry for this track ID
+            $logs = \Sii\BoletaDte\Infrastructure\Persistence\LogDb::get_logs( array(
+                'track_id' => $track_id,
+                'limit' => 1,
+            ) );
+
+            if ( ! empty( $logs ) && isset( $logs[0] ) ) {
+                $log = $logs[0];
+                $html .= '<tr><th>' . esc_html__( 'Última actualización', 'sii-boleta-dte' ) . '</th><td>' . esc_html( (string) ( $log['created_at'] ?? '-' ) ) . '</td></tr>';
+
+                if ( isset( $log['document_type'] ) && (int) $log['document_type'] > 0 ) {
+                    $html .= '<tr><th>' . esc_html__( 'Tipo documento', 'sii-boleta-dte' ) . '</th><td>' . esc_html( $this->dte_type_label( (int) $log['document_type'] ) ) . '</td></tr>';
+                }
+
+                if ( isset( $log['folio'] ) && (int) $log['folio'] > 0 ) {
+                    $html .= '<tr><th>' . esc_html__( 'Folio', 'sii-boleta-dte' ) . '</th><td>' . esc_html( (string) (int) $log['folio'] ) . '</td></tr>';
+                }
+            }
+        }
+
+        $html .= '</table>';
+        $html .= '</div>';
+
+        \wp_send_json_success( array( 'html' => $html ) );
+    }
+
+    private function get_environment_label( string $env ): string {
+        $normalized = \Sii\BoletaDte\Infrastructure\Settings::normalize_environment( $env );
+        $labels = array(
+            '0' => __( 'Certificación', 'sii-boleta-dte' ),
+            '1' => __( 'Producción', 'sii-boleta-dte' ),
+            '2' => __( 'Desarrollo', 'sii-boleta-dte' ),
+        );
+        return $labels[ $normalized ] ?? __( 'Desconocido', 'sii-boleta-dte' );
+    }
+
+    private function get_status_badge_class( string $status ): string {
+        $map = array(
+            'sent' => 'sii-badge-warning',
+            'accepted' => 'sii-badge-success',
+            'rejected' => 'sii-badge-error',
+            'error' => 'sii-badge-error',
+            'queued' => 'sii-badge-info',
+            'draft' => 'sii-badge-default',
+        );
+        return $map[ $status ] ?? 'sii-badge-default';
+    }
+
+    private function translate_status_label( string $status ): string {
+        $map = array(
+            'sent' => __( 'Enviado (pendiente)', 'sii-boleta-dte' ),
+            'accepted' => __( 'Aceptado', 'sii-boleta-dte' ),
+            'rejected' => __( 'Rechazado', 'sii-boleta-dte' ),
+            'error' => __( 'Error', 'sii-boleta-dte' ),
+            'queued' => __( 'En cola', 'sii-boleta-dte' ),
+            'draft' => __( 'Borrador', 'sii-boleta-dte' ),
+            'failed' => __( 'Fallido', 'sii-boleta-dte' ),
+        );
+        return $map[ $status ] ?? ucfirst( $status );
+    }
+
+    private function dte_type_label( int $type ): string {
+        if ( $type <= 0 ) {
+            return '-';
+        }
+
+        $map = array(
+            33 => __( 'Factura electrónica (33)', 'sii-boleta-dte' ),
+            34 => __( 'Factura exenta electrónica (34)', 'sii-boleta-dte' ),
+            39 => __( 'Boleta electrónica (39)', 'sii-boleta-dte' ),
+            41 => __( 'Boleta exenta electrónica (41)', 'sii-boleta-dte' ),
+            46 => __( 'Factura de compra (46)', 'sii-boleta-dte' ),
+            52 => __( 'Guía de despacho (52)', 'sii-boleta-dte' ),
+            56 => __( 'Nota de débito (56)', 'sii-boleta-dte' ),
+            61 => __( 'Nota de crédito (61)', 'sii-boleta-dte' ),
+        );
+
+        return $map[ $type ] ?? sprintf( __( 'Tipo %d', 'sii-boleta-dte' ), $type );
     }
 }
 

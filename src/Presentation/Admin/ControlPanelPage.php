@@ -582,8 +582,23 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                         </tr>
                                 <?php else : ?>
                                         <?php foreach ( $rows as $row ) : ?>
+                                                <?php 
+                                                $track_id_value = (string) ( $row['track_id'] ?? '' );
+                                                $has_track_id = '' !== $track_id_value && '-' !== $track_id_value;
+                                                ?>
                                                 <tr>
-                                                        <td><?php echo esc_html( (string) ( $row['track_id'] ?? '' ) ); ?></td>
+                                                        <td>
+                                                                <?php if ( $has_track_id ) : ?>
+                                                                        <span class="sii-track-id-clickable" 
+                                                                              data-track-id="<?php echo esc_attr( $track_id_value ); ?>"
+                                                                              data-environment="<?php echo esc_attr( $environment ); ?>"
+                                                                              title="<?php echo esc_attr__( 'Doble clic para consultar estado en el SII', 'sii-boleta-dte' ); ?>">
+                                                                                <?php echo esc_html( $track_id_value ); ?>
+                                                                        </span>
+                                                                <?php else : ?>
+                                                                        <?php echo esc_html( $track_id_value ); ?>
+                                                                <?php endif; ?>
+                                                        </td>
                                                         <td><?php echo esc_html( $this->dte_type_label( isset( $row['document_type'] ) ? (int) $row['document_type'] : 0 ) ); ?></td>
                                                         <td><?php echo esc_html( isset( $row['folio'] ) && (int) $row['folio'] > 0 ? (string) (int) $row['folio'] : '-' ); ?></td>
                                                         <td><?php echo esc_html( $this->translate_status_label( (string) ( $row['status'] ?? '' ) ) ); ?></td>
@@ -594,6 +609,129 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 </tbody>
                         </table>
                 </div>
+
+                <!-- Modal para consulta de Track ID -->
+                <div id="sii-track-modal" class="sii-modal" style="display:none;">
+                        <div class="sii-modal-overlay"></div>
+                        <div class="sii-modal-dialog">
+                                <div class="sii-modal-header">
+                                        <h3><?php echo esc_html__( 'Consulta de Track ID', 'sii-boleta-dte' ); ?></h3>
+                                        <button type="button" class="sii-modal-close" aria-label="<?php echo esc_attr__( 'Cerrar', 'sii-boleta-dte' ); ?>">×</button>
+                                </div>
+                                <div class="sii-modal-body">
+                                        <div class="sii-track-info">
+                                                <div class="sii-track-loading">
+                                                        <span class="spinner is-active"></span>
+                                                        <p><?php echo esc_html__( 'Consultando estado en el SII...', 'sii-boleta-dte' ); ?></p>
+                                                </div>
+                                                <div class="sii-track-result" style="display:none;">
+                                                        <!-- Content will be populated by JavaScript -->
+                                                </div>
+                                        </div>
+                                </div>
+                                <div class="sii-modal-footer">
+                                        <button type="button" class="button sii-modal-close"><?php echo esc_html__( 'Cerrar', 'sii-boleta-dte' ); ?></button>
+                                </div>
+                        </div>
+                </div>
+
+                <script>
+                (function() {
+                        'use strict';
+
+                        var modal = document.getElementById('sii-track-modal');
+                        if (!modal) return;
+
+                        var overlay = modal.querySelector('.sii-modal-overlay');
+                        var closeButtons = modal.querySelectorAll('.sii-modal-close');
+                        var loadingDiv = modal.querySelector('.sii-track-loading');
+                        var resultDiv = modal.querySelector('.sii-track-result');
+
+                        function closeModal() {
+                                modal.style.display = 'none';
+                                document.body.style.overflow = '';
+                        }
+
+                        function openModal() {
+                                modal.style.display = 'block';
+                                document.body.style.overflow = 'hidden';
+                        }
+
+                        function showLoading() {
+                                if (loadingDiv) loadingDiv.style.display = 'block';
+                                if (resultDiv) resultDiv.style.display = 'none';
+                        }
+
+                        function showResult(html) {
+                                if (loadingDiv) loadingDiv.style.display = 'none';
+                                if (resultDiv) {
+                                        resultDiv.innerHTML = html;
+                                        resultDiv.style.display = 'block';
+                                }
+                        }
+
+                        // Close modal handlers
+                        if (overlay) {
+                                overlay.addEventListener('click', closeModal);
+                        }
+                        closeButtons.forEach(function(btn) {
+                                btn.addEventListener('click', closeModal);
+                        });
+
+                        // ESC key to close
+                        document.addEventListener('keydown', function(e) {
+                                if (e.key === 'Escape' && modal.style.display === 'block') {
+                                        closeModal();
+                                }
+                        });
+
+                        // Double click on Track ID
+                        document.addEventListener('dblclick', function(e) {
+                                var target = e.target;
+                                if (!target.classList.contains('sii-track-id-clickable')) return;
+
+                                var trackId = target.getAttribute('data-track-id');
+                                var environment = target.getAttribute('data-environment');
+
+                                if (!trackId) return;
+
+                                openModal();
+                                showLoading();
+
+                                // Make AJAX request
+                                var xhr = new XMLHttpRequest();
+                                xhr.open('POST', ajaxurl, true);
+                                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                                
+                                xhr.onload = function() {
+                                        if (xhr.status === 200) {
+                                                try {
+                                                        var response = JSON.parse(xhr.responseText);
+                                                        if (response.success) {
+                                                                showResult(response.data.html);
+                                                        } else {
+                                                                showResult('<div class="notice notice-error"><p>' + 
+                                                                        (response.data.message || '<?php echo esc_js( __( 'Error al consultar el estado.', 'sii-boleta-dte' ) ); ?>') + 
+                                                                        '</p></div>');
+                                                        }
+                                                } catch (e) {
+                                                        showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error al procesar la respuesta.', 'sii-boleta-dte' ) ); ?></p></div>');
+                                                }
+                                        } else {
+                                                showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error de conexión.', 'sii-boleta-dte' ) ); ?></p></div>');
+                                        }
+                                };
+
+                                xhr.onerror = function() {
+                                        showResult('<div class="notice notice-error"><p><?php echo esc_js( __( 'Error de red.', 'sii-boleta-dte' ) ); ?></p></div>');
+                                };
+
+                                xhr.send('action=sii_boleta_query_track_status&track_id=' + encodeURIComponent(trackId) + 
+                                        '&environment=' + encodeURIComponent(environment) + 
+                                        '&nonce=<?php echo esc_js( wp_create_nonce( 'sii_boleta_query_track' ) ); ?>');
+                        });
+                })();
+                </script>
         </div>
         <?php
         }

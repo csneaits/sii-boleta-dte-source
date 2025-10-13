@@ -1028,11 +1028,21 @@ private function render_queue(): void {
 	gap: 12px 16px;
 	align-items: end;
 	margin-bottom: 12px;
-	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 @media (min-width: 1024px) {
 	.sii-log-filters {
-		grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(200px, max-content);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-auto-flow: dense;
+	}
+	.sii-log-filter-row:nth-of-type(odd) {
+		grid-column: 1;
+	}
+	.sii-log-filter-row:nth-of-type(even) {
+		grid-column: 2;
+	}
+	.sii-log-filter-actions {
+		grid-column: 1 / -1;
 	}
 }
 .sii-log-filter-row {

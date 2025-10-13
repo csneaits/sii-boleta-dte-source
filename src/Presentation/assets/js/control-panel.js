@@ -23,7 +23,7 @@
     var queueTable;
     var queueEmpty;
     var queueWrapper;
-    var queueFilters = { attempts: '', age: '' };
+    var queueFilters = { attempts: '', age: '', from: '', to: '' };
     var logFilters = { status: '', type: '', from: '', to: '', page: 1, limit: 10 };
 
     (function seedFiltersFromUrl() {
@@ -31,6 +31,8 @@
             var params = new URLSearchParams(window.location.search);
             queueFilters.attempts = params.get('filter_attempts') || '';
             queueFilters.age = params.get('filter_age') || '';
+            queueFilters.from = params.get('filter_from') || '';
+            queueFilters.to = params.get('filter_to') || '';
             logFilters.status = params.get('logs_status') || '';
             logFilters.type = params.get('logs_type') || '';
             logFilters.from = params.get('logs_from') || '';
@@ -40,6 +42,8 @@
         } catch (e) {
             queueFilters.attempts = '';
             queueFilters.age = '';
+            queueFilters.from = '';
+            queueFilters.to = '';
             logFilters.status = '';
             logFilters.type = '';
             logFilters.from = '';
@@ -69,6 +73,16 @@
             } else {
                 url.searchParams.delete('filter_age');
             }
+            if (filters.from) {
+                url.searchParams.set('filter_from', filters.from);
+            } else {
+                url.searchParams.delete('filter_from');
+            }
+            if (filters.to) {
+                url.searchParams.set('filter_to', filters.to);
+            } else {
+                url.searchParams.delete('filter_to');
+            }
             window.history.replaceState({}, document.title, url.toString());
         } catch (e) {
             // Ignore browsers without URL API support.
@@ -83,6 +97,12 @@
         if (queueFilters.age) {
             params.append('filter_age', queueFilters.age);
         }
+        if (queueFilters.from) {
+            params.append('filter_from', queueFilters.from);
+        }
+        if (queueFilters.to) {
+            params.append('filter_to', queueFilters.to);
+        }
     }
 
     function initQueueFilters(preserveState) {
@@ -92,32 +112,34 @@
         var helpPanel = document.getElementById('sii-queue-help');
         var attemptsFilter = document.getElementById('filter_attempts');
         var ageFilter = document.getElementById('filter_age');
+        var fromFilter = document.getElementById('filter_from');
+        var toFilter = document.getElementById('filter_to');
 
         if (!applyFiltersBtn && !clearFiltersBtn && !showHelpBtn) {
             return;
         }
 
-        if (preserveState) {
-            if (attemptsFilter) {
-                attemptsFilter.value = queueFilters.attempts || '';
+        var syncField = function (el, key) {
+            if (!el) return;
+            if (preserveState || queueFilters[key]) {
+                el.value = queueFilters[key] || '';
+            } else {
+                queueFilters[key] = el.value || '';
             }
-            if (ageFilter) {
-                ageFilter.value = queueFilters.age || '';
-            }
-        } else {
-            if (attemptsFilter && !queueFilters.attempts) {
-                queueFilters.attempts = attemptsFilter.value || '';
-            }
-            if (ageFilter && !queueFilters.age) {
-                queueFilters.age = ageFilter.value || '';
-            }
-        }
+        };
+
+        syncField(attemptsFilter, 'attempts');
+        syncField(ageFilter, 'age');
+        syncField(fromFilter, 'from');
+        syncField(toFilter, 'to');
 
         if (applyFiltersBtn && !applyFiltersBtn.dataset.bound) {
             applyFiltersBtn.dataset.bound = '1';
             applyFiltersBtn.addEventListener('click', function () {
                 queueFilters.attempts = attemptsFilter ? attemptsFilter.value : '';
                 queueFilters.age = ageFilter ? ageFilter.value : '';
+                queueFilters.from = fromFilter ? fromFilter.value : '';
+                queueFilters.to = toFilter ? toFilter.value : '';
                 updateUrlFilters(queueFilters);
                 fetchQueueTabWithFilters();
             });
@@ -128,6 +150,12 @@
             clearFiltersBtn.addEventListener('click', function () {
                 queueFilters.attempts = '';
                 queueFilters.age = '';
+                queueFilters.from = '';
+                queueFilters.to = '';
+                if (attemptsFilter) attemptsFilter.value = '';
+                if (ageFilter) ageFilter.value = '';
+                if (fromFilter) fromFilter.value = '';
+                if (toFilter) toFilter.value = '';
                 updateUrlFilters(queueFilters);
                 fetchQueueTabWithFilters();
             });

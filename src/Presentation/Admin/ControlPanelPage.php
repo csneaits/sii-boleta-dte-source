@@ -1666,37 +1666,38 @@ $dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
 	/** Handles queue actions. */
 	public function handle_queue_action( string $action, int $id ): void {
 		if ( empty( $action ) ) {
-			$this->add_notice( __( 'No se especificó ninguna acción.', 'sii-boleta-dte' ), 'error' );
+			$this->add_notice( __( 'No se especificó ninguna acción.', 'sii-boleta-dte' ), 'error', true );
 			return;
 		}
 
 		if ( ! $id || $id <= 0 ) {
-			$this->add_notice( __( 'ID de trabajo inválido.', 'sii-boleta-dte' ), 'error' );
+			$this->add_notice( __( 'ID de trabajo inválido.', 'sii-boleta-dte' ), 'error', true );
 			return;
 		}
 
 		if ( ! $this->verify_nonce( 'sii_boleta_queue_nonce', 'sii_boleta_queue' ) ) {
-			$this->add_notice( __( 'La verificación de seguridad falló. Recarga la página e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
+			$this->add_notice( __( 'La verificación de seguridad falló. Recarga la página e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error', true );
 			return;
 		}
 
 		try {
 			if ( 'process' === $action ) {
 				$this->processor->process( $id );
-				$this->add_notice( __( 'El trabajo se ha procesado correctamente.', 'sii-boleta-dte' ), 'success' );
+				$this->add_notice( __( 'El trabajo se ha procesado correctamente.', 'sii-boleta-dte' ), 'success', true );
 			} elseif ( 'cancel' === $action ) {
 				$this->processor->cancel( $id );
-				$this->add_notice( __( 'El trabajo se ha cancelado y eliminado de la cola.', 'sii-boleta-dte' ), 'success' );
+				$this->add_notice( __( 'El trabajo se ha cancelado y eliminado de la cola.', 'sii-boleta-dte' ), 'success', true );
 			} elseif ( 'requeue' === $action ) {
 				$this->processor->retry( $id );
-				$this->add_notice( __( 'El trabajo se ha reencolado. Los intentos se han reiniciado a 0.', 'sii-boleta-dte' ), 'success' );
+				$this->add_notice( __( 'El trabajo se ha reencolado. Los intentos se han reiniciado a 0.', 'sii-boleta-dte' ), 'success', true );
 			} else {
-				$this->add_notice( __( 'Acción no reconocida.', 'sii-boleta-dte' ), 'error' );
+				$this->add_notice( __( 'Acción no reconocida.', 'sii-boleta-dte' ), 'error', true );
 			}
 		} catch ( \Exception $e ) {
 			$this->add_notice( 
 				sprintf( __( 'Error al ejecutar la acción: %s', 'sii-boleta-dte' ), $e->getMessage() ), 
-				'error' 
+				'error',
+				true
 			);
 		}
 	}
@@ -1826,14 +1827,33 @@ private function handle_libro_action( string $action, string $xml ): void {
 				return true;
 	}
 
-	private function add_notice( string $message, string $type = 'success' ): void {
-			$this->notices[] = array(
-				'type'    => 'error' === $type ? 'error' : 'success',
-				'message' => $message,
-			);
+	private function add_notice( string $message, string $type = 'success', bool $persist = false ): void {
+		$notice = array(
+			'type'    => 'error' === $type ? 'error' : 'success',
+			'message' => $message,
+		);
+
+		$this->notices[] = $notice;
+
+		// Si persist = true, guardar en transient para mostrar después de redirección
+		if ( $persist ) {
+			$user_id       = get_current_user_id();
+			$transient_key = 'sii_notices_' . $user_id;
+			set_transient( $transient_key, array( $notice ), 60 ); // Expira en 60 segundos
+		}
 	}
 
 	private function render_notices(): void {
+		// Recuperar notificaciones desde el transient (para mostrar después de redirección)
+		$user_id           = get_current_user_id();
+		$transient_key     = 'sii_notices_' . $user_id;
+		$transient_notices = get_transient( $transient_key );
+
+		if ( ! empty( $transient_notices ) ) {
+			$this->notices = array_merge( $this->notices, $transient_notices );
+			delete_transient( $transient_key );
+		}
+
 		if ( empty( $this->notices ) ) {
 			return;
 		}

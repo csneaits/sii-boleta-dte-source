@@ -479,6 +479,11 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 $summary_text = $total_rows > 0
                         ? sprintf( __( 'Mostrando %1$d-%2$d de %3$d registros', 'sii-boleta-dte' ), $start_index, $end_index, $total_rows )
                         : __( 'Sin DTE recientes.', 'sii-boleta-dte' );
+                
+                $has_filters = ( $status !== '' ) || ( null !== $type ) || ( $date_from !== '' ) || ( $date_to !== '' );
+                
+                // Debug temporal - activado para verificar datos
+                echo '<!-- DEBUG LOGS: total_rows=' . (int) $total_rows . ' | visible_count=' . (int) $visible_count . ' | current_page=' . (int) $current_page . ' | total_pages=' . (int) $total_pages . ' | environment=' . esc_attr( $environment ) . ' | filters=' . json_encode( array( 'status' => $status, 'type' => $type, 'from' => $date_from, 'to' => $date_to ) ) . ' -->';
         ?>
         <div class="sii-section">
                 <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
@@ -542,7 +547,22 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 </thead>
                                 <tbody id="sii-control-logs-body">
                                 <?php if ( empty( $rows ) ) : ?>
-                                        <tr class="sii-control-empty-row"><td colspan="5"><?php echo esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ); ?></td></tr>
+                                        <tr class="sii-control-empty-row">
+                                                <td colspan="5">
+                                                        <div style="padding: 20px; text-align: center;">
+                                                                <p><strong><?php echo esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ); ?></strong></p>
+                                                                <?php if ( $has_filters || $status || $type || $date_from || $date_to ) : ?>
+                                                                        <p style="color: #666; font-size: 14px;">
+                                                                                <?php echo esc_html__( 'No se encontraron documentos con los filtros aplicados. Intenta limpiar los filtros para ver todos los registros.', 'sii-boleta-dte' ); ?>
+                                                                        </p>
+                                                                <?php else : ?>
+                                                                        <p style="color: #666; font-size: 14px;">
+                                                                                <?php echo esc_html__( 'Aún no se han generado documentos en este ambiente. Los documentos aparecerán aquí automáticamente después de ser generados desde WooCommerce o el generador manual de DTEs.', 'sii-boleta-dte' ); ?>
+                                                                        </p>
+                                                                <?php endif; ?>
+                                                        </div>
+                                                </td>
+                                        </tr>
                                 <?php else : ?>
                                         <?php foreach ( $rows as $row ) : ?>
                                                 <tr>
@@ -764,8 +784,8 @@ private function render_queue(): void {
                 $filtered_count = count( $jobs );
         }
         
-        // Debug temporal - comentar si molesta en HTML
-        // echo '<!-- DEBUG: raw=' . count( $raw_jobs ) . ' env=' . count( $all_jobs ) . ' final=' . count( $jobs ) . ' envKey=' . $environment . ' -->';
+        // Debug temporal - activado para verificar datos
+        echo '<!-- DEBUG COLA: raw_jobs=' . count( $raw_jobs ) . ' | all_jobs_after_env_filter=' . count( $all_jobs ) . ' | final_jobs_after_filters=' . count( $jobs ) . ' | environment=' . esc_attr( $environment ) . ' | has_filters=' . ( $has_filters ? 'yes' : 'no' ) . ' -->';
         
         // Obtener estadísticas de la cola
         $stats = $this->processor->get_stats();
@@ -928,7 +948,23 @@ private function render_queue(): void {
                                 <li><strong><?php echo esc_html__( 'Control manual:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Puedes procesar, reintentar o cancelar trabajos individuales', 'sii-boleta-dte' ); ?></li>
                         </ul>
                 </div>
-<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
+<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>>
+        <div style="padding: 20px; text-align: center; background: #f9f9f9; border-radius: 5px; margin: 15px 0;">
+                <p><strong><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></strong></p>
+                <?php if ( $has_filters ) : ?>
+                        <p style="color: #666; font-size: 14px;">
+                                <?php echo esc_html__( 'No se encontraron trabajos con los filtros aplicados. Intenta limpiar los filtros para ver todos los elementos.', 'sii-boleta-dte' ); ?>
+                        </p>
+                <?php else : ?>
+                        <p style="color: #666; font-size: 14px;">
+                                <?php echo esc_html__( 'La cola está vacía. Los documentos se agregarán automáticamente cuando se generen desde WooCommerce o se programen tareas automáticas (RVD, Libro de Boletas, etc.).', 'sii-boleta-dte' ); ?>
+                        </p>
+                        <p style="color: #666; font-size: 13px; margin-top: 10px;">
+                                <em><?php echo esc_html__( 'Revisa la configuración para asegurar que las tareas automáticas estén habilitadas, o genera un DTE manualmente desde el menú "Generar DTE".', 'sii-boleta-dte' ); ?></em>
+                        </p>
+                <?php endif; ?>
+        </div>
+</p>
                 <div class="sii-control-queue-wrapper"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
                 <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped">
                         <thead>

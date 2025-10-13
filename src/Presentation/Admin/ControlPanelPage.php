@@ -95,6 +95,23 @@ class ControlPanelPage {
 			<div id="sii-control-tab-content" data-active-tab="<?php echo esc_attr( $tab ); ?>">
                         <?php echo $this->get_tab_content_html( $tab ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         </div>
+                        
+                        <!-- Modal reutilizable para notificaciones -->
+                        <div id="sii-notification-modal" class="sii-modal" style="display:none;">
+                                <div class="sii-modal-overlay"></div>
+                                <div class="sii-modal-dialog">
+                                        <div class="sii-modal-content">
+                                                <div class="sii-modal-icon" id="sii-modal-icon"></div>
+                                                <h3 class="sii-modal-title" id="sii-modal-title"></h3>
+                                                <p class="sii-modal-message" id="sii-modal-message"></p>
+                                                <div class="sii-modal-actions">
+                                                        <button type="button" class="button button-primary" id="sii-modal-close">
+                                                                <?php echo esc_html__( 'Aceptar', 'sii-boleta-dte' ); ?>
+                                                        </button>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
                 </div>
 <?php AdminStyles::close_container(); ?>
                 <?php
@@ -1649,23 +1666,39 @@ $dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
 	/** Handles queue actions. */
 	public function handle_queue_action( string $action, int $id ): void {
 		if ( empty( $action ) ) {
+			$this->add_notice( __( 'No se especificó ninguna acción.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
-if ( ! $this->verify_nonce( 'sii_boleta_queue_nonce', 'sii_boleta_queue' ) ) {
-$this->add_notice( __( 'La verificación de seguridad falló. Inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
+		if ( ! $id || $id <= 0 ) {
+			$this->add_notice( __( 'ID de trabajo inválido.', 'sii-boleta-dte' ), 'error' );
 			return;
 		}
 
-		if ( 'process' === $action ) {
-			$this->processor->process( $id );
-		} elseif ( 'cancel' === $action ) {
-			$this->processor->cancel( $id );
-		} elseif ( 'requeue' === $action ) {
-			$this->processor->retry( $id );
+		if ( ! $this->verify_nonce( 'sii_boleta_queue_nonce', 'sii_boleta_queue' ) ) {
+			$this->add_notice( __( 'La verificación de seguridad falló. Recarga la página e inténtalo nuevamente.', 'sii-boleta-dte' ), 'error' );
+			return;
 		}
 
-$this->add_notice( __( 'Acción de cola ejecutada.', 'sii-boleta-dte' ) );
+		try {
+			if ( 'process' === $action ) {
+				$this->processor->process( $id );
+				$this->add_notice( __( 'El trabajo se ha procesado correctamente.', 'sii-boleta-dte' ), 'success' );
+			} elseif ( 'cancel' === $action ) {
+				$this->processor->cancel( $id );
+				$this->add_notice( __( 'El trabajo se ha cancelado y eliminado de la cola.', 'sii-boleta-dte' ), 'success' );
+			} elseif ( 'requeue' === $action ) {
+				$this->processor->retry( $id );
+				$this->add_notice( __( 'El trabajo se ha reencolado. Los intentos se han reiniciado a 0.', 'sii-boleta-dte' ), 'success' );
+			} else {
+				$this->add_notice( __( 'Acción no reconocida.', 'sii-boleta-dte' ), 'error' );
+			}
+		} catch ( \Exception $e ) {
+			$this->add_notice( 
+				sprintf( __( 'Error al ejecutar la acción: %s', 'sii-boleta-dte' ), $e->getMessage() ), 
+				'error' 
+			);
+		}
 	}
 
 	private function handle_rvd_action( string $action ): void {
@@ -1805,6 +1838,11 @@ private function handle_libro_action( string $action, string $xml ): void {
 			return;
 		}
 
+		// Generar atributo data para modales JavaScript
+		$notices_json = json_encode( $this->notices );
+		echo '<div id="sii-notices-data" data-notices="' . esc_attr( $notices_json ) . '" style="display:none;"></div>';
+
+		// Mantener las notificaciones tradicionales como fallback
 		foreach ( $this->notices as $notice ) {
 			$type    = 'error' === $notice['type'] ? 'notice-error' : 'notice-success';
 			$message = $notice['message'];

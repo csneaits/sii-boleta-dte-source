@@ -412,13 +412,34 @@ class Woo {
                         $json = json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
                         if ( is_string( $json ) ) {
                                 @file_put_contents( $filename, $json ); // suppress warnings for safety
-                        }
-                }
+		}
+	}
 
-		$engine = $this->plugin->get_engine();
-		$xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );
-		
-		// Capturar error detallado si el motor devuelve WP_Error
+	$engine = $this->plugin->get_engine();
+	
+	// Obtener el siguiente folio disponible del mantenedor
+	$folio_manager = $this->plugin->get_folio_manager();
+	$folio = $folio_manager->get_next_folio( $document_type, true );
+	
+	if ( is_wp_error( $folio ) ) {
+		$this->add_order_note(
+			$order,
+			sprintf(
+				/* translators: %s: error message from folio manager */
+				__( 'No fue posible obtener un folio disponible: %s', 'sii-boleta-dte' ),
+				$folio->get_error_message()
+			)
+		);
+		return;
+	}
+	
+	// Actualizar el folio en los datos antes de generar el XML
+	$data['Folio'] = $folio;
+	if ( isset( $data['Encabezado']['IdDoc'] ) ) {
+		$data['Encabezado']['IdDoc']['Folio'] = $folio;
+	}
+	
+	$xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );		// Capturar error detallado si el motor devuelve WP_Error
 		if ( $xml instanceof \WP_Error ) {
 			$error_code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
 			$error_msg  = method_exists( $xml, 'get_error_message' ) ? $xml->get_error_message() : '';
@@ -506,9 +527,45 @@ class Woo {
                         $error_message = __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' );
                 }
 
-                if ( '' === $error_message ) {
-                        $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                // Si hay error, encolar para reintento automático
+                if ( '' !== $error_message ) {
+                        $queue = $this->plugin->get_queue();
+                        if ( $queue ) {
+                                // Encolar el documento para reintento automático
+                                $metadata = array(
+                                        'type'     => $document_type,
+                                        'order_id' => $order_id,
+                                        'label'    => sprintf( 'Orden #%d', $order_id ),
+                                );
+                                $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
+                                $this->add_order_note(
+                                        $order,
+                                        sprintf(
+                                                /* translators: %s: error message returned by the SII API. */
+                                                __( 'Error al enviar el documento tributario al SII: %s. El documento ha sido encolado para reintento automático.', 'sii-boleta-dte' ),
+                                                $error_message
+                                        )
+                                );
+                                // No eliminar el archivo temporal porque está en la cola
+                                return;
+                        } else {
+                                $this->add_order_note(
+                                        $order,
+                                        sprintf(
+                                                /* translators: %s: error message returned by the SII API. */
+                                                __( 'Error al enviar el documento tributario al SII: %s', 'sii-boleta-dte' ),
+                                                $error_message
+                                        )
+                                );
+                        }
+                        if ( file_exists( $file ) ) {
+                                unlink( $file );
+                        }
+                        return;
                 }
+
+                $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
 
                 $pdf_generator = $this->plugin->get_pdf_generator();
                 $pdf           = $pdf_generator->generate( $xml );
@@ -534,7 +591,12 @@ class Woo {
                 }
 
                 if ( '' === $error_message ) {
-                        $this->add_order_note( $order, $success_note );
+                        $success_note_with_folio = $success_note . sprintf(
+                                /* translators: %d: folio number assigned to the document */
+                                __( ' Folio: %d', 'sii-boleta-dte' ),
+                                $folio
+                        );
+                        $this->add_order_note( $order, $success_note_with_folio );
                 } else {
                         $this->add_order_note(
                                 $order,
@@ -737,7 +799,7 @@ class Woo {
 
                 $iddoc = array(
                         'TipoDTE' => $document_type,
-                        'Folio'   => $order_id,
+                        'Folio'   => 0, // El folio real se asignará antes de generar el XML
                         'FchEmis' => $date,
                 );
 
@@ -747,7 +809,7 @@ class Woo {
                 }
 
                 $data = array(
-                        'Folio'     => $order_id,
+                        'Folio'     => 0, // El folio real se asignará antes de generar el XML
                         'FchEmis'   => $date,
                         'Detalles'  => $items,
                         'Receptor'  => $receptor,
@@ -766,11 +828,20 @@ class Woo {
                         if ( $original_type > 0 ) {
                                 list( $reference_code, $reference_reason ) = $this->determine_reference_details( $document_type, $using_refund, $context );
 
+                                // Obtener el folio del documento original desde los metadatos
+                                $original_folio = 0;
+                                if ( function_exists( 'get_post_meta' ) ) {
+                                        $stored_folio = get_post_meta( $order_id, '_sii_boleta_folio', true );
+                                        if ( is_numeric( $stored_folio ) && $stored_folio > 0 ) {
+                                                $original_folio = (int) $stored_folio;
+                                        }
+                                }
+
                                 $data['Referencia'] = array(
                                         array(
                                                 'NroLinRef' => 1,
                                                 'TpoDocRef' => $original_type,
-                                                'FolioRef'  => $order_id,
+                                                'FolioRef'  => $original_folio,
                                                 'CodRef'    => $reference_code,
                                                 'RazonRef'  => $reference_reason,
                                         ),

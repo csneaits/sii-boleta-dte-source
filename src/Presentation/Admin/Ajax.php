@@ -295,20 +295,12 @@ class Ajax {
                 $type   = isset( $row['document_type'] ) ? (int) $row['document_type'] : 0;
                 $folio  = isset( $row['folio'] ) ? (int) $row['folio'] : 0;
                 $created = isset( $row['created_at'] ) ? (string) $row['created_at'] : '';
+                $formatted_date = $this->format_log_date( $created );
                 echo '<tr>';
                 echo '<td>' . ( '' !== $track ? esc_html( $track ) : '-' ) . '</td>';
-                echo '<td>' . ( $type > 0 ? esc_html( sprintf( 'DTE %d', $type ) ) : '-' ) . '</td>';
+                echo '<td>' . esc_html( $this->format_dte_type_label( $type ) ) . '</td>';
                 echo '<td>' . ( $folio > 0 ? esc_html( (string) $folio ) : '-' ) . '</td>';
                 echo '<td>' . esc_html( $this->translate_log_status( $status ) ) . '</td>';
-                $formatted_date = '—';
-                if ( '' !== $created ) {
-                        $timestamp = strtotime( $created );
-                        if ( false !== $timestamp ) {
-                                $formatted_date = function_exists( 'date_i18n' ) ? (string) date_i18n( 'Y-m-d H:i', $timestamp ) : gmdate( 'Y-m-d H:i', $timestamp );
-                        } else {
-                                $formatted_date = $created;
-                        }
-                }
                 echo '<td>' . esc_html( $formatted_date ) . '</td>';
                 echo '</tr>';
             }

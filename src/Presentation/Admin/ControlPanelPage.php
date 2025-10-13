@@ -467,6 +467,18 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 );
 
                 $distinct_types = LogDb::get_distinct_types( $environment );
+                $settings_cfg   = $this->settings->get_settings();
+                $configured_types = array();
+                if ( isset( $settings_cfg['enabled_types'] ) && is_array( $settings_cfg['enabled_types'] ) ) {
+                        $configured_types = array_map( 'intval', $settings_cfg['enabled_types'] );
+                }
+                $default_types = array( 33, 34, 39, 41, 46, 52, 56, 61 );
+                $type_options  = array_unique( array_filter( array_map( 'intval', array_merge( $default_types, $configured_types, $distinct_types ) ) ) );
+                sort( $type_options, SORT_NUMERIC );
+
+                $summary_text = $total_rows > 0
+                        ? sprintf( __( 'Mostrando %1$d-%2$d de %3$d registros', 'sii-boleta-dte' ), $start_index, $end_index, $total_rows )
+                        : __( 'Sin DTE recientes.', 'sii-boleta-dte' );
         ?>
         <div class="sii-section">
                 <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
@@ -484,8 +496,8 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 <label for="log_type"><?php echo esc_html__( 'Tipo DTE', 'sii-boleta-dte' ); ?></label>
                                 <select id="log_type" name="log_type">
                                         <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
-                                        <?php foreach ( $distinct_types as $logged_type ) : ?>
-                                                <option value="<?php echo (int) $logged_type; ?>"<?php selected( (int) $logged_type, (int) ( $type ?? 0 ) ); ?>><?php echo esc_html( sprintf( 'DTE %d', (int) $logged_type ) ); ?></option>
+                                        <?php foreach ( $type_options as $logged_type ) : ?>
+                                                <option value="<?php echo (int) $logged_type; ?>"<?php selected( (int) $logged_type, (int) ( $type ?? 0 ) ); ?>><?php echo esc_html( $this->dte_type_label( (int) $logged_type ) ); ?></option>
                                         <?php endforeach; ?>
                                 </select>
                         </div>
@@ -504,12 +516,15 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                         </div>
                 </div>
 
-                <div id="log-summary" data-total="<?php echo (int) $total_rows; ?>" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-limit="<?php echo (int) $limit_used; ?>">
-                        <?php if ( $total_rows > 0 ) : ?>
-                                <p><?php echo esc_html( sprintf( __( 'Mostrando %1$d-%2$d de %3$d registros', 'sii-boleta-dte' ), $start_index, $end_index, $total_rows ) ); ?></p>
-                        <?php else : ?>
-                                <p><?php echo esc_html__( 'Sin DTE registrados para los filtros seleccionados.', 'sii-boleta-dte' ); ?></p>
-                        <?php endif; ?>
+                <div class="sii-log-toolbar">
+                        <div id="log-summary" class="sii-log-summary" data-total="<?php echo (int) $total_rows; ?>" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-limit="<?php echo (int) $limit_used; ?>">
+                                <p><?php echo esc_html( $summary_text ); ?></p>
+                        </div>
+                        <div id="log-pagination" class="sii-log-pagination" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-total="<?php echo (int) $total_rows; ?>" data-limit="<?php echo (int) $limit_used; ?>">
+                                <button type="button" class="button" id="log-page-prev"<?php echo $current_page <= 1 ? ' disabled' : ''; ?>><?php echo esc_html__( 'Anterior', 'sii-boleta-dte' ); ?></button>
+                                <span><?php echo esc_html( sprintf( __( 'Página %1$d de %2$d', 'sii-boleta-dte' ), max( 1, $current_page ), max( 1, $total_pages ) ) ); ?></span>
+                                <button type="button" class="button" id="log-page-next"<?php echo $current_page >= $total_pages ? ' disabled' : ''; ?>><?php echo esc_html__( 'Siguiente', 'sii-boleta-dte' ); ?></button>
+                        </div>
                 </div>
 
                 <div class="sii-log-table-wrapper">
@@ -530,7 +545,7 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                         <?php foreach ( $rows as $row ) : ?>
                                                 <tr>
                                                         <td><?php echo esc_html( (string) ( $row['track_id'] ?? '' ) ); ?></td>
-                                                        <td><?php echo esc_html( isset( $row['document_type'] ) && $row['document_type'] ? sprintf( 'DTE %d', (int) $row['document_type'] ) : '-' ); ?></td>
+                                                        <td><?php echo esc_html( $this->dte_type_label( isset( $row['document_type'] ) ? (int) $row['document_type'] : 0 ) ); ?></td>
                                                         <td><?php echo esc_html( isset( $row['folio'] ) && (int) $row['folio'] > 0 ? (string) (int) $row['folio'] : '-' ); ?></td>
                                                         <td><?php echo esc_html( $this->translate_status_label( (string) ( $row['status'] ?? '' ) ) ); ?></td>
                                                         <td><?php echo esc_html( $this->format_log_date( (string) ( $row['created_at'] ?? '' ) ) ); ?></td>
@@ -989,34 +1004,54 @@ private function render_queue(): void {
 .sii-log-filters {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 15px;
+	gap: 12px 16px;
 	align-items: flex-end;
-	margin-bottom: 15px;
+	margin-bottom: 12px;
 }
 .sii-log-filter-row {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	min-width: 150px;
+	gap: 6px;
+	flex: 1 1 200px;
+	min-width: 180px;
+}
+.sii-log-filter-row label {
+	font-size: 12px;
+	color: #5f6b7a;
 }
 .sii-log-filter-row input,
 .sii-log-filter-row select {
-	min-height: 30px;
+	min-height: 36px;
+	padding: 6px 10px;
 }
 .sii-log-filter-actions {
+	margin-left: auto;
 	display: flex;
-	gap: 8px;
+	gap: 10px;
 	align-items: center;
 }
 .sii-log-table-wrapper {
 	overflow-x: auto;
 	padding-bottom: 8px;
 }
+.sii-log-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+.sii-log-summary p {
+	margin: 0;
+	color: #5f6b7a;
+	font-size: 13px;
+}
 .sii-log-pagination {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	margin-top: 12px;
+	margin-left: auto;
 }
 </style>
 
@@ -1674,6 +1709,28 @@ private function handle_libro_action( string $action, string $xml ): void {
 		}
 
 		$this->notices = array();
+	}
+
+	/**
+	 * Returns a translated label for a numeric DTE type.
+	 */
+	private function dte_type_label( int $type ): string {
+		if ( $type <= 0 ) {
+			return '-';
+		}
+
+		$map = array(
+			33 => __( 'Factura electrónica (33)', 'sii-boleta-dte' ),
+			34 => __( 'Factura exenta electrónica (34)', 'sii-boleta-dte' ),
+			39 => __( 'Boleta electrónica (39)', 'sii-boleta-dte' ),
+			41 => __( 'Boleta exenta electrónica (41)', 'sii-boleta-dte' ),
+			46 => __( 'Factura de compra (46)', 'sii-boleta-dte' ),
+			52 => __( 'Guía de despacho (52)', 'sii-boleta-dte' ),
+			56 => __( 'Nota de débito electrónica (56)', 'sii-boleta-dte' ),
+			61 => __( 'Nota de crédito electrónica (61)', 'sii-boleta-dte' ),
+		);
+
+		return $map[ $type ] ?? sprintf( __( 'DTE %d', 'sii-boleta-dte' ), $type );
 	}
 
 	/**

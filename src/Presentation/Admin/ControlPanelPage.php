@@ -996,18 +996,20 @@ private function render_queue(): void {
 	min-width: 640px;
 }
 .sii-log-filters {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
 	gap: 12px 16px;
-	align-items: flex-end;
+	align-items: end;
 	margin-bottom: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+@media (min-width: 1024px) {
+	.sii-log-filters {
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+	}
 }
 .sii-log-filter-row {
-	display: flex;
-	flex-direction: column;
+	display: grid;
 	gap: 6px;
-	flex: 1 1 200px;
-	min-width: 180px;
 }
 .sii-log-filter-row label {
 	font-size: 12px;
@@ -1017,12 +1019,20 @@ private function render_queue(): void {
 .sii-log-filter-row select {
 	min-height: 36px;
 	padding: 6px 10px;
+	width: 100%;
 }
 .sii-log-filter-actions {
-	margin-left: auto;
 	display: flex;
 	gap: 10px;
 	align-items: center;
+	justify-content: flex-start;
+	align-self: end;
+}
+@media (min-width: 640px) {
+	.sii-log-filter-actions {
+		justify-content: flex-end;
+		justify-self: end;
+	}
 }
 .sii-log-table-wrapper {
 	overflow-x: auto;

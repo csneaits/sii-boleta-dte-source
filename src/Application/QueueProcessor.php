@@ -10,6 +10,12 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 
 /**
  * Processes queued jobs, handles retries and logs outcomes.
+ * 
+ * COMPORTAMIENTO DE REINTENTOS:
+ * - Intento 1-3: Se reintenta automáticamente con un delay de 120 segundos
+ * - Después de 3 intentos fallidos: El trabajo NO se elimina, permanece en la cola
+ *   con estado "fallido" para que el administrador decida manualmente qué hacer
+ *   (procesarlo de nuevo, reintentar, o cancelar)
  */
 class QueueProcessor {
         private const RETRY_DELAY_SECONDS = 120;
@@ -96,7 +102,10 @@ class QueueProcessor {
                                         QueueDb::increment_attempts( $job['id'] );
                                         QueueDb::schedule_retry( $job['id'], self::RETRY_DELAY_SECONDS );
                                 } else {
-                                        QueueDb::delete( $job['id'] );
+                                        // Después de 3 intentos fallidos, incrementar el contador pero NO eliminar.
+                                        // El trabajo permanece en la cola para que el usuario decida manualmente qué hacer.
+                                        QueueDb::increment_attempts( $job['id'] );
+                                        // No se programa reintento automático, pero tampoco se elimina.
                                 }
                         } else {
                                 $track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;

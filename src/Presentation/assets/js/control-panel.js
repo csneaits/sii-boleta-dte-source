@@ -6,13 +6,22 @@
     // =====================================================
     var SiiModal = {
         show: function(type, title, message) {
+            console.log('[SiiModal.show] type:', type, 'title:', title, 'message:', message);
+            
             var modal = document.getElementById('sii-notification-modal');
             var icon = document.getElementById('sii-modal-icon');
             var titleEl = document.getElementById('sii-modal-title');
             var messageEl = document.getElementById('sii-modal-message');
             
+            console.log('[SiiModal.show] Elementos:', {
+                modal: modal,
+                icon: icon,
+                titleEl: titleEl,
+                messageEl: messageEl
+            });
+            
             if (!modal || !icon || !titleEl || !messageEl) {
-                console.warn('Modal elements not found');
+                console.error('[SiiModal.show] Modal elements not found');
                 return;
             }
             
@@ -23,6 +32,7 @@
             
             // Mostrar modal
             modal.style.display = 'flex';
+            console.log('[SiiModal.show] Modal mostrado');
             
             // Evitar scroll del body
             document.body.style.overflow = 'hidden';
@@ -56,19 +66,54 @@
     // Exponer globalmente para reutilización
     window.SiiModal = SiiModal;
     
+    // Función para procesar notificaciones
+    function processNotifications() {
+        var noticesData = document.getElementById('sii-notices-data');
+        console.log('[SiiModal] Buscando notificaciones...', noticesData);
+        
+        if (noticesData && noticesData.dataset.notices) {
+            console.log('[SiiModal] Datos encontrados:', noticesData.dataset.notices);
+            try {
+                var notices = JSON.parse(noticesData.dataset.notices);
+                console.log('[SiiModal] Notificaciones parseadas:', notices);
+                
+                if (notices && notices.length > 0) {
+                    var notice = notices[0]; // Mostrar la primera notificación
+                    console.log('[SiiModal] Mostrando notificación:', notice);
+                    
+                    if (notice.type === 'error') {
+                        SiiModal.error(notice.message);
+                    } else {
+                        SiiModal.success(notice.message);
+                    }
+                    // Limpiar para evitar mostrar múltiples veces
+                    noticesData.dataset.notices = '';
+                } else {
+                    console.log('[SiiModal] No hay notificaciones para mostrar');
+                }
+            } catch (e) {
+                console.error('[SiiModal] Error parsing notices:', e);
+            }
+        } else {
+            console.log('[SiiModal] No se encontraron datos de notificaciones');
+        }
+    }
+    
     // Manejar cierre del modal
-    document.addEventListener('DOMContentLoaded', function() {
+    function initModal() {
         var closeBtn = document.getElementById('sii-modal-close');
         var modal = document.getElementById('sii-notification-modal');
         var overlay = modal ? modal.querySelector('.sii-modal-overlay') : null;
         
-        if (closeBtn) {
+        if (closeBtn && !closeBtn.dataset.bound) {
+            closeBtn.dataset.bound = 'true';
             closeBtn.addEventListener('click', function() {
                 SiiModal.hide();
             });
         }
         
-        if (overlay) {
+        if (overlay && !overlay.dataset.bound) {
+            overlay.dataset.bound = 'true';
             overlay.addEventListener('click', function() {
                 SiiModal.hide();
             });
@@ -82,23 +127,21 @@
         });
         
         // Procesar notificaciones del servidor
-        var noticesData = document.getElementById('sii-notices-data');
-        if (noticesData && noticesData.dataset.notices) {
-            try {
-                var notices = JSON.parse(noticesData.dataset.notices);
-                if (notices && notices.length > 0) {
-                    var notice = notices[0]; // Mostrar la primera notificación
-                    if (notice.type === 'error') {
-                        SiiModal.error(notice.message);
-                    } else {
-                        SiiModal.success(notice.message);
-                    }
-                }
-            } catch (e) {
-                console.error('Error parsing notices:', e);
-            }
-        }
-    });
+        processNotifications();
+    }
+    
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initModal);
+    } else {
+        // DOM ya está listo
+        initModal();
+    }
+    
+    // También procesar notificaciones inmediatamente si ya existen
+    if (document.getElementById('sii-notices-data')) {
+        setTimeout(processNotifications, 100);
+    }
 
     // =====================================================
     // CÓDIGO EXISTENTE

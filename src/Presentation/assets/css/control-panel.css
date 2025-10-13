@@ -730,6 +730,112 @@
     }
 }
 
+/* Track ID clickable styles */
+.sii-track-id-clickable {
+    cursor: pointer;
+    color: #2271b1;
+    text-decoration: underline;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.sii-track-id-clickable:hover {
+    color: #135e96;
+    background-color: rgba(34, 113, 177, 0.1);
+    text-decoration: none;
+}
+
+/* Track details modal content */
+.sii-track-details {
+    width: 100%;
+}
+
+.sii-track-details .widefat {
+    margin-top: 0;
+    border-collapse: collapse;
+}
+
+.sii-track-details .widefat th {
+    background-color: #f0f0f1;
+    font-weight: 600;
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.sii-track-details .widefat td {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+.sii-track-loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: #50575e;
+}
+
+.sii-track-loading::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #2271b1;
+    border-radius: 50%;
+    animation: sii-spinner 0.8s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes sii-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Status badges */
+.sii-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.sii-badge-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.sii-badge-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.sii-badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.sii-badge-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.sii-badge-default {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d6d8db;
+}
+
 @media (prefers-color-scheme: dark) {
     .sii-modal-content {
         background: #1e293b;
@@ -754,5 +860,55 @@
     
     .sii-log-filter-actions {
         border-top-color: rgba(51, 65, 85, 0.8);
+    }
+    
+    .sii-track-id-clickable {
+        color: #60a5fa;
+    }
+    
+    .sii-track-id-clickable:hover {
+        color: #93c5fd;
+        background-color: rgba(96, 165, 250, 0.15);
+    }
+    
+    .sii-track-details .widefat th {
+        background-color: #334155;
+        color: #f1f5f9;
+    }
+    
+    .sii-track-details .widefat td {
+        background-color: #1e293b;
+        color: #cbd5e1;
+        border-color: #334155;
+    }
+    
+    .sii-badge-success {
+        background-color: rgba(21, 87, 36, 0.3);
+        color: #86efac;
+        border-color: rgba(21, 87, 36, 0.5);
+    }
+    
+    .sii-badge-error {
+        background-color: rgba(114, 28, 36, 0.3);
+        color: #fca5a5;
+        border-color: rgba(114, 28, 36, 0.5);
+    }
+    
+    .sii-badge-warning {
+        background-color: rgba(133, 100, 4, 0.3);
+        color: #fde047;
+        border-color: rgba(133, 100, 4, 0.5);
+    }
+    
+    .sii-badge-info {
+        background-color: rgba(12, 84, 96, 0.3);
+        color: #67e8f9;
+        border-color: rgba(12, 84, 96, 0.5);
+    }
+    
+    .sii-badge-default {
+        background-color: rgba(56, 61, 65, 0.3);
+        color: #cbd5e1;
+        border-color: rgba(56, 61, 65, 0.5);
     }
 }

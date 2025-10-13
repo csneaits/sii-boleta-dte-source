@@ -166,7 +166,9 @@ class Api {
      * Sends a DTE XML file to SII and returns the track ID or WP_Error.
      */
     public function send_dte_to_sii( string $file, string $environment, string $token ) {
+        $this->logger->info( 'send_dte_to_sii called with environment: ' . $environment );
         $simulated = $this->maybe_simulate_send( 'dte', $environment );
+        $this->logger->info( 'maybe_simulate_send returned: ' . ( null === $simulated ? 'null' : ( is_string( $simulated ) ? $simulated : 'non-null' ) ) );
         if ( null !== $simulated ) {
             return $simulated;
         }
@@ -346,16 +348,21 @@ class Api {
     }
 
     private function get_simulation_mode( string $environment ): string {
-        if ( ! $this->settings instanceof Settings ) {
+        if ( ! isset( $this->settings ) || ! ( $this->settings instanceof Settings ) ) {
+            $this->logger->info( 'get_simulation_mode: no settings instance, returning disabled' );
             return 'disabled';
         }
         $env = Settings::normalize_environment( $environment );
+        $this->logger->info( 'get_simulation_mode: normalized environment from "' . $environment . '" to "' . $env . '"' );
         if ( '2' !== $env ) {
+            $this->logger->info( 'get_simulation_mode: environment is not "2", returning disabled' );
             return 'disabled';
         }
         $cfg  = $this->settings->get_settings();
         $mode = isset( $cfg['dev_sii_simulation_mode'] ) ? (string) $cfg['dev_sii_simulation_mode'] : '';
+        $this->logger->info( 'get_simulation_mode: dev_sii_simulation_mode setting is "' . $mode . '"' );
         if ( '' === $mode ) {
+            $this->logger->info( 'get_simulation_mode: mode is empty, defaulting to success' );
             return 'success';
         }
         if ( in_array( $mode, array( 'success', 'error' ), true ) ) {

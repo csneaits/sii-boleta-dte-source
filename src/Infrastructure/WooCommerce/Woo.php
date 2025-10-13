@@ -494,13 +494,12 @@ class Woo {
                         return;
                 }
 
-                file_put_contents( $file, $xml );
+		file_put_contents( $file, $xml );
 
-                $token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
-                $token         = $token_manager->get_token( 'boleta' );
-                $track_id      = $this->plugin->get_api()->send_dte_to_sii( $file, 'boleta', $token );
-
-                $error_message = '';
+		$token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
+		$environment   = $this->plugin->get_settings()->get_environment();
+		$token         = $token_manager->get_token( $environment );
+		$track_id      = $this->plugin->get_api()->send_dte_to_sii( $file, $environment, $token );                $error_message = '';
                 if ( function_exists( 'is_wp_error' ) && is_wp_error( $track_id ) ) {
                         $error_message = method_exists( $track_id, 'get_error_message' ) ? $track_id->get_error_message() : '';
                 } elseif ( ! is_string( $track_id ) || '' === $track_id ) {

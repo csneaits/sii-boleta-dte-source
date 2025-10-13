@@ -480,3 +480,126 @@
     color: #e2e8f0;
 }
 }
+
+/* Estilos para los filtros de logs */
+.sii-log-filters {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.sii-log-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.sii-log-filter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sii-log-filter-row label {
+    font-weight: 600;
+    color: #1d4ed8;
+    font-size: 0.9rem;
+}
+
+.sii-log-filter-row select,
+.sii-log-filter-row input[type="date"] {
+    width: 100%;
+}
+
+.sii-log-filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+@media (max-width: 782px) {
+    .sii-log-filters-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Estilos para la toolbar de logs */
+.sii-log-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.sii-log-summary p {
+    margin: 0;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.sii-log-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sii-log-pagination span {
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.sii-log-table-wrapper {
+    overflow-x: auto;
+}
+
+@media (max-width: 782px) {
+    .sii-log-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sii-log-pagination {
+        justify-content: center;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .sii-log-summary p {
+        color: #cbd5f5;
+    }
+    
+    .sii-log-pagination span {
+        color: #93c5fd;
+    }
+}
+
+@media (max-width: 782px) {
+    .sii-log-filters-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .sii-log-filters {
+        background: rgba(15, 23, 42, 0.82);
+        border-color: rgba(51, 65, 85, 0.8);
+    }
+    
+    .sii-log-filter-row label {
+        color: #93c5fd;
+    }
+    
+    .sii-log-filter-actions {
+        border-top-color: rgba(51, 65, 85, 0.8);
+    }
+}

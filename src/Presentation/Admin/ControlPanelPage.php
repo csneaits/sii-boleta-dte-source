@@ -484,30 +484,32 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 <h2><?php echo esc_html__( 'DTE recientes', 'sii-boleta-dte' ); ?></h2>
 
                 <div class="sii-log-filters">
-                        <div class="sii-log-filter-row">
-                                <label for="log_status"><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></label>
-                                <select id="log_status" name="log_status">
-                                        <?php foreach ( $available_statuses as $key => $label ) : ?>
-                                                <option value="<?php echo esc_attr( $key ); ?>"<?php selected( $status, $key ); ?>><?php echo esc_html( $label ); ?></option>
-                                        <?php endforeach; ?>
-                                </select>
-                        </div>
-                        <div class="sii-log-filter-row">
-                                <label for="log_type"><?php echo esc_html__( 'Tipo DTE', 'sii-boleta-dte' ); ?></label>
-                                <select id="log_type" name="log_type">
-                                        <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
-                                        <?php foreach ( $type_options as $logged_type ) : ?>
-                                                <option value="<?php echo (int) $logged_type; ?>"<?php selected( (int) $logged_type, (int) ( $type ?? 0 ) ); ?>><?php echo esc_html( $this->dte_type_label( (int) $logged_type ) ); ?></option>
-                                        <?php endforeach; ?>
-                                </select>
-                        </div>
-                        <div class="sii-log-filter-row">
-                                <label for="log_from"><?php echo esc_html__( 'Desde', 'sii-boleta-dte' ); ?></label>
-                                <input type="date" id="log_from" name="log_from" value="<?php echo esc_attr( $date_from ); ?>" />
-                        </div>
-                        <div class="sii-log-filter-row">
-                                <label for="log_to"><?php echo esc_html__( 'Hasta', 'sii-boleta-dte' ); ?></label>
-                                <input type="date" id="log_to" name="log_to" value="<?php echo esc_attr( $date_to ); ?>" />
+                        <div class="sii-log-filters-grid">
+                                <div class="sii-log-filter-row">
+                                        <label for="log_status"><?php echo esc_html__( 'Estado', 'sii-boleta-dte' ); ?></label>
+                                        <select id="log_status" name="log_status">
+                                                <?php foreach ( $available_statuses as $key => $label ) : ?>
+                                                        <option value="<?php echo esc_attr( $key ); ?>"<?php selected( $status, $key ); ?>><?php echo esc_html( $label ); ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </div>
+                                <div class="sii-log-filter-row">
+                                        <label for="log_type"><?php echo esc_html__( 'Tipo DTE', 'sii-boleta-dte' ); ?></label>
+                                        <select id="log_type" name="log_type">
+                                                <option value=""><?php echo esc_html__( 'Todos', 'sii-boleta-dte' ); ?></option>
+                                                <?php foreach ( $type_options as $logged_type ) : ?>
+                                                        <option value="<?php echo (int) $logged_type; ?>"<?php selected( (int) $logged_type, (int) ( $type ?? 0 ) ); ?>><?php echo esc_html( $this->dte_type_label( (int) $logged_type ) ); ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </div>
+                                <div class="sii-log-filter-row">
+                                        <label for="log_from"><?php echo esc_html__( 'Desde', 'sii-boleta-dte' ); ?></label>
+                                        <input type="date" id="log_from" name="log_from" value="<?php echo esc_attr( $date_from ); ?>" />
+                                </div>
+                                <div class="sii-log-filter-row">
+                                        <label for="log_to"><?php echo esc_html__( 'Hasta', 'sii-boleta-dte' ); ?></label>
+                                        <input type="date" id="log_to" name="log_to" value="<?php echo esc_attr( $date_to ); ?>" />
+                                </div>
                         </div>
                         <div class="sii-log-filter-actions">
                                 <button type="button" class="button button-primary" id="log-apply-filters"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>

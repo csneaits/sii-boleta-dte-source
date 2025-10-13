@@ -22,16 +22,30 @@
     var queueBody;
     var queueTable;
     var queueEmpty;
+    var queueWrapper;
     var queueFilters = { attempts: '', age: '' };
+    var logFilters = { status: '', type: '', from: '', to: '', page: 1, limit: 10 };
 
     (function seedFiltersFromUrl() {
         try {
             var params = new URLSearchParams(window.location.search);
             queueFilters.attempts = params.get('filter_attempts') || '';
             queueFilters.age = params.get('filter_age') || '';
+            logFilters.status = params.get('logs_status') || '';
+            logFilters.type = params.get('logs_type') || '';
+            logFilters.from = params.get('logs_from') || '';
+            logFilters.to = params.get('logs_to') || '';
+            logFilters.page = parseInt(params.get('logs_page') || '1', 10) || 1;
+            logFilters.limit = parseInt(params.get('logs_per_page') || '10', 10) || 10;
         } catch (e) {
             queueFilters.attempts = '';
             queueFilters.age = '';
+            logFilters.status = '';
+            logFilters.type = '';
+            logFilters.from = '';
+            logFilters.to = '';
+            logFilters.page = 1;
+            logFilters.limit = 10;
         }
     })();
 
@@ -39,6 +53,7 @@
         queueBody = document.getElementById('sii-control-queue-body');
         queueTable = document.getElementById('sii-control-queue-table');
         queueEmpty = document.getElementById('sii-control-queue-empty');
+        queueWrapper = document.querySelector('.sii-control-queue-wrapper');
     }
 
     function updateUrlFilters(filters) {
@@ -161,6 +176,217 @@
             });
     }
 
+    function updateLogUrlFilters(filters) {
+        try {
+            var url = new URL(window.location.href);
+            if (filters.status) {
+                url.searchParams.set('logs_status', filters.status);
+            } else {
+                url.searchParams.delete('logs_status');
+            }
+            if (filters.type) {
+                url.searchParams.set('logs_type', filters.type);
+            } else {
+                url.searchParams.delete('logs_type');
+            }
+            if (filters.from) {
+                url.searchParams.set('logs_from', filters.from);
+            } else {
+                url.searchParams.delete('logs_from');
+            }
+            if (filters.to) {
+                url.searchParams.set('logs_to', filters.to);
+            } else {
+                url.searchParams.delete('logs_to');
+            }
+            url.searchParams.set('logs_page', filters.page || 1);
+            url.searchParams.set('logs_per_page', filters.limit || 10);
+            window.history.replaceState({}, document.title, url.toString());
+        } catch (e) {
+            // ignore URL update issues
+        }
+    }
+
+    function appendLogFilters(params) {
+        if (!params) return;
+        if (logFilters.status) {
+            params.append('log_status', logFilters.status);
+        }
+        if (logFilters.type) {
+            params.append('log_type', logFilters.type);
+        }
+        if (logFilters.from) {
+            params.append('log_from', logFilters.from);
+        }
+        if (logFilters.to) {
+            params.append('log_to', logFilters.to);
+        }
+        params.append('log_page', logFilters.page);
+        params.append('log_limit', logFilters.limit);
+    }
+
+    function syncLogPagination(page, pages, total, limit) {
+        var paginationEl = document.getElementById('log-pagination');
+        if (!paginationEl) return;
+        paginationEl.setAttribute('data-page', page);
+        paginationEl.setAttribute('data-pages', pages);
+        paginationEl.setAttribute('data-total', total);
+        paginationEl.setAttribute('data-limit', limit);
+        var prevBtn = document.getElementById('log-page-prev');
+        var nextBtn = document.getElementById('log-page-next');
+        if (prevBtn) {
+            prevBtn.disabled = page <= 1;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = page >= pages;
+        }
+    }
+
+    function updateLogSummary(total, page, limit, visibleCount) {
+        var summary = document.getElementById('log-summary');
+        if (!summary) return;
+        summary.setAttribute('data-total', total);
+        summary.setAttribute('data-page', page);
+        summary.setAttribute('data-limit', limit);
+        var pages = Math.max(1, Math.ceil(total / limit));
+        summary.setAttribute('data-pages', pages);
+
+        var start = total > 0 ? ( ( page - 1 ) * limit ) + 1 : 0;
+        var end = total > 0 ? Math.min( start + visibleCount - 1, total ) : 0;
+        if (total > 0 && visibleCount > 0) {
+            summary.innerHTML = '<p>' + (cfg.texts && cfg.texts.logsSummary
+                ? cfg.texts.logsSummary.replace('%start%', start).replace('%end%', end).replace('%total%', total)
+                : 'Mostrando ' + start + '-' + end + ' de ' + total + ' registros') + '</p>';
+        } else {
+            summary.innerHTML = '<p>' + (cfg.texts && cfg.texts.noLogs ? cfg.texts.noLogs : 'Sin DTE recientes.') + '</p>';
+        }
+    }
+
+    function initLogFilters(preserveState) {
+        var statusField = document.getElementById('log_status');
+        var typeField = document.getElementById('log_type');
+        var fromField = document.getElementById('log_from');
+        var toField = document.getElementById('log_to');
+        var applyBtn = document.getElementById('log-apply-filters');
+        var clearBtn = document.getElementById('log-clear-filters');
+        var prevBtn = document.getElementById('log-page-prev');
+        var nextBtn = document.getElementById('log-page-next');
+        var paginationEl = document.getElementById('log-pagination');
+
+        if (!statusField && !typeField && !fromField && !toField && !applyBtn && !clearBtn && !paginationEl && !prevBtn && !nextBtn) {
+            return;
+        }
+
+        if (paginationEl) {
+            var pageDom = parseInt(paginationEl.getAttribute('data-page') || logFilters.page, 10) || 1;
+            var limitDom = parseInt(paginationEl.getAttribute('data-limit') || logFilters.limit, 10) || logFilters.limit;
+            var pagesDom = parseInt(paginationEl.getAttribute('data-pages') || '1', 10) || 1;
+            var totalDom = parseInt(paginationEl.getAttribute('data-total') || '0', 10) || 0;
+            logFilters.page = pageDom;
+            logFilters.limit = limitDom;
+            syncLogPagination(logFilters.page, pagesDom, totalDom, logFilters.limit);
+        }
+
+        if (statusField) {
+            statusField.value = logFilters.status || '';
+        }
+        if (typeField) {
+            typeField.value = logFilters.type || '';
+        }
+        if (fromField) {
+            fromField.value = logFilters.from || '';
+        }
+        if (toField) {
+            toField.value = logFilters.to || '';
+        }
+
+        if (applyBtn && !applyBtn.dataset.bound) {
+            applyBtn.dataset.bound = '1';
+            applyBtn.addEventListener('click', function () {
+                logFilters.status = statusField ? statusField.value : '';
+                logFilters.type = typeField ? typeField.value : '';
+                logFilters.from = fromField ? fromField.value : '';
+                logFilters.to = toField ? toField.value : '';
+                logFilters.page = 1;
+                updateLogUrlFilters(logFilters);
+                fetchLogsTabWithFilters();
+            });
+        }
+
+        if (clearBtn && !clearBtn.dataset.bound) {
+            clearBtn.dataset.bound = '1';
+            clearBtn.addEventListener('click', function () {
+                logFilters.status = '';
+                logFilters.type = '';
+                logFilters.from = '';
+                logFilters.to = '';
+                logFilters.page = 1;
+                updateLogUrlFilters(logFilters);
+                fetchLogsTabWithFilters();
+            });
+        }
+
+        if (prevBtn && !prevBtn.dataset.bound) {
+            prevBtn.dataset.bound = '1';
+            prevBtn.addEventListener('click', function () {
+                if (logFilters.page > 1) {
+                    logFilters.page -= 1;
+                    updateLogUrlFilters(logFilters);
+                    fetchLogsTabWithFilters();
+                }
+            });
+        }
+
+        if (nextBtn && !nextBtn.dataset.bound) {
+            nextBtn.dataset.bound = '1';
+            nextBtn.addEventListener('click', function () {
+                var pagination = document.getElementById('log-pagination');
+                var pages = pagination ? parseInt(pagination.getAttribute('data-pages') || '1', 10) || 1 : 1;
+                if (logFilters.page < pages) {
+                    logFilters.page += 1;
+                    updateLogUrlFilters(logFilters);
+                    fetchLogsTabWithFilters();
+                }
+            });
+        }
+    }
+
+    function fetchLogsTabWithFilters() {
+        if (!tabAction || !tabContent) {
+            requestSnapshot();
+            return;
+        }
+
+        tabContent.setAttribute('data-active-tab', 'logs');
+        tabContent.innerHTML = '<p style="padding:8px 0;">' + (cfg.texts && cfg.texts.loading ? cfg.texts.loading : 'Cargando…') + '</p>';
+
+        var params = new URLSearchParams();
+        params.append('action', tabAction);
+        params.append('nonce', nonce);
+        params.append('tab', 'logs');
+        appendLogFilters(params);
+
+        fetch(ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+            body: params.toString()
+        })
+            .then(function (r) { if (!r.ok) throw new Error('net'); return r.json(); })
+            .then(function (payload) {
+                if (!payload || !payload.success || !payload.data) throw new Error('bad');
+                tabContent.innerHTML = payload.data.html || '';
+                logsBody = document.getElementById('sii-control-logs-body');
+                refreshDomRefs();
+                initQueueFilters(true);
+                initLogFilters(true);
+                requestSnapshot();
+            })
+            .catch(function () {
+                tabContent.innerHTML = '<p style="color:#d63638;">' + (cfg.texts && cfg.texts.loadError ? cfg.texts.loadError : 'Error al cargar el contenido.') + '</p>';
+            });
+    }
+
     function showNotice(type, message) {
         if (!noticesContainer || !message) {
             return;
@@ -179,10 +405,10 @@
             return html;
         }
         if (type === 'logs') {
-            return '<tr class="sii-control-empty-row"><td colspan="2">' + (cfg.texts && cfg.texts.noLogs ? cfg.texts.noLogs : '') + '</td></tr>';
+            return '<tr class="sii-control-empty-row"><td colspan="5">' + (cfg.texts && cfg.texts.noLogs ? cfg.texts.noLogs : '') + '</td></tr>';
         }
         if (type === 'queue') {
-            return '<tr class="sii-control-empty-row"><td colspan="4">' + (cfg.texts && cfg.texts.noQueue ? cfg.texts.noQueue : '') + '</td></tr>';
+            return '<tr class="sii-control-empty-row"><td colspan="5">' + (cfg.texts && cfg.texts.noQueue ? cfg.texts.noQueue : '') + '</td></tr>';
         }
         return '';
     }
@@ -205,6 +431,9 @@
         }
         if (queueTable) {
             queueTable.style.display = hasJobs ? '' : 'none';
+        }
+        if (queueWrapper) {
+            queueWrapper.style.display = hasJobs ? '' : 'none';
         }
     }
 
@@ -234,6 +463,7 @@
         params.append('action', action);
         params.append('nonce', nonce);
         appendQueueFilters(params);
+        appendLogFilters(params);
 
         fetch(ajaxUrl, {
             method: 'POST',
@@ -257,6 +487,16 @@
                 if (typeof data.logsHtml !== 'undefined') {
                     updateLogs(data.logsHtml);
                 }
+                if (typeof data.logsTotal !== 'undefined') {
+                    var page = data.logsPage || logFilters.page || 1;
+                    var pages = data.logsPages || Math.max(1, Math.ceil((data.logsTotal || 0) / (data.logsLimit || logFilters.limit || 10)));
+                    var limit = data.logsLimit || logFilters.limit || 10;
+                    var count = data.logsCount || 0;
+                    logFilters.page = page;
+                    logFilters.limit = limit;
+                    updateLogSummary(data.logsTotal || 0, page, limit, count);
+                    syncLogPagination(page, pages, data.logsTotal || 0, limit);
+                }
                 if (typeof data.queueHtml !== 'undefined') {
                     updateQueue(data.queueHtml, !!data.queueHasJobs);
                 }
@@ -269,6 +509,7 @@
 
     refreshDomRefs();
     initQueueFilters(false);
+    initLogFilters(false);
     requestSnapshot();
 
     document.addEventListener('submit', function (e) {
@@ -369,6 +610,9 @@
             if (tab === 'queue') {
                 appendQueueFilters(params);
             }
+            if (tab === 'logs') {
+                appendLogFilters(params);
+            }
             fetch(ajaxUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -379,10 +623,14 @@
                   if (!payload || !payload.success || !payload.data) throw new Error('bad');
                   tabContent.innerHTML = payload.data.html || '';
                   refreshDomRefs();
-                  if (tab === 'logs' || tab === 'queue') {
+                  if (tab === 'queue') {
                       requestSnapshot();
                       initQueueFilters(true);
-                  }
+                  } else if (tab === 'logs') {
+                      logsBody = document.getElementById('sii-control-logs-body');
+                      initLogFilters(true);
+                      requestSnapshot();
+              }
               })
               .catch(function () {
                   tabContent.innerHTML = '<p style="color:#d63638;">' + (cfg.texts && cfg.texts.loadError ? cfg.texts.loadError : 'Error al cargar el contenido.') + '</p>';

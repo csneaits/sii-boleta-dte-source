@@ -1771,7 +1771,7 @@ class GenerateDtePage {
 						$log_payload['trackId'] = $trackId;
 					}
 					$log_json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $log_payload ) : json_encode( $log_payload );
-					LogDb::add_entry( $trackId, 'queued', is_string( $log_json ) ? $log_json : '', $env );
+					LogDb::add_entry( $trackId, 'queued', is_string( $log_json ) ? $log_json : '', $env, $context );
 										return array(
 											'queued'      => true,
 											'pdf'         => $pdf,

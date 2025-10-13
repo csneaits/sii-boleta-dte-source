@@ -35,6 +35,17 @@ class QueueProcessor {
 			);
 		}
                 foreach ( $jobs as $job ) {
+                        $meta = array();
+                        if ( isset( $job['payload']['meta'] ) && is_array( $job['payload']['meta'] ) ) {
+                                $meta = $job['payload']['meta'];
+                        } else {
+                                if ( isset( $job['payload']['document_type'] ) ) {
+                                        $meta['type'] = (int) $job['payload']['document_type'];
+                                }
+                                if ( isset( $job['payload']['folio'] ) ) {
+                                        $meta['folio'] = (int) $job['payload']['folio'];
+                                }
+                        }
                         $environment = isset( $job['payload']['environment'] ) ? (string) $job['payload']['environment'] : '0';
                         $result = null;
                         if ( 'dte' === $job['type'] ) {
@@ -48,7 +59,7 @@ class QueueProcessor {
 
                                 if ( '' === $file_path || ! file_exists( $file_path ) ) {
                                         // Permanent error: file missing. Mark as failed and remove without retrying.
-                                        LogDb::add_entry( '', 'failed', 'Queued XML file is missing.', $environment );
+                                        LogDb::add_entry( '', 'failed', 'Queued XML file is missing.', $environment, $meta );
                                         QueueDb::delete( (int) $job['id'] );
                                         continue;
                                 } else {
@@ -80,7 +91,7 @@ class QueueProcessor {
                                 }
                         }
                         if ( is_wp_error( $result ) ) {
-                                LogDb::add_entry( '', 'error', $result->get_error_message(), $environment );
+                                LogDb::add_entry( '', 'error', $result->get_error_message(), $environment, $meta );
                                 if ( $job['attempts'] < 3 ) {
                                         QueueDb::increment_attempts( $job['id'] );
                                         QueueDb::schedule_retry( $job['id'], self::RETRY_DELAY_SECONDS );
@@ -89,7 +100,7 @@ class QueueProcessor {
                                 }
                         } else {
                                 $track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;
-                                LogDb::add_entry( $track, 'sent', '', $environment );
+                                LogDb::add_entry( $track, 'sent', '', $environment, $meta );
                                 QueueDb::delete( $job['id'] );
                         }
                 }

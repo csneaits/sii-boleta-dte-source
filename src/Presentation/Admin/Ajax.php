@@ -51,12 +51,26 @@ class Ajax {
         $settings      = $this->core->get_settings();
         $environment   = method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0';
         $normalized_env = Settings::normalize_environment( (string) $environment );
-        $logs        = LogDb::get_logs(
+        $log_status = isset( $_POST['log_status'] ) ? $this->sanitize_input_value( (string) $_POST['log_status'] ) : '';
+        $log_type   = isset( $_POST['log_type'] ) && '' !== $_POST['log_type'] ? (int) $_POST['log_type'] : null;
+        $log_page   = isset( $_POST['log_page'] ) ? max( 1, (int) $_POST['log_page'] ) : 1;
+        $log_limit_raw  = isset( $_POST['log_limit'] ) ? (string) $_POST['log_limit'] : '';
+        $log_limit  = '' === $log_limit_raw ? 10 : max( 5, min( 50, (int) $log_limit_raw ) );
+        $log_from   = isset( $_POST['log_from'] ) ? $this->sanitize_input_value( (string) $_POST['log_from'] ) : '';
+        $log_to     = isset( $_POST['log_to'] ) ? $this->sanitize_input_value( (string) $_POST['log_to'] ) : '';
+
+        $logs_data = LogDb::get_logs_paginated(
                 array(
-                        'limit'       => 5,
+                        'limit'       => $log_limit,
+                        'page'        => $log_page,
                         'environment' => $environment,
+                        'status'      => $log_status,
+                        'type'        => $log_type,
+                        'date_from'   => $log_from,
+                        'date_to'     => $log_to,
                 )
         );
+        $logs        = $logs_data['rows'];
         $raw_jobs = QueueDb::get_pending_jobs( 100 );
                 $jobs = array_filter(
                 $raw_jobs,
@@ -82,6 +96,11 @@ class Ajax {
         \wp_send_json_success(
             array(
                 'logsHtml'     => $logs_html,
+                'logsTotal'    => (int) $logs_data['total'],
+                'logsPage'     => (int) $logs_data['page'],
+                'logsPages'    => (int) $logs_data['pages'],
+                'logsLimit'    => (int) $logs_data['limit'],
+                'logsCount'    => count( $logs ),
                 'queueHtml'    => $queue['rows'],
                 'queueHasJobs' => $queue['has_jobs'],
             )
@@ -169,6 +188,25 @@ class Ajax {
                         }
                 }
         }
+        $log_map = array(
+                'log_status' => 'logs_status',
+                'log_type'   => 'logs_type',
+                'log_from'   => 'logs_from',
+                'log_to'     => 'logs_to',
+                'log_page'   => 'logs_page',
+                'log_limit'  => 'logs_per_page',
+        );
+        foreach ( $log_map as $post_key => $get_key ) {
+                if ( isset( $_POST[ $post_key ] ) ) {
+                        $value                  = $this->sanitize_input_value( (string) $_POST[ $post_key ] );
+                        $original_query[ $get_key ] = $_GET[ $get_key ] ?? null;
+                        if ( '' === $value ) {
+                                unset( $_GET[ $get_key ] );
+                        } else {
+                                $_GET[ $get_key ] = $value;
+                        }
+                }
+        }
         $html = $page->get_tab_content_html( $tab );
         foreach ( $original_query as $key => $value ) {
                 if ( null === $value ) {
@@ -249,14 +287,29 @@ class Ajax {
     private function render_logs_rows( array $logs ): string {
         ob_start();
         if ( empty( $logs ) ) {
-            echo '<tr class="sii-control-empty-row"><td colspan="2">' . esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ) . '</td></tr>';
+            echo '<tr class="sii-control-empty-row"><td colspan="5">' . esc_html__( 'Sin DTE recientes.', 'sii-boleta-dte' ) . '</td></tr>';
         } else {
             foreach ( $logs as $row ) {
                 $track  = isset( $row['track_id'] ) ? (string) $row['track_id'] : '';
                 $status = isset( $row['status'] ) ? (string) $row['status'] : '';
+                $type   = isset( $row['document_type'] ) ? (int) $row['document_type'] : 0;
+                $folio  = isset( $row['folio'] ) ? (int) $row['folio'] : 0;
+                $created = isset( $row['created_at'] ) ? (string) $row['created_at'] : '';
                 echo '<tr>';
-                echo '<td>' . esc_html( $track ) . '</td>';
+                echo '<td>' . ( '' !== $track ? esc_html( $track ) : '-' ) . '</td>';
+                echo '<td>' . ( $type > 0 ? esc_html( sprintf( 'DTE %d', $type ) ) : '-' ) . '</td>';
+                echo '<td>' . ( $folio > 0 ? esc_html( (string) $folio ) : '-' ) . '</td>';
                 echo '<td>' . esc_html( $this->translate_log_status( $status ) ) . '</td>';
+                $formatted_date = '—';
+                if ( '' !== $created ) {
+                        $timestamp = strtotime( $created );
+                        if ( false !== $timestamp ) {
+                                $formatted_date = function_exists( 'date_i18n' ) ? (string) date_i18n( 'Y-m-d H:i', $timestamp ) : gmdate( 'Y-m-d H:i', $timestamp );
+                        } else {
+                                $formatted_date = $created;
+                        }
+                }
+                echo '<td>' . esc_html( $formatted_date ) . '</td>';
                 echo '</tr>';
             }
         }

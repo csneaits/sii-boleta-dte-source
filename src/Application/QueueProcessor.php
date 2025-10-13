@@ -31,13 +31,24 @@ class QueueProcessor {
 
 	/**
 	 * Processes jobs. When an ID is provided only that job is executed.
+	 * 
+	 * @param int $id Si se proporciona, procesa solo ese trabajo específico (incluso si tiene 3+ intentos).
+	 *                Si es 0, procesa automáticamente solo trabajos con menos de 3 intentos.
 	 */
 	public function process( int $id = 0 ): void {
 		$jobs = QueueDb::get_pending_jobs();
+		
 		if ( $id ) {
+			// Procesamiento manual: procesa el trabajo específico independientemente de los intentos
 			$jobs = array_filter(
 				$jobs,
 				static fn( array $job ) => $job['id'] === $id
+			);
+		} else {
+			// Procesamiento automático (cron): excluye trabajos con 3+ intentos fallidos
+			$jobs = array_filter(
+				$jobs,
+				static fn( array $job ) => ( (int) ( $job['attempts'] ?? 0 ) ) < 3
 			);
 		}
                 foreach ( $jobs as $job ) {

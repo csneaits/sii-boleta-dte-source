@@ -555,12 +555,6 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 </tbody>
                         </table>
                 </div>
-
-                <div id="log-pagination" class="sii-log-pagination" data-page="<?php echo (int) $current_page; ?>" data-pages="<?php echo (int) $total_pages; ?>" data-total="<?php echo (int) $total_rows; ?>" data-limit="<?php echo (int) $limit_used; ?>">
-                        <button type="button" class="button" id="log-page-prev"<?php echo $current_page <= 1 ? ' disabled' : ''; ?>><?php echo esc_html__( 'Anterior', 'sii-boleta-dte' ); ?></button>
-                        <span><?php echo esc_html( sprintf( __( 'Página %1$d de %2$d', 'sii-boleta-dte' ), max( 1, $current_page ), max( 1, $total_pages ) ) ); ?></span>
-                        <button type="button" class="button" id="log-page-next"<?php echo $current_page >= $total_pages ? ' disabled' : ''; ?>><?php echo esc_html__( 'Siguiente', 'sii-boleta-dte' ); ?></button>
-                </div>
         </div>
         <?php
         }

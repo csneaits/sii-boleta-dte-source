@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Sii\BoletaDte\Application;
 
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 
 /**
  * Persistent queue backed by a custom database table.
@@ -17,6 +18,16 @@ class Queue {
         }
 
 	public function enqueue_dte( string $file, string $environment, string $token, string $storage_key = '', array $metadata = array() ): void {
+		if ( '' === $storage_key ) {
+			$stored = XmlStorage::store( $file );
+			if ( ! empty( $stored['path'] ) ) {
+				$file = $stored['path'];
+			}
+			if ( ! empty( $stored['key'] ) ) {
+				$storage_key = (string) $stored['key'];
+			}
+		}
+
 		$payload = array(
 			'file'        => $file,
 			'environment' => $environment,

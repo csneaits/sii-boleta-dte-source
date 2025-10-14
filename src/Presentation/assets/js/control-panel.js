@@ -797,7 +797,11 @@
         }
         queueBody.innerHTML = ensureHtml(html, 'queue');
         if (queueEmpty) {
-            queueEmpty.style.display = hasJobs ? 'none' : '';
+            if (hasJobs) {
+                queueEmpty.classList.add('is-hidden');
+            } else {
+                queueEmpty.classList.remove('is-hidden');
+            }
         }
         if (queueTable) {
             queueTable.style.display = hasJobs ? '' : 'none';

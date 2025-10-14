@@ -13,13 +13,13 @@ class Settings {
          */
         public static function normalize_environment( string $environment ): string {
                 $env = strtolower( trim( $environment ) );
-                if ( in_array( $env, array( '1', 'prod', 'production' ), true ) ) {
+                if ( in_array( $env, array( '1', 'prod', 'production', 'produccion', 'producción' ), true ) ) {
                         return '1';
                 }
-                if ( in_array( $env, array( '0', 'test', 'certificacion', 'certification' ), true ) ) {
+                if ( in_array( $env, array( '0', 'test', 'certificacion', 'certification', 'certificación' ), true ) ) {
                         return '0';
                 }
-                if ( in_array( $env, array( '2', 'dev', 'development' ), true ) ) {
+                if ( in_array( $env, array( '2', 'dev', 'development', 'desarrollo' ), true ) ) {
                         return '2';
                 }
                 return '0';

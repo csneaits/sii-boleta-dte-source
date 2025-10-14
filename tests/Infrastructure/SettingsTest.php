@@ -11,8 +11,12 @@ class SettingsTest extends TestCase {
 
     public function test_normalize_environment_and_option_keys(): void {
         $this->assertSame( '1', Settings::normalize_environment( 'production' ) );
+        $this->assertSame( '1', Settings::normalize_environment( 'produccion' ) );
+        $this->assertSame( '1', Settings::normalize_environment( 'Producción' ) );
         $this->assertSame( '0', Settings::normalize_environment( 'certification' ) );
+        $this->assertSame( '0', Settings::normalize_environment( 'certificación' ) );
         $this->assertSame( '0', Settings::normalize_environment( 'unknown' ) );
+        $this->assertSame( '2', Settings::normalize_environment( 'desarrollo' ) );
 
         $this->assertSame( 'sii_boleta_dte_last_folio_0_39', Settings::last_folio_option_key( 39, 'test' ) );
     }

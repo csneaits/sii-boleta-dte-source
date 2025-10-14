@@ -1130,23 +1130,17 @@ private function render_queue(): void {
                                 <li><strong><?php echo esc_html__( 'Control manual:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html__( 'Puedes procesar, reintentar o cancelar trabajos individuales', 'sii-boleta-dte' ); ?></li>
                         </ul>
                 </div>
-<p id="sii-control-queue-empty"<?php echo empty( $jobs ) ? '' : ' style="display:none;"'; ?>>
-        <div style="padding: 20px; text-align: center; background: #f9f9f9; border-radius: 5px; margin: 15px 0;">
-                <p><strong><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></strong></p>
-                <?php if ( $has_filters ) : ?>
-                        <p style="color: #666; font-size: 14px;">
-                                <?php echo esc_html__( 'No se encontraron trabajos con los filtros aplicados. Intenta limpiar los filtros para ver todos los elementos.', 'sii-boleta-dte' ); ?>
-                        </p>
-                <?php else : ?>
-                        <p style="color: #666; font-size: 14px;">
-                                <?php echo esc_html__( 'La cola está vacía. Los documentos se agregarán automáticamente cuando se generen desde WooCommerce o se programen tareas automáticas (RVD, Libro de Boletas, etc.).', 'sii-boleta-dte' ); ?>
-                        </p>
-                        <p style="color: #666; font-size: 13px; margin-top: 10px;">
-                                <em><?php echo esc_html__( 'Revisa la configuración para asegurar que las tareas automáticas estén habilitadas, o genera un DTE manualmente desde el menú "Generar DTE".', 'sii-boleta-dte' ); ?></em>
-                        </p>
-                <?php endif; ?>
-        </div>
-</p>
+	<div id="sii-control-queue-empty" class="sii-queue-empty<?php echo empty( $jobs ) ? '' : ' is-hidden'; ?>">
+	        <div class="sii-queue-empty-card">
+	                <p class="sii-queue-empty-title"><?php echo esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ); ?></p>
+	                <?php if ( $has_filters ) : ?>
+	                        <p class="sii-queue-empty-text"><?php echo esc_html__( 'No se encontraron trabajos con los filtros aplicados. Intenta limpiar los filtros para ver todos los elementos.', 'sii-boleta-dte' ); ?></p>
+	                <?php else : ?>
+	                        <p class="sii-queue-empty-text"><?php echo esc_html__( 'La cola está vacía. Los documentos se agregarán automáticamente cuando se generen desde WooCommerce o se programen tareas automáticas (RVD, Libro de Boletas, etc.).', 'sii-boleta-dte' ); ?></p>
+	                        <p class="sii-queue-empty-hint"><em><?php echo esc_html__( 'Revisa la configuración para asegurar que las tareas automáticas estén habilitadas, o genera un DTE manualmente desde el menú "Generar DTE".', 'sii-boleta-dte' ); ?></em></p>
+	                <?php endif; ?>
+	        </div>
+	</div>
                 <div class="sii-control-queue-wrapper"<?php echo empty( $jobs ) ? ' style="display:none;"' : ''; ?>>
                 <table id="sii-control-queue-table" class="wp-list-table widefat fixed striped">
                         <thead>

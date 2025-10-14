@@ -32,7 +32,7 @@ use Sii\BoletaDte\Infrastructure\Factory\Container;
 
 class Plugin {
 	private Settings $settings;
-	private FolioManager $folio_manager;
+	private ?FolioManager $folio_manager = null;
 	private Signer $signer;
 	private Api $api;
 	private RvdManager $rvd_manager;
@@ -41,7 +41,7 @@ class Plugin {
         private Metrics $metrics;
         private PdfGenerator $pdf_generator;
 	private ConsumoFolios $consumo_folios;
-        private Queue $queue;
+        private ?Queue $queue = null;
         private QueueProcessor $queue_processor;
 	private Help $help;
 	private \Sii\BoletaDte\Domain\DteEngine $engine;
@@ -81,7 +81,7 @@ class Plugin {
                 }
 
                         $this->pdf_generator   = new PdfGenerator( $this->engine, $this->settings );
-                        $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api );
+                        $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api, null, $this->get_folio_manager() );
                         \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
                         $this->help = $help ?? new Help( $this->settings );
 
@@ -110,6 +110,9 @@ class Plugin {
 	public function get_settings() {
 		return $this->settings; }
 	public function get_folio_manager() {
+		if ( ! isset( $this->folio_manager ) ) {
+			$this->folio_manager = new FolioManager( $this->settings );
+		}
 		return $this->folio_manager; }
 	public function get_signer() {
 		return $this->signer; }
@@ -119,12 +122,13 @@ class Plugin {
 		return $this->rvd_manager; }
 	public function get_consumo_folios() {
 		return $this->consumo_folios; }
-        public function get_queue() {
-                return $this->queue; }
-        public function get_engine() {
-                return $this->engine; }
-
-        public function get_pdf_generator(): PdfGenerator {
+	public function get_queue() {
+		if ( ! isset( $this->queue ) ) {
+			$this->queue = new Queue();
+		}
+		return $this->queue; }
+	public function get_engine() {
+		return $this->engine; }        public function get_pdf_generator(): PdfGenerator {
                 return $this->pdf_generator;
         }
 

@@ -536,7 +536,6 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                         <div class="sii-log-filter-actions">
                                 <button type="button" class="button button-primary" id="log-apply-filters"><?php echo esc_html__( 'Filtrar', 'sii-boleta-dte' ); ?></button>
                                 <button type="button" class="button" id="log-clear-filters"><?php echo esc_html__( 'Limpiar', 'sii-boleta-dte' ); ?></button>
-                                <button type="button" class="button button-secondary sii-control-refresh" data-refresh-target="logs"><?php echo esc_html__( 'Refrescar', 'sii-boleta-dte' ); ?></button>
                         </div>
                 </div>
 
@@ -1172,22 +1171,15 @@ private function render_queue(): void {
         <?php endif; ?>
 </td>
 <td>
-<form method="post" class="sii-inline-form">
-<input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>" />
-<?php $this->output_nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' ); ?>
-<button class="button button-icon" name="queue_action" value="process" title="<?php echo esc_attr__( 'Procesar este trabajo ahora', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Procesar', 'sii-boleta-dte' ); ?>">
-	<span class="dashicons dashicons-controls-play" aria-hidden="true"></span>
-	<span class="screen-reader-text"><?php echo esc_html__( 'Procesar', 'sii-boleta-dte' ); ?></span>
-</button>
-<button class="button button-icon" name="queue_action" value="requeue" title="<?php echo esc_attr__( 'Reiniciar intentos y volver a encolar', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">
-	<span class="dashicons dashicons-update" aria-hidden="true"></span>
-	<span class="screen-reader-text"><?php echo esc_html__( 'Reintentar', 'sii-boleta-dte' ); ?></span>
-</button>
-<button class="button button-icon" name="queue_action" value="cancel" title="<?php echo esc_attr__( 'Eliminar este trabajo de la cola', 'sii-boleta-dte' ); ?>" aria-label="<?php echo esc_attr__( 'Cancelar', 'sii-boleta-dte' ); ?>">
-	<span class="dashicons dashicons-no" aria-hidden="true"></span>
-	<span class="screen-reader-text"><?php echo esc_html__( 'Cancelar', 'sii-boleta-dte' ); ?></span>
-</button>
-</form>
+    <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+        <form method="post" style="display:inline; margin:0; padding:0;">
+            <input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>">
+            <button type="submit" name="queue_action" value="process" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Procesar', 'sii-boleta-dte' ); ?>">▶</button>
+            <button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">⟳</button>
+            <button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Eliminar', 'sii-boleta-dte' ); ?>">✖</button>
+        </form>
+        <button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="<?php echo esc_attr__( 'Preview PDF', 'sii-boleta-dte' ); ?>" data-pdf-key="<?php echo esc_attr( $pdf_key ); ?>" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-folio="<?php echo esc_attr( $folio ); ?>">👁️</button>
+    </div>
 </td>
 </tr>
 <?php endforeach; ?>
@@ -1198,123 +1190,26 @@ private function render_queue(): void {
 </div>
 
 <style>
-#queue-filters .button {
-	margin-right: 5px;
+.sii-queue-action-sm {
+    min-width: 28px !important;
+    height: 28px !important;
+    padding: 0 6px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    border-radius: 4px !important;
 }
-#queue-filters .queue-filter {
-	min-width: 140px;
-	min-height: 34px;
-	padding: 6px 10px;
-	box-sizing: border-box;
+.sii-queue-table td .button {
+    margin: 0 !important;
 }
-#sii-queue-help {
-	margin-top: 15px;
+.sii-queue-table td .sii-preview-pdf-btn {
+    background: #f5f5f5;
+    color: #135e96;
+    border: 1px solid #d1d5db;
 }
-.sii-inline-form {
-	display: flex;
-	gap: 6px;
-}
-.sii-inline-form .button-icon {
-	width: 34px;
-	height: 34px;
-	padding: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 50%;
-}
-.sii-inline-form .dashicons {
-	font-size: 16px;
-	line-height: 1;
-}
-.screen-reader-text {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
-	border: 0;
-}
-.sii-control-queue-wrapper {
-	overflow-x: auto;
-	padding-bottom: 8px;
-}
-#sii-control-queue-table {
-	min-width: 640px;
-}
-.sii-log-filters {
-	display: grid;
-	gap: 12px 16px;
-	align-items: end;
-	margin-bottom: 12px;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-@media (min-width: 1024px) {
-	.sii-log-filters {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		grid-auto-flow: dense;
-	}
-	.sii-log-filter-row:nth-of-type(odd) {
-		grid-column: 1;
-	}
-	.sii-log-filter-row:nth-of-type(even) {
-		grid-column: 2;
-	}
-	.sii-log-filter-actions {
-		grid-column: 1 / -1;
-	}
-}
-.sii-log-filter-row {
-	display: grid;
-	gap: 6px;
-}
-.sii-log-filter-row label {
-	font-size: 12px;
-	color: #5f6b7a;
-}
-.sii-log-filter-row input,
-.sii-log-filter-row select {
-	min-height: 36px;
-	padding: 6px 10px;
-	width: 100%;
-}
-.sii-log-filter-actions {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	justify-content: flex-start;
-	align-self: end;
-}
-@media (min-width: 640px) {
-	.sii-log-filter-actions {
-		justify-content: flex-end;
-		justify-self: end;
-	}
-}
-.sii-log-table-wrapper {
-	overflow-x: auto;
-	padding-bottom: 8px;
-}
-.sii-log-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-	margin-bottom: 10px;
-}
-.sii-log-summary p {
-	margin: 0;
-	color: #5f6b7a;
-	font-size: 13px;
-}
-.sii-log-pagination {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin-left: auto;
+.sii-queue-table td .sii-preview-pdf-btn:hover {
+    background: #eaf6ff;
+    color: #0a3d6b;
 }
 </style>
 
@@ -1636,6 +1531,110 @@ array(
 
 $dominant_status = __( 'Aceptados', 'sii-boleta-dte' );
                 $dominant_value  = $accepted_dtes;
+                if ( $sent_dtes > $dominant_value ) {
+$dominant_status = __( 'Enviados (en espera)', 'sii-boleta-dte' );
+                        $dominant_value  = $sent_dtes;
+                }
+                if ( $rejected_dtes > $dominant_value ) {
+$dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
+                        $dominant_value  = $rejected_dtes;
+                }
+                $latest_created = '';
+                if ( ! empty( $filtered_logs ) ) {
+                        $last = end( $filtered_logs );
+                        $latest_created = isset( $last['created_at'] ) ? (string) $last['created_at'] : '';
+                }
+                $avg_daily = 0;
+                if ( $selected_year > 0 && $selected_month > 0 ) {
+                        $days_in = $this->days_in_month( $selected_year, $selected_month );
+                        if ( $days_in > 0 ) {
+                                $avg_daily = round( $total_dtes / $days_in, 2 );
+                        }
+                }
+                $accept_rate = $total_dtes > 0 ? round( ( $accepted_dtes / $total_dtes ) * 100, 2 ) : 0;
+                $reject_rate = $total_dtes > 0 ? round( ( $rejected_dtes / $total_dtes ) * 100, 2 ) : 0;
+                $last7       = 0;
+                $now_ts      = $this->current_timestamp();
+                foreach ( $filtered_logs as $row ) {
+                        $ts = isset( $row['__timestamp'] ) ? (int) $row['__timestamp'] : 0;
+                        if ( $ts >= ( $now_ts - 7 * 86400 ) ) {
+                                ++$last7;
+                        }
+                }
+                ?>
+<div class="sii-section">
+<h2><?php echo esc_html__( 'Métricas operativas', 'sii-boleta-dte' ); ?></h2>
+                        <form method="get" class="sii-metric-filter">
+                                <input type="hidden" name="page" value="<?php echo esc_attr( $page_slug ); ?>" />
+                                <input type="hidden" name="tab" value="metrics" />
+<label>
+<span><?php echo esc_html__( 'Año', 'sii-boleta-dte' ); ?></span>
+<select name="metrics_year">
+<option value=""><?php echo esc_html__( 'Todos los años', 'sii-boleta-dte' ); ?></option>
+                                                <?php foreach ( $years as $year_option ) : ?>
+                                                        <?php $selected_attr = ( (int) $year_option === $selected_year ) ? ' selected="selected"' : ''; ?>
+                                                        <option value="<?php echo (int) $year_option; ?>"<?php echo $selected_attr; ?>><?php echo (int) $year_option; ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </label>
+<label>
+<span><?php echo esc_html__( 'Mes', 'sii-boleta-dte' ); ?></span>
+<select name="metrics_month">
+<option value=""><?php echo esc_html__( 'Todos los meses', 'sii-boleta-dte' ); ?></option>
+                                                <?php foreach ( $month_options as $month_number => $month_label ) : ?>
+                                                        <?php $selected_attr = ( (int) $month_number === $selected_month ) ? ' selected="selected"' : ''; ?>
+                                                        <option value="<?php echo (int) $month_number; ?>"<?php echo $selected_attr; ?>><?php echo esc_html( $month_label ); ?></option>
+                                                <?php endforeach; ?>
+                                        </select>
+                                </label>
+<button type="submit" class="button button-primary"><?php echo esc_html__( 'Aplicar filtros', 'sii-boleta-dte' ); ?></button>
+<?php if ( $selected_year || $selected_month ) : ?>
+<a class="button" data-metrics-reset="1" href="<?php echo esc_url( $metrics_url ); ?>"><?php echo esc_html__( 'Reiniciar', 'sii-boleta-dte' ); ?></a>
+<?php endif; ?>
+                        </form>
+<div class="sii-metric-grid" id="sii-metric-cards">
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Desempeño de DTE', 'sii-boleta-dte' ); ?></h3>
+                                        <p class="sii-metric-value"><?php echo (int) $total_dtes; ?></p>
+                                        <ul class="sii-metric-details">
+<li><?php echo esc_html__( 'Aceptados', 'sii-boleta-dte' ) . ': ' . (int) $accepted_dtes; ?></li>
+<li><?php echo esc_html__( 'Enviados (en espera)', 'sii-boleta-dte' ) . ': ' . (int) $sent_dtes; ?></li>
+<li><?php echo esc_html__( 'Rechazados', 'sii-boleta-dte' ) . ': ' . (int) $rejected_dtes; ?></li>
+</ul>
+</div>
+<div class="sii-metric-grid" id="sii-metric-advanced">
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Tasa de aceptación', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $accept_rate ); ?>%</p>
+<ul class="sii-metric-details"><li><?php echo esc_html__( 'Aceptados / Total * 100', 'sii-boleta-dte' ); ?></li></ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Tasa de rechazo', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $reject_rate ); ?>%</p>
+<ul class="sii-metric-details"><li><?php echo esc_html__( 'Rechazados / Total * 100', 'sii-boleta-dte' ); ?></li></ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Promedio diario', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $avg_daily ); ?></p>
+<ul class="sii-metric-details"><li><?php echo esc_html__( 'Documentos promedio por día del período', 'sii-boleta-dte' ); ?></li></ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Últimos 7 días', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $last7 ); ?></p>
+<ul class="sii-metric-details"><li><?php echo esc_html__( 'Documentos generados en últimos 7 días', 'sii-boleta-dte' ); ?></li></ul>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Último DTE', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( '' !== $latest_created ? $latest_created : __( 'N/D', 'sii-boleta-dte' ) ); ?></p>
+<ul class="sii-metric-details"><li><?php echo esc_html__( 'Fecha de creación del DTE más reciente', 'sii-boleta-dte' ); ?></li></ul>
+</div>
+</div>
+<div class="sii-metric-card">
+<h3><?php echo esc_html__( 'Automatización de RVD', 'sii-boleta-dte' ); ?></h3>
+<p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Activo', 'sii-boleta-dte' ) : __( 'En pausa', 'sii-boleta-dte' ) ); ?></p>
+<ul class="sii-metric-details">
+<li><?php echo esc_html__( 'Último envío', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Nunca', 'sii-boleta-dte' ) ); ?></li>
+<li><?php echo esc_html__( 'Próxima ejecución', 'sii-boleta-dte' ) .
                 if ( $sent_dtes > $dominant_value ) {
 $dominant_status = __( 'Enviados (en espera)', 'sii-boleta-dte' );
                         $dominant_value  = $sent_dtes;

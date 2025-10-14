@@ -417,9 +417,10 @@ class Woo {
 
 	$engine = $this->plugin->get_engine();
 	
-	// Obtener el siguiente folio disponible del mantenedor
+	// Obtener el siguiente folio disponible del mantenedor (sin consumir aún)
+	// Solo se consumirá cuando el envío al SII sea exitoso
 	$folio_manager = $this->plugin->get_folio_manager();
-	$folio = $folio_manager->get_next_folio( $document_type, true );
+	$folio = $folio_manager->get_next_folio( $document_type, false ); // ← false: NO consumir aún
 	
 	if ( is_wp_error( $folio ) ) {
 		$this->add_order_note(
@@ -527,33 +528,37 @@ class Woo {
                         $error_message = __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' );
                 }
 
-                // Si hubo éxito, guardar el track ID
+                // Si hubo éxito, guardar el track ID y CONSUMIR el folio
                 if ( '' === $error_message ) {
                         $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                        
+                        // AHORA SÍ consumir el folio (marcarlo como usado)
+                        $folio_manager->mark_folio_used( $document_type, $folio );
                 }
                 
                 // Siempre guardar el folio asignado
                 $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
 
-                // Generar PDF siempre (independiente del éxito del envío)
-                // El cliente necesita su documento aunque el envío al SII falle
-                $pdf_generator = $this->plugin->get_pdf_generator();
-                $pdf           = $pdf_generator->generate( $xml );
-                if ( is_string( $pdf ) && '' !== $pdf ) {
-                        $stored_pdf = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
-                        $pdf_path   = $stored_pdf['path'] ?? $pdf;
-                        $pdf_key    = $stored_pdf['key'] ?? '';
-                        $pdf_nonce  = $stored_pdf['nonce'] ?? '';
+                // Generar y enviar PDF solo si el envío al SII fue exitoso
+                if ( '' === $error_message ) {
+                        $pdf_generator = $this->plugin->get_pdf_generator();
+                        $pdf           = $pdf_generator->generate( $xml );
+                        if ( is_string( $pdf ) && '' !== $pdf ) {
+                                $stored_pdf = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
+                                $pdf_path   = $stored_pdf['path'] ?? $pdf;
+                                $pdf_key    = $stored_pdf['key'] ?? '';
+                                $pdf_nonce  = $stored_pdf['nonce'] ?? '';
 
-                        if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
-                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
-                                $this->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
+                                if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
+                                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
+                                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
+                                }
+
+                                $this->clear_legacy_pdf_meta( $order_id, $meta_prefix );
+
+                                $download_link = $this->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
+                                $this->send_document_email( $order, $pdf_path, $document_type, false, $download_link );
                         }
-
-                        $this->clear_legacy_pdf_meta( $order_id, $meta_prefix );
-
-                        $download_link = $this->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
-                        $this->send_document_email( $order, $pdf_path, $document_type, false, $download_link );
                 }
 
                 // Si hay error, encolar para reintento automático
@@ -575,21 +580,27 @@ class Woo {
                                 $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
                                 
                                 // Crear una entrada en el log para que aparezca en el panel de control
-                                $log_payload = array(
-                                        'error'         => $error_message,
-                                        'document_type' => $document_type,
-                                        'order_id'      => $order_id,
+                                $log_metadata = array(
+                                        'type'     => $document_type,
+                                        'order_id' => $order_id,
                                 );
                                 if ( isset( $folio ) && $folio > 0 ) {
-                                        $log_payload['folio'] = $folio;
+                                        $log_metadata['folio'] = $folio;
                                 }
+                                
+                                $log_message = sprintf(
+                                        'Documento encolado para reintento. Error: %s',
+                                        $error_message
+                                );
+                                
                                 \Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry(
                                         'QUEUED-' . time() . '-' . $order_id, // Track ID temporal
                                         'queued',
-                                        \wp_json_encode( $log_payload ),
-                                        $environment
-				);
-				
+                                        $log_message,
+                                        $environment,
+                                        $log_metadata
+                                );
+                                
 				$this->add_order_note(
 					$order,
 					sprintf(

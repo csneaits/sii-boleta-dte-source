@@ -132,5 +132,20 @@ Los tests bootstrappean WordPress desde `tests/bootstrap.php` y utilizan dobles 
 
 GPL v2 o posterior. Consulta los encabezados de cada archivo para más detalles.
 
+## Arquitectura de Procesamiento Asíncrono (Q4 2025)
 
+Para mejorar la robustez y el rendimiento del plugin, se ha refactorizado el sistema de generación de DTE para operar de forma completamente asíncrona y unificada, tanto para emisiones manuales como para las generadas desde WooCommerce.
 
+### Flujo Unificado de Encolamiento
+
+1.  **Disparador (Trigger):** Un DTE es solicitado, ya sea manualmente desde la página "Generar DTE" o automáticamente al completarse un pedido en WooCommerce.
+2.  **Encolamiento Inmediato:** En lugar de intentar un envío síncrono, el sistema ahora **siempre** encola la tarea. Se genera el XML, se reserva un folio, y la tarea se guarda en la tabla de la cola (`wp_sii_boleta_dte_queue`) para su procesamiento en segundo plano.
+3.  **Registro Visual Instantáneo:** Simultáneamente, se crea una entrada en la tabla de logs (`wp_sii_boleta_dte_logs`) con estado "En cola". Esto permite que el DTE aparezca inmediatamente en el panel de control, proporcionando una respuesta visual al usuario sin demoras.
+
+### Procesador de Tareas (Cron)
+
+-   **Frecuencia:** La tarea programada (cron) que procesa la cola se ejecuta cada **5 minutos** para mayor agilidad.
+-   **Seguridad de Concurrencia:** Se ha implementado un sistema de bloqueo (locking) mediante Transients de WordPress. Esto previene condiciones de carrera, asegurando que solo un proceso pueda procesar la cola a la vez, incluso en sitios con alto tráfico o configuraciones de cron personalizadas.
+-   **Lógica de Reintentos:** Si un trabajo falla, el procesador aplica la siguiente lógica:
+    -   **Reintentos Automáticos:** Se reintenta hasta 3 veces con un intervalo de 2 minutos entre cada intento.
+    -   **Fallo Persistente:** Después de 3 intentos fallidos, el trabajo se marca como "fallido" pero permanece en la cola, esperando una acción manual del administrador (reintentar, cancelar, etc.) desde el panel de control.

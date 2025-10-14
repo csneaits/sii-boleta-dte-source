@@ -333,7 +333,7 @@ KEY env_status (environment, status)
                 if ( 'all' === strtolower( $status ) ) {
                         $status = '';
                 }
-                $type  = isset( $args['type'] ) && '' !== $args['type'] ? (int) $args['type'] : null;
+                $type  = (isset($args['type']) && $args['type'] !== '' && $args['type'] !== 0 && $args['type'] !== '0') ? (int) $args['type'] : null;
                 $from  = isset( $args['date_from'] ) ? trim( (string) $args['date_from'] ) : '';
                 $to    = isset( $args['date_to'] ) ? trim( (string) $args['date_to'] ) : '';
 

@@ -5,14 +5,30 @@ use Sii\BoletaDte\Infrastructure\Settings;
 
 class Cron {
 	public const HOOK = 'sii_boleta_dte_process_queue';
-	public function __construct( Settings $settings ) {}
+
+	public function __construct( Settings $settings ) {
+		$this->register_hooks();
+	}
+
+	public function register_hooks(): void {
+		if ( function_exists( 'add_filter' ) ) {
+			add_filter( 'cron_schedules', array( $this, 'register_schedule' ) );
+		}
+	}
+
+	public function register_schedule( $schedules ) {
+		$schedules['every_five_minutes'] = array(
+			'interval' => 300,
+			'display'  => __( 'Every Five Minutes', 'sii-boleta-dte' ),
+		);
+		return $schedules;
+	}
 
 	public static function activate(): void {
-                if ( \function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::HOOK ) ) {
-                        if ( \function_exists( 'wp_schedule_event' ) ) {
-                                wp_schedule_event( time() + 60, 'hourly', self::HOOK );
-                        }
-                }
+		self::deactivate(); // Always clear previous schedule on activation
+		if ( \function_exists( 'wp_schedule_event' ) ) {
+			wp_schedule_event( time() + 60, 'every_five_minutes', self::HOOK );
+		}
 	}
 
 	public static function deactivate(): void {

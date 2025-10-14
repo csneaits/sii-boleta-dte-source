@@ -137,6 +137,10 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
                                 'queueAction'    => 'sii_boleta_dte_queue_action',
                 'tabAction'      => 'sii_boleta_dte_control_panel_tab',
 				'nonce'           => function_exists( 'wp_create_nonce' ) ? \wp_create_nonce( 'sii_boleta_control_panel' ) : '',
+				'previewPdfAction' => 'sii_boleta_preview_pdf',
+				'previewPdfNonce'  => function_exists( 'wp_create_nonce' ) ? \wp_create_nonce( 'sii_boleta_preview_pdf' ) : '',
+				'viewPdfAction'    => 'sii_boleta_dte_view_pdf',
+				'viewPdfNonce'     => function_exists( 'wp_create_nonce' ) ? \wp_create_nonce( 'sii_boleta_nonce' ) : '',
 				'refreshInterval' => 30,
                     'texts'           => array(
                     'noLogs'  => __( 'Sin DTE recientes.', 'sii-boleta-dte' ),
@@ -146,6 +150,9 @@ if ( in_array( $hook, array( 'toplevel_page_sii-boleta-dte', 'sii-boleta-dte_pag
                     'queueActionOk' => __( 'Acción de cola ejecutada.', 'sii-boleta-dte' ),
                     'queueActionFail' => __( 'No se pudo ejecutar la acción seleccionada.', 'sii-boleta-dte' ),
                     'logsSummary' => __( 'Mostrando %start%-%end% de %total% registros', 'sii-boleta-dte' ),
+                    'previewUnavailable' => __( 'No hay un PDF disponible para este trabajo todavía.', 'sii-boleta-dte' ),
+                    'previewLabelType' => __( 'Tipo %s', 'sii-boleta-dte' ),
+                    'previewLabelFolio' => __( 'Folio %s', 'sii-boleta-dte' ),
                 ),
             )
         );

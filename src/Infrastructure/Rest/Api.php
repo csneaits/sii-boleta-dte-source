@@ -349,8 +349,14 @@ class Api {
 
     private function get_simulation_mode( string $environment ): string {
         if ( ! isset( $this->settings ) || ! ( $this->settings instanceof Settings ) ) {
-            $this->logger->info( 'get_simulation_mode: no settings instance, returning disabled' );
-            return 'disabled';
+            // Allow Api to be used outside the container by lazily bootstrapping Settings.
+            if ( class_exists( Settings::class ) ) {
+                $this->settings = new Settings();
+            }
+            if ( ! ( $this->settings instanceof Settings ) ) {
+                $this->logger->info( 'get_simulation_mode: no settings instance available, returning disabled' );
+                return 'disabled';
+            }
         }
         $env = Settings::normalize_environment( $environment );
         $this->logger->info( 'get_simulation_mode: normalized environment from "' . $environment . '" to "' . $env . '"' );

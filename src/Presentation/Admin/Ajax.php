@@ -13,6 +13,47 @@ use Sii\BoletaDte\Infrastructure\LibredteBridge;
 use libredte\lib\Core\Application;
 
 class Ajax {
+    /**
+     * AJAX: Preview PDF for queued jobs (admin only)
+     */
+    public function preview_pdf(): void {
+        check_ajax_referer( 'sii_boleta_preview_pdf' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'No autorizado', 403 );
+        }
+        $file_key = isset($_GET['file_key']) ? sanitize_text_field($_GET['file_key']) : '';
+        $order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+        $type = isset($_GET['type']) ? (int)$_GET['type'] : 0;
+        $folio = isset($_GET['folio']) ? (int)$_GET['folio'] : 0;
+
+        $xml = '';
+        if ($file_key) {
+            $xml_path = \Sii\BoletaDte\Infrastructure\Queue\XmlStorage::resolve_path($file_key);
+            if ($xml_path && file_exists($xml_path)) {
+                $xml = file_get_contents($xml_path);
+            }
+        }
+        // Fallback: buscar por order_id y folio si no hay file_key
+        if (!$xml && $order_id && $type) {
+            // Buscar en la base de datos de logs o en el sistema de archivos según tu lógica
+            // Aquí solo se deja el fallback, pero lo ideal es siempre tener file_key
+        }
+        if (!$xml) {
+            wp_die('No se encontró el XML para este documento.', 404);
+        }
+        // Generar PDF en memoria
+        $plugin = Container::get(Plugin::class);
+        $pdf_generator = $plugin->get_pdf_generator();
+        $pdf = $pdf_generator->generate($xml);
+        if (!is_string($pdf) || $pdf === '') {
+            wp_die('No se pudo generar el PDF.', 500);
+        }
+        // Forzar descarga/preview inline
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="preview-dte.pdf"');
+        echo $pdf;
+        exit;
+    }
         private Plugin $core;
 
 	public function __construct( Plugin $core ) {
@@ -42,6 +83,8 @@ class Ajax {
         \add_action( 'wp_ajax_sii_boleta_libredte_auth', array( $this, 'libredte_auth' ) );
         // Track ID status query
         \add_action( 'wp_ajax_sii_boleta_query_track_status', array( $this, 'query_track_status' ) );
+        // Preview PDF for encolados
+        \add_action( 'wp_ajax_sii_boleta_preview_pdf', array( $this, 'preview_pdf' ) );
     }
 
     public function control_panel_data(): void {

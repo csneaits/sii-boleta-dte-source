@@ -20,11 +20,13 @@ use Sii\BoletaDte\Infrastructure\Rest\Api;
 class QueueProcessor {
         private const RETRY_DELAY_SECONDS = 120;
         private Api $api;
+        private ?FolioManager $folio_manager;
         /** @var callable */
         private $sleep;
 
-	public function __construct( Api $api, callable $sleep = null ) {
+	public function __construct( Api $api, callable $sleep = null, FolioManager $folio_manager = null ) {
 		$this->api   = $api;
+		$this->folio_manager = $folio_manager;
 		$this->sleep = $sleep ?? 'sleep';
 		QueueDb::install();
 	}
@@ -121,6 +123,58 @@ class QueueProcessor {
                         } else {
                                 $track = is_array( $result ) ? ( $result['trackId'] ?? '' ) : (string) $result;
                                 LogDb::add_entry( $track, 'sent', '', $environment, $meta );
+
+                                // CONSUMIR el folio ahora que el envío fue exitoso
+                                if ( $this->folio_manager 
+                                     && isset( $meta['type'] ) 
+                                     && isset( $meta['folio'] ) 
+                                     && $meta['folio'] > 0 ) {
+                                        $this->folio_manager->mark_folio_used( (int) $meta['type'], (int) $meta['folio'] );
+                                }
+
+                                // Generar y enviar el PDF al cliente solo si el envío fue exitoso
+                                // Se requiere order_id y datos mínimos
+                                if ( isset( $meta['order_id'] ) && $meta['order_id'] > 0 && isset( $meta['type'] ) ) {
+                                        // Obtener el XML desde el archivo encolado
+                                        $file_path = isset( $job['payload']['file'] ) ? (string) $job['payload']['file'] : '';
+                                        if ( isset( $job['payload']['file_key'] ) ) {
+                                                $resolved = \Sii\BoletaDte\Infrastructure\Queue\XmlStorage::resolve_path( (string) $job['payload']['file_key'] );
+                                                if ( '' !== $resolved ) {
+                                                        $file_path = $resolved;
+                                                }
+                                        }
+                                        if ( $file_path && file_exists( $file_path ) ) {
+                                                $xml = file_get_contents( $file_path );
+                                                if ( $xml ) {
+                                                        // Instanciar PDFGenerator y Plugin
+                                                        $plugin = \Sii\BoletaDte\Infrastructure\Factory\Container::get(\Sii\BoletaDte\Infrastructure\Plugin::class);
+                                                        $pdf_generator = $plugin->get_pdf_generator();
+                                                        $pdf = $pdf_generator->generate( $xml );
+                                                        if ( is_string( $pdf ) && '' !== $pdf ) {
+                                                                $order_id = (int) $meta['order_id'];
+                                                                $order = null;
+                                                                if ( function_exists('wc_get_order') ) {
+                                                                        $order = wc_get_order( $order_id );
+                                                                }
+                                                                if ( $order ) {
+                                                                        $stored_pdf = $plugin->persist_pdf_for_order( $pdf, $order, (int)$meta['type'], $order_id );
+                                                                        $pdf_path   = $stored_pdf['path'] ?? $pdf;
+                                                                        $pdf_key    = $stored_pdf['key'] ?? '';
+                                                                        $pdf_nonce  = $stored_pdf['nonce'] ?? '';
+                                                                        $meta_prefix = '_sii_boleta';
+                                                                        if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
+                                                                                $plugin->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
+                                                                                $plugin->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
+                                                                        }
+                                                                        $plugin->clear_legacy_pdf_meta( $order_id, $meta_prefix );
+                                                                        $download_link = $plugin->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
+                                                                        $plugin->send_document_email( $order, $pdf_path, (int)$meta['type'], false, $download_link );
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                }
+
                                 QueueDb::delete( $job['id'] );
                         }
                 }

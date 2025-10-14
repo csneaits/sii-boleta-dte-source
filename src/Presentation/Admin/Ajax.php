@@ -45,13 +45,20 @@ class Ajax {
         $plugin = Container::get(Plugin::class);
         $pdf_generator = $plugin->get_pdf_generator();
         $pdf = $pdf_generator->generate($xml);
-        if (!is_string($pdf) || $pdf === '') {
+        if (!is_string($pdf) || $pdf === '' || !file_exists($pdf)) {
             wp_die('No se pudo generar el PDF.', 500);
         }
-        // Forzar descarga/preview inline
+
+        if (function_exists('nocache_headers')) {
+            \nocache_headers();
+        }
+
         header('Content-Type: application/pdf');
         header('Content-Disposition: inline; filename="preview-dte.pdf"');
-        echo $pdf;
+        header('Content-Length: ' . filesize($pdf));
+        @readfile($pdf);
+        // Remove temporary file if still present.
+        @unlink($pdf);
         exit;
     }
         private Plugin $core;
@@ -497,6 +504,7 @@ class Ajax {
 		$type      = $payload['document_type'] ?? ( $meta['type'] ?? ( $job['type'] ?? '' ) );
 		$folio     = $payload['folio'] ?? ( $meta['folio'] ?? '' );
 		$file_key  = $payload['file_key'] ?? ( $meta['file_key'] ?? '' );
+		$meta_prefix = $payload['meta_prefix'] ?? ( $meta['meta_prefix'] ?? '_sii_boleta' );
 		$pdf_key   = $payload['pdf_key'] ?? ( $meta['pdf_key'] ?? $id );
 		$pdf_nonce = $payload['pdf_nonce'] ?? ( $meta['pdf_nonce'] ?? '' );
 
@@ -506,6 +514,7 @@ class Ajax {
 		$file_key  = is_scalar( $file_key ) ? (string) $file_key : '';
 		$pdf_key   = is_scalar( $pdf_key ) ? (string) $pdf_key : '';
 		$pdf_nonce = is_scalar( $pdf_nonce ) ? (string) $pdf_nonce : '';
+		$meta_prefix = is_scalar( $meta_prefix ) ? (string) $meta_prefix : '_sii_boleta';
 
 		$html  = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">';
 		$html .= '<form method="post" style="display:inline;margin:0;padding:0;">';
@@ -515,7 +524,7 @@ class Ajax {
 		$html .= '<button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Reintentar', 'sii-boleta-dte' ) . '">⟳</button>';
 		$html .= '<button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Eliminar', 'sii-boleta-dte' ) . '">✖</button>';
 		$html .= '</form>';
-		$html .= '<button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="' . esc_attr__( 'Preview PDF', 'sii-boleta-dte' ) . '" data-pdf-key="' . esc_attr( $pdf_key ) . '" data-pdf-nonce="' . esc_attr( $pdf_nonce ) . '" data-file-key="' . esc_attr( $file_key ) . '" data-order-id="' . esc_attr( $order_id ) . '" data-type="' . esc_attr( $type ) . '" data-folio="' . esc_attr( $folio ) . '">👁️</button>';
+		$html .= '<button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="' . esc_attr__( 'Preview PDF', 'sii-boleta-dte' ) . '" data-pdf-key="' . esc_attr( $pdf_key ) . '" data-pdf-nonce="' . esc_attr( $pdf_nonce ) . '" data-file-key="' . esc_attr( $file_key ) . '" data-order-id="' . esc_attr( $order_id ) . '" data-type="' . esc_attr( $type ) . '" data-folio="' . esc_attr( $folio ) . '" data-meta-prefix="' . esc_attr( $meta_prefix ) . '">👁️</button>';
 		$html .= '</div>';
 
 		return $html;

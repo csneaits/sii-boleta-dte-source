@@ -31,7 +31,7 @@ use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Infrastructure\Factory\Container;
 
 class Plugin {
-	private Settings $settings;
+	private ?Settings $settings = null;
 	private ?FolioManager $folio_manager = null;
 	private Signer $signer;
 	private Api $api;
@@ -49,13 +49,16 @@ class Plugin {
 	private Ajax $ajax;
 	private Pages $pages;
 
-        public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
-                        Container::init();
-                        PdfStorageMigrator::migrate();
-                        LogDb::install();
-                        QueueDb::install();
-			$this->settings       = $settings ?? new Settings();
-			$this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
+		   public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
+						   Container::init();
+						   PdfStorageMigrator::migrate();
+						   LogDb::install();
+						   QueueDb::install();
+						   $this->settings       = $settings;
+						   if (!isset($this->settings) || $this->settings === null) {
+							   $this->settings = new Settings();
+						   }
+						   $this->folio_manager  = $folio_manager ?? new FolioManager( $this->settings );
 			$this->signer         = $signer ?? new Signer();
                         $this->api            = $api ?? new Api();
                         if ( method_exists( $this->api, 'setSettings' ) ) {
@@ -107,8 +110,12 @@ class Plugin {
 			\add_action( 'sii_boleta_setup_mailer', array( $this, 'fluent_smtp_setup_mailer' ), 10, 2 );
 	}
 
-	public function get_settings() {
-		return $this->settings; }
+       public function get_settings() {
+	       if (!isset($this->settings) || $this->settings === null) {
+		   $this->settings = new Settings();
+	       }
+	       return $this->settings;
+       }
 	public function get_folio_manager() {
 		if ( ! isset( $this->folio_manager ) ) {
 			$this->folio_manager = new FolioManager( $this->settings );

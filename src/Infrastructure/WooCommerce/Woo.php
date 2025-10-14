@@ -527,46 +527,16 @@ class Woo {
                         $error_message = __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' );
                 }
 
-                // Si hay error, encolar para reintento automático
-                if ( '' !== $error_message ) {
-                        $queue = $this->plugin->get_queue();
-                        if ( $queue ) {
-                                // Encolar el documento para reintento automático
-                                $metadata = array(
-                                        'type'     => $document_type,
-                                        'order_id' => $order_id,
-                                        'label'    => sprintf( 'Orden #%d', $order_id ),
-                                );
-                                $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
-                                $this->add_order_note(
-                                        $order,
-                                        sprintf(
-                                                /* translators: %s: error message returned by the SII API. */
-                                                __( 'Error al enviar el documento tributario al SII: %s. El documento ha sido encolado para reintento automático.', 'sii-boleta-dte' ),
-                                                $error_message
-                                        )
-                                );
-                                // No eliminar el archivo temporal porque está en la cola
-                                return;
-                        } else {
-                                $this->add_order_note(
-                                        $order,
-                                        sprintf(
-                                                /* translators: %s: error message returned by the SII API. */
-                                                __( 'Error al enviar el documento tributario al SII: %s', 'sii-boleta-dte' ),
-                                                $error_message
-                                        )
-                                );
-                        }
-                        if ( file_exists( $file ) ) {
-                                unlink( $file );
-                        }
-                        return;
+                // Si hubo éxito, guardar el track ID
+                if ( '' === $error_message ) {
+                        $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
                 }
-
-                $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                
+                // Siempre guardar el folio asignado
                 $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
 
+                // Generar PDF siempre (independiente del éxito del envío)
+                // El cliente necesita su documento aunque el envío al SII falle
                 $pdf_generator = $this->plugin->get_pdf_generator();
                 $pdf           = $pdf_generator->generate( $xml );
                 if ( is_string( $pdf ) && '' !== $pdf ) {
@@ -586,30 +556,74 @@ class Woo {
                         $this->send_document_email( $order, $pdf_path, $document_type, false, $download_link );
                 }
 
-                if ( file_exists( $file ) ) {
-                        unlink( $file );
-                }
+                // Si hay error, encolar para reintento automático
+                if ( '' !== $error_message ) {
+                        $queue = $this->plugin->get_queue();
+                        if ( $queue ) {
+                                // Encolar el documento para reintento automático
+                                $metadata = array(
+                                        'type'     => $document_type,
+                                        'order_id' => $order_id,
+                                        'label'    => sprintf( 'Orden #%d', $order_id ),
+                                );
+                                
+                                // Agregar metadata del folio si está disponible
+                                if ( isset( $folio ) && $folio > 0 ) {
+                                        $metadata['folio'] = $folio;
+                                }
+                                
+                                $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
+                                
+                                // Crear una entrada en el log para que aparezca en el panel de control
+                                $log_payload = array(
+                                        'error'         => $error_message,
+                                        'document_type' => $document_type,
+                                        'order_id'      => $order_id,
+                                );
+                                if ( isset( $folio ) && $folio > 0 ) {
+                                        $log_payload['folio'] = $folio;
+                                }
+                                \Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry(
+                                        'QUEUED-' . time() . '-' . $order_id, // Track ID temporal
+                                        'queued',
+                                        \wp_json_encode( $log_payload ),
+                                        $environment
+				);
+				
+				$this->add_order_note(
+					$order,
+					sprintf(
+						/* translators: %s: error message returned by the SII API. */
+						__( 'Error al enviar el documento tributario al SII: %s. El documento ha sido encolado para reintento automático. El PDF ha sido generado y enviado por email.', 'sii-boleta-dte' ),
+						$error_message
+					)
+				);
+				// No eliminar el archivo temporal porque está en la cola
+			} else {
+				$this->add_order_note(
+					$order,
+					sprintf(
+						/* translators: %s: error message returned by the SII API. */
+						__( 'Error al enviar el documento tributario al SII: %s. El PDF ha sido generado y enviado por email.', 'sii-boleta-dte' ),
+						$error_message
+					)
+				);
+			}
+		} else {
+			// Envío exitoso
+			$success_note_with_folio = $success_note . sprintf(
+				/* translators: %d: folio number assigned to the document */
+				__( ' Folio: %d', 'sii-boleta-dte' ),
+				$folio
+			);
+			$this->add_order_note( $order, $success_note_with_folio );
+		}
 
-                if ( '' === $error_message ) {
-                        $success_note_with_folio = $success_note . sprintf(
-                                /* translators: %d: folio number assigned to the document */
-                                __( ' Folio: %d', 'sii-boleta-dte' ),
-                                $folio
-                        );
-                        $this->add_order_note( $order, $success_note_with_folio );
-                } else {
-                        $this->add_order_note(
-                                $order,
-                                sprintf(
-                                        /* translators: %s: error message returned by the SII API. */
-                                        __( 'Error al enviar el documento tributario al SII: %s', 'sii-boleta-dte' ),
-                                        $error_message
-                                )
-                        );
-                }
-        }
-
-        /**
+		// Limpiar archivo temporal
+		if ( file_exists( $file ) ) {
+			unlink( $file );
+		}
+	}        /**
          * Builds the DTE payload from a WooCommerce order.
          */
         private function prepare_order_data( $order, int $document_type, int $order_id, array $context = array() ): array { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh

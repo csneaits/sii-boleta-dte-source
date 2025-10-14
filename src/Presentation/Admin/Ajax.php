@@ -360,22 +360,41 @@ class Ajax {
     private function render_queue_rows( array $jobs ): array {
         $has_jobs = ! empty( $jobs );
         ob_start();
-        if ( ! $has_jobs ) {
-            echo '<tr class="sii-control-empty-row"><td colspan="5">' . esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ) . '</td></tr>';
-        } else {
-            foreach ( $jobs as $job ) {
-                $id        = isset( $job['id'] ) ? (int) $job['id'] : 0;
-                $type      = isset( $job['type'] ) ? (string) $job['type'] : '';
-                $attempts  = isset( $job['attempts'] ) ? (int) $job['attempts'] : 0;
-                echo '<tr>';
-                echo '<td>' . (int) $id . '</td>';
-                echo '<td>' . esc_html( $this->translate_queue_type( $type ) ) . '</td>';
-                echo '<td>' . esc_html( $this->describe_queue_document( $job ) ) . '</td>';
-                echo '<td>' . (int) $attempts . '</td>';
-                echo '<td>' . $this->render_queue_actions( $id ) . '</td>';
-                echo '</tr>';
-            }
-        }
+		if ( ! $has_jobs ) {
+			echo '<tr class="sii-control-empty-row"><td colspan="5">' . esc_html__( 'No hay elementos en la cola.', 'sii-boleta-dte' ) . '</td></tr>';
+		} else {
+			foreach ( $jobs as $job ) {
+				$id       = isset( $job['id'] ) ? (int) $job['id'] : 0;
+				$type     = isset( $job['type'] ) ? (string) $job['type'] : '';
+				$attempts = isset( $job['attempts'] ) ? (int) $job['attempts'] : 0;
+
+				$is_failed  = $attempts >= 3;
+				$row_style  = $is_failed ? ' style="background-color: #fff3cd; border-left: 3px solid #ffc107;"' : '';
+				$type_label = esc_html( $this->translate_queue_type( $type ) );
+				$details    = esc_html( $this->describe_queue_document( $job ) );
+
+				echo '<tr' . $row_style . '>';
+				echo '<td>' . $id . '</td>';
+				echo '<td>' . $type_label . '</td>';
+				echo '<td>' . $details;
+				if ( $is_failed ) {
+					echo '<br><span style="color: #dc3232; font-weight: bold; font-size: 12px;">';
+					echo '⚠️ ' . esc_html__( 'FALLIDO - Requiere atención manual', 'sii-boleta-dte' );
+					echo '</span>';
+				}
+				echo '</td>';
+				echo '<td>';
+				$attempt_color = $is_failed ? '#dc3232' : '#135e96';
+				$attempt_weight = $is_failed ? 'bold' : 'normal';
+				echo '<span style="color:' . esc_attr( $attempt_color ) . '; font-weight:' . esc_attr( $attempt_weight ) . ';">' . $attempts . '</span>';
+				if ( $is_failed ) {
+					echo '<br><small style="color: #856404;">' . esc_html__( '(Pausado)', 'sii-boleta-dte' ) . '</small>';
+				}
+				echo '</td>';
+				echo '<td>' . $this->render_queue_actions( $job ) . '</td>';
+				echo '</tr>';
+			}
+		}
         return array(
             'rows'     => (string) ob_get_clean(),
             'has_jobs' => $has_jobs,
@@ -466,18 +485,37 @@ class Ajax {
         );
     }
 
-    private function render_queue_actions( int $id ): string {
-        $nonce = $this->nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' );
-        $id    = max( 0, $id );
-        $html  = '<form method="post" class="sii-inline-form">';
-        $html .= '<input type="hidden" name="job_id" value="' . $id . '" />';
-        $html .= $nonce;
-        $html .= '<button class="button button-icon" name="queue_action" value="process" title="' . esc_attr__( 'Procesar este trabajo ahora', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Procesar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-controls-play" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Procesar', 'sii-boleta-dte' ) . '</span></button>';
-        $html .= '<button class="button button-icon" name="queue_action" value="requeue" title="' . esc_attr__( 'Reiniciar intentos y volver a encolar', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Reintentar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-update" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Reintentar', 'sii-boleta-dte' ) . '</span></button>';
-        $html .= '<button class="button button-icon" name="queue_action" value="cancel" title="' . esc_attr__( 'Eliminar este trabajo de la cola', 'sii-boleta-dte' ) . '" aria-label="' . esc_attr__( 'Cancelar', 'sii-boleta-dte' ) . '"><span class="dashicons dashicons-no" aria-hidden="true"></span><span class="screen-reader-text">' . esc_html__( 'Cancelar', 'sii-boleta-dte' ) . '</span></button>';
-        $html .= '</form>';
-        return $html;
-    }
+	private function render_queue_actions( array $job ): string {
+		$id   = isset( $job['id'] ) ? (int) $job['id'] : 0;
+		$id   = max( 0, $id );
+		$nonce = $this->nonce_field( 'sii_boleta_queue', 'sii_boleta_queue_nonce' );
+
+		$payload = isset( $job['payload'] ) && is_array( $job['payload'] ) ? $job['payload'] : array();
+		$meta    = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
+
+		$order_id = $payload['order_id'] ?? ( $meta['order_id'] ?? '' );
+		$type     = $payload['document_type'] ?? ( $meta['type'] ?? ( $job['type'] ?? '' ) );
+		$folio    = $payload['folio'] ?? ( $meta['folio'] ?? '' );
+		$pdf_key  = $payload['pdf_key'] ?? ( $meta['pdf_key'] ?? $id );
+
+		$order_id = is_scalar( $order_id ) ? (string) $order_id : '';
+		$type     = is_scalar( $type ) ? (string) $type : '';
+		$folio    = is_scalar( $folio ) ? (string) $folio : '';
+		$pdf_key  = is_scalar( $pdf_key ) ? (string) $pdf_key : '';
+
+		$html  = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">';
+		$html .= '<form method="post" style="display:inline;margin:0;padding:0;">';
+		$html .= '<input type="hidden" name="job_id" value="' . esc_attr( (string) $id ) . '" />';
+		$html .= $nonce;
+		$html .= '<button type="submit" name="queue_action" value="process" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Procesar', 'sii-boleta-dte' ) . '">▶</button>';
+		$html .= '<button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Reintentar', 'sii-boleta-dte' ) . '">⟳</button>';
+		$html .= '<button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Eliminar', 'sii-boleta-dte' ) . '">✖</button>';
+		$html .= '</form>';
+		$html .= '<button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="' . esc_attr__( 'Preview PDF', 'sii-boleta-dte' ) . '" data-pdf-key="' . esc_attr( $pdf_key ) . '" data-order-id="' . esc_attr( $order_id ) . '" data-type="' . esc_attr( $type ) . '" data-folio="' . esc_attr( $folio ) . '">👁️</button>';
+		$html .= '</div>';
+
+		return $html;
+	}
 
     /**
      * Builds a human readable description for the given queue job.

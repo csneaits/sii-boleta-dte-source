@@ -110,15 +110,15 @@ class Plugin {
 			\add_action( 'sii_boleta_setup_mailer', array( $this, 'fluent_smtp_setup_mailer' ), 10, 2 );
 	}
 
-       public function get_settings() {
-	       if (!isset($this->settings) || $this->settings === null) {
+       public function get_settings(): Settings {
+	       if ( ! isset( $this->settings ) || null === $this->settings ) {
 		   $this->settings = new Settings();
 	       }
 	       return $this->settings;
        }
-	public function get_folio_manager() {
+	public function get_folio_manager(): FolioManager {
 		if ( ! isset( $this->folio_manager ) ) {
-			$this->folio_manager = new FolioManager( $this->settings );
+			$this->folio_manager = new FolioManager( $this->get_settings() );
 		}
 		return $this->folio_manager; }
 	public function get_signer() {

@@ -29,4 +29,47 @@ class LogDbTest extends TestCase {
         LogDb::purge();
         $this->assertSame( array(), LogDb::get_logs() );
     }
+
+    public function test_legacy_environment_aliases_are_supported(): void {
+        $ref       = new \ReflectionClass( LogDb::class );
+        $entries   = $ref->getProperty( 'entries' );
+        $useMemory = $ref->getProperty( 'use_memory' );
+        $entries->setAccessible( true );
+        $useMemory->setAccessible( true );
+
+        $originalEntries   = $entries->getValue();
+        $originalUseMemory = $useMemory->getValue();
+
+        $legacyRow = array(
+            'track_id'      => 'LEG-1',
+            'status'        => 'sent',
+            'response'      => '{}',
+            'environment'   => 'dev',
+            'document_type' => 33,
+            'folio'         => 99,
+            'created_at'    => '2025-01-01 00:00:00',
+        );
+
+        $entries->setValue( array( $legacyRow ) );
+        $useMemory->setValue( true );
+
+        try {
+            $pending = LogDb::get_pending_track_ids( 10, '2' );
+            $this->assertSame( array( 'LEG-1' ), $pending );
+
+            $logs = LogDb::get_logs( array( 'environment' => '2' ) );
+            $this->assertCount( 1, $logs );
+            $this->assertSame( 'LEG-1', $logs[0]['track_id'] ?? '' );
+
+            $paginated = LogDb::get_logs_paginated( array( 'environment' => 'development' ) );
+            $this->assertSame( 1, $paginated['total'] );
+            $this->assertSame( 'LEG-1', $paginated['rows'][0]['track_id'] ?? '' );
+
+            $types = LogDb::get_distinct_types( '2' );
+            $this->assertSame( array( 33 ), $types );
+        } finally {
+            $entries->setValue( $originalEntries );
+            $useMemory->setValue( $originalUseMemory );
+        }
+    }
 }

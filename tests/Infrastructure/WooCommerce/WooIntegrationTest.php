@@ -217,8 +217,14 @@ if ( ! function_exists( 'is_wp_error' ) ) { function is_wp_error( $v ) { return 
 if ( ! class_exists( 'WP_Error' ) ) { class WP_Error { private $code; public function __construct( $c = '' ) { $this->code = $c; } } }
 
 class DummyPlugin {
+    private $settings;
+    private $engine;
+    private $api;
     public function __construct( $settings, $engine, $api ) {
-        $this->settings = $settings; $this->engine = $engine; $this->api = $api; }
+        $this->settings = $settings;
+        $this->engine = $engine;
+        $this->api = $api;
+    }
     public function get_settings() { return $this->settings; }
     public function get_engine() { return $this->engine; }
     public function get_api() { return $this->api; }

@@ -1147,9 +1147,25 @@ private function render_queue(): void {
 <?php else : ?>
 <?php foreach ( $jobs as $job ) : ?>
 <?php 
-        $attempts = (int) $job['attempts'];
-        $is_failed = $attempts >= 3;
-        $row_class = $is_failed ? ' style="background-color: #fff3cd; border-left: 3px solid #ffc107;"' : '';
+    $attempts = (int) $job['attempts'];
+    $is_failed = $attempts >= 3;
+    $row_class = $is_failed ? ' style="background-color: #fff3cd; border-left: 3px solid #ffc107;"' : '';
+
+    // Extract PDF preview variables from job
+    $payload = isset($job['payload']) && is_array($job['payload']) ? $job['payload'] : array();
+    $meta = isset($payload['meta']) && is_array($payload['meta']) ? $payload['meta'] : array();
+
+    // Try to get order_id, type, folio from payload/meta
+    $order_id = $payload['order_id'] ?? ($meta['order_id'] ?? '');
+    $type = $payload['document_type'] ?? ($meta['type'] ?? $job['type'] ?? '');
+    $folio = $payload['folio'] ?? ($meta['folio'] ?? '');
+    // PDF key: use a unique identifier, fallback to job id
+    $pdf_key = $payload['pdf_key'] ?? ($meta['pdf_key'] ?? $job['id']);
+    // Ensure type and folio are strings
+    $type = is_array($type) ? '' : (string)$type;
+    $folio = is_array($folio) ? '' : (string)$folio;
+    $order_id = is_array($order_id) ? '' : (string)$order_id;
+    $pdf_key = is_array($pdf_key) ? '' : (string)$pdf_key;
 ?>
 <tr<?php echo $row_class; ?>>
 <td><?php echo (int) $job['id']; ?></td>

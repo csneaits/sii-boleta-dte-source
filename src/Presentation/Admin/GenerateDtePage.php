@@ -1719,99 +1719,47 @@ class GenerateDtePage {
 				}
 
 								$file = tempnam( sys_get_temp_dir(), 'dte' );
-								file_put_contents( $file, (string) $xml );
-								$env   = (string) ( $settings_cfg['environment'] ?? 'test' );
-								$token = $this->token_manager->get_token( $env );
-								$track = $this->api->send_dte_to_sii( $file, $env, $token );
-		if ( function_exists( 'is_wp_error' ) && is_wp_error( $track ) ) {
-				$code      = method_exists( $track, 'get_error_code' ) ? (string) $track->get_error_code() : '';
-				$message   = method_exists( $track, 'get_error_message' ) ? (string) $track->get_error_message() : '';
-				$trackData = null;
-				if ( method_exists( $track, 'get_error_data' ) ) {
-						$trackData = $track->get_error_data( $code );
-						if ( null === $trackData ) {
-							$trackData = $track->get_error_data();
-						}
-				}
-		
-		// Extraer trackId directamente si está disponible
-		$trackId = '';
-		if ( is_array( $trackData ) && isset( $trackData['trackId'] ) ) {
-			$trackId = (string) $trackData['trackId'];
-		} elseif ( is_array( $trackData ) && isset( $trackData['track_id'] ) ) {
-			$trackId = (string) $trackData['track_id'];
-		}
-		$message = $this->normalize_api_error_message( $message );
-			if ( $this->should_queue_for_error( $code ) ) {
-                                        $context        = array(
-                                                'label'        => $pdf_label,
-                                                'type'         => $tipo,
-                                                'folio'        => $folio,
-                                                'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
-                                                'rut_receptor' => $rut,
-                                        );
-                                        $queued_storage = $this->store_xml_for_queue( $file, $context );
-                                        $storage_path   = (string) ( $queued_storage['path'] ?? '' );
-                                        $storage_key    = (string) ( $queued_storage['key'] ?? '' );
-                                        if ( '' !== $storage_path ) {
-                                                $file = $storage_path;
-                                        }
-										$this->queue->enqueue_dte( $file, $env, $token, $storage_key, $context );
-										$queue_message = __( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
-										if ( 'sii_boleta_dev_simulated_error' === $code ) {
-												$queue_message = __( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', 'sii-boleta-dte' );
-										}
-					$log_payload = $context;
-					if ( null !== $trackData ) {
-						$log_payload['error_data'] = $trackData;
-					}
-					$log_payload['code']    = $code;
-					$log_payload['message'] = $message;
-					if ( '' !== $trackId ) {
-						$log_payload['trackId'] = $trackId;
-					}
-					$log_json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $log_payload ) : json_encode( $log_payload );
-					LogDb::add_entry( $trackId, 'queued', is_string( $log_json ) ? $log_json : '', $env, $context );
-										return array(
-											'queued'      => true,
-											'pdf'         => $pdf,
-											'pdf_url'     => $pdf_url,
-											'message'     => $queue_message,
-											'notice_type' => 'warning',
-										);
-					}
-
-								return array(
-									'error' => '' !== $message ? $message : __( 'Could not send the document. Please try again.', 'sii-boleta-dte' ),
-								);
+				if ( ! $file ) {
+					return array( 'error' => __( 'No fue posible crear un archivo temporal para el DTE.', 'sii-boleta-dte' ) );
 				}
 
-                                if ( ! is_string( $track ) || '' === trim( (string) $track ) ) {
-                                                                return array(
-                                                                        'error' => __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' ),
-                                                                );
-                                }
+				file_put_contents( $file, (string) $xml );
+				$env   = (string) ( $settings_cfg['environment'] ?? 'test' );
+				$token = $this->token_manager->get_token( $env );
 
-                                if ( $this->is_certification_environment( $env ) ) {
-                                        ProgressTracker::mark( ProgressTracker::OPTION_TEST_SEND );
-                                }
+				// Enqueue the DTE for asynchronous processing.
+				$context = array(
+					'label'        => $pdf_label,
+					'type'         => $tipo,
+					'folio'        => $folio,
+					'rut_emisor'   => (string) ( $settings_cfg['rut_emisor'] ?? '' ),
+					'rut_receptor' => $rut,
+					'source'       => 'manual_generator',
+				);
 
-                                                                $track_value     = trim( (string) $track );
-                                                                $simulated_send = false !== strpos( $track_value, 'SIM-' );
-                                                                $message        = '';
-                                                                if ( $simulated_send ) {
-                                                                        $message = sprintf( __( 'Envío simulado al SII. Track ID: %s.', 'sii-boleta-dte' ), $track_value );
-                                                                }
+				$queued_storage = $this->store_xml_for_queue( $file, $context );
+				$storage_path   = (string) ( $queued_storage['path'] ?? '' );
+				$storage_key    = (string) ( $queued_storage['key'] ?? '' );
+				if ( '' !== $storage_path ) {
+					$file = $storage_path;
+				}
 
-                                                                return array(
-                                                                        'track_id'    => $track_value,
-                                                                        'pdf'         => $pdf,      // keep raw path for tests
-                                                                        'pdf_url'     => $pdf_url,  // public URL for link
-                                                                        'notice_type' => $simulated_send ? 'info' : 'success',
-                                                                        'message'     => $message,
-                                                                        'simulated'   => $simulated_send,
-                                                                        'tipo'        => $tipo,
-                                                                );
+				$this->queue->enqueue_dte( $file, $env, $token, $storage_key, $context );
+
+				// Add a log entry so it appears immediately in the control panel.
+				$log_message = __( 'Documento encolado desde el generador manual.', 'sii-boleta-dte' );
+				$temp_track_id = 'QUEUED-' . time() . '-' . $folio;
+				LogDb::add_entry( $temp_track_id, 'queued', $log_message, $env, $context );
+
+				// Return a success message.
+				return array(
+					'queued'      => true,
+					'pdf_url'     => $pdf_url,
+					'message'     => __( 'El documento fue encolado para su procesamiento. Aparecerá en "DTE recientes" en breve.', 'sii-boleta-dte' ),
+					'notice_type' => 'info',
+					'tipo'        => $tipo,
+					'folio'       => $folio,
+				);
 	}
 
 		/**

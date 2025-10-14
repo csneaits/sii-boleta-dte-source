@@ -1634,30 +1634,34 @@ $dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
 <p class="sii-metric-value"><?php echo esc_html( $rvd_enabled ? __( 'Activo', 'sii-boleta-dte' ) : __( 'En pausa', 'sii-boleta-dte' ) ); ?></p>
 <ul class="sii-metric-details">
 <li><?php echo esc_html__( 'Último envío', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_last_run ? $rvd_last_run : __( 'Nunca', 'sii-boleta-dte' ) ); ?></li>
-<li><?php echo esc_html__( 'Próxima ejecución', 'sii-boleta-dte' ) .
-                if ( $sent_dtes > $dominant_value ) {
-$dominant_status = __( 'Enviados (en espera)', 'sii-boleta-dte' );
-                        $dominant_value  = $sent_dtes;
-                }
-                if ( $rejected_dtes > $dominant_value ) {
-$dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
-                        $dominant_value  = $rejected_dtes;
-                }
-                $latest_created = '';
-                if ( ! empty( $filtered_logs ) ) {
-                        $last = end( $filtered_logs );
-                        $latest_created = isset( $last['created_at'] ) ? (string) $last['created_at'] : '';
-                }
-                $avg_daily = 0;
-                if ( $selected_year > 0 && $selected_month > 0 ) {
-                        $days_in = $this->days_in_month( $selected_year, $selected_month );
-                        if ( $days_in > 0 ) {
-                                $avg_daily = round( $total_dtes / $days_in, 2 );
-                        }
-                }
-                $accept_rate = $total_dtes > 0 ? round( ( $accepted_dtes / $total_dtes ) * 100, 2 ) : 0;
-                $reject_rate = $total_dtes > 0 ? round( ( $rejected_dtes / $total_dtes ) * 100, 2 ) : 0;
-                $last7       = 0;
+<li><?php echo esc_html__( 'Próxima ejecución', 'sii-boleta-dte' ) . ': ' . esc_html( '' !== $rvd_next_run ? $rvd_next_run : __( 'N/D', 'sii-boleta-dte' ) ); ?></li>
+</ul>
+</div>
+<?php
+// Lógica de métricas avanzada movida fuera del HTML para evitar errores de sintaxis.
+if ( $sent_dtes > $dominant_value ) {
+        $dominant_status = __( 'Enviados (en espera)', 'sii-boleta-dte' );
+        $dominant_value  = $sent_dtes;
+}
+if ( $rejected_dtes > $dominant_value ) {
+        $dominant_status = __( 'Rechazados', 'sii-boleta-dte' );
+        $dominant_value  = $rejected_dtes;
+}
+$latest_created = '';
+if ( ! empty( $filtered_logs ) ) {
+        $last = end( $filtered_logs );
+        $latest_created = isset( $last['created_at'] ) ? (string) $last['created_at'] : '';
+}
+$avg_daily = 0;
+if ( $selected_year > 0 && $selected_month > 0 ) {
+        $days_in = $this->days_in_month( $selected_year, $selected_month );
+        if ( $days_in > 0 ) {
+                $avg_daily = round( $total_dtes / $days_in, 2 );
+        }
+}
+$accept_rate = $total_dtes > 0 ? round( ( $accepted_dtes / $total_dtes ) * 100, 2 ) : 0;
+$reject_rate = $total_dtes > 0 ? round( ( $rejected_dtes / $total_dtes ) * 100, 2 ) : 0;
+$last7       = 0;
                 $now_ts      = $this->current_timestamp();
                 foreach ( $filtered_logs as $row ) {
                         $ts = isset( $row['__timestamp'] ) ? (int) $row['__timestamp'] : 0;

@@ -124,21 +124,112 @@ KEY env_status (environment, status)
         }
 
         /**
+         * Returns every alias associated with the requested environment.
+         *
+         * Earlier plugin versions persisted human readable labels (e.g. "dev")
+         * instead of the canonical identifiers used today ("0", "1", "2").
+         * Keeping track of the synonyms ensures that the control panel still
+         * lists legacy log entries.
+         *
+         * @return array<int,string>
+         */
+        private static function environment_aliases( ?string $environment ): array {
+                if ( null === $environment ) {
+                        return array();
+                }
+
+                $normalized = Settings::normalize_environment( (string) $environment );
+
+                switch ( $normalized ) {
+                        case '1':
+                                return array( '1', 'prod', 'production', 'produccion', 'producción' );
+                        case '2':
+                                return array( '2', 'dev', 'development', 'desarrollo' );
+                        default:
+                                return array( '0', 'test', 'certificacion', 'certification', 'certificación' );
+                }
+        }
+
+        /**
+         * Adds an environment filter (including aliases) to SQL clauses.
+         *
+         * @param array<int,string> $clauses Reference to WHERE clauses.
+         * @param array<int,mixed>  $params  Reference to the prepared statement parameters.
+         * @param string|null       $environment Target environment.
+         */
+        private static function add_environment_clause( array &$clauses, array &$params, ?string $environment ): void {
+                if ( null === $environment ) {
+                        return;
+                }
+
+                $aliases = self::environment_aliases( $environment );
+                if ( empty( $aliases ) ) {
+                        return;
+                }
+
+                $placeholders = implode( ',', array_fill( 0, count( $aliases ), '%s' ) );
+                $clauses[]    = 'environment IN (' . $placeholders . ')';
+                foreach ( $aliases as $alias ) {
+                        $params[] = $alias;
+                }
+        }
+
+        /**
+         * Normalises legacy rows stored in the in-memory fallback.
+         *
+         * @param array<int,array<string,mixed>> $rows
+         * @return array<int,array<string,mixed>>
+         */
+        private static function normalise_legacy_rows( array $rows ): array {
+                return array_map(
+                        static function ( array $row ): array {
+                                if ( isset( $row['environment'] ) ) {
+                                        $row['environment'] = Settings::normalize_environment( (string) $row['environment'] );
+                                }
+                                return $row;
+                        },
+                        $rows
+                );
+        }
+
+        /**
+         * Filters an array of rows to a specific environment, using aliases.
+         *
+         * @param array<int,array<string,mixed>> $rows
+         * @param string|null                    $environment
+         * @return array<int,array<string,mixed>>
+         */
+        private static function filter_rows_by_environment( array $rows, ?string $environment ): array {
+                if ( null === $environment ) {
+                        return $rows;
+                }
+
+                $target = Settings::normalize_environment( (string) $environment );
+
+                return array_values(
+                        array_filter(
+                                $rows,
+                                static function ( array $row ) use ( $target ): bool {
+                                        $row_env = isset( $row['environment'] ) ? (string) $row['environment'] : '0';
+                                        return Settings::normalize_environment( $row_env ) === $target;
+                                }
+                        )
+                );
+        }
+
+        /**
          * Returns pending track IDs with status 'sent'.
          *
          * @return array<int,string>
          */
         public static function get_pending_track_ids( int $limit = 50, ?string $environment = null ): array {
-                $env = null === $environment ? null : Settings::normalize_environment( $environment );
                 global $wpdb;
                 if ( is_object( $wpdb ) && method_exists( $wpdb, 'get_col' ) && method_exists( $wpdb, 'prepare' ) ) {
-                        $table  = self::table();
-                        $where  = 'status = %s';
-                        $params = array( 'sent' );
-                        if ( null !== $env ) {
-                                $where   .= ' AND environment = %s';
-                                $params[] = $env;
-                        }
+                        $table   = self::table();
+                        $clauses = array( 'status = %s' );
+                        $params  = array( 'sent' );
+                        self::add_environment_clause( $clauses, $params, $environment );
+                        $where = implode( ' AND ', $clauses );
                         $params[] = $limit;
                         $sql      = $wpdb->prepare(
                                 "SELECT track_id FROM {$table} WHERE {$where} ORDER BY id DESC LIMIT %d",
@@ -148,11 +239,20 @@ KEY env_status (environment, status)
                         return is_array( $result ) ? $result : array();
                 }
 
-                $ids = array();
-                foreach ( array_reverse( self::$entries ) as $entry ) {
-                        if ( 'sent' === $entry['status'] && ( null === $env || $entry['environment'] === $env ) ) {
-                                $ids[] = $entry['track_id'];
+                $ids     = array();
+                $target  = null === $environment ? null : Settings::normalize_environment( (string) $environment );
+                $entries = array_reverse( self::normalise_legacy_rows( self::$entries ) );
+                foreach ( $entries as $entry ) {
+                        if ( 'sent' !== ( $entry['status'] ?? '' ) ) {
+                                continue;
                         }
+                        if ( null !== $target ) {
+                                $entry_env = Settings::normalize_environment( (string) ( $entry['environment'] ?? '0' ) );
+                                if ( $entry_env !== $target ) {
+                                        continue;
+                                }
+                        }
+                        $ids[] = $entry['track_id'];
                         if ( count( $ids ) >= $limit ) {
                                 break;
                         }
@@ -167,9 +267,9 @@ KEY env_status (environment, status)
          * @return array<int,array{track_id:string,status:string,response:string,created_at:string}>
          */
         public static function get_logs( array $args = array() ): array {
-                $status = $args['status'] ?? null;
-                $limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
-                $environment = isset( $args['environment'] ) ? Settings::normalize_environment( (string) $args['environment'] ) : null;
+                $status      = $args['status'] ?? null;
+                $limit       = isset( $args['limit'] ) ? (int) $args['limit'] : 100;
+                $environment = $args['environment'] ?? null;
 
                 global $wpdb;
                 if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_results' ) && method_exists( $wpdb, 'prepare' ) ) {
@@ -181,10 +281,7 @@ KEY env_status (environment, status)
                                 $clauses[] = 'status = %s';
                                 $params[]  = $status;
                         }
-                        if ( null !== $environment ) {
-                                $clauses[] = 'environment = %s';
-                                $params[]  = $environment;
-                        }
+                        self::add_environment_clause( $clauses, $params, $environment );
                         if ( $clauses ) {
                                 $sql .= ' WHERE ' . implode( ' AND ', $clauses );
                         }
@@ -199,19 +296,14 @@ KEY env_status (environment, status)
                 }
 
                 // Fallback to in-memory store.
-                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::$entries );
+                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::normalise_legacy_rows( self::$entries ) );
                 if ( $status ) {
                         $rows = array_filter(
                                 $rows,
                                 static fn( $row ) => $row['status'] === $status
                         );
                 }
-                if ( null !== $environment ) {
-                        $rows = array_filter(
-                                $rows,
-                                static fn( $row ) => $row['environment'] === $environment
-                        );
-                }
+                $rows = self::filter_rows_by_environment( $rows, $environment );
                 return array_slice( array_reverse( array_values( $rows ) ), 0, $limit );
         }
 
@@ -236,7 +328,7 @@ KEY env_status (environment, status)
                 $limit = max( 1, min( 200, (int) $args['limit'] ) );
                 $page  = max( 1, (int) $args['page'] );
                 $offset = ( $page - 1 ) * $limit;
-                $environment = isset( $args['environment'] ) ? Settings::normalize_environment( (string) $args['environment'] ) : null;
+                $environment = $args['environment'] ?? null;
                 $status      = isset( $args['status'] ) ? trim( (string) $args['status'] ) : '';
                 if ( 'all' === strtolower( $status ) ) {
                         $status = '';
@@ -255,10 +347,7 @@ KEY env_status (environment, status)
                                 $clauses[] = 'status = %s';
                                 $params[]  = $status;
                         }
-                        if ( null !== $environment ) {
-                                $clauses[] = 'environment = %s';
-                                $params[]  = $environment;
-                        }
+                        self::add_environment_clause( $clauses, $params, $environment );
                         if ( null !== $type ) {
                                 $clauses[] = 'document_type = %d';
                                 $params[]  = $type;
@@ -301,19 +390,14 @@ KEY env_status (environment, status)
                         );
                 }
 
-                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::$entries );
+                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::normalise_legacy_rows( self::$entries ) );
                 if ( $status ) {
                         $rows = array_filter(
                                 $rows,
                                 static fn( $row ) => $row['status'] === $status
                         );
                 }
-                if ( null !== $environment ) {
-                        $rows = array_filter(
-                                $rows,
-                                static fn( $row ) => ( $row['environment'] ?? null ) === $environment
-                        );
-                }
+                $rows = self::filter_rows_by_environment( $rows, $environment );
                 if ( null !== $type ) {
                         $rows = array_filter(
                                 $rows,
@@ -359,15 +443,15 @@ KEY env_status (environment, status)
          * @return array<int,int>
          */
         public static function get_distinct_types( ?string $environment = null ): array {
-                $env = null === $environment ? null : Settings::normalize_environment( $environment );
                 global $wpdb;
                 if ( ! self::$use_memory && is_object( $wpdb ) && method_exists( $wpdb, 'get_col' ) && method_exists( $wpdb, 'prepare' ) ) {
                         $table = self::table();
                         $sql   = "SELECT DISTINCT document_type FROM {$table} WHERE document_type IS NOT NULL";
                         $params = array();
-                        if ( null !== $env ) {
-                                $sql    .= ' AND environment = %s';
-                                $params[] = $env;
+                        $clauses = array();
+                        self::add_environment_clause( $clauses, $params, $environment );
+                        if ( $clauses ) {
+                                $sql .= ' AND ' . implode( ' AND ', $clauses );
                         }
                         $sql .= ' ORDER BY document_type ASC';
                         $types = $params ? $wpdb->get_col( $wpdb->prepare( $sql, $params ) ) : $wpdb->get_col( $sql );
@@ -375,9 +459,13 @@ KEY env_status (environment, status)
                 }
 
                 $types = array();
-                foreach ( self::$entries as $row ) {
-                        if ( null !== $env && ( $row['environment'] ?? null ) !== $env ) {
-                                continue;
+                foreach ( self::normalise_legacy_rows( self::$entries ) as $row ) {
+                        if ( null !== $environment ) {
+                                $target = Settings::normalize_environment( (string) $environment );
+                                $row_env = Settings::normalize_environment( (string) ( $row['environment'] ?? '0' ) );
+                                if ( $row_env !== $target ) {
+                                        continue;
+                                }
                         }
                         if ( isset( $row['document_type'] ) && null !== $row['document_type'] ) {
                                 $types[] = (int) $row['document_type'];
@@ -392,6 +480,9 @@ KEY env_status (environment, status)
          * Ensures rows have document metadata populated even for legacy entries.
          */
         private static function enrich_row( array $row ): array {
+                if ( isset( $row['environment'] ) ) {
+                        $row['environment'] = Settings::normalize_environment( (string) $row['environment'] );
+                }
                 if ( ! array_key_exists( 'document_type', $row ) ) {
                         $row['document_type'] = null;
                 }

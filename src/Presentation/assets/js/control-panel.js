@@ -168,6 +168,16 @@
     var queueTable;
     var queueEmpty;
     var queueWrapper;
+    var pdfModal;
+    var pdfModalOverlay;
+    var pdfCloseButtons;
+    var pdfFrame;
+    var pdfEmpty;
+    var pdfOpenNew;
+    var pdfTitle;
+    var pdfBaseTitle = '';
+    var pdfCurrentUrl = '';
+    var pdfModalInitialized = false;
     var queueFilters = { attempts: '', age: '', from: '', to: '' };
     var logFilters = { status: '', type: '', from: '', to: '', page: 1, limit: 10 };
 
@@ -203,6 +213,193 @@
         queueTable = document.getElementById('sii-control-queue-table');
         queueEmpty = document.getElementById('sii-control-queue-empty');
         queueWrapper = document.querySelector('.sii-control-queue-wrapper');
+    }
+
+    function initPdfModal() {
+        if (pdfModalInitialized) {
+            return;
+        }
+
+        pdfModal = document.getElementById('sii-pdf-modal');
+        if (!pdfModal) {
+            pdfModalInitialized = true; // avoid retrying
+            return;
+        }
+
+        pdfModalOverlay = pdfModal.querySelector('.sii-modal-overlay');
+        pdfCloseButtons = pdfModal.querySelectorAll('.sii-modal-close');
+        pdfFrame = pdfModal.querySelector('.sii-pdf-frame');
+        pdfEmpty = pdfModal.querySelector('.sii-pdf-empty');
+        pdfOpenNew = pdfModal.querySelector('.sii-pdf-open-new');
+        pdfTitle = pdfModal.querySelector('#sii-pdf-modal-title');
+        pdfBaseTitle = pdfTitle ? (pdfTitle.getAttribute('data-base-title') || pdfTitle.textContent || '') : '';
+
+        var closeHandler = function (event) {
+            if (event) {
+                event.preventDefault();
+            }
+            closePdfModal();
+        };
+
+        if (pdfModalOverlay) {
+            pdfModalOverlay.addEventListener('click', closeHandler, false);
+        }
+
+        if (pdfCloseButtons && pdfCloseButtons.length) {
+            Array.prototype.forEach.call(pdfCloseButtons, function (button) {
+                button.addEventListener('click', closeHandler, false);
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (pdfModal && pdfModal.style.display === 'flex' && event.key === 'Escape') {
+                closePdfModal();
+            }
+        });
+
+        if (pdfFrame) {
+            pdfFrame.addEventListener('load', function () {
+                if (pdfEmpty) {
+                    var hasSrc = pdfFrame.src && pdfFrame.src !== 'about:blank';
+                    pdfEmpty.style.display = hasSrc ? 'none' : '';
+                }
+                if (pdfOpenNew) {
+                    pdfOpenNew.style.display = pdfCurrentUrl ? '' : 'none';
+                }
+            });
+        }
+
+        pdfModalInitialized = true;
+    }
+
+    function closePdfModal() {
+        if (!pdfModal) {
+            return;
+        }
+        pdfModal.style.display = 'none';
+        document.body.style.overflow = '';
+        pdfCurrentUrl = '';
+        if (pdfFrame) {
+            pdfFrame.src = 'about:blank';
+        }
+        if (pdfOpenNew) {
+            pdfOpenNew.href = '#';
+            pdfOpenNew.style.display = 'none';
+        }
+        if (pdfTitle && pdfBaseTitle) {
+            pdfTitle.textContent = pdfBaseTitle;
+        }
+    }
+
+    function openPdfModal(url, dataset) {
+        initPdfModal();
+
+        if (!url) {
+            showNotice('error', cfg.texts && cfg.texts.previewUnavailable ? cfg.texts.previewUnavailable : 'No se pudo abrir el PDF.');
+            return;
+        }
+
+        if (!pdfModal) {
+            window.open(url, '_blank', 'noopener');
+            return;
+        }
+
+        pdfCurrentUrl = url;
+        if (pdfFrame) {
+            pdfFrame.src = url;
+            pdfFrame.style.display = 'block';
+        }
+        if (pdfEmpty) {
+            pdfEmpty.style.display = 'none';
+        }
+        if (pdfOpenNew) {
+            pdfOpenNew.href = url;
+            pdfOpenNew.style.display = '';
+        }
+        if (pdfTitle) {
+            var extra = [];
+            if (dataset && dataset.type) {
+                var typeTemplate = (cfg.texts && cfg.texts.previewLabelType) ? cfg.texts.previewLabelType : 'Tipo %s';
+                extra.push(typeTemplate.replace('%s', dataset.type));
+            }
+            if (dataset && dataset.folio) {
+                var folioTemplate = (cfg.texts && cfg.texts.previewLabelFolio) ? cfg.texts.previewLabelFolio : 'Folio %s';
+                extra.push(folioTemplate.replace('%s', dataset.folio));
+            }
+            pdfTitle.textContent = extra.length ? pdfBaseTitle + ' · ' + extra.join(' · ') : pdfBaseTitle;
+        }
+
+        pdfModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function buildPreviewPdfUrl(dataset) {
+        if (!dataset || !dataset.fileKey) {
+            return '';
+        }
+        if (!cfg.previewPdfNonce) {
+            return '';
+        }
+        try {
+            var url = new URL(ajaxUrl, window.location.origin);
+            url.searchParams.set('action', cfg.previewPdfAction || 'sii_boleta_preview_pdf');
+            if (cfg.previewPdfNonce) {
+                url.searchParams.set('_wpnonce', cfg.previewPdfNonce);
+            }
+            url.searchParams.set('file_key', dataset.fileKey);
+            if (dataset.orderId) {
+                url.searchParams.set('order_id', dataset.orderId);
+            }
+            if (dataset.type) {
+                url.searchParams.set('type', dataset.type);
+            }
+            if (dataset.folio) {
+                url.searchParams.set('folio', dataset.folio);
+            }
+            return url.toString();
+        } catch (err) {
+            return '';
+        }
+    }
+
+    function resolveMetaTypeLabel(type) {
+        if (!type) {
+            return 'sii_boleta';
+        }
+        var normalized = String(type).trim();
+        switch (normalized) {
+            case '61':
+                return 'sii_boleta_credit_note';
+            case '56':
+                return 'sii_boleta_debit_note';
+            default:
+                return 'sii_boleta';
+        }
+    }
+
+    function buildViewPdfUrl(dataset) {
+        if (!dataset || !dataset.pdfKey || !dataset.pdfNonce) {
+            return '';
+        }
+        try {
+            var url = new URL(ajaxUrl, window.location.origin);
+            url.searchParams.set('action', cfg.viewPdfAction || 'sii_boleta_dte_view_pdf');
+            if (cfg.viewPdfNonce) {
+                url.searchParams.set('_wpnonce', cfg.viewPdfNonce);
+            }
+            url.searchParams.set('key', dataset.pdfKey);
+            var metaType = dataset.metaPrefix ? String(dataset.metaPrefix) : resolveMetaTypeLabel(dataset.type);
+            if (metaType) {
+                url.searchParams.set('type', metaType);
+            }
+            url.searchParams.set('nonce', dataset.pdfNonce);
+            if (dataset.orderId) {
+                url.searchParams.set('order_id', dataset.orderId);
+            }
+            return url.toString();
+        } catch (err) {
+            return '';
+        }
     }
 
     function updateUrlFilters(filters) {
@@ -681,9 +878,35 @@
     }
 
     refreshDomRefs();
+    initPdfModal();
     initQueueFilters(false);
     initLogFilters(false);
     requestSnapshot();
+
+    document.addEventListener('click', function (event) {
+        var previewBtn = event.target.closest('.sii-preview-pdf-btn');
+        if (previewBtn) {
+            event.preventDefault();
+            var dataset = previewBtn.dataset || {};
+            var previewUrl = '';
+
+            if (dataset.fileKey) {
+                previewUrl = buildPreviewPdfUrl(dataset);
+            }
+
+            if (!previewUrl && dataset.pdfKey) {
+                previewUrl = buildViewPdfUrl(dataset);
+            }
+
+            if (!previewUrl) {
+                showNotice('error', cfg.texts && cfg.texts.previewUnavailable ? cfg.texts.previewUnavailable : 'No se pudo abrir el PDF.');
+                return;
+            }
+
+            openPdfModal(previewUrl, dataset);
+            return;
+        }
+    }, false);
 
     document.addEventListener('submit', function (e) {
         var form = e.target;

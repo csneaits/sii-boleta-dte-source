@@ -493,15 +493,19 @@ class Ajax {
 		$payload = isset( $job['payload'] ) && is_array( $job['payload'] ) ? $job['payload'] : array();
 		$meta    = isset( $payload['meta'] ) && is_array( $payload['meta'] ) ? $payload['meta'] : array();
 
-		$order_id = $payload['order_id'] ?? ( $meta['order_id'] ?? '' );
-		$type     = $payload['document_type'] ?? ( $meta['type'] ?? ( $job['type'] ?? '' ) );
-		$folio    = $payload['folio'] ?? ( $meta['folio'] ?? '' );
-		$pdf_key  = $payload['pdf_key'] ?? ( $meta['pdf_key'] ?? $id );
+		$order_id  = $payload['order_id'] ?? ( $meta['order_id'] ?? '' );
+		$type      = $payload['document_type'] ?? ( $meta['type'] ?? ( $job['type'] ?? '' ) );
+		$folio     = $payload['folio'] ?? ( $meta['folio'] ?? '' );
+		$file_key  = $payload['file_key'] ?? ( $meta['file_key'] ?? '' );
+		$pdf_key   = $payload['pdf_key'] ?? ( $meta['pdf_key'] ?? $id );
+		$pdf_nonce = $payload['pdf_nonce'] ?? ( $meta['pdf_nonce'] ?? '' );
 
-		$order_id = is_scalar( $order_id ) ? (string) $order_id : '';
-		$type     = is_scalar( $type ) ? (string) $type : '';
-		$folio    = is_scalar( $folio ) ? (string) $folio : '';
-		$pdf_key  = is_scalar( $pdf_key ) ? (string) $pdf_key : '';
+		$order_id  = is_scalar( $order_id ) ? (string) $order_id : '';
+		$type      = is_scalar( $type ) ? (string) $type : '';
+		$folio     = is_scalar( $folio ) ? (string) $folio : '';
+		$file_key  = is_scalar( $file_key ) ? (string) $file_key : '';
+		$pdf_key   = is_scalar( $pdf_key ) ? (string) $pdf_key : '';
+		$pdf_nonce = is_scalar( $pdf_nonce ) ? (string) $pdf_nonce : '';
 
 		$html  = '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">';
 		$html .= '<form method="post" style="display:inline;margin:0;padding:0;">';
@@ -511,7 +515,7 @@ class Ajax {
 		$html .= '<button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Reintentar', 'sii-boleta-dte' ) . '">⟳</button>';
 		$html .= '<button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="' . esc_attr__( 'Eliminar', 'sii-boleta-dte' ) . '">✖</button>';
 		$html .= '</form>';
-		$html .= '<button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="' . esc_attr__( 'Preview PDF', 'sii-boleta-dte' ) . '" data-pdf-key="' . esc_attr( $pdf_key ) . '" data-order-id="' . esc_attr( $order_id ) . '" data-type="' . esc_attr( $type ) . '" data-folio="' . esc_attr( $folio ) . '">👁️</button>';
+		$html .= '<button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="' . esc_attr__( 'Preview PDF', 'sii-boleta-dte' ) . '" data-pdf-key="' . esc_attr( $pdf_key ) . '" data-pdf-nonce="' . esc_attr( $pdf_nonce ) . '" data-file-key="' . esc_attr( $file_key ) . '" data-order-id="' . esc_attr( $order_id ) . '" data-type="' . esc_attr( $type ) . '" data-folio="' . esc_attr( $folio ) . '">👁️</button>';
 		$html .= '</div>';
 
 		return $html;

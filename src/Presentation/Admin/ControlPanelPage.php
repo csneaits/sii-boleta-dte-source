@@ -610,11 +610,11 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 </div>
 
                 <!-- Modal para consulta de Track ID -->
-                <div id="sii-track-modal" class="sii-modal" style="display:none;">
-                        <div class="sii-modal-overlay"></div>
-                        <div class="sii-modal-dialog">
-                                <div class="sii-modal-header">
-                                        <h3><?php echo esc_html__( 'Consulta de Track ID', 'sii-boleta-dte' ); ?></h3>
+<div id="sii-track-modal" class="sii-modal" style="display:none;">
+        <div class="sii-modal-overlay"></div>
+        <div class="sii-modal-dialog">
+                <div class="sii-modal-header">
+                        <h3><?php echo esc_html__( 'Consulta de Track ID', 'sii-boleta-dte' ); ?></h3>
                                         <button type="button" class="sii-modal-close" aria-label="<?php echo esc_attr__( 'Cerrar', 'sii-boleta-dte' ); ?>">×</button>
                                 </div>
                                 <div class="sii-modal-body">
@@ -631,12 +631,31 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                                 <div class="sii-modal-footer">
                                         <button type="button" class="button sii-modal-close"><?php echo esc_html__( 'Cerrar', 'sii-boleta-dte' ); ?></button>
                                 </div>
-                        </div>
-                </div>
+        </div>
+</div>
 
-		<script>
-		(function() {
-			'use strict';
+<!-- Modal de vista previa de PDF -->
+<div id="sii-pdf-modal" class="sii-modal" style="display:none;">
+        <div class="sii-modal-overlay" data-sii-modal-close="1"></div>
+        <div class="sii-modal-dialog sii-pdf-modal-dialog">
+                <div class="sii-modal-header">
+                        <h3 class="sii-modal-title" id="sii-pdf-modal-title" data-base-title="<?php echo esc_attr__( 'Vista previa del documento', 'sii-boleta-dte' ); ?>"><?php echo esc_html__( 'Vista previa del documento', 'sii-boleta-dte' ); ?></h3>
+                        <button type="button" class="sii-modal-close" aria-label="<?php echo esc_attr__( 'Cerrar', 'sii-boleta-dte' ); ?>">×</button>
+                </div>
+                <div class="sii-modal-body">
+                        <iframe class="sii-pdf-frame" title="<?php echo esc_attr__( 'Vista previa PDF', 'sii-boleta-dte' ); ?>" src="" loading="lazy"></iframe>
+                        <p class="sii-pdf-empty" style="display:none;"><?php echo esc_html__( 'No se pudo cargar el PDF. Intenta nuevamente o verifica que el documento tenga un folio asignado.', 'sii-boleta-dte' ); ?></p>
+                </div>
+                <div class="sii-modal-footer">
+                        <a href="#" class="button button-secondary sii-pdf-open-new" target="_blank" rel="noopener noreferrer" style="display:none;"><?php echo esc_html__( 'Abrir en nueva pestaña', 'sii-boleta-dte' ); ?></a>
+                        <button type="button" class="button button-primary sii-modal-close"><?php echo esc_html__( 'Cerrar', 'sii-boleta-dte' ); ?></button>
+                </div>
+        </div>
+</div>
+
+<script>
+(function() {
+	'use strict';
 
 			// Error messages
 			var ERROR_MESSAGES = {
@@ -1156,21 +1175,23 @@ private function render_queue(): void {
     $meta = isset($payload['meta']) && is_array($payload['meta']) ? $payload['meta'] : array();
 
     // Try to get order_id, type, folio from payload/meta
-    $order_id = $payload['order_id'] ?? ($meta['order_id'] ?? '');
-    $type = $payload['document_type'] ?? ($meta['type'] ?? $job['type'] ?? '');
-    $folio = $payload['folio'] ?? ($meta['folio'] ?? '');
-    // PDF key: use a unique identifier, fallback to job id
-    $pdf_key = $payload['pdf_key'] ?? ($meta['pdf_key'] ?? $job['id']);
-    // Ensure type and folio are strings
-    $type = is_array($type) ? '' : (string)$type;
-    $folio = is_array($folio) ? '' : (string)$folio;
-    $order_id = is_array($order_id) ? '' : (string)$order_id;
-    $pdf_key = is_array($pdf_key) ? '' : (string)$pdf_key;
-?>
-<tr<?php echo $row_class; ?>>
-<td><?php echo (int) $job['id']; ?></td>
-<td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
-<td>
+	    $order_id = $payload['order_id'] ?? ($meta['order_id'] ?? '');
+	    $type = $payload['document_type'] ?? ($meta['type'] ?? $job['type'] ?? '');
+	    $folio = $payload['folio'] ?? ($meta['folio'] ?? '');
+	    $file_key = $payload['file_key'] ?? ($meta['file_key'] ?? '');
+	    $pdf_key = $payload['pdf_key'] ?? ($meta['pdf_key'] ?? $job['id']);
+	    $pdf_nonce = $payload['pdf_nonce'] ?? ($meta['pdf_nonce'] ?? '');
+	    $type = is_array($type) ? '' : (string)$type;
+	    $folio = is_array($folio) ? '' : (string)$folio;
+	    $order_id = is_array($order_id) ? '' : (string)$order_id;
+	    $pdf_key = is_array($pdf_key) ? '' : (string)$pdf_key;
+	    $file_key = is_array($file_key) ? '' : (string)$file_key;
+	    $pdf_nonce = is_array($pdf_nonce) ? '' : (string)$pdf_nonce;
+	?>
+	<tr<?php echo $row_class; ?>>
+	<td><?php echo (int) $job['id']; ?></td>
+	<td><?php echo esc_html( $this->translate_type( $job['type'] ) ); ?></td>
+	<td>
         <?php echo esc_html( $this->describe_queue_document( $job ) ); ?>
         <?php if ( $is_failed ) : ?>
                 <br><span style="color: #dc3232; font-weight: bold; font-size: 12px;">
@@ -1186,20 +1207,20 @@ private function render_queue(): void {
                 <br><small style="color: #856404;"><?php echo esc_html__( '(Pausado)', 'sii-boleta-dte' ); ?></small>
         <?php endif; ?>
 </td>
-<td>
-    <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-        <form method="post" style="display:inline; margin:0; padding:0;">
-            <input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>">
-            <button type="submit" name="queue_action" value="process" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Procesar', 'sii-boleta-dte' ); ?>">▶</button>
-            <button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">⟳</button>
-            <button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Eliminar', 'sii-boleta-dte' ); ?>">✖</button>
-        </form>
-        <button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="<?php echo esc_attr__( 'Preview PDF', 'sii-boleta-dte' ); ?>" data-pdf-key="<?php echo esc_attr( $pdf_key ); ?>" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-folio="<?php echo esc_attr( $folio ); ?>">👁️</button>
-    </div>
-</td>
-</tr>
-<?php endforeach; ?>
-<?php endif; ?>
+	<td>
+	    <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+	        <form method="post" style="display:inline; margin:0; padding:0;">
+	            <input type="hidden" name="job_id" value="<?php echo (int) $job['id']; ?>">
+	            <button type="submit" name="queue_action" value="process" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Procesar', 'sii-boleta-dte' ); ?>">▶</button>
+	            <button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">⟳</button>
+	            <button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Eliminar', 'sii-boleta-dte' ); ?>">✖</button>
+	        </form>
+	        <button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="<?php echo esc_attr__( 'Preview PDF', 'sii-boleta-dte' ); ?>" data-pdf-key="<?php echo esc_attr( $pdf_key ); ?>" data-pdf-nonce="<?php echo esc_attr( $pdf_nonce ); ?>" data-file-key="<?php echo esc_attr( $file_key ); ?>" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-folio="<?php echo esc_attr( $folio ); ?>">👁️</button>
+	    </div>
+	</td>
+	</tr>
+	<?php endforeach; ?>
+	<?php endif; ?>
 </tbody>
 </table>
                 </div>

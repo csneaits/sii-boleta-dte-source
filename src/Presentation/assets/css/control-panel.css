@@ -710,6 +710,43 @@
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
 
+.sii-pdf-modal-dialog {
+    max-width: 960px;
+    width: 95%;
+}
+
+.sii-modal-body {
+    background: #fff;
+    padding: 0 24px 24px;
+}
+
+.sii-pdf-frame {
+    width: 100%;
+    min-height: 70vh;
+    border: 0;
+    border-radius: 8px;
+    background: #f5f7fb;
+    box-shadow: inset 0 0 0 1px rgba(19, 94, 150, 0.08);
+}
+
+.sii-pdf-empty {
+    margin-top: 18px;
+    color: #5f6b7a;
+    text-align: center;
+}
+
+.sii-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px 24px;
+}
+
+.sii-modal-footer .button-secondary {
+    margin-right: auto;
+}
+
 @keyframes sii-modal-fadein {
     from {
         opacity: 0;
@@ -727,6 +764,30 @@
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 782px) {
+    .sii-pdf-modal-dialog {
+        width: 100%;
+    }
+
+    .sii-modal-body {
+        padding: 0 16px 16px;
+    }
+
+    .sii-pdf-frame {
+        min-height: 60vh;
+    }
+
+    .sii-modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .sii-modal-footer .button-secondary {
+        margin-right: 0;
     }
 }
 

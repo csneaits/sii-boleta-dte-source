@@ -416,30 +416,49 @@ class Woo {
 	}
 
 	$engine = $this->plugin->get_engine();
-	
-	// Obtener el siguiente folio disponible del mantenedor (sin consumir aún)
-	// Solo se consumirá cuando el envío al SII sea exitoso
-	$folio_manager = $this->plugin->get_folio_manager();
-	$folio = $folio_manager->get_next_folio( $document_type, false ); // ← false: NO consumir aún
-	
-	if ( is_wp_error( $folio ) ) {
-		$this->add_order_note(
-			$order,
-			sprintf(
-				/* translators: %s: error message from folio manager */
-				__( 'No fue posible obtener un folio disponible: %s', 'sii-boleta-dte' ),
-				$folio->get_error_message()
-			)
-		);
-		return;
+
+	$folio_manager = null;
+	$folio         = null;
+	if ( method_exists( $this->plugin, 'get_folio_manager' ) ) {
+		try {
+			$folio_manager = $this->plugin->get_folio_manager();
+		} catch ( \Throwable $e ) {
+			$folio_manager = null;
+		}
 	}
-	
-	// Actualizar el folio en los datos antes de generar el XML
-	$data['Folio'] = $folio;
-	if ( isset( $data['Encabezado']['IdDoc'] ) ) {
+
+	if ( $folio_manager && method_exists( $folio_manager, 'get_next_folio' ) ) {
+		try {
+			$candidate = $folio_manager->get_next_folio( $document_type, false );
+		} catch ( \Throwable $e ) {
+			$candidate = null;
+		}
+
+		if ( function_exists( 'is_wp_error' ) && is_wp_error( $candidate ) ) {
+			$error_msg = method_exists( $candidate, 'get_error_message' ) ? $candidate->get_error_message() : '';
+			if ( '' !== $error_msg ) {
+				$this->add_order_note(
+					$order,
+					sprintf(
+						/* translators: %s: error message from folio manager */
+						__( 'No fue posible obtener un folio disponible: %s', 'sii-boleta-dte' ),
+						$error_msg
+					)
+				);
+			}
+			$candidate = null;
+		}
+
+		if ( is_numeric( $candidate ) && (int) $candidate > 0 ) {
+			$folio = (int) $candidate;
+		}
+	}
+
+	if ( $folio && isset( $data['Encabezado']['IdDoc'] ) ) {
+		$data['Folio']                        = $folio;
 		$data['Encabezado']['IdDoc']['Folio'] = $folio;
 	}
-	
+
 	$xml    = $engine->generate_dte_xml( $data, $document_type, $preview_mode );		// Capturar error detallado si el motor devuelve WP_Error
 		if ( $xml instanceof \WP_Error ) {
 			$error_code = method_exists( $xml, 'get_error_code' ) ? $xml->get_error_code() : '';
@@ -531,13 +550,15 @@ class Woo {
                 // Si hubo éxito, guardar el track ID y CONSUMIR el folio
                 if ( '' === $error_message ) {
                         $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
-                        
-                        // AHORA SÍ consumir el folio (marcarlo como usado)
-                        $folio_manager->mark_folio_used( $document_type, $folio );
+
+                        if ( $folio_manager && $folio ) {
+                                $folio_manager->mark_folio_used( $document_type, $folio );
+                        }
                 }
-                
-                // Siempre guardar el folio asignado
-                $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
+
+                if ( $folio ) {
+                        $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
+                }
 
                 // Generar y enviar PDF solo si el envío al SII fue exitoso
                 if ( '' === $error_message ) {
@@ -573,7 +594,7 @@ class Woo {
                                 );
                                 
                                 // Agregar metadata del folio si está disponible
-                                if ( isset( $folio ) && $folio > 0 ) {
+                                if ( $folio ) {
                                         $metadata['folio'] = $folio;
                                 }
                                 
@@ -584,7 +605,7 @@ class Woo {
                                         'type'     => $document_type,
                                         'order_id' => $order_id,
                                 );
-                                if ( isset( $folio ) && $folio > 0 ) {
+                                if ( $folio ) {
                                         $log_metadata['folio'] = $folio;
                                 }
                                 

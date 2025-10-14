@@ -1178,14 +1178,16 @@ private function render_queue(): void {
 	    $order_id = $payload['order_id'] ?? ($meta['order_id'] ?? '');
 	    $type = $payload['document_type'] ?? ($meta['type'] ?? $job['type'] ?? '');
 	    $folio = $payload['folio'] ?? ($meta['folio'] ?? '');
-	    $file_key = $payload['file_key'] ?? ($meta['file_key'] ?? '');
+    $file_key = $payload['file_key'] ?? ($meta['file_key'] ?? '');
+    $meta_prefix = $payload['meta_prefix'] ?? ($meta['meta_prefix'] ?? '_sii_boleta');
 	    $pdf_key = $payload['pdf_key'] ?? ($meta['pdf_key'] ?? $job['id']);
 	    $pdf_nonce = $payload['pdf_nonce'] ?? ($meta['pdf_nonce'] ?? '');
 	    $type = is_array($type) ? '' : (string)$type;
 	    $folio = is_array($folio) ? '' : (string)$folio;
 	    $order_id = is_array($order_id) ? '' : (string)$order_id;
 	    $pdf_key = is_array($pdf_key) ? '' : (string)$pdf_key;
-	    $file_key = is_array($file_key) ? '' : (string)$file_key;
+    $file_key = is_array($file_key) ? '' : (string)$file_key;
+    $meta_prefix = is_array($meta_prefix) ? '_sii_boleta' : (string)$meta_prefix;
 	    $pdf_nonce = is_array($pdf_nonce) ? '' : (string)$pdf_nonce;
 	?>
 	<tr<?php echo $row_class; ?>>
@@ -1215,7 +1217,7 @@ private function render_queue(): void {
 	            <button type="submit" name="queue_action" value="retry" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Reintentar', 'sii-boleta-dte' ); ?>">⟳</button>
 	            <button type="submit" name="queue_action" value="cancel" class="button sii-queue-action sii-queue-action-sm" title="<?php echo esc_attr__( 'Eliminar', 'sii-boleta-dte' ); ?>">✖</button>
 	        </form>
-	        <button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="<?php echo esc_attr__( 'Preview PDF', 'sii-boleta-dte' ); ?>" data-pdf-key="<?php echo esc_attr( $pdf_key ); ?>" data-pdf-nonce="<?php echo esc_attr( $pdf_nonce ); ?>" data-file-key="<?php echo esc_attr( $file_key ); ?>" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-folio="<?php echo esc_attr( $folio ); ?>">👁️</button>
+        <button type="button" class="button sii-queue-action sii-queue-action-sm sii-preview-pdf-btn" title="<?php echo esc_attr__( 'Preview PDF', 'sii-boleta-dte' ); ?>" data-pdf-key="<?php echo esc_attr( $pdf_key ); ?>" data-pdf-nonce="<?php echo esc_attr( $pdf_nonce ); ?>" data-file-key="<?php echo esc_attr( $file_key ); ?>" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-folio="<?php echo esc_attr( $folio ); ?>" data-meta-prefix="<?php echo esc_attr( $meta_prefix ); ?>">👁️</button>
 	    </div>
 	</td>
 	</tr>

@@ -370,10 +370,10 @@ class Woo {
         /**
          * Generates a document for an order and persists the result in post meta.
          */
-        private function generate_document_for_order( $order, int $document_type, string $meta_prefix, string $success_note, int $order_id = 0, array $context = array() ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
-                if ( ! $order ) {
-                        return;
-                }
+	private function generate_document_for_order( $order, int $document_type, string $meta_prefix, string $success_note, int $order_id = 0, array $context = array() ): void { // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
+		if ( ! $order ) {
+			return;
+		}
 
                 if ( $order_id <= 0 && method_exists( $order, 'get_id' ) ) {
                         $order_id = (int) $order->get_id();
@@ -386,12 +386,15 @@ class Woo {
                         return;
                 }
 
-                $data = $this->prepare_order_data( $order, $document_type, $order_id, $context );
+		$data = $this->prepare_order_data( $order, $document_type, $order_id, $context );
+		if ( ! isset( $context['meta_prefix'] ) ) {
+			$context['meta_prefix'] = $meta_prefix;
+		}
 
-                if ( empty( $data ) ) {
-                        $this->add_order_note( $order, __( 'No fue posible preparar los datos del pedido para el DTE.', 'sii-boleta-dte' ) );
-                        return;
-                }
+		if ( empty( $data ) ) {
+			$this->add_order_note( $order, __( 'No fue posible preparar los datos del pedido para el DTE.', 'sii-boleta-dte' ) );
+			return;
+		}
 
                 $preview_mode = $this->should_preview_only();
 
@@ -587,27 +590,29 @@ class Woo {
                         $queue = $this->plugin->get_queue();
                         if ( $queue ) {
                                 // Encolar el documento para reintento automático
-                                $metadata = array(
-                                        'type'     => $document_type,
-                                        'order_id' => $order_id,
-                                        'label'    => sprintf( 'Orden #%d', $order_id ),
-                                );
-                                
-                                // Agregar metadata del folio si está disponible
-                                if ( $folio ) {
-                                        $metadata['folio'] = $folio;
-                                }
+				$metadata = array(
+					'type'        => $document_type,
+					'order_id'    => $order_id,
+					'label'       => sprintf( 'Orden #%d', $order_id ),
+					'meta_prefix' => $meta_prefix,
+				);
+				
+				// Agregar metadata del folio si está disponible
+				if ( $folio ) {
+					$metadata['folio'] = $folio;
+				}
                                 
                                 $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
                                 
                                 // Crear una entrada en el log para que aparezca en el panel de control
-                                $log_metadata = array(
-                                        'type'     => $document_type,
-                                        'order_id' => $order_id,
-                                );
-                                if ( $folio ) {
-                                        $log_metadata['folio'] = $folio;
-                                }
+				$log_metadata = array(
+					'type'        => $document_type,
+					'order_id'    => $order_id,
+					'meta_prefix' => $meta_prefix,
+				);
+				if ( $folio ) {
+					$log_metadata['folio'] = $folio;
+				}
                                 
                                 $log_message = sprintf(
                                         'Documento encolado para reintento. Error: %s',

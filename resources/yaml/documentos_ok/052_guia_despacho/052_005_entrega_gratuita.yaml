@@ -1,0 +1,34 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 52
+    Folio: ''
+    TipoDespacho: ''
+    # IndTraslado: Código 4 indica entrega gratuita. - Largo máx: 1 - Tipo: NÚM.
+    IndTraslado: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+  Transporte:
+    Patente: ''
+    RUTTrans: ''
+    Chofer:
+      RUTChofer: ''
+      NombreChofer: ''
+    DirDest: ''
+    CmnaDest: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

@@ -1,0 +1,31 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 61
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Debe de ser siempre 3, ya que corresponde a
+  #         'Corrige Monto Documento de Referencia'.
+    CodRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

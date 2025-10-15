@@ -1,0 +1,26 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+    # FmaPago: Forma de Pago 3 indica que es "Entrega Gratuita". Este tipo
+    #          no tiene derecho a crédito fiscal.
+    FmaPago: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

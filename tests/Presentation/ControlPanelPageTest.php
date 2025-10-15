@@ -1,0 +1,102 @@
+<?php
+use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
+use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Application\QueueProcessor;
+use Sii\BoletaDte\Application\RvdManager;
+use Sii\BoletaDte\Application\LibroBoletas;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
+use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
+
+if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
+if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
+if ( ! function_exists( 'wp_nonce_field' ) ) { function wp_nonce_field() {} }
+if ( ! function_exists( 'esc_html_e' ) ) { function esc_html_e( $s ) { echo $s; } }
+if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
+if ( ! function_exists( 'wp_verify_nonce' ) ) { function wp_verify_nonce() { return true; } }
+if ( ! function_exists( 'current_user_can' ) ) { function current_user_can() { return true; } }
+if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
+if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
+if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
+if ( ! function_exists( 'submit_button' ) ) { function submit_button() {} }
+if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = 0 ) { return $d; } }
+if ( ! function_exists( 'selected' ) ) { function selected( $value, $current ) { return $value == $current ? ' selected="selected"' : ''; } }
+
+class ControlPanelPageTest extends TestCase {
+    protected function setUp(): void {
+        QueueDb::purge();
+    }
+
+    public function test_render_shows_queue_items(): void {
+        $id = QueueDb::enqueue( 'dte', array( 'file' => 'x' ) );
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array() ) );
+        $settings->method( 'get_environment' )->willReturn( '0' );
+        $folio = $this->createMock( FolioManager::class );
+        $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
+        $page = $this->create_page( $settings, $folio, $processor );
+        ob_start();
+        $page->render_page();
+        $html = ob_get_clean();
+        $this->assertStringContainsString( (string) $id, $html );
+    }
+
+    public function test_render_displays_logs(): void {
+        LogDb::add_entry( '1', 'sent', '', '0' );
+        $settings = $this->createMock( Settings::class );
+        // Folios tab was removed; settings content is no longer relevant to this view.
+        $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
+        $folio = $this->createMock( FolioManager::class );
+        $processor = $this->getMockBuilder( QueueProcessor::class )->disableOriginalConstructor()->getMock();
+        ob_start();
+        $page = $this->create_page( $settings, $folio, $processor );
+        $page->render_page();
+        $html = ob_get_clean();
+        $this->assertStringContainsString( 'Track ID', $html );
+        $this->assertStringContainsString( '1', $html );
+    }
+
+    public function test_cancel_removes_job(): void {
+        $processor = new QueueProcessor( $this->createMock( \Sii\BoletaDte\Infrastructure\Rest\Api::class ) );
+        $id = QueueDb::enqueue( 'dte', array( 'file' => 'x' ) );
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
+        $folio = $this->createMock( FolioManager::class );
+        $page = $this->create_page( $settings, $folio, $processor );
+        $_POST['sii_boleta_queue_nonce'] = 'x';
+        $page->handle_queue_action( 'cancel', $id );
+        $this->assertCount( 0, QueueDb::get_pending_jobs() );
+    }
+
+    public function test_requeue_resets_attempts(): void {
+        $processor = new QueueProcessor( $this->createMock( \Sii\BoletaDte\Infrastructure\Rest\Api::class ) );
+        $id = QueueDb::enqueue( 'dte', array( 'file' => 'x' ) );
+        QueueDb::increment_attempts( $id );
+        $settings = $this->createMock( Settings::class );
+        $settings->method( 'get_settings' )->willReturn( array() );
+        $settings->method( 'get_environment' )->willReturn( '0' );
+        $folio = $this->createMock( FolioManager::class );
+        $page = $this->create_page( $settings, $folio, $processor );
+        $_POST['sii_boleta_queue_nonce'] = 'x';
+        $page->handle_queue_action( 'requeue', $id );
+        $jobs = QueueDb::get_pending_jobs();
+        $this->assertSame( 0, $jobs[0]['attempts'] );
+    }
+
+    private function create_page( Settings $settings, FolioManager $folio, QueueProcessor $processor ): ControlPanelPage {
+        $rvd = $this->createMock( RvdManager::class );
+        $rvd->method( 'generate_xml' )->willReturn( '<ConsumoFolios />' );
+        $rvd->method( 'validate_rvd_xml' )->willReturn( true );
+        $libro = $this->createMock( LibroBoletas::class );
+        $libro->method( 'validate_libro_xml' )->willReturn( true );
+        $api = $this->createMock( Api::class );
+        $token_manager = $this->createMock( TokenManager::class );
+        $token_manager->method( 'get_token' )->willReturn( 'token' );
+        return new ControlPanelPage( $settings, $folio, $processor, $rvd, $libro, $api, $token_manager );
+    }
+}

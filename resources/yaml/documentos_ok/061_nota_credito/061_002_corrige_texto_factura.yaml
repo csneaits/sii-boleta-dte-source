@@ -1,0 +1,41 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 61
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+  # Totales: No debe de modificarse en nota de crédito corrige texto.
+  Totales:
+    # MntNeto: Dejar en 0.
+    MntNeto: ''
+    # TasaIVA: Dejar en 19.
+    TasaIVA: ''
+    # TasaIVA: Dejar en 0.
+    IVA: ''
+    # MntTotal: Dejar en 0.
+    MntTotal: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Debe de ser siempre 2, ya que corresponde a
+  #         'Corrige Texto Documento de Referencia'.
+    CodRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

@@ -1,0 +1,30 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - CdgItem:
+      TpoCodigo: ''
+      VlrCodigo: ''
+    NmbItem: ''
+    DscItem: ''
+    QtyItem: ''
+    PrcItem: ''
+  # DescuentoMonto: Monto del descuento aplicado al ítem - Largo máx: 18
+  #                 Tipo: NÚM.
+    DescuentoMonto: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

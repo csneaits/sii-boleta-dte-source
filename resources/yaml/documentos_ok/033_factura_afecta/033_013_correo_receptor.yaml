@@ -1,0 +1,27 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+    FmaPago: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    # CorreoRecep: E-mail de contacto de la empresa receptora - Largo. máx: 80
+    #              Tipo: ALFA.
+    CorreoRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

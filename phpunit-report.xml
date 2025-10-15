@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/home/crodriguez/code/csneaits/sii-boleta-dte-source/phpunit.xml" tests="155" assertions="810" errors="0" failures="0" skipped="0" time="22.388405">
+    <testsuite name="Plugin Tests" tests="155" assertions="810" errors="0" failures="0" skipped="0" time="22.388405">
+      <testsuite name="ConsumoFoliosTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/ConsumoFoliosTest.php" tests="1" assertions="5" errors="0" failures="0" skipped="0" time="0.010065">
+        <testcase name="test_generates_ranges" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/ConsumoFoliosTest.php" line="25" class="ConsumoFoliosTest" classname="ConsumoFoliosTest" assertions="5" time="0.010065"/>
+      </testsuite>
+      <testsuite name="EmitirDteServiceTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/EmitirDteServiceTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.008278">
+        <testcase name="test_requires_id_and_data" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/EmitirDteServiceTest.php" line="7" class="EmitirDteServiceTest" classname="EmitirDteServiceTest" assertions="1" time="0.004356"/>
+        <testcase name="test_wraps_repository_exception" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/EmitirDteServiceTest.php" line="14" class="EmitirDteServiceTest" classname="EmitirDteServiceTest" assertions="1" time="0.003922"/>
+      </testsuite>
+      <testsuite name="FolioManagerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" tests="6" assertions="14" errors="0" failures="0" skipped="0" time="0.003961">
+        <testcase name="test_get_next_folio_consumes_range" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="27" class="FolioManagerTest" classname="FolioManagerTest" assertions="4" time="0.001118"/>
+        <testcase name="test_get_next_folio_without_ranges_returns_zero" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="43" class="FolioManagerTest" classname="FolioManagerTest" assertions="1" time="0.000707"/>
+        <testcase name="test_mark_folio_used_updates_expected_value" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="55" class="FolioManagerTest" classname="FolioManagerTest" assertions="4" time="0.000670"/>
+        <testcase name="test_mark_folio_used_advances_when_behind_expected_value" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="67" class="FolioManagerTest" classname="FolioManagerTest" assertions="2" time="0.000371"/>
+        <testcase name="test_get_caf_info_returns_defaults_without_ranges" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="76" class="FolioManagerTest" classname="FolioManagerTest" assertions="1" time="0.000328"/>
+        <testcase name="test_get_caf_info_parses_range_data" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/FolioManagerTest.php" line="84" class="FolioManagerTest" classname="FolioManagerTest" assertions="2" time="0.000768"/>
+      </testsuite>
+      <testsuite name="LibroBoletasTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/LibroBoletasTest.php" tests="1" assertions="4" errors="0" failures="0" skipped="0" time="0.004873">
+        <testcase name="test_collect_orders_uses_inclusive_range" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/LibroBoletasTest.php" line="58" class="LibroBoletasTest" classname="LibroBoletasTest" assertions="4" time="0.004873"/>
+      </testsuite>
+      <testsuite name="QueueProcessorTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/QueueProcessorTest.php" tests="3" assertions="13" errors="0" failures="0" skipped="0" time="0.010409">
+        <testcase name="test_process_executes_all_jobs" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/QueueProcessorTest.php" line="85" class="QueueProcessorTest" classname="QueueProcessorTest" assertions="2" time="0.004247"/>
+        <testcase name="test_process_resolves_secure_xml_paths" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/QueueProcessorTest.php" line="109" class="QueueProcessorTest" classname="QueueProcessorTest" assertions="7" time="0.004162"/>
+        <testcase name="test_failed_jobs_are_delayed_before_retry" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/QueueProcessorTest.php" line="141" class="QueueProcessorTest" classname="QueueProcessorTest" assertions="4" time="0.001999"/>
+      </testsuite>
+      <testsuite name="ValidationTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/ValidationTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.005892">
+        <testcase name="test_rvd_xml_validation" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/ValidationTest.php" line="18" class="ValidationTest" classname="ValidationTest" assertions="1" time="0.003904"/>
+        <testcase name="test_libro_xml_validation" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/ValidationTest.php" line="24" class="ValidationTest" classname="ValidationTest" assertions="1" time="0.001988"/>
+      </testsuite>
+      <testsuite name="RutTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" tests="5" assertions="6" errors="0" failures="0" skipped="0" time="0.002044">
+        <testcase name="test_clean_removes_non_numeric_characters" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" line="10" class="RutTest" classname="RutTest" assertions="1" time="0.000738"/>
+        <testcase name="test_is_valid_returns_true_for_valid_rut" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" line="15" class="RutTest" classname="RutTest" assertions="1" time="0.000259"/>
+        <testcase name="test_is_valid_returns_false_for_invalid_rut" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" line="20" class="RutTest" classname="RutTest" assertions="1" time="0.000259"/>
+        <testcase name="test_format_outputs_standard_representation" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" line="25" class="RutTest" classname="RutTest" assertions="1" time="0.000202"/>
+        <testcase name="test_is_generic_detects_placeholder_rut" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Domain/RutTest.php" line="30" class="RutTest" classname="RutTest" assertions="2" time="0.000586"/>
+      </testsuite>
+      <testsuite name="ProgressTrackerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Certification/ProgressTrackerTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.001584">
+        <testcase name="test_mark_uses_current_time_when_missing" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Certification/ProgressTrackerTest.php" line="20" class="ProgressTrackerTest" classname="ProgressTrackerTest" assertions="2" time="0.000885"/>
+        <testcase name="test_last_timestamp_defaults_to_zero" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Certification/ProgressTrackerTest.php" line="29" class="ProgressTrackerTest" classname="ProgressTrackerTest" assertions="1" time="0.000700"/>
+      </testsuite>
+      <testsuite name="ContainerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/ContainerTest.php" tests="1" assertions="8" errors="0" failures="0" skipped="0" time="0.596229">
+        <testcase name="test_bindings_return_instances" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/ContainerTest.php" line="14" class="ContainerTest" classname="ContainerTest" assertions="8" time="0.596229"/>
+      </testsuite>
+      <testsuite name="CronTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/CronTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.000841">
+        <testcase name="test_activate_schedules_event" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/CronTest.php" line="26" class="CronTest" classname="CronTest" assertions="1" time="0.000296"/>
+        <testcase name="test_deactivate_unschedules_event" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/CronTest.php" line="31" class="CronTest" classname="CronTest" assertions="1" time="0.000545"/>
+      </testsuite>
+      <testsuite name="Tests\Infrastructure\Engine\AutoFolioTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/AutoFolioTest.php" tests="1" assertions="4" errors="0" failures="0" skipped="0" time="0.697475">
+        <testcase name="testEngineAssignsFolioWhenMissingInDev" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/AutoFolioTest.php" line="37" class="Tests\Infrastructure\Engine\AutoFolioTest" classname="Tests.Infrastructure.Engine.AutoFolioTest" assertions="4" time="0.697475"/>
+      </testsuite>
+      <testsuite name="BoletaTotalsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/BoletaTotalsTest.php" tests="4" assertions="29" errors="0" failures="0" skipped="0" time="2.870712">
+        <testcase name="test_boleta_afecta_totals" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/BoletaTotalsTest.php" line="33" class="BoletaTotalsTest" classname="BoletaTotalsTest" assertions="6" time="0.821643"/>
+        <testcase name="test_boleta_exenta_totals" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/BoletaTotalsTest.php" line="47" class="BoletaTotalsTest" classname="BoletaTotalsTest" assertions="5" time="0.629170"/>
+        <testcase name="test_boleta_rounding_totals_multiple_items" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/BoletaTotalsTest.php" line="77" class="BoletaTotalsTest" classname="BoletaTotalsTest" assertions="4" time="0.443953"/>
+        <testcase name="test_boleta_and_factura_pdf_totals_are_aligned" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/BoletaTotalsTest.php" line="107" class="BoletaTotalsTest" classname="BoletaTotalsTest" assertions="14" time="0.975946"/>
+      </testsuite>
+      <testsuite name="Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/Caf/LibreDteCafBridgeProviderTest.php" tests="3" assertions="8" errors="0" failures="0" skipped="0" time="0.446071">
+        <testcase name="testDevEnvironmentUsesFakerAndAdvancesFolio" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/Caf/LibreDteCafBridgeProviderTest.php" line="33" class="Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest" classname="Tests.Infrastructure.Engine.Caf.LibreDteCafBridgeProviderTest" assertions="2" time="0.261399"/>
+        <testcase name="testCertWithoutCafFallsBackToFaker" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/Caf/LibreDteCafBridgeProviderTest.php" line="54" class="Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest" classname="Tests.Infrastructure.Engine.Caf.LibreDteCafBridgeProviderTest" assertions="1" time="0.182995"/>
+        <testcase name="testCertWithRangesAndCafLoadsCafAndKeepsWithinRange" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/Caf/LibreDteCafBridgeProviderTest.php" line="70" class="Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest" classname="Tests.Infrastructure.Engine.Caf.LibreDteCafBridgeProviderTest" assertions="5" time="0.001678"/>
+      </testsuite>
+      <testsuite name="DteEngineGenerateTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" tests="5" assertions="30" errors="0" failures="0" skipped="0" time="3.484182">
+        <testcase name="test_generate_dte_xml" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" line="15" class="DteEngineGenerateTest" classname="DteEngineGenerateTest" assertions="2" time="1.038817"/>
+        <testcase name="test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" line="23" class="DteEngineGenerateTest" classname="DteEngineGenerateTest" assertions="9" time="0.749326"/>
+        <testcase name="test_generate_dte_xml_prefers_custom_emitter_giro_over_settings" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" line="66" class="DteEngineGenerateTest" classname="DteEngineGenerateTest" assertions="5" time="0.463617"/>
+        <testcase name="test_generate_dte_xml_does_not_prefill_missing_receptor_fields" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" line="111" class="DteEngineGenerateTest" classname="DteEngineGenerateTest" assertions="10" time="0.630434"/>
+        <testcase name="test_generate_dte_xml_strips_bom_and_leading_whitespace" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/DteEngineGenerateTest.php" line="174" class="DteEngineGenerateTest" classname="DteEngineGenerateTest" assertions="4" time="0.601989"/>
+      </testsuite>
+      <testsuite name="FacturaCompraExentaTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraExentaTest.php" tests="1" assertions="6" errors="0" failures="0" skipped="0" time="0.573352">
+        <testcase name="test_line_exenta_creates_mntexe_without_iva" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraExentaTest.php" line="23" class="FacturaCompraExentaTest" classname="FacturaCompraExentaTest" assertions="6" time="0.573352"/>
+      </testsuite>
+      <testsuite name="FacturaCompraForeignGlosaTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraForeignGlosaTest.php" tests="1" assertions="5" errors="0" failures="0" skipped="0" time="0.468192">
+        <testcase name="test_term_pago_glosa_pass_through_when_foreign_added_externally" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraForeignGlosaTest.php" line="19" class="FacturaCompraForeignGlosaTest" classname="FacturaCompraForeignGlosaTest" assertions="5" time="0.468192"/>
+      </testsuite>
+      <testsuite name="FacturaCompraRetentionTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraRetentionTest.php" tests="2" assertions="20" errors="0" failures="0" skipped="0" time="0.537246">
+        <testcase name="test_retencion_total_code_15_present_without_affecting_totals" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraRetentionTest.php" line="44" class="FacturaCompraRetentionTest" classname="FacturaCompraRetentionTest" assertions="10" time="0.239471"/>
+        <testcase name="test_retencion_parcial_code_30_present" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraRetentionTest.php" line="66" class="FacturaCompraRetentionTest" classname="FacturaCompraRetentionTest" assertions="10" time="0.297775"/>
+      </testsuite>
+      <testsuite name="FacturaCompraRetentionTotalsExampleTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraRetentionTotalsExampleTest.php" tests="1" assertions="8" errors="0" failures="0" skipped="0" time="0.637349">
+        <testcase name="test_expected_structure_for_full_retention_example" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraRetentionTotalsExampleTest.php" line="17" class="FacturaCompraRetentionTotalsExampleTest" classname="FacturaCompraRetentionTotalsExampleTest" assertions="8" time="0.637349"/>
+      </testsuite>
+      <testsuite name="FacturaCompraTotalsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraTotalsTest.php" tests="1" assertions="5" errors="0" failures="0" skipped="0" time="0.465453">
+        <testcase name="test_factura_compra_net_price_not_flagged_gross" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/FacturaCompraTotalsTest.php" line="31" class="FacturaCompraTotalsTest" classname="FacturaCompraTotalsTest" assertions="5" time="0.465453"/>
+      </testsuite>
+      <testsuite name="InvalidCafTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/InvalidCafTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.000478">
+        <testcase name="test_missing_range_returns_error" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/InvalidCafTest.php" line="16" class="InvalidCafTest" classname="InvalidCafTest" assertions="1" time="0.000478"/>
+      </testsuite>
+      <testsuite name="LibreDTEEngineTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" tests="8" assertions="61" errors="0" failures="0" skipped="0" time="2.540509">
+        <testcase name="test_pdf_generated_from_xml_fixture" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="20" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="5" time="0.111512"/>
+        <testcase name="test_render_pdf_resets_mnttotal_before_normalization" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="50" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="7" time="0.000684"/>
+        <testcase name="test_parse_document_data_from_xml_mirrors_emitter_aliases" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="76" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="14" time="0.000310"/>
+        <testcase name="test_preview_ignores_real_caf_ranges" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="108" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="4" time="0.515035"/>
+        <testcase name="test_preview_mode_skips_missing_caf_validation" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="153" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="2" time="0.465861"/>
+        <testcase name="test_register_document_factory_overrides_factory_for_tipo" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="192" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="4" time="0.001384"/>
+        <testcase name="test_generate_xml_with_flattened_caf_is_normalized" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="218" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="13" time="0.827175"/>
+        <testcase name="test_generate_xml_uses_normalized_caf_from_memory_store" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/LibreDTEEngineTest.php" line="314" class="LibreDTEEngineTest" classname="LibreDTEEngineTest" assertions="12" time="0.618548"/>
+      </testsuite>
+      <testsuite name="NullEngineTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/NullEngineTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.000423">
+        <testcase name="test_methods_return_false" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/NullEngineTest.php" line="6" class="NullEngineTest" classname="NullEngineTest" assertions="2" time="0.000423"/>
+      </testsuite>
+      <testsuite name="PdfRetentionRenderTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/PdfRetentionRenderTest.php" tests="1" assertions="6" errors="0" failures="0" skipped="0" time="0.915867">
+        <testcase name="test_pdf_contains_retention_labels" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/PdfRetentionRenderTest.php" line="17" class="PdfRetentionRenderTest" classname="PdfRetentionRenderTest" assertions="6" time="0.915867"/>
+      </testsuite>
+      <testsuite name="RenderPdfTotalsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/RenderPdfTotalsTest.php" tests="1" assertions="7" errors="0" failures="0" skipped="0" time="0.505422">
+        <testcase name="test_render_pdf_preserves_totals_from_detail" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/RenderPdfTotalsTest.php" line="29" class="RenderPdfTotalsTest" classname="RenderPdfTotalsTest" assertions="7" time="0.505422"/>
+      </testsuite>
+      <testsuite name="VatInclusiveTotalsAdjusterTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" tests="11" assertions="98" errors="0" failures="0" skipped="0" time="7.356970">
+        <testsuite name="VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents" tests="4" assertions="24" errors="0" failures="0" skipped="0" time="2.519977">
+          <testcase name="test_adjuster_preserves_gross_totals_for_vat_inclusive_documents with data set &quot;factura_compra&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="59" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="6" time="0.514078"/>
+          <testcase name="test_adjuster_preserves_gross_totals_for_vat_inclusive_documents with data set &quot;guia_despacho&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="59" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="6" time="0.847169"/>
+          <testcase name="test_adjuster_preserves_gross_totals_for_vat_inclusive_documents with data set &quot;nota_debito&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="59" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="6" time="0.592889"/>
+          <testcase name="test_adjuster_preserves_gross_totals_for_vat_inclusive_documents with data set &quot;nota_credito&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="59" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="6" time="0.565841"/>
+        </testsuite>
+        <testcase name="test_adjuster_converts_gross_line_amounts_to_net_totals" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="112" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="6" time="0.629061"/>
+        <testcase name="test_engine_skips_adjustment_when_not_supported" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="154" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="3" time="0.503694"/>
+        <testsuite name="VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values" tests="5" assertions="65" errors="0" failures="0" skipped="0" time="3.704238">
+          <testcase name="test_pdf_example_totals_match_expected_values with data set &quot;factura_afecta&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="219" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="13" time="0.686774"/>
+          <testcase name="test_pdf_example_totals_match_expected_values with data set &quot;factura_compra&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="219" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="13" time="0.521723"/>
+          <testcase name="test_pdf_example_totals_match_expected_values with data set &quot;guia_despacho&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="219" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="13" time="0.797716"/>
+          <testcase name="test_pdf_example_totals_match_expected_values with data set &quot;nota_debito&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="219" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="13" time="0.946306"/>
+          <testcase name="test_pdf_example_totals_match_expected_values with data set &quot;nota_credito&quot;" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Engine/VatInclusiveTotalsAdjusterTest.php" line="219" class="VatInclusiveTotalsAdjusterTest" classname="VatInclusiveTotalsAdjusterTest" assertions="13" time="0.751719"/>
+        </testsuite>
+      </testsuite>
+      <testsuite name="Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Factory/ContainerTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.017936">
+        <testcase name="test_it_resolves_woo_without_type_error" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Factory/ContainerTest.php" line="50" class="Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest" classname="Sii.BoletaDte.Tests.Infrastructure.Factory.ContainerTest" assertions="1" time="0.017936"/>
+      </testsuite>
+      <testsuite name="LogDbTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/LogDbTest.php" tests="3" assertions="11" errors="0" failures="0" skipped="0" time="0.001580">
+        <testcase name="test_add_and_query_entries" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/LogDbTest.php" line="11" class="LogDbTest" classname="LogDbTest" assertions="4" time="0.000679"/>
+        <testcase name="test_purge_clears_entries" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/LogDbTest.php" line="27" class="LogDbTest" classname="LogDbTest" assertions="1" time="0.000457"/>
+        <testcase name="test_legacy_environment_aliases_are_supported" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/LogDbTest.php" line="33" class="LogDbTest" classname="LogDbTest" assertions="6" time="0.000444"/>
+      </testsuite>
+      <testsuite name="PdfGeneratorTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/PdfGeneratorTest.php" tests="2" assertions="17" errors="0" failures="0" skipped="0" time="0.005216">
+        <testcase name="test_generate_includes_logo_when_enabled" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/PdfGeneratorTest.php" line="34" class="PdfGeneratorTest" classname="PdfGeneratorTest" assertions="10" time="0.004354"/>
+        <testcase name="test_generate_skips_logo_when_disabled" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/PdfGeneratorTest.php" line="79" class="PdfGeneratorTest" classname="PdfGeneratorTest" assertions="7" time="0.000862"/>
+      </testsuite>
+      <testsuite name="FoliosDbHasTypeTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbHasTypeTest.php" tests="3" assertions="4" errors="0" failures="0" skipped="0" time="0.001507">
+        <testcase name="test_has_type_detects_single_folio_range" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbHasTypeTest.php" line="11" class="FoliosDbHasTypeTest" classname="FoliosDbHasTypeTest" assertions="1" time="0.001012"/>
+        <testcase name="test_has_type_honours_environment" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbHasTypeTest.php" line="16" class="FoliosDbHasTypeTest" classname="FoliosDbHasTypeTest" assertions="2" time="0.000295"/>
+        <testcase name="test_has_type_returns_false_when_no_ranges" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbHasTypeTest.php" line="22" class="FoliosDbHasTypeTest" classname="FoliosDbHasTypeTest" assertions="1" time="0.000200"/>
+      </testsuite>
+      <testsuite name="FoliosDbTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" tests="5" assertions="28" errors="0" failures="0" skipped="0" time="0.005218">
+        <testcase name="test_insert_and_retrieve_ranges" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" line="16" class="FoliosDbTest" classname="FoliosDbTest" assertions="7" time="0.000350"/>
+        <testcase name="test_update_and_delete_range" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" line="34" class="FoliosDbTest" classname="FoliosDbTest" assertions="7" time="0.000686"/>
+        <testcase name="test_store_caf_normalizes_keys" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" line="49" class="FoliosDbTest" classname="FoliosDbTest" assertions="5" time="0.000589"/>
+        <testcase name="test_overlaps_and_find_for_folio" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" line="72" class="FoliosDbTest" classname="FoliosDbTest" assertions="6" time="0.002446"/>
+        <testcase name="test_purge_resets_store" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/FoliosDbTest.php" line="87" class="FoliosDbTest" classname="FoliosDbTest" assertions="3" time="0.001147"/>
+      </testsuite>
+      <testsuite name="LogDbPersistenceTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/LogDbPersistenceTest.php" tests="3" assertions="8" errors="0" failures="0" skipped="0" time="0.001986">
+        <testcase name="test_add_entry_and_get_pending_ids" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/LogDbPersistenceTest.php" line="11" class="LogDbPersistenceTest" classname="LogDbPersistenceTest" assertions="2" time="0.000928"/>
+        <testcase name="test_get_logs_filters_by_status" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/LogDbPersistenceTest.php" line="23" class="LogDbPersistenceTest" classname="LogDbPersistenceTest" assertions="4" time="0.000584"/>
+        <testcase name="test_purge_clears_entries" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/LogDbPersistenceTest.php" line="37" class="LogDbPersistenceTest" classname="LogDbPersistenceTest" assertions="2" time="0.000474"/>
+      </testsuite>
+      <testsuite name="QueueDbTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/QueueDbTest.php" tests="3" assertions="10" errors="0" failures="0" skipped="0" time="0.000933">
+        <testcase name="test_enqueue_and_fetch_jobs" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/QueueDbTest.php" line="11" class="QueueDbTest" classname="QueueDbTest" assertions="4" time="0.000312"/>
+        <testcase name="test_attempts_and_delete" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/QueueDbTest.php" line="23" class="QueueDbTest" classname="QueueDbTest" assertions="3" time="0.000294"/>
+        <testcase name="test_purge_resets_queue" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Persistence/QueueDbTest.php" line="40" class="QueueDbTest" classname="QueueDbTest" assertions="3" time="0.000326"/>
+      </testsuite>
+      <testsuite name="XmlStorageTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Queue/XmlStorageTest.php" tests="2" assertions="8" errors="0" failures="0" skipped="0" time="0.011708">
+        <testcase name="test_store_moves_file_and_protects_directory" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Queue/XmlStorageTest.php" line="15" class="XmlStorageTest" classname="XmlStorageTest" assertions="6" time="0.005541"/>
+        <testcase name="test_resolve_path_sanitizes_key" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Queue/XmlStorageTest.php" line="31" class="XmlStorageTest" classname="XmlStorageTest" assertions="2" time="0.006166"/>
+      </testsuite>
+      <testsuite name="ApiFlowTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" tests="7" assertions="17" errors="0" failures="0" skipped="0" time="0.011854">
+        <testcase name="test_send_dte_returns_track_id_on_success" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="86" class="ApiFlowTest" classname="ApiFlowTest" assertions="2" time="0.001999"/>
+        <testcase name="test_send_dte_returns_error_on_rejection" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="101" class="ApiFlowTest" classname="ApiFlowTest" assertions="3" time="0.002172"/>
+        <testcase name="test_send_dte_retries_and_succeeds" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="117" class="ApiFlowTest" classname="ApiFlowTest" assertions="2" time="0.002661"/>
+        <testcase name="test_send_libro_returns_track_id" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="133" class="ApiFlowTest" classname="ApiFlowTest" assertions="3" time="0.000995"/>
+        <testcase name="test_send_libro_returns_error_on_http_failure" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="145" class="ApiFlowTest" classname="ApiFlowTest" assertions="3" time="0.000895"/>
+        <testcase name="test_get_dte_status_returns_status" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="159" class="ApiFlowTest" classname="ApiFlowTest" assertions="2" time="0.001278"/>
+        <testcase name="test_custom_retry_limit" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiFlowTest.php" line="168" class="ApiFlowTest" classname="ApiFlowTest" assertions="2" time="0.001855"/>
+      </testsuite>
+      <testsuite name="ApiLibreDteWsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiLibreDteWsTest.php" tests="3" assertions="7" errors="0" failures="0" skipped="0" time="0.003348">
+        <testcase name="test_send_recibos_prefers_ws_and_maps_trackid" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiLibreDteWsTest.php" line="43" class="ApiLibreDteWsTest" classname="ApiLibreDteWsTest" assertions="3" time="0.000843"/>
+        <testcase name="test_get_status_prefers_ws_and_maps_status" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiLibreDteWsTest.php" line="51" class="ApiLibreDteWsTest" classname="ApiLibreDteWsTest" assertions="2" time="0.000896"/>
+        <testcase name="test_fallback_to_http_when_ws_disabled" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/ApiLibreDteWsTest.php" line="58" class="ApiLibreDteWsTest" classname="ApiLibreDteWsTest" assertions="2" time="0.001609"/>
+      </testsuite>
+      <testsuite name="EndpointsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/EndpointsTest.php" tests="4" assertions="13" errors="0" failures="0" skipped="0" time="0.011678">
+        <testcase name="test_get_boleta_html_migrates_file_to_secure_directory" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/EndpointsTest.php" line="171" class="EndpointsTest" classname="EndpointsTest" assertions="5" time="0.003755"/>
+        <testcase name="test_render_boleta_denies_anonymous_request_with_403" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/EndpointsTest.php" line="192" class="EndpointsTest" classname="EndpointsTest" assertions="2" time="0.003112"/>
+        <testcase name="test_render_boleta_404_when_missing_for_authorized_user" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/EndpointsTest.php" line="212" class="EndpointsTest" classname="EndpointsTest" assertions="2" time="0.002713"/>
+        <testcase name="test_render_boleta_allows_privileged_user" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/EndpointsTest.php" line="234" class="EndpointsTest" classname="EndpointsTest" assertions="4" time="0.002098"/>
+      </testsuite>
+      <testsuite name="SignedUrlServiceTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/SignedUrlServiceTest.php" tests="2" assertions="13" errors="0" failures="0" skipped="0" time="0.002310">
+        <testcase name="test_generate_and_validate_signed_url" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/SignedUrlServiceTest.php" line="46" class="SignedUrlServiceTest" classname="SignedUrlServiceTest" assertions="9" time="0.001265"/>
+        <testcase name="test_validate_token_handles_invalid_and_expired_entries" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/Rest/SignedUrlServiceTest.php" line="69" class="SignedUrlServiceTest" classname="SignedUrlServiceTest" assertions="4" time="0.001046"/>
+      </testsuite>
+      <testsuite name="SettingsEncryptionTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsEncryptionTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.000863">
+        <testcase name="test_encrypt_and_decrypt_roundtrip" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsEncryptionTest.php" line="6" class="SettingsEncryptionTest" classname="SettingsEncryptionTest" assertions="2" time="0.000863"/>
+      </testsuite>
+      <testsuite name="SettingsMigrationTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsMigrationTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.026942">
+        <testcase name="test_migrate_options_and_logs" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsMigrationTest.php" line="41" class="SettingsMigrationTest" classname="SettingsMigrationTest" assertions="2" time="0.026942"/>
+      </testsuite>
+      <testsuite name="SettingsTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsTest.php" tests="4" assertions="16" errors="0" failures="0" skipped="0" time="0.002166">
+        <testcase name="test_normalize_environment_and_option_keys" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsTest.php" line="12" class="SettingsTest" classname="SettingsTest" assertions="8" time="0.000658"/>
+        <testcase name="test_get_and_update_last_folio_value_uses_wordpress_options" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsTest.php" line="24" class="SettingsTest" classname="SettingsTest" assertions="2" time="0.000473"/>
+        <testcase name="test_compare_and_update_last_folio_value" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsTest.php" line="31" class="SettingsTest" classname="SettingsTest" assertions="3" time="0.000474"/>
+        <testcase name="test_schedule_option_key_and_preview_only_flag" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/SettingsTest.php" line="39" class="SettingsTest" classname="SettingsTest" assertions="3" time="0.000561"/>
+      </testsuite>
+      <testsuite name="TokenManagerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/TokenManagerTest.php" tests="1" assertions="3" errors="0" failures="0" skipped="0" time="0.001817">
+        <testcase name="test_caches_token_per_environment" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/TokenManagerTest.php" line="8" class="TokenManagerTest" classname="TokenManagerTest" assertions="3" time="0.001817"/>
+      </testsuite>
+      <testsuite name="WooCommerceDteRepositoryTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooCommerceDteRepositoryTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.001112">
+        <testcase name="test_save_stores_dte_data_in_meta" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooCommerceDteRepositoryTest.php" line="18" class="WooCommerceDteRepositoryTest" classname="WooCommerceDteRepositoryTest" assertions="1" time="0.001112"/>
+      </testsuite>
+      <testsuite name="WooIntegrationTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" tests="6" assertions="81" errors="0" failures="0" skipped="0" time="0.043734">
+        <testcase name="test_generates_dte_and_saves_track_id" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="273" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="22" time="0.011174"/>
+        <testcase name="test_preview_mode_skips_sii_submission" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="319" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="22" time="0.004909"/>
+        <testcase name="test_defaults_to_boleta_when_meta_missing" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="368" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="9" time="0.010827"/>
+        <testcase name="test_defaults_to_first_enabled_type_when_boleta_disabled" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="401" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="9" time="0.005956"/>
+        <testcase name="test_renders_pdf_link_in_my_account" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="434" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="2" time="0.006283"/>
+        <testcase name="test_manual_credit_note_uses_partial_refund_data" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooIntegrationTest.php" line="473" class="WooIntegrationTest" classname="WooIntegrationTest" assertions="17" time="0.004586"/>
+      </testsuite>
+      <testsuite name="WooTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" tests="5" assertions="30" errors="0" failures="0" skipped="0" time="0.003624">
+        <testcase name="test_prepare_order_data_uses_net_line_totals" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" line="7" class="WooTest" classname="WooTest" assertions="10" time="0.000439"/>
+        <testcase name="test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" line="90" class="WooTest" classname="WooTest" assertions="7" time="0.000636"/>
+        <testcase name="test_prepare_order_data_does_not_include_global_discount_when_totals_are_net" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" line="174" class="WooTest" classname="WooTest" assertions="3" time="0.001001"/>
+        <testcase name="test_prepare_order_data_uses_refund_totals_without_global_discount" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" line="255" class="WooTest" classname="WooTest" assertions="6" time="0.000723"/>
+        <testcase name="test_build_refund_items_uses_net_amounts" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Infrastructure/WooCommerce/WooTest.php" line="353" class="WooTest" classname="WooTest" assertions="4" time="0.000824"/>
+      </testsuite>
+      <testsuite name="AdminPagesTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php" tests="2" assertions="16" errors="0" failures="0" skipped="0" time="0.021506">
+        <testcase name="test_generate_page_renders_success_message" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php" line="49" class="AdminPagesTest" classname="AdminPagesTest" assertions="14" time="0.014990">
+          <system-out>/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php:84:
+array(8) {
+  'queued' =&gt;
+  bool(true)
+  'queued_track_id' =&gt;
+  string(19) "QUEUED-1760505275-1"
+  'pdf_url' =&gt;
+  string(165) "https://example.com/admin-ajax.php?action=sii_boleta_dte_view_pdf&amp;key=fffd5336eae0e06299eabcb91db4b1bb&amp;_wpnonce=nonce&amp;manual=1&amp;token=92b852dcc0a41467137ca01081d38856"
+  'message' =&gt;
+  string(88) "El documento fue encolado para su procesamiento. Aparecerá en "DTE recientes" en breve."
+  'notice_type' =&gt;
+  string(4) "info"
+  'tipo' =&gt;
+  int(39)
+  'folio' =&gt;
+  int(1)
+  'pdf' =&gt;
+  NULL
+}
+/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php:107:
+string(62478) "							&lt;div class="wrap sii-admin-surface sii-generate-dte"&gt;												&lt;h1&gt;Generar DTE&lt;/h1&gt;
+									&lt;p class="sii-generate-dte-subtitle"&gt;Crea y envía documentos tributarios electrónicos con una interfaz diseñada para guiar cada paso del proceso.&lt;/p&gt;
+						&lt;div id="sii-dte-modal" class="sii-dte-modal" style="display:none"
+												&gt;
+								&lt;div class="sii-dte-modal-backdrop"&gt;&lt;/div&gt;
+								&lt;div class="sii-dte-modal-content"&gt;
+										&lt;button type="button" class="sii-dte-modal-close" aria-label="Clo"...
+</system-out>
+        </testcase>
+        <testcase name="test_control_panel_process_invokes_processor" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php" line="111" class="AdminPagesTest" classname="AdminPagesTest" assertions="2" time="0.006515"/>
+      </testsuite>
+      <testsuite name="AjaxValidateEnvioBoletaTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxValidateEnvioBoletaTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.004892">
+        <testcase name="test_envio_boleta_uses_envio_boleta_schema" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxValidateEnvioBoletaTest.php" line="20" class="AjaxValidateEnvioBoletaTest" classname="AjaxValidateEnvioBoletaTest" assertions="1" time="0.004892"/>
+      </testsuite>
+      <testsuite name="AjaxValidateEnvioTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxValidateEnvioTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="0.005013">
+        <testcase name="test_validate_envio_success" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxValidateEnvioTest.php" line="34" class="AjaxValidateEnvioTest" classname="AjaxValidateEnvioTest" assertions="1" time="0.002282"/>
+        <testcase name="test_validate_envio_error_with_invalid_xml" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxValidateEnvioTest.php" line="46" class="AjaxValidateEnvioTest" classname="AjaxValidateEnvioTest" assertions="1" time="0.002731"/>
+      </testsuite>
+      <testsuite name="AjaxViewPdfTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxViewPdfTest.php" tests="2" assertions="11" errors="0" failures="0" skipped="0" time="0.002931">
+        <testcase name="test_download_fails_with_invalid_nonce" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxViewPdfTest.php" line="73" class="AjaxViewPdfTest" classname="AjaxViewPdfTest" assertions="1" time="0.001741"/>
+        <testcase name="test_authorized_user_can_download_pdf" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/Admin/AjaxViewPdfTest.php" line="98" class="AjaxViewPdfTest" classname="AjaxViewPdfTest" assertions="10" time="0.001190"/>
+      </testsuite>
+      <testsuite name="ControlPanelPageTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/ControlPanelPageTest.php" tests="4" assertions="5" errors="0" failures="0" skipped="0" time="0.010871">
+        <testcase name="test_render_shows_queue_items" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/ControlPanelPageTest.php" line="33" class="ControlPanelPageTest" classname="ControlPanelPageTest" assertions="1" time="0.003297"/>
+        <testcase name="test_render_displays_logs" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/ControlPanelPageTest.php" line="47" class="ControlPanelPageTest" classname="ControlPanelPageTest" assertions="2" time="0.003195"/>
+        <testcase name="test_cancel_removes_job" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/ControlPanelPageTest.php" line="63" class="ControlPanelPageTest" classname="ControlPanelPageTest" assertions="1" time="0.002575"/>
+        <testcase name="test_requeue_resets_attempts" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/ControlPanelPageTest.php" line="76" class="ControlPanelPageTest" classname="ControlPanelPageTest" assertions="1" time="0.001804"/>
+      </testsuite>
+      <testsuite name="GenerateDtePageTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" tests="10" assertions="128" errors="0" failures="0" skipped="0" time="0.031942">
+        <testcase name="test_process_post_generates_dte" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="81" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="20" time="0.005985"/>
+        <testcase name="test_process_post_handles_stale_folio_error" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="155" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="9" time="0.002148"/>
+        <testcase name="test_process_post_does_not_fetch_folio_when_xml_generation_fails" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="203" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="9" time="0.002720"/>
+        <testcase name="test_process_post_invalid_nonce" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="254" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="2" time="0.001372"/>
+        <testcase name="test_preview_pdf_uses_descriptive_filename" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="269" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="7" time="0.003427"/>
+        <testcase name="test_process_post_uses_default_emitter_giro" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="332" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="23" time="0.003633"/>
+        <testcase name="test_process_post_queues_when_sii_unavailable" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="424" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="32" time="0.007146"/>
+        <testcase name="test_process_post_dev_simulated_error_queues_document" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="524" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="13" time="0.003643"/>
+        <testcase name="test_should_queue_for_error_simulated_error" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="610" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="9" time="0.000698"/>
+        <testcase name="test_resolve_track_id_from_error_data" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php" line="640" class="GenerateDtePageTest" classname="GenerateDtePageTest" assertions="4" time="0.001169"/>
+      </testsuite>
+      <testsuite name="LogsPageTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/LogsPageTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.000577">
+        <testcase name="test_renders_table_with_entries" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/LogsPageTest.php" line="14" class="LogsPageTest" classname="LogsPageTest" assertions="2" time="0.000577"/>
+      </testsuite>
+      <testsuite name="SettingsPageTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/SettingsPageTest.php" tests="4" assertions="15" errors="0" failures="0" skipped="0" time="0.006103">
+        <testcase name="test_render_outputs_field" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/SettingsPageTest.php" line="31" class="SettingsPageTest" classname="SettingsPageTest" assertions="1" time="0.001039"/>
+        <testcase name="test_sanitize_settings" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/SettingsPageTest.php" line="43" class="SettingsPageTest" classname="SettingsPageTest" assertions="11" time="0.000803"/>
+        <testcase name="test_sanitize_settings_with_only_single_giro" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/SettingsPageTest.php" line="71" class="SettingsPageTest" classname="SettingsPageTest" assertions="2" time="0.000544"/>
+        <testcase name="test_sanitize_settings_resolves_relative_cert_path" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/SettingsPageTest.php" line="79" class="SettingsPageTest" classname="SettingsPageTest" assertions="1" time="0.003717"/>
+      </testsuite>
+      <testsuite name="WooCheckoutTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/WooCheckoutTest.php" tests="4" assertions="7" errors="0" failures="0" skipped="0" time="0.004029">
+        <testcase name="test_field_renders" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/WooCheckoutTest.php" line="35" class="WooCheckoutTest" classname="WooCheckoutTest" assertions="2" time="0.001402"/>
+        <testcase name="test_register_adds_validation_hook" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/WooCheckoutTest.php" line="47" class="WooCheckoutTest" classname="WooCheckoutTest" assertions="1" time="0.000991"/>
+        <testcase name="test_validate_fields_rejects_invalid_rut" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/WooCheckoutTest.php" line="55" class="WooCheckoutTest" classname="WooCheckoutTest" assertions="2" time="0.000929"/>
+        <testcase name="test_validate_fields_formats_valid_rut" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/WooCheckoutTest.php" line="65" class="WooCheckoutTest" classname="WooCheckoutTest" assertions="2" time="0.000707"/>
+      </testsuite>
+      <testsuite name="LoggerTest" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Shared/LoggerTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.001128">
+        <testcase name="test_info_creates_log_file" file="/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Shared/LoggerTest.php" line="35" class="LoggerTest" classname="LoggerTest" assertions="2" time="0.001128"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,1310 @@
+PHPUnit Started (PHPUnit 11.5.39 using PHP 8.4.13 (cli) on Linux)
+Test Runner Configured
+Bootstrap Finished (/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/bootstrap.php)
+Event Facade Sealed
+Data Provider Method Called (VatInclusiveTotalsAdjusterTest::vatInclusiveTypesProvider for test method VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents)
+Data Provider Method Finished for VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents:
+- VatInclusiveTotalsAdjusterTest::vatInclusiveTypesProvider
+Data Provider Method Called (VatInclusiveTotalsAdjusterTest::pdfExampleTotalsProvider for test method VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values)
+Data Provider Method Finished for VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values:
+- VatInclusiveTotalsAdjusterTest::pdfExampleTotalsProvider
+Test Suite Loaded (155 tests)
+Test Runner Started
+Test Suite Sorted
+Test Runner Execution Started (155 tests)
+Test Suite Started (/home/crodriguez/code/csneaits/sii-boleta-dte-source/phpunit.xml, 155 tests)
+Test Suite Started (Plugin Tests, 155 tests)
+Test Suite Started (ConsumoFoliosTest, 1 test)
+Test Preparation Started (ConsumoFoliosTest::test_generates_ranges)
+Test Prepared (ConsumoFoliosTest::test_generates_ranges)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Test Passed (ConsumoFoliosTest::test_generates_ranges)
+Test Finished (ConsumoFoliosTest::test_generates_ranges)
+Test Suite Finished (ConsumoFoliosTest, 1 test)
+Test Suite Started (EmitirDteServiceTest, 2 tests)
+Test Preparation Started (EmitirDteServiceTest::test_requires_id_and_data)
+Test Prepared (EmitirDteServiceTest::test_requires_id_and_data)
+Mock Object Created (Sii\BoletaDte\Domain\DteRepository)
+Test Passed (EmitirDteServiceTest::test_requires_id_and_data)
+Test Finished (EmitirDteServiceTest::test_requires_id_and_data)
+Test Preparation Started (EmitirDteServiceTest::test_wraps_repository_exception)
+Test Prepared (EmitirDteServiceTest::test_wraps_repository_exception)
+Mock Object Created (Sii\BoletaDte\Domain\DteRepository)
+Test Passed (EmitirDteServiceTest::test_wraps_repository_exception)
+Test Finished (EmitirDteServiceTest::test_wraps_repository_exception)
+Test Suite Finished (EmitirDteServiceTest, 2 tests)
+Test Suite Started (FolioManagerTest, 6 tests)
+Test Preparation Started (FolioManagerTest::test_get_next_folio_consumes_range)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_get_next_folio_consumes_range)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_get_next_folio_consumes_range)
+Test Finished (FolioManagerTest::test_get_next_folio_consumes_range)
+Test Preparation Started (FolioManagerTest::test_get_next_folio_without_ranges_returns_zero)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_get_next_folio_without_ranges_returns_zero)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_get_next_folio_without_ranges_returns_zero)
+Test Finished (FolioManagerTest::test_get_next_folio_without_ranges_returns_zero)
+Test Preparation Started (FolioManagerTest::test_mark_folio_used_updates_expected_value)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_mark_folio_used_updates_expected_value)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_mark_folio_used_updates_expected_value)
+Test Finished (FolioManagerTest::test_mark_folio_used_updates_expected_value)
+Test Preparation Started (FolioManagerTest::test_mark_folio_used_advances_when_behind_expected_value)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_mark_folio_used_advances_when_behind_expected_value)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_mark_folio_used_advances_when_behind_expected_value)
+Test Finished (FolioManagerTest::test_mark_folio_used_advances_when_behind_expected_value)
+Test Preparation Started (FolioManagerTest::test_get_caf_info_returns_defaults_without_ranges)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_get_caf_info_returns_defaults_without_ranges)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_get_caf_info_returns_defaults_without_ranges)
+Test Finished (FolioManagerTest::test_get_caf_info_returns_defaults_without_ranges)
+Test Preparation Started (FolioManagerTest::test_get_caf_info_parses_range_data)
+Before Test Method Called (FolioManagerTest::setUp)
+Before Test Method Finished:
+- FolioManagerTest::setUp
+Test Prepared (FolioManagerTest::test_get_caf_info_parses_range_data)
+After Test Method Called (FolioManagerTest::tearDown)
+After Test Method Finished:
+- FolioManagerTest::tearDown
+Test Passed (FolioManagerTest::test_get_caf_info_parses_range_data)
+Test Finished (FolioManagerTest::test_get_caf_info_parses_range_data)
+Test Suite Finished (FolioManagerTest, 6 tests)
+Test Suite Started (LibroBoletasTest, 1 test)
+Test Preparation Started (LibroBoletasTest::test_collect_orders_uses_inclusive_range)
+Test Prepared (LibroBoletasTest::test_collect_orders_uses_inclusive_range)
+Test Triggered PHP Deprecation (LibroBoletasTest::test_collect_orders_uses_inclusive_range, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/LibroBoletas.php:20
+Sii\BoletaDte\Application\LibroBoletas::__construct(): Implicitly marking parameter $api as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (LibroBoletasTest::test_collect_orders_uses_inclusive_range, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/LibroBoletas.php:0
+Sii\BoletaDte\Application\LibroBoletas::__construct(): Implicitly marking parameter $queue as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (LibroBoletasTest::test_collect_orders_uses_inclusive_range, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/LibroBoletas.php:0
+Sii\BoletaDte\Application\LibroBoletas::__construct(): Implicitly marking parameter $folio_manager as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (LibroBoletasTest::test_collect_orders_uses_inclusive_range, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Shared/SharedLogger.php:18
+Sii\BoletaDte\Shared\SharedLogger::__construct(): Implicitly marking parameter $settings as nullable is deprecated, the explicit nullable type must be used instead
+Test Passed (LibroBoletasTest::test_collect_orders_uses_inclusive_range)
+Test Finished (LibroBoletasTest::test_collect_orders_uses_inclusive_range)
+Test Suite Finished (LibroBoletasTest, 1 test)
+Test Suite Started (QueueProcessorTest, 3 tests)
+Test Preparation Started (QueueProcessorTest::test_process_executes_all_jobs)
+Before Test Method Called (QueueProcessorTest::setUp)
+Before Test Method Finished:
+- QueueProcessorTest::setUp
+Test Prepared (QueueProcessorTest::test_process_executes_all_jobs)
+Test Triggered PHP Deprecation (QueueProcessorTest::test_process_executes_all_jobs, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/QueueProcessor.php:27
+Sii\BoletaDte\Application\QueueProcessor::__construct(): Implicitly marking parameter $sleep as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (QueueProcessorTest::test_process_executes_all_jobs, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/QueueProcessor.php:27
+Sii\BoletaDte\Application\QueueProcessor::__construct(): Implicitly marking parameter $folio_manager as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Warning (QueueProcessorTest::test_process_executes_all_jobs) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Application/QueueProcessorTest.php:101
+unlink(/tmp/dteq335bet3s6k83E0kM6f): No such file or directory
+Test Passed (QueueProcessorTest::test_process_executes_all_jobs)
+Test Finished (QueueProcessorTest::test_process_executes_all_jobs)
+Test Preparation Started (QueueProcessorTest::test_process_resolves_secure_xml_paths)
+Before Test Method Called (QueueProcessorTest::setUp)
+Before Test Method Finished:
+- QueueProcessorTest::setUp
+Test Prepared (QueueProcessorTest::test_process_resolves_secure_xml_paths)
+Test Passed (QueueProcessorTest::test_process_resolves_secure_xml_paths)
+Test Finished (QueueProcessorTest::test_process_resolves_secure_xml_paths)
+Test Preparation Started (QueueProcessorTest::test_failed_jobs_are_delayed_before_retry)
+Before Test Method Called (QueueProcessorTest::setUp)
+Before Test Method Finished:
+- QueueProcessorTest::setUp
+Test Prepared (QueueProcessorTest::test_failed_jobs_are_delayed_before_retry)
+Test Passed (QueueProcessorTest::test_failed_jobs_are_delayed_before_retry)
+Test Finished (QueueProcessorTest::test_failed_jobs_are_delayed_before_retry)
+Test Suite Finished (QueueProcessorTest, 3 tests)
+Test Suite Started (ValidationTest, 2 tests)
+Test Preparation Started (ValidationTest::test_rvd_xml_validation)
+Test Prepared (ValidationTest::test_rvd_xml_validation)
+Test Triggered PHP Deprecation (ValidationTest::test_rvd_xml_validation, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/RvdManager.php:16
+Sii\BoletaDte\Application\RvdManager::__construct(): Implicitly marking parameter $api as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (ValidationTest::test_rvd_xml_validation, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Application/RvdManager.php:16
+Sii\BoletaDte\Application\RvdManager::__construct(): Implicitly marking parameter $queue as nullable is deprecated, the explicit nullable type must be used instead
+Test Passed (ValidationTest::test_rvd_xml_validation)
+Test Finished (ValidationTest::test_rvd_xml_validation)
+Test Preparation Started (ValidationTest::test_libro_xml_validation)
+Test Prepared (ValidationTest::test_libro_xml_validation)
+Test Passed (ValidationTest::test_libro_xml_validation)
+Test Finished (ValidationTest::test_libro_xml_validation)
+Test Suite Finished (ValidationTest, 2 tests)
+Test Suite Started (RutTest, 5 tests)
+Test Preparation Started (RutTest::test_clean_removes_non_numeric_characters)
+Test Prepared (RutTest::test_clean_removes_non_numeric_characters)
+Test Passed (RutTest::test_clean_removes_non_numeric_characters)
+Test Finished (RutTest::test_clean_removes_non_numeric_characters)
+Test Preparation Started (RutTest::test_is_valid_returns_true_for_valid_rut)
+Test Prepared (RutTest::test_is_valid_returns_true_for_valid_rut)
+Test Passed (RutTest::test_is_valid_returns_true_for_valid_rut)
+Test Finished (RutTest::test_is_valid_returns_true_for_valid_rut)
+Test Preparation Started (RutTest::test_is_valid_returns_false_for_invalid_rut)
+Test Prepared (RutTest::test_is_valid_returns_false_for_invalid_rut)
+Test Passed (RutTest::test_is_valid_returns_false_for_invalid_rut)
+Test Finished (RutTest::test_is_valid_returns_false_for_invalid_rut)
+Test Preparation Started (RutTest::test_format_outputs_standard_representation)
+Test Prepared (RutTest::test_format_outputs_standard_representation)
+Test Passed (RutTest::test_format_outputs_standard_representation)
+Test Finished (RutTest::test_format_outputs_standard_representation)
+Test Preparation Started (RutTest::test_is_generic_detects_placeholder_rut)
+Test Prepared (RutTest::test_is_generic_detects_placeholder_rut)
+Test Passed (RutTest::test_is_generic_detects_placeholder_rut)
+Test Finished (RutTest::test_is_generic_detects_placeholder_rut)
+Test Suite Finished (RutTest, 5 tests)
+Test Suite Started (ProgressTrackerTest, 2 tests)
+Test Preparation Started (ProgressTrackerTest::test_mark_uses_current_time_when_missing)
+Before Test Method Called (ProgressTrackerTest::setUp)
+Before Test Method Finished:
+- ProgressTrackerTest::setUp
+Test Prepared (ProgressTrackerTest::test_mark_uses_current_time_when_missing)
+Test Passed (ProgressTrackerTest::test_mark_uses_current_time_when_missing)
+Test Finished (ProgressTrackerTest::test_mark_uses_current_time_when_missing)
+Test Preparation Started (ProgressTrackerTest::test_last_timestamp_defaults_to_zero)
+Before Test Method Called (ProgressTrackerTest::setUp)
+Before Test Method Finished:
+- ProgressTrackerTest::setUp
+Test Prepared (ProgressTrackerTest::test_last_timestamp_defaults_to_zero)
+Test Passed (ProgressTrackerTest::test_last_timestamp_defaults_to_zero)
+Test Finished (ProgressTrackerTest::test_last_timestamp_defaults_to_zero)
+Test Suite Finished (ProgressTrackerTest, 2 tests)
+Test Suite Started (ContainerTest, 1 test)
+Test Preparation Started (ContainerTest::test_bindings_return_instances)
+Test Prepared (ContainerTest::test_bindings_return_instances)
+Test Passed (ContainerTest::test_bindings_return_instances)
+Test Finished (ContainerTest::test_bindings_return_instances)
+Test Suite Finished (ContainerTest, 1 test)
+Test Suite Started (CronTest, 2 tests)
+Test Preparation Started (CronTest::test_activate_schedules_event)
+Before Test Method Called (CronTest::setUp)
+Before Test Method Finished:
+- CronTest::setUp
+Test Prepared (CronTest::test_activate_schedules_event)
+Test Passed (CronTest::test_activate_schedules_event)
+Test Finished (CronTest::test_activate_schedules_event)
+Test Preparation Started (CronTest::test_deactivate_unschedules_event)
+Before Test Method Called (CronTest::setUp)
+Before Test Method Finished:
+- CronTest::setUp
+Test Prepared (CronTest::test_deactivate_unschedules_event)
+Test Passed (CronTest::test_deactivate_unschedules_event)
+Test Finished (CronTest::test_deactivate_unschedules_event)
+Test Suite Finished (CronTest, 2 tests)
+Test Suite Started (Tests\Infrastructure\Engine\AutoFolioTest, 1 test)
+Test Preparation Started (Tests\Infrastructure\Engine\AutoFolioTest::testEngineAssignsFolioWhenMissingInDev)
+Before Test Method Called (Tests\Infrastructure\Engine\AutoFolioTest::setUp)
+Before Test Method Finished:
+- Tests\Infrastructure\Engine\AutoFolioTest::setUp
+Test Prepared (Tests\Infrastructure\Engine\AutoFolioTest::testEngineAssignsFolioWhenMissingInDev)
+Test Passed (Tests\Infrastructure\Engine\AutoFolioTest::testEngineAssignsFolioWhenMissingInDev)
+Test Finished (Tests\Infrastructure\Engine\AutoFolioTest::testEngineAssignsFolioWhenMissingInDev)
+Test Suite Finished (Tests\Infrastructure\Engine\AutoFolioTest, 1 test)
+Test Suite Started (BoletaTotalsTest, 4 tests)
+Test Preparation Started (BoletaTotalsTest::test_boleta_afecta_totals)
+Before Test Method Called (BoletaTotalsTest::setUp)
+Before Test Method Finished:
+- BoletaTotalsTest::setUp
+Test Prepared (BoletaTotalsTest::test_boleta_afecta_totals)
+Test Passed (BoletaTotalsTest::test_boleta_afecta_totals)
+Test Finished (BoletaTotalsTest::test_boleta_afecta_totals)
+Test Preparation Started (BoletaTotalsTest::test_boleta_exenta_totals)
+Before Test Method Called (BoletaTotalsTest::setUp)
+Before Test Method Finished:
+- BoletaTotalsTest::setUp
+Test Prepared (BoletaTotalsTest::test_boleta_exenta_totals)
+Test Passed (BoletaTotalsTest::test_boleta_exenta_totals)
+Test Finished (BoletaTotalsTest::test_boleta_exenta_totals)
+Test Preparation Started (BoletaTotalsTest::test_boleta_rounding_totals_multiple_items)
+Before Test Method Called (BoletaTotalsTest::setUp)
+Before Test Method Finished:
+- BoletaTotalsTest::setUp
+Test Prepared (BoletaTotalsTest::test_boleta_rounding_totals_multiple_items)
+Test Passed (BoletaTotalsTest::test_boleta_rounding_totals_multiple_items)
+Test Finished (BoletaTotalsTest::test_boleta_rounding_totals_multiple_items)
+Test Preparation Started (BoletaTotalsTest::test_boleta_and_factura_pdf_totals_are_aligned)
+Before Test Method Called (BoletaTotalsTest::setUp)
+Before Test Method Finished:
+- BoletaTotalsTest::setUp
+Test Prepared (BoletaTotalsTest::test_boleta_and_factura_pdf_totals_are_aligned)
+Test Passed (BoletaTotalsTest::test_boleta_and_factura_pdf_totals_are_aligned)
+Test Finished (BoletaTotalsTest::test_boleta_and_factura_pdf_totals_are_aligned)
+Test Suite Finished (BoletaTotalsTest, 4 tests)
+Test Suite Started (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest, 3 tests)
+Test Preparation Started (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testDevEnvironmentUsesFakerAndAdvancesFolio)
+Before Test Method Called (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp)
+Before Test Method Finished:
+- Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp
+Test Prepared (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testDevEnvironmentUsesFakerAndAdvancesFolio)
+Test Passed (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testDevEnvironmentUsesFakerAndAdvancesFolio)
+Test Finished (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testDevEnvironmentUsesFakerAndAdvancesFolio)
+Test Preparation Started (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithoutCafFallsBackToFaker)
+Before Test Method Called (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp)
+Before Test Method Finished:
+- Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp
+Test Prepared (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithoutCafFallsBackToFaker)
+Test Passed (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithoutCafFallsBackToFaker)
+Test Finished (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithoutCafFallsBackToFaker)
+Test Preparation Started (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithRangesAndCafLoadsCafAndKeepsWithinRange)
+Before Test Method Called (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp)
+Before Test Method Finished:
+- Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::setUp
+Test Prepared (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithRangesAndCafLoadsCafAndKeepsWithinRange)
+Test Passed (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithRangesAndCafLoadsCafAndKeepsWithinRange)
+Test Finished (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest::testCertWithRangesAndCafLoadsCafAndKeepsWithinRange)
+Test Suite Finished (Tests\Infrastructure\Engine\Caf\LibreDteCafBridgeProviderTest, 3 tests)
+Test Suite Started (DteEngineGenerateTest, 5 tests)
+Test Preparation Started (DteEngineGenerateTest::test_generate_dte_xml)
+Before Test Method Called (DteEngineGenerateTest::setUp)
+Before Test Method Finished:
+- DteEngineGenerateTest::setUp
+Test Prepared (DteEngineGenerateTest::test_generate_dte_xml)
+Test Passed (DteEngineGenerateTest::test_generate_dte_xml)
+Test Finished (DteEngineGenerateTest::test_generate_dte_xml)
+Test Preparation Started (DteEngineGenerateTest::test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing)
+Before Test Method Called (DteEngineGenerateTest::setUp)
+Before Test Method Finished:
+- DteEngineGenerateTest::setUp
+Test Prepared (DteEngineGenerateTest::test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing)
+Test Passed (DteEngineGenerateTest::test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing)
+Test Finished (DteEngineGenerateTest::test_generate_dte_xml_uses_nested_emitter_data_when_settings_missing)
+Test Preparation Started (DteEngineGenerateTest::test_generate_dte_xml_prefers_custom_emitter_giro_over_settings)
+Before Test Method Called (DteEngineGenerateTest::setUp)
+Before Test Method Finished:
+- DteEngineGenerateTest::setUp
+Test Prepared (DteEngineGenerateTest::test_generate_dte_xml_prefers_custom_emitter_giro_over_settings)
+Test Passed (DteEngineGenerateTest::test_generate_dte_xml_prefers_custom_emitter_giro_over_settings)
+Test Finished (DteEngineGenerateTest::test_generate_dte_xml_prefers_custom_emitter_giro_over_settings)
+Test Preparation Started (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields)
+Before Test Method Called (DteEngineGenerateTest::setUp)
+Before Test Method Finished:
+- DteEngineGenerateTest::setUp
+Test Prepared (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields)
+Test Triggered PHP Deprecation (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/Engine/PdfGenerator.php:16
+Sii\BoletaDte\Infrastructure\Engine\PdfGenerator::__construct(): Implicitly marking parameter $settings as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered Deprecation (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields, issue triggered by third-party code, suppressed using operator) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/vendor/symfony/deprecation-contracts/function.php:25
+Since symfony/ux-twig-component 2.13: The "Symfony\UX\TwigComponent\ComponentTemplateFinder::__construct()" method will require "Twig\Loader\LoaderInterface $loader" as first argument in 3.0. Passing an "Environment" instance is deprecated.
+Test Passed (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields)
+Test Finished (DteEngineGenerateTest::test_generate_dte_xml_does_not_prefill_missing_receptor_fields)
+Test Preparation Started (DteEngineGenerateTest::test_generate_dte_xml_strips_bom_and_leading_whitespace)
+Before Test Method Called (DteEngineGenerateTest::setUp)
+Before Test Method Finished:
+- DteEngineGenerateTest::setUp
+Test Prepared (DteEngineGenerateTest::test_generate_dte_xml_strips_bom_and_leading_whitespace)
+Test Passed (DteEngineGenerateTest::test_generate_dte_xml_strips_bom_and_leading_whitespace)
+Test Finished (DteEngineGenerateTest::test_generate_dte_xml_strips_bom_and_leading_whitespace)
+Test Suite Finished (DteEngineGenerateTest, 5 tests)
+Test Suite Started (FacturaCompraExentaTest, 1 test)
+Test Preparation Started (FacturaCompraExentaTest::test_line_exenta_creates_mntexe_without_iva)
+Before Test Method Called (FacturaCompraExentaTest::setUp)
+Before Test Method Finished:
+- FacturaCompraExentaTest::setUp
+Test Prepared (FacturaCompraExentaTest::test_line_exenta_creates_mntexe_without_iva)
+Test Passed (FacturaCompraExentaTest::test_line_exenta_creates_mntexe_without_iva)
+Test Finished (FacturaCompraExentaTest::test_line_exenta_creates_mntexe_without_iva)
+Test Suite Finished (FacturaCompraExentaTest, 1 test)
+Test Suite Started (FacturaCompraForeignGlosaTest, 1 test)
+Test Preparation Started (FacturaCompraForeignGlosaTest::test_term_pago_glosa_pass_through_when_foreign_added_externally)
+Before Test Method Called (FacturaCompraForeignGlosaTest::setUp)
+Before Test Method Finished:
+- FacturaCompraForeignGlosaTest::setUp
+Test Prepared (FacturaCompraForeignGlosaTest::test_term_pago_glosa_pass_through_when_foreign_added_externally)
+Test Passed (FacturaCompraForeignGlosaTest::test_term_pago_glosa_pass_through_when_foreign_added_externally)
+Test Finished (FacturaCompraForeignGlosaTest::test_term_pago_glosa_pass_through_when_foreign_added_externally)
+Test Suite Finished (FacturaCompraForeignGlosaTest, 1 test)
+Test Suite Started (FacturaCompraRetentionTest, 2 tests)
+Test Preparation Started (FacturaCompraRetentionTest::test_retencion_total_code_15_present_without_affecting_totals)
+Before Test Method Called (FacturaCompraRetentionTest::setUp)
+Before Test Method Finished:
+- FacturaCompraRetentionTest::setUp
+Test Prepared (FacturaCompraRetentionTest::test_retencion_total_code_15_present_without_affecting_totals)
+Test Passed (FacturaCompraRetentionTest::test_retencion_total_code_15_present_without_affecting_totals)
+Test Finished (FacturaCompraRetentionTest::test_retencion_total_code_15_present_without_affecting_totals)
+Test Preparation Started (FacturaCompraRetentionTest::test_retencion_parcial_code_30_present)
+Before Test Method Called (FacturaCompraRetentionTest::setUp)
+Before Test Method Finished:
+- FacturaCompraRetentionTest::setUp
+Test Prepared (FacturaCompraRetentionTest::test_retencion_parcial_code_30_present)
+Test Passed (FacturaCompraRetentionTest::test_retencion_parcial_code_30_present)
+Test Finished (FacturaCompraRetentionTest::test_retencion_parcial_code_30_present)
+Test Suite Finished (FacturaCompraRetentionTest, 2 tests)
+Test Suite Started (FacturaCompraRetentionTotalsExampleTest, 1 test)
+Test Preparation Started (FacturaCompraRetentionTotalsExampleTest::test_expected_structure_for_full_retention_example)
+Before Test Method Called (FacturaCompraRetentionTotalsExampleTest::setUp)
+Before Test Method Finished:
+- FacturaCompraRetentionTotalsExampleTest::setUp
+Test Prepared (FacturaCompraRetentionTotalsExampleTest::test_expected_structure_for_full_retention_example)
+Test Passed (FacturaCompraRetentionTotalsExampleTest::test_expected_structure_for_full_retention_example)
+Test Finished (FacturaCompraRetentionTotalsExampleTest::test_expected_structure_for_full_retention_example)
+Test Suite Finished (FacturaCompraRetentionTotalsExampleTest, 1 test)
+Test Suite Started (FacturaCompraTotalsTest, 1 test)
+Test Preparation Started (FacturaCompraTotalsTest::test_factura_compra_net_price_not_flagged_gross)
+Before Test Method Called (FacturaCompraTotalsTest::setUp)
+Before Test Method Finished:
+- FacturaCompraTotalsTest::setUp
+Test Prepared (FacturaCompraTotalsTest::test_factura_compra_net_price_not_flagged_gross)
+Test Passed (FacturaCompraTotalsTest::test_factura_compra_net_price_not_flagged_gross)
+Test Finished (FacturaCompraTotalsTest::test_factura_compra_net_price_not_flagged_gross)
+Test Suite Finished (FacturaCompraTotalsTest, 1 test)
+Test Suite Started (InvalidCafTest, 1 test)
+Test Preparation Started (InvalidCafTest::test_missing_range_returns_error)
+Test Prepared (InvalidCafTest::test_missing_range_returns_error)
+Test Passed (InvalidCafTest::test_missing_range_returns_error)
+Test Finished (InvalidCafTest::test_missing_range_returns_error)
+Test Suite Finished (InvalidCafTest, 1 test)
+Test Suite Started (LibreDTEEngineTest, 8 tests)
+Test Preparation Started (LibreDTEEngineTest::test_pdf_generated_from_xml_fixture)
+Test Prepared (LibreDTEEngineTest::test_pdf_generated_from_xml_fixture)
+Test Passed (LibreDTEEngineTest::test_pdf_generated_from_xml_fixture)
+Test Finished (LibreDTEEngineTest::test_pdf_generated_from_xml_fixture)
+Test Preparation Started (LibreDTEEngineTest::test_render_pdf_resets_mnttotal_before_normalization)
+Test Prepared (LibreDTEEngineTest::test_render_pdf_resets_mnttotal_before_normalization)
+Test Passed (LibreDTEEngineTest::test_render_pdf_resets_mnttotal_before_normalization)
+Test Finished (LibreDTEEngineTest::test_render_pdf_resets_mnttotal_before_normalization)
+Test Preparation Started (LibreDTEEngineTest::test_parse_document_data_from_xml_mirrors_emitter_aliases)
+Test Prepared (LibreDTEEngineTest::test_parse_document_data_from_xml_mirrors_emitter_aliases)
+Test Passed (LibreDTEEngineTest::test_parse_document_data_from_xml_mirrors_emitter_aliases)
+Test Finished (LibreDTEEngineTest::test_parse_document_data_from_xml_mirrors_emitter_aliases)
+Test Preparation Started (LibreDTEEngineTest::test_preview_ignores_real_caf_ranges)
+Test Prepared (LibreDTEEngineTest::test_preview_ignores_real_caf_ranges)
+Test Passed (LibreDTEEngineTest::test_preview_ignores_real_caf_ranges)
+Test Finished (LibreDTEEngineTest::test_preview_ignores_real_caf_ranges)
+Test Preparation Started (LibreDTEEngineTest::test_preview_mode_skips_missing_caf_validation)
+Test Prepared (LibreDTEEngineTest::test_preview_mode_skips_missing_caf_validation)
+Test Passed (LibreDTEEngineTest::test_preview_mode_skips_missing_caf_validation)
+Test Finished (LibreDTEEngineTest::test_preview_mode_skips_missing_caf_validation)
+Test Preparation Started (LibreDTEEngineTest::test_register_document_factory_overrides_factory_for_tipo)
+Test Prepared (LibreDTEEngineTest::test_register_document_factory_overrides_factory_for_tipo)
+Test Passed (LibreDTEEngineTest::test_register_document_factory_overrides_factory_for_tipo)
+Test Finished (LibreDTEEngineTest::test_register_document_factory_overrides_factory_for_tipo)
+Test Preparation Started (LibreDTEEngineTest::test_generate_xml_with_flattened_caf_is_normalized)
+Test Prepared (LibreDTEEngineTest::test_generate_xml_with_flattened_caf_is_normalized)
+Test Passed (LibreDTEEngineTest::test_generate_xml_with_flattened_caf_is_normalized)
+Test Finished (LibreDTEEngineTest::test_generate_xml_with_flattened_caf_is_normalized)
+Test Preparation Started (LibreDTEEngineTest::test_generate_xml_uses_normalized_caf_from_memory_store)
+Test Prepared (LibreDTEEngineTest::test_generate_xml_uses_normalized_caf_from_memory_store)
+Test Passed (LibreDTEEngineTest::test_generate_xml_uses_normalized_caf_from_memory_store)
+Test Finished (LibreDTEEngineTest::test_generate_xml_uses_normalized_caf_from_memory_store)
+Test Suite Finished (LibreDTEEngineTest, 8 tests)
+Test Suite Started (NullEngineTest, 1 test)
+Test Preparation Started (NullEngineTest::test_methods_return_false)
+Test Prepared (NullEngineTest::test_methods_return_false)
+Test Passed (NullEngineTest::test_methods_return_false)
+Test Finished (NullEngineTest::test_methods_return_false)
+Test Suite Finished (NullEngineTest, 1 test)
+Test Suite Started (PdfRetentionRenderTest, 1 test)
+Test Preparation Started (PdfRetentionRenderTest::test_pdf_contains_retention_labels)
+Before Test Method Called (PdfRetentionRenderTest::setUp)
+Before Test Method Finished:
+- PdfRetentionRenderTest::setUp
+Test Prepared (PdfRetentionRenderTest::test_pdf_contains_retention_labels)
+Test Passed (PdfRetentionRenderTest::test_pdf_contains_retention_labels)
+Test Finished (PdfRetentionRenderTest::test_pdf_contains_retention_labels)
+Test Suite Finished (PdfRetentionRenderTest, 1 test)
+Test Suite Started (RenderPdfTotalsTest, 1 test)
+Test Preparation Started (RenderPdfTotalsTest::test_render_pdf_preserves_totals_from_detail)
+Before Test Method Called (RenderPdfTotalsTest::setUp)
+Before Test Method Finished:
+- RenderPdfTotalsTest::setUp
+Test Prepared (RenderPdfTotalsTest::test_render_pdf_preserves_totals_from_detail)
+Test Passed (RenderPdfTotalsTest::test_render_pdf_preserves_totals_from_detail)
+Test Finished (RenderPdfTotalsTest::test_render_pdf_preserves_totals_from_detail)
+Test Suite Finished (RenderPdfTotalsTest, 1 test)
+Test Suite Started (VatInclusiveTotalsAdjusterTest, 11 tests)
+Test Suite Started (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents, 4 tests)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#factura_compra)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#factura_compra)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#factura_compra)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#factura_compra)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#guia_despacho)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#guia_despacho)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#guia_despacho)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#guia_despacho)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_debito)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_debito)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_debito)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_debito)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_credito)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_credito)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_credito)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents#nota_credito)
+Test Suite Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_preserves_gross_totals_for_vat_inclusive_documents, 4 tests)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_adjuster_converts_gross_line_amounts_to_net_totals)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_adjuster_converts_gross_line_amounts_to_net_totals)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_adjuster_converts_gross_line_amounts_to_net_totals)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_adjuster_converts_gross_line_amounts_to_net_totals)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_engine_skips_adjustment_when_not_supported)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_engine_skips_adjustment_when_not_supported)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_engine_skips_adjustment_when_not_supported)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_engine_skips_adjustment_when_not_supported)
+Test Suite Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values, 5 tests)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_afecta)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_afecta)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_afecta)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_afecta)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_compra)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_compra)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_compra)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#factura_compra)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#guia_despacho)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#guia_despacho)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#guia_despacho)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#guia_despacho)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_debito)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_debito)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_debito)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_debito)
+Test Preparation Started (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_credito)
+Test Prepared (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_credito)
+Test Passed (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_credito)
+Test Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values#nota_credito)
+Test Suite Finished (VatInclusiveTotalsAdjusterTest::test_pdf_example_totals_match_expected_values, 5 tests)
+Test Suite Finished (VatInclusiveTotalsAdjusterTest, 11 tests)
+Test Suite Started (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest, 1 test)
+Test Preparation Started (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error)
+Before Test Method Called (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::setUp)
+Before Test Method Finished:
+- Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::setUp
+Test Prepared (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error)
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $settings as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $folio_manager as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $signer as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $api as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $rvd_manager as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $endpoints as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $metrics as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $consumo_folios as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $queue as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $help as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $ajax as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $pages as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Infrastructure/WordPress/Plugin.php:52
+Sii\BoletaDte\Infrastructure\WordPress\Plugin::__construct(): Implicitly marking parameter $queue_processor as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Help.php:17
+Sii\BoletaDte\Presentation\Admin\Help::__construct(): Implicitly marking parameter $settings as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Help.php:17
+Sii\BoletaDte\Presentation\Admin\Help::__construct(): Implicitly marking parameter $has_folio_callback as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $settings_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $logs_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $diagnostics_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $help_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $control_panel_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $generate_dte_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $caf_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Triggered PHP Deprecation (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error, issue triggered by third-party code) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/src/Presentation/Admin/Pages.php:26
+Sii\BoletaDte\Presentation\Admin\Pages::__construct(): Implicitly marking parameter $cert_page as nullable is deprecated, the explicit nullable type must be used instead
+Test Passed (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error)
+Test Finished (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest::test_it_resolves_woo_without_type_error)
+Test Suite Finished (Sii\BoletaDte\Tests\Infrastructure\Factory\ContainerTest, 1 test)
+Test Suite Started (LogDbTest, 3 tests)
+Test Preparation Started (LogDbTest::test_add_and_query_entries)
+Before Test Method Called (LogDbTest::setUp)
+Before Test Method Finished:
+- LogDbTest::setUp
+Test Prepared (LogDbTest::test_add_and_query_entries)
+Test Passed (LogDbTest::test_add_and_query_entries)
+Test Finished (LogDbTest::test_add_and_query_entries)
+Test Preparation Started (LogDbTest::test_purge_clears_entries)
+Before Test Method Called (LogDbTest::setUp)
+Before Test Method Finished:
+- LogDbTest::setUp
+Test Prepared (LogDbTest::test_purge_clears_entries)
+Test Passed (LogDbTest::test_purge_clears_entries)
+Test Finished (LogDbTest::test_purge_clears_entries)
+Test Preparation Started (LogDbTest::test_legacy_environment_aliases_are_supported)
+Before Test Method Called (LogDbTest::setUp)
+Before Test Method Finished:
+- LogDbTest::setUp
+Test Prepared (LogDbTest::test_legacy_environment_aliases_are_supported)
+Test Passed (LogDbTest::test_legacy_environment_aliases_are_supported)
+Test Finished (LogDbTest::test_legacy_environment_aliases_are_supported)
+Test Suite Finished (LogDbTest, 3 tests)
+Test Suite Started (PdfGeneratorTest, 2 tests)
+Test Preparation Started (PdfGeneratorTest::test_generate_includes_logo_when_enabled)
+Test Prepared (PdfGeneratorTest::test_generate_includes_logo_when_enabled)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+After Test Method Called (PdfGeneratorTest::tearDown)
+After Test Method Finished:
+- PdfGeneratorTest::tearDown
+Test Passed (PdfGeneratorTest::test_generate_includes_logo_when_enabled)
+Test Finished (PdfGeneratorTest::test_generate_includes_logo_when_enabled)
+Test Preparation Started (PdfGeneratorTest::test_generate_skips_logo_when_disabled)
+Test Prepared (PdfGeneratorTest::test_generate_skips_logo_when_disabled)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+After Test Method Called (PdfGeneratorTest::tearDown)
+After Test Method Finished:
+- PdfGeneratorTest::tearDown
+Test Passed (PdfGeneratorTest::test_generate_skips_logo_when_disabled)
+Test Finished (PdfGeneratorTest::test_generate_skips_logo_when_disabled)
+Test Suite Finished (PdfGeneratorTest, 2 tests)
+Test Suite Started (FoliosDbHasTypeTest, 3 tests)
+Test Preparation Started (FoliosDbHasTypeTest::test_has_type_detects_single_folio_range)
+Before Test Method Called (FoliosDbHasTypeTest::setUp)
+Before Test Method Finished:
+- FoliosDbHasTypeTest::setUp
+Test Prepared (FoliosDbHasTypeTest::test_has_type_detects_single_folio_range)
+Test Passed (FoliosDbHasTypeTest::test_has_type_detects_single_folio_range)
+Test Finished (FoliosDbHasTypeTest::test_has_type_detects_single_folio_range)
+Test Preparation Started (FoliosDbHasTypeTest::test_has_type_honours_environment)
+Before Test Method Called (FoliosDbHasTypeTest::setUp)
+Before Test Method Finished:
+- FoliosDbHasTypeTest::setUp
+Test Prepared (FoliosDbHasTypeTest::test_has_type_honours_environment)
+Test Passed (FoliosDbHasTypeTest::test_has_type_honours_environment)
+Test Finished (FoliosDbHasTypeTest::test_has_type_honours_environment)
+Test Preparation Started (FoliosDbHasTypeTest::test_has_type_returns_false_when_no_ranges)
+Before Test Method Called (FoliosDbHasTypeTest::setUp)
+Before Test Method Finished:
+- FoliosDbHasTypeTest::setUp
+Test Prepared (FoliosDbHasTypeTest::test_has_type_returns_false_when_no_ranges)
+Test Passed (FoliosDbHasTypeTest::test_has_type_returns_false_when_no_ranges)
+Test Finished (FoliosDbHasTypeTest::test_has_type_returns_false_when_no_ranges)
+Test Suite Finished (FoliosDbHasTypeTest, 3 tests)
+Test Suite Started (FoliosDbTest, 5 tests)
+Test Preparation Started (FoliosDbTest::test_insert_and_retrieve_ranges)
+Before Test Method Called (FoliosDbTest::setUp)
+Before Test Method Finished:
+- FoliosDbTest::setUp
+Test Prepared (FoliosDbTest::test_insert_and_retrieve_ranges)
+After Test Method Called (FoliosDbTest::tearDown)
+After Test Method Finished:
+- FoliosDbTest::tearDown
+Test Passed (FoliosDbTest::test_insert_and_retrieve_ranges)
+Test Finished (FoliosDbTest::test_insert_and_retrieve_ranges)
+Test Preparation Started (FoliosDbTest::test_update_and_delete_range)
+Before Test Method Called (FoliosDbTest::setUp)
+Before Test Method Finished:
+- FoliosDbTest::setUp
+Test Prepared (FoliosDbTest::test_update_and_delete_range)
+After Test Method Called (FoliosDbTest::tearDown)
+After Test Method Finished:
+- FoliosDbTest::tearDown
+Test Passed (FoliosDbTest::test_update_and_delete_range)
+Test Finished (FoliosDbTest::test_update_and_delete_range)
+Test Preparation Started (FoliosDbTest::test_store_caf_normalizes_keys)
+Before Test Method Called (FoliosDbTest::setUp)
+Before Test Method Finished:
+- FoliosDbTest::setUp
+Test Prepared (FoliosDbTest::test_store_caf_normalizes_keys)
+After Test Method Called (FoliosDbTest::tearDown)
+After Test Method Finished:
+- FoliosDbTest::tearDown
+Test Passed (FoliosDbTest::test_store_caf_normalizes_keys)
+Test Finished (FoliosDbTest::test_store_caf_normalizes_keys)
+Test Preparation Started (FoliosDbTest::test_overlaps_and_find_for_folio)
+Before Test Method Called (FoliosDbTest::setUp)
+Before Test Method Finished:
+- FoliosDbTest::setUp
+Test Prepared (FoliosDbTest::test_overlaps_and_find_for_folio)
+After Test Method Called (FoliosDbTest::tearDown)
+After Test Method Finished:
+- FoliosDbTest::tearDown
+Test Passed (FoliosDbTest::test_overlaps_and_find_for_folio)
+Test Finished (FoliosDbTest::test_overlaps_and_find_for_folio)
+Test Preparation Started (FoliosDbTest::test_purge_resets_store)
+Before Test Method Called (FoliosDbTest::setUp)
+Before Test Method Finished:
+- FoliosDbTest::setUp
+Test Prepared (FoliosDbTest::test_purge_resets_store)
+After Test Method Called (FoliosDbTest::tearDown)
+After Test Method Finished:
+- FoliosDbTest::tearDown
+Test Passed (FoliosDbTest::test_purge_resets_store)
+Test Finished (FoliosDbTest::test_purge_resets_store)
+Test Suite Finished (FoliosDbTest, 5 tests)
+Test Suite Started (LogDbPersistenceTest, 3 tests)
+Test Preparation Started (LogDbPersistenceTest::test_add_entry_and_get_pending_ids)
+Before Test Method Called (LogDbPersistenceTest::setUp)
+Before Test Method Finished:
+- LogDbPersistenceTest::setUp
+Test Prepared (LogDbPersistenceTest::test_add_entry_and_get_pending_ids)
+Test Passed (LogDbPersistenceTest::test_add_entry_and_get_pending_ids)
+Test Finished (LogDbPersistenceTest::test_add_entry_and_get_pending_ids)
+Test Preparation Started (LogDbPersistenceTest::test_get_logs_filters_by_status)
+Before Test Method Called (LogDbPersistenceTest::setUp)
+Before Test Method Finished:
+- LogDbPersistenceTest::setUp
+Test Prepared (LogDbPersistenceTest::test_get_logs_filters_by_status)
+Test Passed (LogDbPersistenceTest::test_get_logs_filters_by_status)
+Test Finished (LogDbPersistenceTest::test_get_logs_filters_by_status)
+Test Preparation Started (LogDbPersistenceTest::test_purge_clears_entries)
+Before Test Method Called (LogDbPersistenceTest::setUp)
+Before Test Method Finished:
+- LogDbPersistenceTest::setUp
+Test Prepared (LogDbPersistenceTest::test_purge_clears_entries)
+Test Passed (LogDbPersistenceTest::test_purge_clears_entries)
+Test Finished (LogDbPersistenceTest::test_purge_clears_entries)
+Test Suite Finished (LogDbPersistenceTest, 3 tests)
+Test Suite Started (QueueDbTest, 3 tests)
+Test Preparation Started (QueueDbTest::test_enqueue_and_fetch_jobs)
+Before Test Method Called (QueueDbTest::setUp)
+Before Test Method Finished:
+- QueueDbTest::setUp
+Test Prepared (QueueDbTest::test_enqueue_and_fetch_jobs)
+Test Passed (QueueDbTest::test_enqueue_and_fetch_jobs)
+Test Finished (QueueDbTest::test_enqueue_and_fetch_jobs)
+Test Preparation Started (QueueDbTest::test_attempts_and_delete)
+Before Test Method Called (QueueDbTest::setUp)
+Before Test Method Finished:
+- QueueDbTest::setUp
+Test Prepared (QueueDbTest::test_attempts_and_delete)
+Test Passed (QueueDbTest::test_attempts_and_delete)
+Test Finished (QueueDbTest::test_attempts_and_delete)
+Test Preparation Started (QueueDbTest::test_purge_resets_queue)
+Before Test Method Called (QueueDbTest::setUp)
+Before Test Method Finished:
+- QueueDbTest::setUp
+Test Prepared (QueueDbTest::test_purge_resets_queue)
+Test Passed (QueueDbTest::test_purge_resets_queue)
+Test Finished (QueueDbTest::test_purge_resets_queue)
+Test Suite Finished (QueueDbTest, 3 tests)
+Test Suite Started (XmlStorageTest, 2 tests)
+Test Preparation Started (XmlStorageTest::test_store_moves_file_and_protects_directory)
+Before Test Method Called (XmlStorageTest::setUp)
+Before Test Method Finished:
+- XmlStorageTest::setUp
+Test Prepared (XmlStorageTest::test_store_moves_file_and_protects_directory)
+After Test Method Called (XmlStorageTest::tearDown)
+After Test Method Finished:
+- XmlStorageTest::tearDown
+Test Passed (XmlStorageTest::test_store_moves_file_and_protects_directory)
+Test Finished (XmlStorageTest::test_store_moves_file_and_protects_directory)
+Test Preparation Started (XmlStorageTest::test_resolve_path_sanitizes_key)
+Before Test Method Called (XmlStorageTest::setUp)
+Before Test Method Finished:
+- XmlStorageTest::setUp
+Test Prepared (XmlStorageTest::test_resolve_path_sanitizes_key)
+After Test Method Called (XmlStorageTest::tearDown)
+After Test Method Finished:
+- XmlStorageTest::tearDown
+Test Passed (XmlStorageTest::test_resolve_path_sanitizes_key)
+Test Finished (XmlStorageTest::test_resolve_path_sanitizes_key)
+Test Suite Finished (XmlStorageTest, 2 tests)
+Test Suite Started (ApiFlowTest, 7 tests)
+Test Preparation Started (ApiFlowTest::test_send_dte_returns_track_id_on_success)
+Test Prepared (ApiFlowTest::test_send_dte_returns_track_id_on_success)
+Test Passed (ApiFlowTest::test_send_dte_returns_track_id_on_success)
+Test Finished (ApiFlowTest::test_send_dte_returns_track_id_on_success)
+Test Preparation Started (ApiFlowTest::test_send_dte_returns_error_on_rejection)
+Test Prepared (ApiFlowTest::test_send_dte_returns_error_on_rejection)
+Test Passed (ApiFlowTest::test_send_dte_returns_error_on_rejection)
+Test Finished (ApiFlowTest::test_send_dte_returns_error_on_rejection)
+Test Preparation Started (ApiFlowTest::test_send_dte_retries_and_succeeds)
+Test Prepared (ApiFlowTest::test_send_dte_retries_and_succeeds)
+Test Passed (ApiFlowTest::test_send_dte_retries_and_succeeds)
+Test Finished (ApiFlowTest::test_send_dte_retries_and_succeeds)
+Test Preparation Started (ApiFlowTest::test_send_libro_returns_track_id)
+Test Prepared (ApiFlowTest::test_send_libro_returns_track_id)
+Test Passed (ApiFlowTest::test_send_libro_returns_track_id)
+Test Finished (ApiFlowTest::test_send_libro_returns_track_id)
+Test Preparation Started (ApiFlowTest::test_send_libro_returns_error_on_http_failure)
+Test Prepared (ApiFlowTest::test_send_libro_returns_error_on_http_failure)
+Test Passed (ApiFlowTest::test_send_libro_returns_error_on_http_failure)
+Test Finished (ApiFlowTest::test_send_libro_returns_error_on_http_failure)
+Test Preparation Started (ApiFlowTest::test_get_dte_status_returns_status)
+Test Prepared (ApiFlowTest::test_get_dte_status_returns_status)
+Test Passed (ApiFlowTest::test_get_dte_status_returns_status)
+Test Finished (ApiFlowTest::test_get_dte_status_returns_status)
+Test Preparation Started (ApiFlowTest::test_custom_retry_limit)
+Test Prepared (ApiFlowTest::test_custom_retry_limit)
+Test Passed (ApiFlowTest::test_custom_retry_limit)
+Test Finished (ApiFlowTest::test_custom_retry_limit)
+Test Suite Finished (ApiFlowTest, 7 tests)
+Test Suite Started (ApiLibreDteWsTest, 3 tests)
+Test Preparation Started (ApiLibreDteWsTest::test_send_recibos_prefers_ws_and_maps_trackid)
+Before Test Method Called (ApiLibreDteWsTest::setUp)
+Before Test Method Finished:
+- ApiLibreDteWsTest::setUp
+Test Prepared (ApiLibreDteWsTest::test_send_recibos_prefers_ws_and_maps_trackid)
+Test Passed (ApiLibreDteWsTest::test_send_recibos_prefers_ws_and_maps_trackid)
+Test Finished (ApiLibreDteWsTest::test_send_recibos_prefers_ws_and_maps_trackid)
+Test Preparation Started (ApiLibreDteWsTest::test_get_status_prefers_ws_and_maps_status)
+Before Test Method Called (ApiLibreDteWsTest::setUp)
+Before Test Method Finished:
+- ApiLibreDteWsTest::setUp
+Test Prepared (ApiLibreDteWsTest::test_get_status_prefers_ws_and_maps_status)
+Test Passed (ApiLibreDteWsTest::test_get_status_prefers_ws_and_maps_status)
+Test Finished (ApiLibreDteWsTest::test_get_status_prefers_ws_and_maps_status)
+Test Preparation Started (ApiLibreDteWsTest::test_fallback_to_http_when_ws_disabled)
+Before Test Method Called (ApiLibreDteWsTest::setUp)
+Before Test Method Finished:
+- ApiLibreDteWsTest::setUp
+Test Prepared (ApiLibreDteWsTest::test_fallback_to_http_when_ws_disabled)
+Test Passed (ApiLibreDteWsTest::test_fallback_to_http_when_ws_disabled)
+Test Finished (ApiLibreDteWsTest::test_fallback_to_http_when_ws_disabled)
+Test Suite Finished (ApiLibreDteWsTest, 3 tests)
+Test Suite Started (EndpointsTest, 4 tests)
+Test Preparation Started (EndpointsTest::test_get_boleta_html_migrates_file_to_secure_directory)
+Before Test Method Called (EndpointsTest::setUp)
+Before Test Method Finished:
+- EndpointsTest::setUp
+Test Prepared (EndpointsTest::test_get_boleta_html_migrates_file_to_secure_directory)
+Test Passed (EndpointsTest::test_get_boleta_html_migrates_file_to_secure_directory)
+Test Finished (EndpointsTest::test_get_boleta_html_migrates_file_to_secure_directory)
+Test Preparation Started (EndpointsTest::test_render_boleta_denies_anonymous_request_with_403)
+Before Test Method Called (EndpointsTest::setUp)
+Before Test Method Finished:
+- EndpointsTest::setUp
+Test Prepared (EndpointsTest::test_render_boleta_denies_anonymous_request_with_403)
+Test Passed (EndpointsTest::test_render_boleta_denies_anonymous_request_with_403)
+Test Finished (EndpointsTest::test_render_boleta_denies_anonymous_request_with_403)
+Test Preparation Started (EndpointsTest::test_render_boleta_404_when_missing_for_authorized_user)
+Before Test Method Called (EndpointsTest::setUp)
+Before Test Method Finished:
+- EndpointsTest::setUp
+Test Prepared (EndpointsTest::test_render_boleta_404_when_missing_for_authorized_user)
+Test Passed (EndpointsTest::test_render_boleta_404_when_missing_for_authorized_user)
+Test Finished (EndpointsTest::test_render_boleta_404_when_missing_for_authorized_user)
+Test Preparation Started (EndpointsTest::test_render_boleta_allows_privileged_user)
+Before Test Method Called (EndpointsTest::setUp)
+Before Test Method Finished:
+- EndpointsTest::setUp
+Test Prepared (EndpointsTest::test_render_boleta_allows_privileged_user)
+Test Passed (EndpointsTest::test_render_boleta_allows_privileged_user)
+Test Finished (EndpointsTest::test_render_boleta_allows_privileged_user)
+Test Suite Finished (EndpointsTest, 4 tests)
+Test Suite Started (SignedUrlServiceTest, 2 tests)
+Test Preparation Started (SignedUrlServiceTest::test_generate_and_validate_signed_url)
+Before Test Method Called (SignedUrlServiceTest::setUp)
+Before Test Method Finished:
+- SignedUrlServiceTest::setUp
+Test Prepared (SignedUrlServiceTest::test_generate_and_validate_signed_url)
+Test Passed (SignedUrlServiceTest::test_generate_and_validate_signed_url)
+Test Finished (SignedUrlServiceTest::test_generate_and_validate_signed_url)
+Test Preparation Started (SignedUrlServiceTest::test_validate_token_handles_invalid_and_expired_entries)
+Before Test Method Called (SignedUrlServiceTest::setUp)
+Before Test Method Finished:
+- SignedUrlServiceTest::setUp
+Test Prepared (SignedUrlServiceTest::test_validate_token_handles_invalid_and_expired_entries)
+Test Passed (SignedUrlServiceTest::test_validate_token_handles_invalid_and_expired_entries)
+Test Finished (SignedUrlServiceTest::test_validate_token_handles_invalid_and_expired_entries)
+Test Suite Finished (SignedUrlServiceTest, 2 tests)
+Test Suite Started (SettingsEncryptionTest, 1 test)
+Test Preparation Started (SettingsEncryptionTest::test_encrypt_and_decrypt_roundtrip)
+Test Prepared (SettingsEncryptionTest::test_encrypt_and_decrypt_roundtrip)
+Test Passed (SettingsEncryptionTest::test_encrypt_and_decrypt_roundtrip)
+Test Finished (SettingsEncryptionTest::test_encrypt_and_decrypt_roundtrip)
+Test Suite Finished (SettingsEncryptionTest, 1 test)
+Test Suite Started (SettingsMigrationTest, 1 test)
+Child Process Started
+Test Preparation Started (SettingsMigrationTest::test_migrate_options_and_logs)
+Before Test Method Called (SettingsMigrationTest::setUp)
+Before Test Method Finished:
+- SettingsMigrationTest::setUp
+Test Prepared (SettingsMigrationTest::test_migrate_options_and_logs)
+Test Passed (SettingsMigrationTest::test_migrate_options_and_logs)
+Test Finished (SettingsMigrationTest::test_migrate_options_and_logs)
+Child Process Finished
+Test Suite Finished (SettingsMigrationTest, 1 test)
+Test Suite Started (SettingsTest, 4 tests)
+Test Preparation Started (SettingsTest::test_normalize_environment_and_option_keys)
+Before Test Method Called (SettingsTest::setUp)
+Before Test Method Finished:
+- SettingsTest::setUp
+Test Prepared (SettingsTest::test_normalize_environment_and_option_keys)
+Test Passed (SettingsTest::test_normalize_environment_and_option_keys)
+Test Finished (SettingsTest::test_normalize_environment_and_option_keys)
+Test Preparation Started (SettingsTest::test_get_and_update_last_folio_value_uses_wordpress_options)
+Before Test Method Called (SettingsTest::setUp)
+Before Test Method Finished:
+- SettingsTest::setUp
+Test Prepared (SettingsTest::test_get_and_update_last_folio_value_uses_wordpress_options)
+Test Passed (SettingsTest::test_get_and_update_last_folio_value_uses_wordpress_options)
+Test Finished (SettingsTest::test_get_and_update_last_folio_value_uses_wordpress_options)
+Test Preparation Started (SettingsTest::test_compare_and_update_last_folio_value)
+Before Test Method Called (SettingsTest::setUp)
+Before Test Method Finished:
+- SettingsTest::setUp
+Test Prepared (SettingsTest::test_compare_and_update_last_folio_value)
+Test Passed (SettingsTest::test_compare_and_update_last_folio_value)
+Test Finished (SettingsTest::test_compare_and_update_last_folio_value)
+Test Preparation Started (SettingsTest::test_schedule_option_key_and_preview_only_flag)
+Before Test Method Called (SettingsTest::setUp)
+Before Test Method Finished:
+- SettingsTest::setUp
+Test Prepared (SettingsTest::test_schedule_option_key_and_preview_only_flag)
+Test Passed (SettingsTest::test_schedule_option_key_and_preview_only_flag)
+Test Finished (SettingsTest::test_schedule_option_key_and_preview_only_flag)
+Test Suite Finished (SettingsTest, 4 tests)
+Test Suite Started (TokenManagerTest, 1 test)
+Test Preparation Started (TokenManagerTest::test_caches_token_per_environment)
+Test Prepared (TokenManagerTest::test_caches_token_per_environment)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (TokenManagerTest::test_caches_token_per_environment)
+Test Finished (TokenManagerTest::test_caches_token_per_environment)
+Test Suite Finished (TokenManagerTest, 1 test)
+Test Suite Started (WooCommerceDteRepositoryTest, 1 test)
+Test Preparation Started (WooCommerceDteRepositoryTest::test_save_stores_dte_data_in_meta)
+Before Test Method Called (WooCommerceDteRepositoryTest::setUp)
+Before Test Method Finished:
+- WooCommerceDteRepositoryTest::setUp
+Test Prepared (WooCommerceDteRepositoryTest::test_save_stores_dte_data_in_meta)
+Test Passed (WooCommerceDteRepositoryTest::test_save_stores_dte_data_in_meta)
+Test Finished (WooCommerceDteRepositoryTest::test_save_stores_dte_data_in_meta)
+Test Suite Finished (WooCommerceDteRepositoryTest, 1 test)
+Test Suite Started (WooIntegrationTest, 6 tests)
+Test Preparation Started (WooIntegrationTest::test_generates_dte_and_saves_track_id)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_generates_dte_and_saves_track_id)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_generates_dte_and_saves_track_id)
+Test Finished (WooIntegrationTest::test_generates_dte_and_saves_track_id)
+Test Preparation Started (WooIntegrationTest::test_preview_mode_skips_sii_submission)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_preview_mode_skips_sii_submission)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_preview_mode_skips_sii_submission)
+Test Finished (WooIntegrationTest::test_preview_mode_skips_sii_submission)
+Test Preparation Started (WooIntegrationTest::test_defaults_to_boleta_when_meta_missing)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_defaults_to_boleta_when_meta_missing)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_defaults_to_boleta_when_meta_missing)
+Test Finished (WooIntegrationTest::test_defaults_to_boleta_when_meta_missing)
+Test Preparation Started (WooIntegrationTest::test_defaults_to_first_enabled_type_when_boleta_disabled)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_defaults_to_first_enabled_type_when_boleta_disabled)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_defaults_to_first_enabled_type_when_boleta_disabled)
+Test Finished (WooIntegrationTest::test_defaults_to_first_enabled_type_when_boleta_disabled)
+Test Preparation Started (WooIntegrationTest::test_renders_pdf_link_in_my_account)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_renders_pdf_link_in_my_account)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_renders_pdf_link_in_my_account)
+Test Finished (WooIntegrationTest::test_renders_pdf_link_in_my_account)
+Test Preparation Started (WooIntegrationTest::test_manual_credit_note_uses_partial_refund_data)
+Before Test Method Called (WooIntegrationTest::setUp)
+Before Test Method Finished:
+- WooIntegrationTest::setUp
+Test Prepared (WooIntegrationTest::test_manual_credit_note_uses_partial_refund_data)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Test Passed (WooIntegrationTest::test_manual_credit_note_uses_partial_refund_data)
+Test Finished (WooIntegrationTest::test_manual_credit_note_uses_partial_refund_data)
+Test Suite Finished (WooIntegrationTest, 6 tests)
+Test Suite Started (WooTest, 5 tests)
+Test Preparation Started (WooTest::test_prepare_order_data_uses_net_line_totals)
+Test Prepared (WooTest::test_prepare_order_data_uses_net_line_totals)
+Test Passed (WooTest::test_prepare_order_data_uses_net_line_totals)
+Test Finished (WooTest::test_prepare_order_data_uses_net_line_totals)
+Test Preparation Started (WooTest::test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross)
+Test Prepared (WooTest::test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross)
+Test Passed (WooTest::test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross)
+Test Finished (WooTest::test_prepare_order_data_marks_tax_inclusive_line_totals_as_gross)
+Test Preparation Started (WooTest::test_prepare_order_data_does_not_include_global_discount_when_totals_are_net)
+Test Prepared (WooTest::test_prepare_order_data_does_not_include_global_discount_when_totals_are_net)
+Test Passed (WooTest::test_prepare_order_data_does_not_include_global_discount_when_totals_are_net)
+Test Finished (WooTest::test_prepare_order_data_does_not_include_global_discount_when_totals_are_net)
+Test Preparation Started (WooTest::test_prepare_order_data_uses_refund_totals_without_global_discount)
+Test Prepared (WooTest::test_prepare_order_data_uses_refund_totals_without_global_discount)
+Test Passed (WooTest::test_prepare_order_data_uses_refund_totals_without_global_discount)
+Test Finished (WooTest::test_prepare_order_data_uses_refund_totals_without_global_discount)
+Test Preparation Started (WooTest::test_build_refund_items_uses_net_amounts)
+Test Prepared (WooTest::test_build_refund_items_uses_net_amounts)
+Test Passed (WooTest::test_build_refund_items_uses_net_amounts)
+Test Finished (WooTest::test_build_refund_items_uses_net_amounts)
+Test Suite Finished (WooTest, 5 tests)
+Test Suite Started (AdminPagesTest, 2 tests)
+Test Preparation Started (AdminPagesTest::test_generate_page_renders_success_message)
+Before Test Method Called (AdminPagesTest::setUp)
+Before Test Method Finished:
+- AdminPagesTest::setUp
+Test Prepared (AdminPagesTest::test_generate_page_renders_success_message)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (AdminPagesTest::test_generate_page_renders_success_message)
+Test Printed Unexpected Output
+/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php:84:
+array(7) {
+  'queued' =>
+  bool(true)
+  'queued_track_id' =>
+  string(19) "QUEUED-1760496246-1"
+  'pdf_url' =>
+  string(165) "https://example.com/admin-ajax.php?action=sii_boleta_dte_view_pdf&key=b985d259686c2f45925a866ed5f93bb7&_wpnonce=nonce&manual=1&token=893e4a86ca555c4f109ce0a9d475b8b6"
+  'message' =>
+  string(88) "El documento fue encolado para su procesamiento. Aparecerá en "DTE recientes" en breve."
+  'notice_type' =>
+  string(4) "info"
+  'tipo' =>
+  int(39)
+  'folio' =>
+  int(1)
+}
+/home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Integration/AdminPagesTest.php:107:
+string(59146) "							<div class="wrap sii-admin-surface sii-generate-dte">												<h1></h1>
+									<p class="sii-generate-dte-subtitle"></p>
+						<div id="sii-dte-modal" class="sii-dte-modal" style="display:none"
+												>
+								<div class="sii-dte-modal-backdrop"></div>
+								<div class="sii-dte-modal-content">
+										<button type="button" class="sii-dte-modal-close" aria-label="Close preview">&times;</button>
+										<iframe id="sii-dte-modal-frame" class="sii-dte-modal-frame" src="" title="D"...
+
+Test Finished (AdminPagesTest::test_generate_page_renders_success_message)
+Test Preparation Started (AdminPagesTest::test_control_panel_process_invokes_processor)
+Before Test Method Called (AdminPagesTest::setUp)
+Before Test Method Finished:
+- AdminPagesTest::setUp
+Test Prepared (AdminPagesTest::test_control_panel_process_invokes_processor)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Application\RvdManager)
+Mock Object Created (Sii\BoletaDte\Application\LibroBoletas)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Test Passed (AdminPagesTest::test_control_panel_process_invokes_processor)
+Test Finished (AdminPagesTest::test_control_panel_process_invokes_processor)
+Test Suite Finished (AdminPagesTest, 2 tests)
+Test Suite Started (AjaxValidateEnvioBoletaTest, 1 test)
+Test Preparation Started (AjaxValidateEnvioBoletaTest::test_envio_boleta_uses_envio_boleta_schema)
+Test Prepared (AjaxValidateEnvioBoletaTest::test_envio_boleta_uses_envio_boleta_schema)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Plugin)
+Test Passed (AjaxValidateEnvioBoletaTest::test_envio_boleta_uses_envio_boleta_schema)
+Test Finished (AjaxValidateEnvioBoletaTest::test_envio_boleta_uses_envio_boleta_schema)
+Test Suite Finished (AjaxValidateEnvioBoletaTest, 1 test)
+Test Suite Started (AjaxValidateEnvioTest, 2 tests)
+Test Preparation Started (AjaxValidateEnvioTest::test_validate_envio_success)
+Test Prepared (AjaxValidateEnvioTest::test_validate_envio_success)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Plugin)
+Test Passed (AjaxValidateEnvioTest::test_validate_envio_success)
+Test Finished (AjaxValidateEnvioTest::test_validate_envio_success)
+Test Preparation Started (AjaxValidateEnvioTest::test_validate_envio_error_with_invalid_xml)
+Test Prepared (AjaxValidateEnvioTest::test_validate_envio_error_with_invalid_xml)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Plugin)
+Test Passed (AjaxValidateEnvioTest::test_validate_envio_error_with_invalid_xml)
+Test Finished (AjaxValidateEnvioTest::test_validate_envio_error_with_invalid_xml)
+Test Suite Finished (AjaxValidateEnvioTest, 2 tests)
+Test Suite Started (AjaxViewPdfTest, 2 tests)
+Test Preparation Started (AjaxViewPdfTest::test_download_fails_with_invalid_nonce)
+Before Test Method Called (AjaxViewPdfTest::setUp)
+Before Test Method Finished:
+- AjaxViewPdfTest::setUp
+Test Prepared (AjaxViewPdfTest::test_download_fails_with_invalid_nonce)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Plugin)
+After Test Method Called (AjaxViewPdfTest::tearDown)
+After Test Method Finished:
+- AjaxViewPdfTest::tearDown
+Test Passed (AjaxViewPdfTest::test_download_fails_with_invalid_nonce)
+Test Finished (AjaxViewPdfTest::test_download_fails_with_invalid_nonce)
+Test Preparation Started (AjaxViewPdfTest::test_authorized_user_can_download_pdf)
+Before Test Method Called (AjaxViewPdfTest::setUp)
+Before Test Method Finished:
+- AjaxViewPdfTest::setUp
+Test Prepared (AjaxViewPdfTest::test_authorized_user_can_download_pdf)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Plugin)
+After Test Method Called (AjaxViewPdfTest::tearDown)
+After Test Method Finished:
+- AjaxViewPdfTest::tearDown
+Test Passed (AjaxViewPdfTest::test_authorized_user_can_download_pdf)
+Test Finished (AjaxViewPdfTest::test_authorized_user_can_download_pdf)
+Test Suite Finished (AjaxViewPdfTest, 2 tests)
+Test Suite Started (ControlPanelPageTest, 4 tests)
+Test Preparation Started (ControlPanelPageTest::test_render_shows_queue_items)
+Before Test Method Called (ControlPanelPageTest::setUp)
+Before Test Method Finished:
+- ControlPanelPageTest::setUp
+Test Prepared (ControlPanelPageTest::test_render_shows_queue_items)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Application\RvdManager)
+Mock Object Created (Sii\BoletaDte\Application\LibroBoletas)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Test Passed (ControlPanelPageTest::test_render_shows_queue_items)
+Test Finished (ControlPanelPageTest::test_render_shows_queue_items)
+Test Preparation Started (ControlPanelPageTest::test_render_displays_logs)
+Before Test Method Called (ControlPanelPageTest::setUp)
+Before Test Method Finished:
+- ControlPanelPageTest::setUp
+Test Prepared (ControlPanelPageTest::test_render_displays_logs)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Application\RvdManager)
+Mock Object Created (Sii\BoletaDte\Application\LibroBoletas)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Test Passed (ControlPanelPageTest::test_render_displays_logs)
+Test Finished (ControlPanelPageTest::test_render_displays_logs)
+Test Preparation Started (ControlPanelPageTest::test_cancel_removes_job)
+Before Test Method Called (ControlPanelPageTest::setUp)
+Before Test Method Finished:
+- ControlPanelPageTest::setUp
+Test Prepared (ControlPanelPageTest::test_cancel_removes_job)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Application\RvdManager)
+Mock Object Created (Sii\BoletaDte\Application\LibroBoletas)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Test Passed (ControlPanelPageTest::test_cancel_removes_job)
+Test Finished (ControlPanelPageTest::test_cancel_removes_job)
+Test Preparation Started (ControlPanelPageTest::test_requeue_resets_attempts)
+Before Test Method Called (ControlPanelPageTest::setUp)
+Before Test Method Finished:
+- ControlPanelPageTest::setUp
+Test Prepared (ControlPanelPageTest::test_requeue_resets_attempts)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Mock Object Created (Sii\BoletaDte\Application\RvdManager)
+Mock Object Created (Sii\BoletaDte\Application\LibroBoletas)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Test Passed (ControlPanelPageTest::test_requeue_resets_attempts)
+Test Finished (ControlPanelPageTest::test_requeue_resets_attempts)
+Test Suite Finished (ControlPanelPageTest, 4 tests)
+Test Suite Started (GenerateDtePageTest, 10 tests)
+Test Preparation Started (GenerateDtePageTest::test_process_post_generates_dte)
+Test Prepared (GenerateDtePageTest::test_process_post_generates_dte)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Triggered PHP Warning (GenerateDtePageTest::test_process_post_generates_dte) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php:151
+Undefined array key "pdf"
+Test Triggered PHP Warning (GenerateDtePageTest::test_process_post_generates_dte) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php:151
+Undefined array key "pdf"
+Test Passed (GenerateDtePageTest::test_process_post_generates_dte)
+Test Finished (GenerateDtePageTest::test_process_post_generates_dte)
+Test Preparation Started (GenerateDtePageTest::test_process_post_handles_stale_folio_error)
+Test Prepared (GenerateDtePageTest::test_process_post_handles_stale_folio_error)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_process_post_handles_stale_folio_error)
+Test Finished (GenerateDtePageTest::test_process_post_handles_stale_folio_error)
+Test Preparation Started (GenerateDtePageTest::test_process_post_does_not_fetch_folio_when_xml_generation_fails)
+Test Prepared (GenerateDtePageTest::test_process_post_does_not_fetch_folio_when_xml_generation_fails)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_process_post_does_not_fetch_folio_when_xml_generation_fails)
+Test Finished (GenerateDtePageTest::test_process_post_does_not_fetch_folio_when_xml_generation_fails)
+Test Preparation Started (GenerateDtePageTest::test_process_post_invalid_nonce)
+Test Prepared (GenerateDtePageTest::test_process_post_invalid_nonce)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_process_post_invalid_nonce)
+Test Finished (GenerateDtePageTest::test_process_post_invalid_nonce)
+Test Preparation Started (GenerateDtePageTest::test_preview_pdf_uses_descriptive_filename)
+Test Prepared (GenerateDtePageTest::test_preview_pdf_uses_descriptive_filename)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_preview_pdf_uses_descriptive_filename)
+Test Finished (GenerateDtePageTest::test_preview_pdf_uses_descriptive_filename)
+Test Preparation Started (GenerateDtePageTest::test_process_post_uses_default_emitter_giro)
+Test Prepared (GenerateDtePageTest::test_process_post_uses_default_emitter_giro)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_process_post_uses_default_emitter_giro)
+Test Finished (GenerateDtePageTest::test_process_post_uses_default_emitter_giro)
+Test Preparation Started (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable)
+Test Prepared (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Triggered PHP Warning (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php:496
+Undefined array key "pdf"
+Test Triggered PHP Warning (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable) in /home/crodriguez/code/csneaits/sii-boleta-dte-source/tests/Presentation/GenerateDtePageTest.php:496
+Undefined array key "pdf"
+Test Passed (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable)
+Test Finished (GenerateDtePageTest::test_process_post_queues_when_sii_unavailable)
+Test Preparation Started (GenerateDtePageTest::test_process_post_dev_simulated_error_queues_document)
+Test Prepared (GenerateDtePageTest::test_process_post_dev_simulated_error_queues_document)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_process_post_dev_simulated_error_queues_document)
+Test Finished (GenerateDtePageTest::test_process_post_dev_simulated_error_queues_document)
+Test Preparation Started (GenerateDtePageTest::test_should_queue_for_error_simulated_error)
+Test Prepared (GenerateDtePageTest::test_should_queue_for_error_simulated_error)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_should_queue_for_error_simulated_error)
+Test Finished (GenerateDtePageTest::test_should_queue_for_error_simulated_error)
+Test Preparation Started (GenerateDtePageTest::test_resolve_track_id_from_error_data)
+Test Prepared (GenerateDtePageTest::test_resolve_track_id_from_error_data)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\TokenManager)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Rest\Api)
+Mock Object Created (Sii\BoletaDte\Domain\DteEngine)
+Mock Object Created (Sii\BoletaDte\Infrastructure\Engine\PdfGenerator)
+Mock Object Created (Sii\BoletaDte\Application\FolioManager)
+Test Passed (GenerateDtePageTest::test_resolve_track_id_from_error_data)
+Test Finished (GenerateDtePageTest::test_resolve_track_id_from_error_data)
+Test Suite Finished (GenerateDtePageTest, 10 tests)
+Test Suite Started (LogsPageTest, 1 test)
+Test Preparation Started (LogsPageTest::test_renders_table_with_entries)
+Test Prepared (LogsPageTest::test_renders_table_with_entries)
+Test Passed (LogsPageTest::test_renders_table_with_entries)
+Test Finished (LogsPageTest::test_renders_table_with_entries)
+Test Suite Finished (LogsPageTest, 1 test)
+Test Suite Started (SettingsPageTest, 4 tests)
+Test Preparation Started (SettingsPageTest::test_render_outputs_field)
+Test Prepared (SettingsPageTest::test_render_outputs_field)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (SettingsPageTest::test_render_outputs_field)
+Test Finished (SettingsPageTest::test_render_outputs_field)
+Test Preparation Started (SettingsPageTest::test_sanitize_settings)
+Test Prepared (SettingsPageTest::test_sanitize_settings)
+Test Passed (SettingsPageTest::test_sanitize_settings)
+Test Finished (SettingsPageTest::test_sanitize_settings)
+Test Preparation Started (SettingsPageTest::test_sanitize_settings_with_only_single_giro)
+Test Prepared (SettingsPageTest::test_sanitize_settings_with_only_single_giro)
+Test Passed (SettingsPageTest::test_sanitize_settings_with_only_single_giro)
+Test Finished (SettingsPageTest::test_sanitize_settings_with_only_single_giro)
+Test Preparation Started (SettingsPageTest::test_sanitize_settings_resolves_relative_cert_path)
+Test Prepared (SettingsPageTest::test_sanitize_settings_resolves_relative_cert_path)
+Test Passed (SettingsPageTest::test_sanitize_settings_resolves_relative_cert_path)
+Test Finished (SettingsPageTest::test_sanitize_settings_resolves_relative_cert_path)
+Test Suite Finished (SettingsPageTest, 4 tests)
+Test Suite Started (WooCheckoutTest, 4 tests)
+Test Preparation Started (WooCheckoutTest::test_field_renders)
+Before Test Method Called (WooCheckoutTest::setUp)
+Before Test Method Finished:
+- WooCheckoutTest::setUp
+Test Prepared (WooCheckoutTest::test_field_renders)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (WooCheckoutTest::test_field_renders)
+Test Finished (WooCheckoutTest::test_field_renders)
+Test Preparation Started (WooCheckoutTest::test_register_adds_validation_hook)
+Before Test Method Called (WooCheckoutTest::setUp)
+Before Test Method Finished:
+- WooCheckoutTest::setUp
+Test Prepared (WooCheckoutTest::test_register_adds_validation_hook)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (WooCheckoutTest::test_register_adds_validation_hook)
+Test Finished (WooCheckoutTest::test_register_adds_validation_hook)
+Test Preparation Started (WooCheckoutTest::test_validate_fields_rejects_invalid_rut)
+Before Test Method Called (WooCheckoutTest::setUp)
+Before Test Method Finished:
+- WooCheckoutTest::setUp
+Test Prepared (WooCheckoutTest::test_validate_fields_rejects_invalid_rut)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (WooCheckoutTest::test_validate_fields_rejects_invalid_rut)
+Test Finished (WooCheckoutTest::test_validate_fields_rejects_invalid_rut)
+Test Preparation Started (WooCheckoutTest::test_validate_fields_formats_valid_rut)
+Before Test Method Called (WooCheckoutTest::setUp)
+Before Test Method Finished:
+- WooCheckoutTest::setUp
+Test Prepared (WooCheckoutTest::test_validate_fields_formats_valid_rut)
+Mock Object Created (Sii\BoletaDte\Infrastructure\WordPress\Settings)
+Test Passed (WooCheckoutTest::test_validate_fields_formats_valid_rut)
+Test Finished (WooCheckoutTest::test_validate_fields_formats_valid_rut)
+Test Suite Finished (WooCheckoutTest, 4 tests)
+Test Suite Started (LoggerTest, 1 test)
+Test Preparation Started (LoggerTest::test_info_creates_log_file)
+Before Test Method Called (LoggerTest::setUp)
+Before Test Method Finished:
+- LoggerTest::setUp
+Test Prepared (LoggerTest::test_info_creates_log_file)
+Test Passed (LoggerTest::test_info_creates_log_file)
+Test Finished (LoggerTest::test_info_creates_log_file)
+Test Suite Finished (LoggerTest, 1 test)
+Test Suite Finished (Plugin Tests, 155 tests)
+Test Suite Finished (/home/crodriguez/code/csneaits/sii-boleta-dte-source/phpunit.xml, 155 tests)
+Test Runner Execution Finished
+Test Runner Finished
+PHPUnit Finished (Shell Exit Code: 0)

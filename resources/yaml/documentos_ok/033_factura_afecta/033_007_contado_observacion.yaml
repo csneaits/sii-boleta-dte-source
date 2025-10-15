@@ -1,0 +1,28 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+    # FmaPago: Forma de pago - Largo máx: 1 - Tipo: NÚM.
+    FmaPago: ''
+    # TermPagoCdg: Términos del Pago/glosa. Describe las condiciones del pago
+    #              del documento - Largo máx: 3 - Tipo: ALFA.
+    TermPagoGlosa: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

@@ -1,0 +1,407 @@
+.sii-settings-wizard {
+    position: relative;
+    padding: 1.75rem 1.6rem 2.2rem;
+    border-radius: 20px;
+    background: linear-gradient(140deg, #f5f7ff 0%, #ecfdfd 100%);
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.14);
+    overflow: hidden;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.sii-settings-wizard::before,
+.sii-settings-wizard::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.sii-settings-wizard::before {
+    inset: -110px auto auto -150px;
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
+}
+
+.sii-settings-wizard::after {
+    inset: auto -120px -160px auto;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 75%);
+}
+
+.sii-settings-wizard h1 {
+    margin: 0 0 0.55rem;
+    position: relative;
+    z-index: 1;
+    font-size: 1.85rem;
+    color: #0f172a;
+}
+
+.sii-settings-subtitle {
+    margin: 0 0 1.4rem;
+    font-size: 0.97rem;
+    color: #334155;
+    position: relative;
+    z-index: 1;
+    max-width: 660px;
+}
+
+.sii-settings-layout {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 1.3rem;
+    align-items: start;
+}
+
+.sii-settings-card {
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 16px;
+    padding: 1.6rem 1.45rem 1.8rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(226, 232, 240, 0.65);
+    backdrop-filter: blur(6px);
+}
+
+.sii-settings-form {
+    margin-top: 1.4rem;
+}
+
+.sii-settings-steps {
+    counter-reset: sii-settings-step;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sii-settings-steps li {
+    counter-increment: sii-settings-step;
+    flex: 1 1 180px;
+    min-width: 160px;
+}
+
+.sii-settings-step-button {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1f2937;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    text-align: left;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.sii-settings-step-button::before {
+    content: counter(sii-settings-step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.sii-settings-step-button:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.65);
+    outline-offset: 2px;
+}
+
+.sii-settings-step-title {
+    flex: 1 1 auto;
+    line-height: 1.3;
+}
+
+.sii-settings-steps li.is-active .sii-settings-step-button {
+    border-color: rgba(37, 99, 235, 0.6);
+    background: rgba(59, 130, 246, 0.14);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    color: #0f172a;
+}
+
+.sii-settings-steps li.is-active .sii-settings-step-button::before {
+    background: #2563eb;
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.sii-settings-steps li.is-complete .sii-settings-step-button {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.12);
+    color: #0f5132;
+}
+
+.sii-settings-steps li.is-complete .sii-settings-step-button::before {
+    content: "\2713";
+    background: #059669;
+    color: #ffffff;
+}
+
+.sii-settings-step {
+    margin-bottom: 1.6rem;
+    border-radius: 14px;
+    border: 1px solid rgba(226, 232, 240, 0.65);
+    padding: 1.35rem 1.4rem 1.55rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sii-settings-step.is-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.sii-settings-step:not(.is-active) {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.sii-settings-step[hidden] {
+    display: none !important;
+}
+
+.sii-settings-step-header {
+    margin-bottom: 1.15rem;
+}
+
+.sii-settings-step-heading {
+    margin: 0 0 0.4rem;
+    font-size: 1.35rem;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.sii-settings-step-description {
+    margin: 0;
+    font-size: 0.92rem;
+    color: #475569;
+}
+
+.sii-settings-section {
+    margin-bottom: 1.35rem;
+}
+
+.sii-settings-section-title {
+    margin: 0 0 0.8rem;
+    font-size: 1.05rem;
+    color: #1e293b;
+}
+
+.sii-settings-form table.form-table {
+    margin-top: 0;
+}
+
+.sii-settings-form table.form-table th {
+    width: 220px;
+}
+
+.sii-settings-form table.form-table td,
+.sii-settings-form table.form-table th {
+    padding: 10px 10px 10px 0;
+}
+
+.sii-settings-form input[type="text"],
+.sii-settings-form input[type="password"],
+.sii-settings-form select,
+.sii-settings-form textarea {
+    max-width: 400px;
+}
+
+input.sii-input-wide[type="text"] {
+    width: clamp(28rem, 60vw, 40rem);
+    max-width: clamp(28rem, 60vw, 40rem);
+}
+
+.sii-dte-cert-row,
+.sii-dte-caf-row,
+.sii-dte-giro-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.sii-dte-cert-row input[type="text"],
+.sii-dte-caf-row input[type="text"],
+.sii-dte-giro-row input[type="text"] {
+    flex: 1;
+}
+
+.sii-dte-giro-row .sii-dte-remove-giro,
+.sii-dte-caf-row .sii-dte-remove-caf {
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 0 8px;
+    cursor: pointer;
+}
+
+.sii-dte-giro-row .sii-dte-remove-giro:hover,
+.sii-dte-caf-row .sii-dte-remove-caf:hover {
+    background: #d32f2f;
+}
+
+.sii-dte-logo-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#sii-dte-logo-preview {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid #ccd0d4;
+    padding: 4px;
+    background: #fff;
+    max-width: 200px;
+    max-height: 120px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+.sii-dte-logo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.sii-dte-logo-actions .button {
+    margin: 0;
+}
+
+.sii-step-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.sii-step-navigation .button {
+    min-width: 140px;
+    min-height: 42px;
+    font-weight: 600;
+}
+
+.sii-step-navigation .button.button-primary {
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+}
+
+.sii-step-navigation .button:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.65);
+    outline-offset: 2px;
+}
+
+.sii-settings-summary {
+    position: sticky;
+    top: 20px;
+}
+
+.sii-settings-summary-card {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 16px;
+    padding: 1.4rem 1.3rem;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.sii-settings-summary-title {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: #0f172a;
+}
+
+.sii-settings-checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.sii-settings-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: #1f2937;
+}
+
+.sii-settings-status-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.16);
+    color: #047857;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.sii-settings-status-icon.is-bad {
+    background: rgba(248, 113, 113, 0.18);
+    color: #b91c1c;
+}
+
+@media (max-width: 1080px) {
+    .sii-settings-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sii-settings-summary {
+        position: static;
+    }
+}
+
+@media (max-width: 960px) {
+    .sii-settings-steps {
+        flex-direction: column;
+    }
+
+    .sii-settings-steps li {
+        flex: none;
+    }
+
+    .sii-settings-form table.form-table th {
+        width: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .sii-settings-step {
+        padding: 1.15rem 1rem 1.35rem;
+    }
+
+    .sii-settings-step-heading {
+        font-size: 1.2rem;
+    }
+
+    .sii-settings-section-title {
+        font-size: 1rem;
+    }
+}

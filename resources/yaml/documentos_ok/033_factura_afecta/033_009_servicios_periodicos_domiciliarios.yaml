@@ -1,0 +1,28 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+    # IndServicio: Código 1 corresponde Factura de servicios periódicos
+    #              domiciliarios.
+    IndServicio: ''
+    FchVenc: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    UnmdRef: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

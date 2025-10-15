@@ -1,0 +1,39 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 110
+    Folio: ''
+    IndServicio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    Extranjero:
+      Nacionalidad: ''
+    GiroRecep: ''
+    DirRecep: ''
+  Totales:
+    TpoMoneda: ''
+  # OtraMoneda: Área otra moneda. Incluye información de tipo de moneda y
+  #             tipo de cambio.
+  OtraMoneda:
+    # TpoMoneda: Tipo de moneda en que se registra la transacción de
+    #            exportafción. - Largo máx. 15 - Tipo: ALFA.
+    TpoMoneda: ''
+    # TpoCambio: Tipo de cambio. - Largo máx: 10 - Decimales: 4 - Tipo: NÚM.
+    TpoCambio: ''
+Detalle:
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

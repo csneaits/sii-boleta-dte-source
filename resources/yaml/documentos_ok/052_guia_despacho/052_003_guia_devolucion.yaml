@@ -1,0 +1,39 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 52
+    Folio: ''
+    TipoDespacho: ''
+    # IndTraslado: Código 7 indica Guía de devolución. - Largo máx: 1
+    #              Tipo: NÚM.
+    IndTraslado: ''
+    TermPagoGlosa: ''
+  # En las guías de devolución el Receptor del documento que se hace referencia
+  # se convierte en el Emisor de la guía de devolución. El Emisor del documento
+  # que se hace referencia se convierte en el Receptor de la guía de devolución.
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CiudadRecep: ''
+  Transporte:
+    DirDest: ''
+    CmnaDest: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+    CodRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

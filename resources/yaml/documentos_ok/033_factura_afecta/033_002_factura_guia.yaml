@@ -1,0 +1,34 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+# Referencia: Zona de Referencia. Contiene la información de documentos de
+#             referencia. Se enlistan con un "guion" (-).
+Referencia:
+  # TpoDocRef: Indica el tipo del documento de referencia, también se ouede usar
+  #            para referenciar documentos no tributarios - Largo máx: 3
+  #            Tipo: ALFA.
+  - TpoDocRef: ''
+  # FolioRef: Folio del documento de refencia - Largo máx: 18 - Tipo: NÚM.
+    FolioRef: ''
+  # FchRef: Fecha de documento de referencia - Largo máx: 10 - Tipo: FECHA.
+    FchRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

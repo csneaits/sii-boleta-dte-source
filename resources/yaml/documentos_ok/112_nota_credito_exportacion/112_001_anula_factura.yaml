@@ -1,0 +1,40 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 112
+    Folio: ''
+    IndServicio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    Extranjero:
+      Nacionalidad: ''
+    GiroRecep: ''
+    DirRecep: ''
+  Totales:
+    TpoMoneda: ''
+Detalle:
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+  # TpoDocRef: Es obligatorio referenciar la factura de exportación que modifica
+  #            Largo máx: 3 - Tipo: ALFA.
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Debe de ser siempre 1, ya que corresponde a
+  #         'Anula Documento de Referencia'.
+    CodRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

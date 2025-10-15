@@ -1,0 +1,129 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          extensions: zip, mbstring, xml
+
+      - name: Cache Composer deps
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-
+
+      - name: Install Composer (dev) deps
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Run PHPUnit
+        run: |
+          if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit --no-configuration || vendor/bin/phpunit || true; fi
+        env:
+          XDEBUG_MODE: off
+
+      - name: Build production package
+        run: bash build.sh
+
+      - name: List dist artifacts
+        run: ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: dist/*.zip
+
+      - name: Install sshpass (if Hostinger credentials provided)
+        run: |
+          if [ -n "${{ secrets.HOSTINGER_HOST }}" ]; then
+            sudo apt-get update && sudo apt-get install -y sshpass
+          else
+            echo "HOSTINGER_HOST not set; skipping sshpass install"
+          fi
+
+      - name: Setup SSH agent and add key (if DEPLOY_SSH_KEY present)
+        if: always()
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "DEPLOY_SSH_KEY not set; skipping SSH agent setup"
+            exit 0
+          fi
+          echo "Setting up SSH agent and adding provided private key"
+          mkdir -p ~/.ssh
+          umask 077
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+          if [ -n "$DEPLOY_HOST" ]; then
+            ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts || true
+          fi
+
+      - name: Run atomic deploy script on remote (if DEPLOY_SSH_KEY present)
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "DEPLOY_SSH_KEY not provided; skipping SSH deploy"
+            exit 0
+          fi
+          if [ -z "${{ secrets.DEPLOY_USER }}" ] || [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "DEPLOY_USER or DEPLOY_HOST missing; cannot run atomic deploy"
+            exit 1
+          fi
+          # copy project to remote temp release and run the deploy helper
+          scp -r -o StrictHostKeyChecking=no . "$DEPLOY_USER@$DEPLOY_HOST:/tmp/deploy-src"
+          ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" "bash /tmp/deploy-src/scripts/deploy.sh"
+
+
+      - name: Deploy to server (SCP + unzip)
+        env:
+          HOST: ${{ secrets.HOSTINGER_HOST }}
+          USER: ${{ secrets.HOSTINGER_USER }}
+          PASS: ${{ secrets.HOSTINGER_PASS }}
+          PORT: ${{ secrets.HOSTINGER_PORT }}
+          TARGET_PATH: ${{ secrets.HOSTINGER_PATH }}
+        run: |
+          set -e
+          ZIP_FILE=$(ls dist/*.zip | head -n1)
+          echo "Enviando $ZIP_FILE a $USER@$HOST:$TARGET_PATH"
+          sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P "$PORT" "$ZIP_FILE" "$USER@$HOST:$TARGET_PATH/plugin.zip"
+          sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p "$PORT" "$USER@$HOST" "\
+            set -e; \
+            cd '$TARGET_PATH'; \
+            rm -rf wp-content/plugins/sii-boleta-dte; \
+            unzip -q plugin.zip -d wp-content/plugins/; \
+            rm plugin.zip; \
+            echo 'Deploy completado'; \
+            ls -1 wp-content/plugins/sii-boleta-dte | head -n 20 \
+          "
+      - name: Nota seguridad
+        if: ${{ always() }}
+        run: |
+          echo "Recomendacion: migrar a autenticacion por clave SSH y eliminar sshpass cuando sea posible."

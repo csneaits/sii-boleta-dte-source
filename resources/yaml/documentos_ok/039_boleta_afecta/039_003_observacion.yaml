@@ -1,0 +1,29 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 39
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Observación en boleta usando de datos específicos de LibreDTE.
+LibreDTE:
+  extra:
+    dte:
+      Encabezado:
+        IdDoc:
+          TermPagoGlosa: ""
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

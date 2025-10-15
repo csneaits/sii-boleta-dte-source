@@ -1,0 +1,390 @@
+<?php
+namespace Sii\BoletaDte\Infrastructure\WordPress;
+
+/**
+ * Provides access to plugin settings.
+ */
+class Settings {
+        public const OPTION_GROUP = 'sii_boleta_dte_settings_group';
+        public const OPTION_NAME  = 'sii_boleta_dte_settings';
+
+        /**
+         * Normalises the environment value to a canonical identifier.
+         */
+        public static function normalize_environment( string $environment ): string {
+                $env = strtolower( trim( $environment ) );
+                if ( in_array( $env, array( '1', 'prod', 'production', 'produccion', 'producción' ), true ) ) {
+                        return '1';
+                }
+                if ( in_array( $env, array( '0', 'test', 'certificacion', 'certification', 'certificación' ), true ) ) {
+                        return '0';
+                }
+                if ( in_array( $env, array( '2', 'dev', 'development', 'desarrollo' ), true ) ) {
+                        return '2';
+                }
+                return '0';
+        }
+
+        /**
+         * Returns the environment configured in the plugin settings.
+         */
+        public function get_environment(): string {
+                $settings = $this->get_settings();
+                $env      = isset( $settings['environment'] ) ? (string) $settings['environment'] : '0';
+                return self::normalize_environment( $env );
+        }
+
+        /**
+         * Builds a human readable label for the provided environment value.
+         */
+        public static function environment_label( string $environment ): string {
+                $environment = trim( $environment );
+                $normalized  = strtolower( $environment );
+
+                return match ( $normalized ) {
+                        'prod', 'production', '1' => __( 'Producción', 'sii-boleta-dte' ),
+                        'test', 'certificacion', 'certification', '0' => __( 'Certificación', 'sii-boleta-dte' ),
+                        'dev', 'development', '2' => __( 'Desarrollo', 'sii-boleta-dte' ),
+                        default => '' !== $environment ? $environment : __( 'desconocido', 'sii-boleta-dte' ),
+                };
+        }
+
+        /**
+         * Determines if WooCommerce orders should only generate preview PDFs while testing.
+         */
+        public function is_woocommerce_preview_only_enabled(): bool {
+                $settings = $this->get_settings();
+                if ( empty( $settings['woocommerce_preview_only'] ) ) {
+                        return false;
+                }
+
+                return '0' === $this->get_environment();
+        }
+
+        /**
+         * Returns the configured queue cron interval slug.
+         * Allowed values: 'every_minute', 'every_five_minutes', 'every_fifteen_minutes'.
+         */
+        public function get_queue_interval(): string {
+                $settings = $this->get_settings();
+                $val = isset( $settings['queue_interval'] ) ? (string) $settings['queue_interval'] : 'every_five_minutes';
+                if ( ! in_array( $val, array( 'every_minute', 'every_five_minutes', 'every_fifteen_minutes' ), true ) ) {
+                        $val = 'every_five_minutes';
+                }
+                return $val;
+        }
+
+        /**
+         * Persists the queue cron interval in the main settings array.
+         */
+        public static function set_queue_interval( string $slug ): void {
+                if ( ! in_array( $slug, array( 'every_minute', 'every_five_minutes', 'every_fifteen_minutes' ), true ) ) {
+                        $slug = 'every_five_minutes';
+                }
+                $key = self::OPTION_NAME;
+                if ( function_exists( 'get_option' ) && function_exists( 'update_option' ) ) {
+                        $data = get_option( $key, array() );
+                        if ( ! is_array( $data ) ) { $data = array(); }
+                        $data['queue_interval'] = $slug;
+                        update_option( $key, $data );
+                        return;
+                }
+                // Test or non-WP fallback
+                if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                        $GLOBALS['wp_options'] = array();
+                }
+                $data = isset( $GLOBALS['wp_options'][ $key ] ) && is_array( $GLOBALS['wp_options'][ $key ] ) ? $GLOBALS['wp_options'][ $key ] : array();
+                $data['queue_interval'] = $slug;
+                $GLOBALS['wp_options'][ $key ] = $data;
+        }
+
+        /**
+         * Builds the option key used to persist the last used folio for a type.
+         */
+        public static function last_folio_option_key( int $type, string $environment ): string {
+                $env = self::normalize_environment( $environment );
+                return 'sii_boleta_dte_last_folio_' . $env . '_' . $type;
+        }
+
+        /**
+         * Retrieves the last used folio for a type/environment, migrating legacy keys if needed.
+         */
+        public static function get_last_folio_value( int $type, string $environment ): int {
+                $key        = self::last_folio_option_key( $type, $environment );
+                $legacy_key = 'sii_boleta_dte_last_folio_' . $type;
+                $sentinel   = new \stdClass();
+
+                if ( function_exists( 'get_option' ) ) {
+                        $value = get_option( $key, $sentinel );
+                        if ( $value !== $sentinel ) {
+                                return (int) $value;
+                        }
+
+                        $legacy = get_option( $legacy_key, $sentinel );
+                        if ( $legacy !== $sentinel ) {
+                                $legacy_val = (int) $legacy;
+                                if ( function_exists( 'update_option' ) ) {
+                                        update_option( $key, $legacy_val );
+                                }
+                                return $legacy_val;
+                        }
+                }
+
+                if ( isset( $GLOBALS['test_options'][ $key ] ) ) {
+                        return (int) $GLOBALS['test_options'][ $key ];
+                }
+                if ( isset( $GLOBALS['test_options'][ $legacy_key ] ) ) {
+                        $legacy_val = (int) $GLOBALS['test_options'][ $legacy_key ];
+                        $GLOBALS['test_options'][ $key ] = $legacy_val;
+                        return $legacy_val;
+                }
+                if ( isset( $GLOBALS['wp_options'][ $key ] ) ) {
+                        return (int) $GLOBALS['wp_options'][ $key ];
+                }
+                if ( isset( $GLOBALS['wp_options'][ $legacy_key ] ) ) {
+                        $legacy_val = (int) $GLOBALS['wp_options'][ $legacy_key ];
+                        if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                                $GLOBALS['wp_options'] = array();
+                        }
+                        $GLOBALS['wp_options'][ $key ] = $legacy_val;
+                        return $legacy_val;
+                }
+
+                return 0;
+        }
+
+        /**
+         * Persists the last used folio for a type/environment combination.
+         */
+        public static function update_last_folio_value( int $type, string $environment, int $value ): void {
+                $key = self::last_folio_option_key( $type, $environment );
+                if ( function_exists( 'update_option' ) ) {
+                        update_option( $key, $value );
+                } elseif ( isset( $GLOBALS['test_options'] ) ) {
+                        $GLOBALS['test_options'][ $key ] = $value;
+                } else {
+                        if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                                $GLOBALS['wp_options'] = array();
+                        }
+                        $GLOBALS['wp_options'][ $key ] = $value;
+                }
+        }
+
+        /**
+         * Atomically updates the last used folio only when the stored value matches the expected one.
+         */
+        public static function compare_and_update_last_folio_value( int $type, string $environment, int $expected, int $value ): bool {
+                $key = self::last_folio_option_key( $type, $environment );
+
+                if ( function_exists( 'update_option' ) ) {
+                        global $wpdb;
+
+                        if ( isset( $wpdb ) && method_exists( $wpdb, 'prepare' ) && isset( $wpdb->options ) ) {
+                                $table = $wpdb->options;
+                                $query = $wpdb->prepare(
+                                        "UPDATE {$table} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+                                        $value,
+                                        $key,
+                                        $expected
+                                );
+                                $updated = $wpdb->query( $query );
+
+                                if ( false === $updated ) {
+                                        return false;
+                                }
+
+                                if ( $updated > 0 ) {
+                                        return true;
+                                }
+
+                                $current = get_option( $key, null );
+                                if ( null === $current && function_exists( 'add_option' ) ) {
+                                        return add_option( $key, $value, '', false );
+                                }
+
+                                return (int) $current === $value;
+                        }
+
+                        $current = get_option( $key, null );
+                        if ( null === $current ) {
+                                if ( function_exists( 'add_option' ) ) {
+                                        return add_option( $key, $value, '', false );
+                                }
+
+                                return update_option( $key, $value );
+                        }
+
+                        if ( (int) $current !== $expected ) {
+                                return (int) $current === $value;
+                        }
+
+                        return update_option( $key, $value );
+                }
+
+                if ( isset( $GLOBALS['test_options'] ) ) {
+                        $current = $GLOBALS['test_options'][ $key ] ?? null;
+                        if ( null !== $current && (int) $current !== $expected ) {
+                                return (int) $current === $value;
+                        }
+
+                        $GLOBALS['test_options'][ $key ] = $value;
+                        return true;
+                }
+
+                if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                        $GLOBALS['wp_options'] = array();
+                }
+
+                $current = $GLOBALS['wp_options'][ $key ] ?? null;
+                if ( null !== $current && (int) $current !== $expected ) {
+                        return (int) $current === $value;
+                }
+
+                $GLOBALS['wp_options'][ $key ] = $value;
+                return true;
+        }
+
+        /**
+         * Builds the option key that stores the last execution for a scheduled task.
+         */
+        public static function schedule_option_key( string $task, string $environment ): string {
+                $env  = self::normalize_environment( $environment );
+                $slug = strtolower( preg_replace( '/[^a-z0-9_]+/i', '_', $task ) ?? '' );
+                $slug = '' === $slug ? 'task' : trim( $slug, '_' );
+                return 'sii_boleta_dte_last_' . $slug . '_run_' . $env;
+        }
+
+        /**
+         * Retrieves the last execution marker for a scheduled task.
+         */
+        public static function get_schedule_last_run( string $task, string $environment ): string {
+                $key      = self::schedule_option_key( $task, $environment );
+                $sentinel = new \stdClass();
+
+                if ( function_exists( 'get_option' ) ) {
+                        $value = get_option( $key, $sentinel );
+                        if ( $value !== $sentinel ) {
+                                return (string) $value;
+                        }
+                }
+
+                if ( isset( $GLOBALS['test_options'][ $key ] ) ) {
+                        return (string) $GLOBALS['test_options'][ $key ];
+                }
+                if ( isset( $GLOBALS['wp_options'][ $key ] ) ) {
+                        return (string) $GLOBALS['wp_options'][ $key ];
+                }
+
+                return '';
+        }
+
+        /**
+         * Stores the last execution marker for a scheduled task.
+         */
+        public static function update_schedule_last_run( string $task, string $environment, string $value ): void {
+                $key = self::schedule_option_key( $task, $environment );
+                if ( function_exists( 'update_option' ) ) {
+                        update_option( $key, $value );
+                        return;
+                }
+
+                if ( isset( $GLOBALS['test_options'] ) && is_array( $GLOBALS['test_options'] ) ) {
+                        $GLOBALS['test_options'][ $key ] = $value;
+                        return;
+                }
+
+                if ( ! isset( $GLOBALS['wp_options'] ) || ! is_array( $GLOBALS['wp_options'] ) ) {
+                        $GLOBALS['wp_options'] = array();
+                }
+                $GLOBALS['wp_options'][ $key ] = $value;
+        }
+
+        /**
+         * Returns settings from WordPress options.
+         *
+         * @return array<string,mixed>
+         */
+	public function get_settings(): array {
+		$defaults = array(
+			'enabled_types' => array( 39 ), // Boleta por defecto
+			'environment' => '0', // Certificación por defecto
+			'woocommerce_preview_only' => 0,
+			'queue_interval' => 'every_five_minutes',
+		);
+
+		if ( function_exists( 'get_option' ) ) {
+				$data = get_option( self::OPTION_NAME, array() );
+                        if ( is_array( $data ) ) {
+                                if ( isset( $data['cert_pass'] ) ) {
+                                                $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
+                                }
+                                unset( $data['cafs'], $data['caf_path'] );
+                                // Merge con defaults para asegurar que siempre hay valores por defecto
+                                return array_merge( $defaults, $data );
+                        }
+		}
+			return $defaults;
+	}
+
+		/**
+		 * Encrypts a value using a key derived from WordPress salts.
+		 */
+	public static function encrypt( string $plaintext ): string {
+                if ( function_exists( 'wp_salt' ) ) {
+                                $salt = (string) call_user_func( 'wp_salt' );
+                                $key = hash( 'sha256', $salt, true );
+		} else {
+				$key = hash( 'sha256', 'sii-boleta-dte', true );
+		}
+
+		if ( function_exists( 'sodium_crypto_secretbox' ) ) {
+				$nonce  = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+				$cipher = sodium_crypto_secretbox( $plaintext, $nonce, $key );
+				return base64_encode( $nonce . $cipher );
+		}
+
+		$iv     = random_bytes( 16 );
+		$cipher = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+		$cipher = $cipher ? $cipher : '';
+		return base64_encode( $iv . $cipher );
+	}
+
+		/**
+		 * Decrypts a value previously encrypted with {@see encrypt()}.
+		 */
+	public static function decrypt( string $encoded ): string {
+		if ( '' === $encoded ) {
+				return '';
+		}
+
+                if ( function_exists( 'wp_salt' ) ) {
+                                $salt = (string) call_user_func( 'wp_salt' );
+                                $key = hash( 'sha256', $salt, true );
+		} else {
+				$key = hash( 'sha256', 'sii-boleta-dte', true );
+		}
+
+			$decoded = base64_decode( $encoded, true );
+		if ( false === $decoded ) {
+				return '';
+		}
+
+		if ( function_exists( 'sodium_crypto_secretbox_open' ) ) {
+				$nonce_size = SODIUM_CRYPTO_SECRETBOX_NONCEBYTES;
+			if ( strlen( $decoded ) < $nonce_size ) {
+					return '';
+			}
+				$nonce  = substr( $decoded, 0, $nonce_size );
+				$cipher = substr( $decoded, $nonce_size );
+				$plain  = sodium_crypto_secretbox_open( $cipher, $nonce, $key );
+				return false === $plain ? '' : $plain;
+		}
+
+			$iv    = substr( $decoded, 0, 16 );
+			$enc   = substr( $decoded, 16 );
+			$plain = openssl_decrypt( $enc, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+			return is_string( $plain ) ? $plain : '';
+	}
+}
+
+class_alias( Settings::class, 'SII_Boleta_Settings' );

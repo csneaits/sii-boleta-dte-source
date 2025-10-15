@@ -1,0 +1,40 @@
+# La siguiente factura de varias guías corresponden cuando son mayor a 10
+# las guías referenciadas.
+Encabezado:
+  IdDoc:
+    TipoDTE: 33
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+    # NmbItem: Factura de X Guías de Despacho.
+  - NmbItem: ''
+    # DscItem: Acá se debe de enlistar las guías de despacho a facturar.
+    DscItem: ''
+    # QtyItem: Item debe de ser siempre 1.
+    QtyItem: ''
+    # PrcItem: Es el total neto sumado de todas las guías de despacho.
+    PrcItem: ''
+Referencia:
+    # TpoDocRef: Se indica el tipo de documento de guías "52".
+  - TpoDocRef: ''
+    # IndGlobal: Indicador de Referencia Global, indica que el documento afecta
+    #            a un número mayor de guías, ejemplo 20.
+    IndGlobal: ''
+    # FolioRef: Debe de ser siempre "0".
+    FolioRef: ''
+    FchRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

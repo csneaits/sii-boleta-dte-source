@@ -1,0 +1,43 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 39
+    Folio: ''
+    # Campo opcional para observaciones/libre texto (usar solo cuando aplique):
+    TermPagoGlosa: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    # RUTRecep: RUT 66666666-6 corresponde a uno genérico.
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+  # Añade más elementos a la lista cuando se requiera.
+  # - NmbItem: ''
+  #   QtyItem: ''
+  #   PrcItem: ''
+
+# Sección opcional de descuentos/recargos globales (omitela si no aplica).
+DscRcgGlobal:
+  TpoMov: ''
+  TpoValor: ''
+  ValorDR: ''
+
+# Sección opcional específica de LibreDTE (solo cuando la interfaz lo necesite).
+LibreDTE:
+  extra:
+    dte:
+      Encabezado:
+        IdDoc:
+          TermPagoGlosa: ''
+
+# Elimina los bloques opcionales cuando todos sus campos estén vacíos antes de emitir el documento.

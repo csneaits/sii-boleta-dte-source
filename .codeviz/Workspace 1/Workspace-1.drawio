@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+        <mxfile host="codeviz.app" modified="2025-10-02T03:29:21.040Z" agent="CodeViz Exporter" version="14.6.5" type="device">
+          <diagram id="codeviz-diagram" name="System Diagram">
+            <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="presentation" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="354" y="-114" width="377" height="208" as="geometry"/>
+                </mxCell>
+                <mxCell id="presentation_label" value="Presentation Layer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="362" y="-106" width="301" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="application" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="508.3833333333333" y="82" width="588" height="356" as="geometry"/>
+                </mxCell>
+                <mxCell id="application_label" value="Application Layer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="516.3833333333333" y="90" width="512" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="domain" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="64" y="428" width="329" height="266" as="geometry"/>
+                </mxCell>
+                <mxCell id="domain_label" value="Domain Layer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="72" y="436" width="253" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="infrastructure" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="242.75" y="694" width="1379" height="208" as="geometry"/>
+                </mxCell>
+                <mxCell id="infrastructure_label" value="Infrastructure Layer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="250.75" y="702" width="1303" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="shared" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="344.25" y="890" width="196" height="208" as="geometry"/>
+                </mxCell>
+                <mxCell id="shared_label" value="Shared Layer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="siiBoletaDte">
+                  <mxGeometry x="352.25" y="898" width="120" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="siiBoletaDte" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="base-diagram-group">
+                  <mxGeometry x="64" y="185" width="1598" height="1301" as="geometry"/>
+                </mxCell>
+                <mxCell id="siiBoletaDte_label" value="SII Boleta DTE" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="base-diagram-group">
+                  <mxGeometry x="72" y="193" width="1522" height="24" as="geometry"/>
+                </mxCell>
+<mxCell id="base-diagram-group" value="" style="html=1;whiteSpace=wrap;container=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fillOpacity=20;strokeWidth=2;containerType=none;recursiveResize=0;movable=1;resizable=1;autosize=0;dropTarget=0" vertex="1" parent="1">
+                  <mxGeometry x="20" y="0" width="1686" height="1601" as="geometry"/>
+                </mxCell>
+                <mxCell id="base-diagram-group_label" value="Base Diagram" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;labelBackgroundColor=white;spacing=5" vertex="1" parent="1">
+                  <mxGeometry x="28" y="8" width="1610" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="customer" value="Customer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="base-diagram-group">
+                      <mxGeometry x="521.5" y="60" width="71" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="wooCommerceExt" value="WooCommerce" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="base-diagram-group">
+                      <mxGeometry x="504.5" y="140" width="105" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="siiExt" value="Servicio de Impuestos Internos (SII)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="base-diagram-group">
+                      <mxGeometry x="969.5" y="1521" width="217" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="adminUI" value="Admin UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="presentation">
+                      <mxGeometry x="20" y="106" width="69" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="wooCommerceIntegrationUI" value="WooCommerce Integration UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="presentation">
+                      <mxGeometry x="109" y="106" width="188" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="consumoFolios" value="ConsumoFolios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="297.6166666666667" y="106" width="104" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="emitirDteService" value="EmitirDteService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="50.75" y="186" width="109" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="folioManager" value="FolioManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="104.99999999999999" y="276" width="95" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="libroBoletas" value="LibroBoletas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="421.6166666666667" y="106" width="86" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="queue" value="Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="31" y="276" width="54" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="queueProcessor" value="QueueProcessor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="168.61666666666665" y="106" width="109" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="rvdManager" value="RvdManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="application">
+                      <mxGeometry x="59.616666666666646" y="106" width="89" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="dteEntity" value="Dte" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="domain">
+                      <mxGeometry x="20" y="186" width="36" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="dteEngine" value="DteEngine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="domain">
+                      <mxGeometry x="81.75" y="106" width="75" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="dteRepository" value="DteRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="domain">
+                      <mxGeometry x="152" y="186" width="97" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="domainLogger" value="Logger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="domain">
+                      <mxGeometry x="76" y="186" width="56" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="rut" value="Rut" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="domain">
+                      <mxGeometry x="26.75" y="106" width="35" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="cron" value="Cron" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="1135" y="106" width="43" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="metrics" value="Metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="1057" y="106" width="58" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="pdfGenerator" value="PdfGenerator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="185" y="106" width="92" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="plugin" value="Plugin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="631" y="106" width="52" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="settings" value="Settings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="549" y="106" width="62" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="signer" value="Signer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="396" y="106" width="52" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="tokenManager" value="TokenManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="1198" y="106" width="101" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="persistence" value="Persistence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="297" y="106" width="79" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="certification" value="Certification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="80" y="106" width="85" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="engine" value="Engine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="982" y="106" width="55" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="infraQueue" value="Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="908" y="106" width="54" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="rest" value="Rest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="20" y="106" width="40" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="security" value="Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="468" y="106" width="61" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="infraWooCommerce" value="WooCommerce Infrastructure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="infrastructure">
+                      <mxGeometry x="703" y="106" width="185" height="40" as="geometry"/>
+                    </mxCell>
+<mxCell id="sharedLogger" value="SharedLogger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5" vertex="1" parent="shared">
+                      <mxGeometry x="20" y="106" width="96" height="40" as="geometry"/>
+                    </mxCell>
+                <mxCell id="edge-e-customer-wooCommerceExt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="customer" target="wooCommerceExt">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-customer-wooCommerceExt_label" value="Places orders" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-customer-wooCommerceExt">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-wooCommerceExt-wooCommerceIntegrationUI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="wooCommerceExt" target="wooCommerceIntegrationUI">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-wooCommerceExt-wooCommerceIntegrationUI_label" value="Triggers DTE generation | HTTP/API" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-wooCommerceExt-wooCommerceIntegrationUI">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-wooCommerceIntegrationUI-emitirDteService" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="wooCommerceIntegrationUI" target="emitirDteService">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-wooCommerceIntegrationUI-emitirDteService_label" value="Requests DTE creation | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-wooCommerceIntegrationUI-emitirDteService">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-emitirDteService-dteEngine" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="emitirDteService" target="dteEngine">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-emitirDteService-dteEngine_label" value="Uses core business logic | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-emitirDteService-dteEngine">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-emitirDteService-folioManager" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="emitirDteService" target="folioManager">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-emitirDteService-folioManager_label" value="Manages folios | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-emitirDteService-folioManager">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-emitirDteService-signer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="emitirDteService" target="signer">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-emitirDteService-signer_label" value="Signs DTEs | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-emitirDteService-signer">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-emitirDteService-queue" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="emitirDteService" target="queue">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-emitirDteService-queue_label" value="Adds to queue | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-emitirDteService-queue">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-queueProcessor-emitirDteService" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="queueProcessor" target="emitirDteService">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-queueProcessor-emitirDteService_label" value="Processes DTEs | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-queueProcessor-emitirDteService">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-queueProcessor-signer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="queueProcessor" target="signer">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-queueProcessor-signer_label" value="Signs DTEs | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-queueProcessor-signer">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-queueProcessor-tokenManager" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="queueProcessor" target="tokenManager">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-queueProcessor-tokenManager_label" value="Obtains SII token | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-queueProcessor-tokenManager">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-signer-siiExt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="signer" target="siiExt">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-signer-siiExt_label" value="Sends signed DTEs | SOAP/XML" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-signer-siiExt">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-tokenManager-siiExt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="tokenManager" target="siiExt">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-tokenManager-siiExt_label" value="Requests authentication token | SOAP/XML" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-tokenManager-siiExt">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-siiExt-signer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="siiExt" target="signer">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-siiExt-signer_label" value="Receives DTE status | SOAP/XML" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-siiExt-signer">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-siiExt-tokenManager" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="siiExt" target="tokenManager">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-siiExt-tokenManager_label" value="Provides authentication token | SOAP/XML" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-siiExt-tokenManager">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-dteEngine-dteEntity" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="dteEngine" target="dteEntity">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-dteEngine-dteEntity_label" value="Manages DTE data | PHP Object Interaction" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-dteEngine-dteEntity">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-dteEngine-dteRepository" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="dteEngine" target="dteRepository">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-dteEngine-dteRepository_label" value="Persists DTEs | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-dteEngine-dteRepository">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-dteRepository-persistence" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="dteRepository" target="persistence">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-dteRepository-persistence_label" value="Uses data storage | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-dteRepository-persistence">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-domainLogger-sharedLogger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="domainLogger" target="sharedLogger">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-domainLogger-sharedLogger_label" value="Uses shared logging | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-domainLogger-sharedLogger">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+<mxCell id="edge-e-infrastructure-sharedLogger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=2;jumpStyle=arc;jumpSize=10;spacing=15;labelBackgroundColor=white;labelBorderColor=none" edge="1" parent="1" source="infrastructure" target="sharedLogger">
+                    <mxGeometry relative="1" as="geometry"/>
+                  </mxCell>
+                  <mxCell id="edge-e-infrastructure-sharedLogger_label" value="Uses shared logging | PHP Function Call" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-e-infrastructure-sharedLogger">
+                    <mxGeometry x="-0.2" y="10" relative="1" as="geometry">
+                      <mxPoint as="offset"/>
+                    </mxGeometry>
+                  </mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

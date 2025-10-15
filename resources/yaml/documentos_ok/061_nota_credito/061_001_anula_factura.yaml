@@ -1,0 +1,32 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 61
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+# Por cada nota de crédito se puede anular un documento.
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Debe de ser siempre 1, ya que corresponde a
+  #         'Anula Documento de Referencia'.
+    CodRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

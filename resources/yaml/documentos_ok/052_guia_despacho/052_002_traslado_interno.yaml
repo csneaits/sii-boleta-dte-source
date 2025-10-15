@@ -1,0 +1,28 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 52
+    Folio: ''
+    # IndTraslado: Código 5 indica Traslado interno. - Largo máx: 1 - Tipo: NÚM.
+    IndTraslado: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+  Transporte:
+    Patente: ''
+    DirDest: ''
+    CmnaDest: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

@@ -1,0 +1,25 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 39
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSocEmisor: ''
+    GiroEmisor: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+DscRcgGlobal:
+  TpoMov: ''
+  TpoValor: ''
+  ValorDR: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

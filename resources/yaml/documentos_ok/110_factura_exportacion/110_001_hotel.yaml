@@ -1,0 +1,36 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 110
+    Folio: ''
+    IndServicio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    # RUTRecep: El RUT del receptor debe de ser 55555555-5.
+    RUTRecep: ''
+    RznSocRecep: ''
+    # Extranjero: Información de receptor extranjero
+    Extranjero:
+      # Nacionalidad: Corresponde al código de nacionalidad del extranjero.
+      Nacionalidad: ''
+    GiroRecep: ''
+    DirRecep: ''
+  Totales:
+    # TpoMoneda: Tipo de moneda en que se registra la transacción de
+    #            exportafción. - Largo máx. 15 - Tipo: ALFA.
+    TpoMoneda: ''
+Detalle:
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

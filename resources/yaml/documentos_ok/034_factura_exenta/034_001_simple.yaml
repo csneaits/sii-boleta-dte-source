@@ -1,0 +1,27 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 34
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  # IndExe: Indicador de facturación/exención. Indica si el producto o servicio
+  #         es exento o no afecto a impuesto o si ya ha sido facturado.
+  #         Largo máx: 1 - Tipo: NÚM.
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

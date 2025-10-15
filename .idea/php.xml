@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PHPCodeSnifferOptionsConfiguration">
+    <option name="codingStandard" value="WordPress" />
+    <option name="installedPaths" value="$PROJECT_DIR$/sii-boleta-dte/vendor/wp-coding-standards/wpcs" />
+    <option name="useInstalledPaths" value="true" />
+  </component>
+  <component name="PhpCodeSniffer">
+    <phpcs_settings>
+      <PhpCSConfiguration beautifier_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcbf" tool_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcs" timeout="15000" />
+      <PhpCSConfiguration beautifier_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcbf" tool_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcs" timeout="10000" />
+      <PhpCSConfiguration asDefaultInterpreter="true" deletedFromTheList="true" beautifier_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcbf" tool_path="$PROJECT_DIR$/sii-boleta-dte/vendor/bin/phpcs" />
+    </phpcs_settings>
+  </component>
+  <component name="PhpIncludePathManager">
+    <include_path>
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/setasign/fpdi" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/twig/twig" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/event-dispatcher" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/http-message" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/cache" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/http-server-middleware" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/league/csv" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/log" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/dependency-injection" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/var-exporter" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/property-info" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/config" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/mime" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/mailer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/property-access" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-ctype" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/clock" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/cache-contracts" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-php84" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/deprecation-contracts" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-intl-normalizer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-php83" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/cache" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-intl-grapheme" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/type-info" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/string" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/translation" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/yaml" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-mbstring" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/dotenv" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/paragonie/random_compat" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/filesystem" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/event-dispatcher-contracts" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/options-resolver" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/polyfill-intl-idn" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/carbonphp/carbon-doctrine-types" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/translation-contracts" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/event-dispatcher" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/ux-twig-component" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/symfony/service-contracts" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/nikic/php-parser" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/nesbot/carbon" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/l10n-cl-rut" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/backbone" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/container" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/diff" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/config" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/type" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/twig" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/object-enumerator" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/kernel" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/lines-of-code" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/xml" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/code-unit" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/translation" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/comparator" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/squizlabs/php_codesniffer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/selector" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/enum" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/repository" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/mail" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/support" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/certificate" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/object-reflector" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/signature" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/cli-parser" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/renderer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/staabm/side-effects-detector" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/exporter" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/mpdf/psr-log-aware-trait" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/complexity" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/mpdf/mpdf" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/derafu/l10n-cl-enum" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/version" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/environment" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/mpdf/psr-http-message-shim" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/recursion-context" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/code-unit-reverse-lookup" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/theseer/tokenizer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/sebastian/global-state" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/egulias/email-validator" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/myclabs/deep-copy" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/tecnickcom/tcpdf" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phar-io/manifest" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phar-io/version" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/robrichards/xmlseclibs" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/doctrine/collections" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/doctrine/deprecations" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/wp-coding-standards/wpcs" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/doctrine/lexer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/php-code-coverage" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/php-invoker" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/libredte/libredte-lib-core" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/php-file-iterator" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/phpunit" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/php-text-template" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpunit/php-timer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/composer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/clock" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/simple-cache" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/container" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/psr/http-server-handler" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/paragonie/constant_time_encoding" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpcsstandards/phpcsextra" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpcsstandards/phpcsutils" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/dealerdirect/phpcodesniffer-composer-installer" />
+      <path value="$PROJECT_DIR$/sii-boleta-dte/vendor/phpseclib/phpseclib" />
+    </include_path>
+  </component>
+  <component name="PhpProjectSharedConfiguration" php_language_level="8.4" />
+  <component name="PhpUnit">
+    <phpunit_settings>
+      <PhpUnitSettings configuration_file_path="$PROJECT_DIR$/sii-boleta-dte/phpunit.xml" custom_loader_path="$PROJECT_DIR$/sii-boleta-dte/vendor/autoload.php" use_configuration_file="true" />
+    </phpunit_settings>
+  </component>
+</project>

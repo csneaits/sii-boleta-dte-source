@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="sii-boleta-dte-1.0.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/dist/sii-boleta-dte-1.0.0.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<AUTORIZACION>
+  <CAF version="1.0">
+    <DA>
+      <RE>11111111-1</RE>
+      <RS>TEST</RS>
+      <TD>41</TD>
+      <RNG><D>1</D><H>100</H></RNG>
+      <FA>2024-01-01</FA>
+      <RSAPK><M>ABC</M><E>Aw==</E></RSAPK>
+      <IDK>100</IDK>
+    </DA>
+    <FRMA algoritmo="SHA1withRSA">ABC</FRMA>
+  </CAF>
+  <RSASK>ABC</RSASK>
+  <RSAPUBK>ABC</RSAPUBK>
+</AUTORIZACION>

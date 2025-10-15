@@ -1,0 +1,56 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 110
+    Folio: ''
+    TipoDespacho: ''
+    # IndServicio: Código 5 indica que es un servicio de transporte terrestre
+    #              internacional. Tipo: NÚM.
+    IndServicio: ''
+    # FmaPagExp: (Opcional) Forma de pago del importador extranjero indicado en
+    #            el DUS. Código señalado en la 'Tabla Formas de Pago de Aduanas'
+    #            Largo máx: 2 - Tipo: NÚM.
+    FmaPagExp: ''
+    # FchCancel: Se utiliza si la factura ha sido cancelada antes de la fecha de
+    #            emisión. Obligatorio cuando en "FmaPagoExp" se indique
+    #            "anticipo". - Largo máx: 10 - Tipo: ALFA.
+    FchCancel: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    # CiudadOrigen: Ciudad de origen. - Largo máx: 20 - Tipo: ALFA.
+    CiudadOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    DirRecep: ''
+    CiudadRecep: ''
+  Transporte:
+    DirDest: ''
+    # CiudadDest: Ciudad de destino. - Largo máx: 20 - Tipo: ALFA.
+    CiudadDest: ''
+    # Aduana: Sub-área transporte de aduana.
+    Aduana:
+      # CodModVenta: Corresponde a la vía de transporte donde se envía la
+      #              mercadería. - Largo máx: 2 - Tipo: NÚM.
+      CodViaTransp: ''
+      # TotBultos: Cantidad total de bultos que ampara el documento
+      #            Largo máx: 18 - Tipo: NÚM.
+      TotBultos: ''
+      # Código del país de receptor extranjero de la mercadería, según tabla de
+      # Países aduana. - Largo máx: 3 - Tipo: NÚM.
+      CodPaisRecep: ''
+  Totales:
+    TpoMoneda: ''
+  OtraMoneda:
+    TpoMoneda: ''
+    TpoCambio: ''
+Detalle:
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

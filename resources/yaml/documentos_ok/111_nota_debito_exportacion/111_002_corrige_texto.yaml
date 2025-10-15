@@ -1,0 +1,38 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 111
+    Folio: ''
+    IndServicio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    Extranjero:
+      Nacionalidad: ''
+    GiroRecep: ''
+    DirRecep: ''
+  Totales:
+    TpoMoneda: ''
+Detalle:
+  - IndExe: ''
+    NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Debe de ser siempre 2, ya que corresponde a
+  #         'Corrige Texto Documento de Referencia'.
+    CodRef: ''
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

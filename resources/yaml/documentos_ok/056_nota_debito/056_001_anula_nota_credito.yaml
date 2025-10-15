@@ -1,0 +1,34 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 56
+    Folio: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+# En esta área se encuentra la información del documento que se desea anular.
+# Por cada nota de débito se puede anular un documento.
+Referencia:
+  - TpoDocRef: ''
+    FolioRef: ''
+    FchRef: ''
+  # CodRef: Código de referencia debe de ser '1', ya que corresponde a 'Anula
+  #         Documento de Referencia' - Largo máx: 1 - Tipo: NÚM
+    CodRef: ''
+  # RazonRef: Se explica la razón de la referencia - Largo máx: 90 - Tipo: ALFA
+    RazonRef: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

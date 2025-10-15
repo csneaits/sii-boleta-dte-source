@@ -1,0 +1,50 @@
+Encabezado:
+  IdDoc:
+    TipoDTE: 52
+    Folio: ''
+    # TipoDespacho: Tipo de despacho, indica si el documento acompaña bienes y
+    #               el despacho es por cuenta del vendedor o comprador. No se
+    #               incluye si no acompaña a bienes.- Largo máx: 1 - Tipo: NÚM.
+    TipoDespacho: ''
+    # IndTraslado: Indicador de tipo de traslado de bienes, corresponde valor 1
+    #              cuando constituye venta.
+    #              Largo máx: 1 - Tipo: NÚM.
+    IndTraslado: ''
+  Emisor:
+    RUTEmisor: ''
+    RznSoc: ''
+    GiroEmis: ''
+    Acteco: ''
+    DirOrigen: ''
+    CmnaOrigen: ''
+  Receptor:
+    RUTRecep: ''
+    RznSocRecep: ''
+    GiroRecep: ''
+    DirRecep: ''
+    CmnaRecep: ''
+  # Transporte: Área de transporte. Contiene información sobre el transporte.
+  Transporte:
+    # Patente: Patente del vehículo de transporte. - Largo máx: 8 - Tipo: ALFA.
+    Patente: ''
+    # RUTTrans: RUT del transportista. Con guión y dígito verificador.
+    #           Largo máx: 10 - Tipo: ALFA.
+    RUTTrans: ''
+    # Chofer: Información del chofer.
+    Chofer:
+      # RUTChofer: RUT del chofer que realiza el transfporte de mercaderías.
+      #            Con guión y dígito verificador. - Largo máx: 10 - Tipo: ALFA.
+      RUTChofer: ''
+      # NombreChofer: Nombre del chofer que realiza el transporte de mercaderías
+      #               Largo máx: 30 - Tipo: ALFA.
+      NombreChofer: ''
+    # DirDest: Dirección de destino. - Largo máx: 70 - Tipo: ALFA.
+    DirDest: ''
+    # CmnaDest: Comuna de destino. - Largo máx: 20 - Tipo: ALFA.
+    CmnaDest: ''
+Detalle:
+  - NmbItem: ''
+    QtyItem: ''
+    PrcItem: ''
+
+# Esta sección no debe de ser considerada para un caso de ejemplo de emisión.

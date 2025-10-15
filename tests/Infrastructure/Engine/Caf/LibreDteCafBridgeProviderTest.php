@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Tests\Infrastructure\Engine\Caf;
 
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Engine\Caf\LibreDteCafBridgeProvider;
 use libredte\lib\Core\Application;

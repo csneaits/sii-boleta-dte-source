@@ -10,7 +10,7 @@ use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafProviderI
 use libredte\lib\Core\Package\Billing\Component\Identifier\Support\CafBag;
 use libredte\lib\Core\Package\Billing\Component\TradingParties\Contract\EmisorInterface;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Bridge CafProvider that delegates to FoliosDb for real CAFs and uses

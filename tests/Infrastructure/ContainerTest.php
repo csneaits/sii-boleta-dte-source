@@ -5,7 +5,7 @@ use Sii\BoletaDte\Domain\Logger;
 use Sii\BoletaDte\Domain\DteRepository;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;

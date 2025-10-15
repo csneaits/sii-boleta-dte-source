@@ -1,7 +1,8 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\Bridge;
 
 use libredte\lib\Core\Application;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings as WPSettings;
 
 /**
  * Centralized access to LibreDTE application using libredte_lib() when available.
@@ -9,7 +10,7 @@ use libredte\lib\Core\Application;
 class LibredteBridge {
     /** Map plugin env to libredte env string. */
     private static function mapEnv(string $env): string {
-        $env = Settings::normalize_environment($env);
+        $env = WPSettings::normalize_environment($env);
         return match ($env) {
             '1' => 'prod',
             '2' => 'dev',
@@ -18,7 +19,7 @@ class LibredteBridge {
     }
 
     /** Returns the LibreDTE Application instance, configured for current environment if possible. */
-    public static function getApp(Settings $settings): mixed {
+    public static function getApp(WPSettings $settings): mixed {
         $env = self::mapEnv($settings->get_environment());
         $debug = defined('WP_DEBUG') ? (bool) constant('WP_DEBUG') : false;
         try {
@@ -36,7 +37,7 @@ class LibredteBridge {
     }
 
     /** Returns the Billing package or null if not available. */
-    public static function getBillingPackage(Settings $settings): mixed {
+    public static function getBillingPackage(WPSettings $settings): mixed {
         try {
             $app = self::getApp($settings);
             if (!is_object($app) || !method_exists($app, 'getPackageRegistry')) { return null; }
@@ -49,7 +50,7 @@ class LibredteBridge {
     }
 
     /** Returns the Billing Document component or null if not available. */
-    public static function getBillingDocumentComponent(Settings $settings): mixed {
+    public static function getBillingDocumentComponent(WPSettings $settings): mixed {
         try {
             $billing = self::getBillingPackage($settings);
             if (!is_object($billing) || !method_exists($billing, 'getDocumentComponent')) { return null; }
@@ -60,7 +61,7 @@ class LibredteBridge {
     }
 
     /** Returns the TradingParties component (if available) or null. */
-    public static function getTradingPartiesComponent(Settings $settings): mixed {
+    public static function getTradingPartiesComponent(WPSettings $settings): mixed {
         try {
             $billing = self::getBillingPackage($settings);
             if (!is_object($billing) || !method_exists($billing, 'getTradingPartiesComponent')) { return null; }
@@ -71,7 +72,7 @@ class LibredteBridge {
     }
 
     /** Returns EmisorFactory if available. */
-    public static function getEmisorFactory(Settings $settings): mixed {
+    public static function getEmisorFactory(WPSettings $settings): mixed {
         try {
             $tp = self::getTradingPartiesComponent($settings);
             if (!is_object($tp) || !method_exists($tp, 'getEmisorFactory')) { return null; }
@@ -82,7 +83,7 @@ class LibredteBridge {
     }
 
     /** Returns ReceptorFactory if available. */
-    public static function getReceptorFactory(Settings $settings): mixed {
+    public static function getReceptorFactory(WPSettings $settings): mixed {
         try {
             $tp = self::getTradingPartiesComponent($settings);
             if (!is_object($tp) || !method_exists($tp, 'getReceptorFactory')) { return null; }

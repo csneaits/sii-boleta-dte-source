@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Application\LibroBoletas;
 use Sii\BoletaDte\Application\FolioManager;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! class_exists( 'DummyLibroSettings' ) ) {
     class DummyLibroSettings extends Settings {

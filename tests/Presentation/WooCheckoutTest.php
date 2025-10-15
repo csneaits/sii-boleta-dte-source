@@ -1,7 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! function_exists( 'add_action' ) ) { function add_action( $hook, $cb ) { $GLOBALS['added_actions'][ $hook ] = $cb; } }
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }

@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Persistence\SettingsMigration;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! isset( $GLOBALS['wp_options'] ) ) { $GLOBALS['wp_options'] = array(); }
@@ -11,6 +11,8 @@ if ( ! function_exists( 'update_option' ) ) { function update_option( $name, $va
 if ( ! function_exists( 'delete_option' ) ) { function delete_option( $name ) { unset( $GLOBALS['wp_options'][ $name ] ); } }
 if ( ! function_exists( 'wp_upload_dir' ) ) { function wp_upload_dir() { return array( 'basedir' => sys_get_temp_dir() ); } }
 if ( ! function_exists( 'trailingslashit' ) ) { function trailingslashit( $path ) { return rtrim( $path, '/' ) . '/'; } }
+
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 class SettingsMigrationTest extends TestCase {
     protected function setUp(): void {
@@ -35,9 +37,7 @@ class SettingsMigrationTest extends TestCase {
         FoliosDb::purge();
     }
 
-    /**
-     * @runInSeparateProcess
-     */
+    #[RunInSeparateProcess]
     public function test_migrate_options_and_logs(): void {
         SettingsMigration::migrate();
         $logs = LogDb::get_logs();

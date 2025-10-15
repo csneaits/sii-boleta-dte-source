@@ -1,8 +1,8 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
-use Sii\BoletaDte\Infrastructure\Settings;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;

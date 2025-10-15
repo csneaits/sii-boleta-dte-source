@@ -4,9 +4,9 @@ namespace Sii\BoletaDte\Infrastructure\Rest;
 use Sii\BoletaDte\Shared\SharedLogger;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use libredte\lib\Core\Application;
-use Sii\BoletaDte\Infrastructure\LibredteBridge;
+use Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge;
 use WP_Error;
 
 trait LibreDteWsSupport {

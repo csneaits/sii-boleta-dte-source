@@ -1,8 +1,8 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\WooCommerce;
 
-use Sii\BoletaDte\Infrastructure\Plugin;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\Plugin;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorage;
 
 /**
@@ -430,27 +430,28 @@ class Woo {
 		}
 	}
 
-	if ( $folio_manager && method_exists( $folio_manager, 'get_next_folio' ) ) {
+                if ( $folio_manager && method_exists( $folio_manager, 'get_next_folio' ) ) {
 		try {
 			$candidate = $folio_manager->get_next_folio( $document_type, false );
 		} catch ( \Throwable $e ) {
 			$candidate = null;
 		}
 
-		if ( function_exists( 'is_wp_error' ) && is_wp_error( $candidate ) ) {
-			$error_msg = method_exists( $candidate, 'get_error_message' ) ? $candidate->get_error_message() : '';
-			if ( '' !== $error_msg ) {
-				$this->add_order_note(
-					$order,
-					sprintf(
-						/* translators: %s: error message from folio manager */
-						__( 'No fue posible obtener un folio disponible: %s', 'sii-boleta-dte' ),
-						$error_msg
-					)
-				);
-			}
-			$candidate = null;
-		}
+                        if ( function_exists( 'is_wp_error' ) && is_wp_error( $candidate ) ) {
+                                $error_msg = method_exists( $candidate, 'get_error_message' ) ? $candidate->get_error_message() : '';
+                                // If we're in preview mode, a missing folio shouldn't block preview.
+                                if ( ! $preview_mode && '' !== $error_msg ) {
+                                        $this->add_order_note(
+                                                $order,
+                                                sprintf(
+                                                        /* translators: %s: error message from folio manager */
+                                                        __( 'No fue posible obtener un folio disponible: %s', 'sii-boleta-dte' ),
+                                                        $error_msg
+                                                )
+                                        );
+                                }
+                                $candidate = null;
+                        }
 
 		if ( is_numeric( $candidate ) && (int) $candidate > 0 ) {
 			$folio = (int) $candidate;

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Sii\BoletaDte\Application;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 

@@ -1,25 +1,23 @@
 <?php
-use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
-use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
-use Sii\BoletaDte\Infrastructure\Settings;
-use Sii\BoletaDte\Infrastructure\TokenManager;
-use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
-use Sii\BoletaDte\Application\FolioManager;
-use Sii\BoletaDte\Application\Queue;
-use Sii\BoletaDte\Application\QueueProcessor;
-use Sii\BoletaDte\Application\RvdManager;
-use Sii\BoletaDte\Application\LibroBoletas;
-use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
-
+// WordPress function stubs in global namespace
+if ( ! function_exists( 'current_user_can' ) ) {
+    function current_user_can( $cap = '' ) { return true; }
+}
+if ( ! function_exists( 'apply_filters' ) ) {
+    function apply_filters( $tag, $value ) { return $value; }
+}
+if ( ! function_exists( 'selected' ) ) {
+    function selected( $value, $compare, $echo = true ) {
+        $result = ($value == $compare) ? 'selected="selected"' : '';
+        if ( $echo ) echo $result;
+        return $result;
+    }
+}
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'esc_html__' ) ) { function esc_html__( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr__' ) ) { function esc_attr__( $s ) { return $s; } }
 if ( ! function_exists( 'wp_nonce_field' ) ) { function wp_nonce_field() {} }
 if ( ! function_exists( 'wp_verify_nonce' ) ) { function wp_verify_nonce() { return true; } }
-if ( ! function_exists( 'current_user_can' ) ) { function current_user_can() { return true; } }
 if ( ! function_exists( 'sanitize_text_field' ) ) { function sanitize_text_field( $s ) { return trim( $s ); } }
 if ( ! function_exists( 'esc_html' ) ) { function esc_html( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr_e' ) ) { function esc_attr_e( $s ) { echo $s; } }
@@ -27,6 +25,21 @@ if ( ! function_exists( 'esc_url' ) ) { function esc_url( $s ) { return $s; } }
 if ( ! function_exists( 'submit_button' ) ) { function submit_button( $text = '' ) { echo '<button>' . $text . '</button>'; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }
 if ( ! function_exists( 'get_option' ) ) { function get_option( $n, $d = 0 ) { return $d; } }
+use PHPUnit\Framework\TestCase;
+use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
+use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
+use Sii\BoletaDte\Infrastructure\Rest\Api;
+use Sii\BoletaDte\Domain\DteEngine;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
+use Sii\BoletaDte\Application\FolioManager;
+use Sii\BoletaDte\Application\Queue;
+use Sii\BoletaDte\Application\QueueProcessor;
+use Sii\BoletaDte\Application\RvdManager;
+use Sii\BoletaDte\Application\LibroBoletas;
+use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
+
 
 class AdminPagesTest extends TestCase {
     protected function setUp(): void {
@@ -39,16 +52,40 @@ class AdminPagesTest extends TestCase {
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
         $api = $this->createMock( Api::class );
-        $api->method( 'send_dte_to_sii' )->willReturn( '123' );
+        $api->method( 'send_dte_to_sii' )->willReturn('TEST-TRACK-ID');
         $engine = $this->createMock( DteEngine::class );
         $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
         $pdf = $this->createMock( PdfGenerator::class );
-        $pdf->method( 'generate' )->willReturn( '/tmp/test.pdf' );
-        $folio = $this->createMock( FolioManager::class );
-        $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
-        $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
+        $tmpPdf = tempnam(sys_get_temp_dir(), 'testpdf');
+        file_put_contents($tmpPdf, '%PDF fake');
+        $pdf->method( 'generate' )->willReturn( $tmpPdf );
+    $folio = $this->createMock( FolioManager::class );
+    $folio->expects( $this->any() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
+    $folio->expects( $this->any() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
         $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST = array(
+            'sii_boleta_generate_dte_nonce' => 'x',
+            'rut' => '1-9',
+            'razon' => 'Cliente',
+            'giro' => 'Giro',
+            'items' => array(
+                array(
+                    'desc' => 'Item',
+                    'qty' => 1,
+                    'price' => 1000,
+                ),
+            ),
+            'tipo' => '39',
+        );
+        // DEBUG: ver el resultado de process_post antes de render_page
+        $result = $page->process_post($_POST);
+        var_dump($result);
+        ob_start();
+        $page->render_page();
+        $html = ob_get_clean();
+        $this->assertStringContainsString( 'Track ID', $html );
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = array(
             'sii_boleta_generate_dte_nonce' => 'x',
@@ -67,7 +104,8 @@ class AdminPagesTest extends TestCase {
         ob_start();
         $page->render_page();
         $html = ob_get_clean();
-        $this->assertStringContainsString( 'Track ID', $html );
+    var_dump($html); // DEBUG: ver el HTML generado
+    $this->assertStringContainsString( 'Track ID', $html );
     }
 
     public function test_control_panel_process_invokes_processor(): void {

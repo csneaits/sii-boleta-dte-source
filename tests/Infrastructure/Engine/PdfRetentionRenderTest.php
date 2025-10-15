@@ -1,11 +1,11 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists('Dummy_Settings_PdfRetention') ) {
-    class Dummy_Settings_PdfRetention extends Settings { private $d; public function __construct($d){$this->d=$d;} public function get_settings(): array { return $this->d; } }
+    class Dummy_Settings_PdfRetention extends \Sii\BoletaDte\Infrastructure\WordPress\Settings { private $d; public function __construct($d){$this->d=$d;} public function get_settings(): array { return $this->d; } }
 }
 
 class PdfRetentionRenderTest extends TestCase {

@@ -2,8 +2,8 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlPlaceholderCleaner;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 class DteEngineGenerateTest extends TestCase {

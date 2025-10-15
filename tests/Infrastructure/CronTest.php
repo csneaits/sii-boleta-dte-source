@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Cron;
+use Sii\BoletaDte\Infrastructure\Scheduling\Cron;
 
 if ( ! function_exists( 'wp_next_scheduled' ) ) {
     function wp_next_scheduled( $hook ) {

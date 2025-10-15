@@ -46,7 +46,7 @@ namespace {
 namespace Sii\BoletaDte\Presentation\Admin {
 
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use WP_List_Table;
 
 class LogsTable extends WP_List_Table {

@@ -1,11 +1,11 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists( 'Dummy_Settings_FacturaCompra' ) ) {
-    class Dummy_Settings_FacturaCompra extends Settings {
+    class Dummy_Settings_FacturaCompra extends \Sii\BoletaDte\Infrastructure\WordPress\Settings {
         private $data;
         public function __construct( array $data ) { $this->data = $data; }
         public function get_settings(): array { return $this->data; }

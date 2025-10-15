@@ -3,7 +3,7 @@ namespace Sii\BoletaDte\Infrastructure\Persistence;
 
 /* phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared */
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Persists folio ranges configured from the admin UI.

@@ -1,21 +1,21 @@
 <?php
 declare(strict_types=1);
 
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\WordPress;
 
 use Sii\BoletaDte\Presentation\Admin\Ajax;
 use Sii\BoletaDte\Presentation\Admin\Pages;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Application\FolioManager;
-use Sii\BoletaDte\Infrastructure\Signer;
+use Sii\BoletaDte\Infrastructure\Engine\Signer;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Infrastructure\Rest\Endpoints;
-use Sii\BoletaDte\Infrastructure\Metrics;
+use Sii\BoletaDte\Infrastructure\Monitoring\Metrics;
 use Sii\BoletaDte\Application\ConsumoFolios;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\QueueProcessor;
-use Sii\BoletaDte\Infrastructure\Cron;
+use Sii\BoletaDte\Infrastructure\Scheduling\Cron;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Presentation\Admin\Help;
@@ -26,7 +26,7 @@ use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\NullEngine;
 use Sii\BoletaDte\Infrastructure\WooCommerce\Woo;
 use Sii\BoletaDte\Infrastructure\WooCommerce\PdfStorageMigrator;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
 use Sii\BoletaDte\Presentation\WooCommerce\CheckoutFields;
 use Sii\BoletaDte\Infrastructure\Factory\Container;
 
@@ -49,8 +49,10 @@ class Plugin {
 	private Ajax $ajax;
 	private Pages $pages;
 
-		   public function __construct( Settings $settings = null, FolioManager $folio_manager = null, Signer $signer = null, Api $api = null, RvdManager $rvd_manager = null, Endpoints $endpoints = null, Metrics $metrics = null, ConsumoFolios $consumo_folios = null, Queue $queue = null, Help $help = null, Ajax $ajax = null, Pages $pages = null, QueueProcessor $queue_processor = null ) {
-						   Container::init();
+		   public function __construct( ?Settings $settings = null, ?FolioManager $folio_manager = null, ?Signer $signer = null, ?Api $api = null, ?RvdManager $rvd_manager = null, ?Endpoints $endpoints = null, ?Metrics $metrics = null, ?ConsumoFolios $consumo_folios = null, ?Queue $queue = null, ?Help $help = null, ?Ajax $ajax = null, ?Pages $pages = null, ?QueueProcessor $queue_processor = null ) {
+// Provide backwards-compatible alias for legacy namespace references
+class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaDte\\Infrastructure\\Plugin');
+
 						   PdfStorageMigrator::migrate();
 						   LogDb::install();
 						   QueueDb::install();
@@ -204,4 +206,4 @@ class Plugin {
 	}
 }
 
-class_alias( \Sii\BoletaDte\Infrastructure\Plugin::class, 'Sii\\BoletaDte\\Core\\Plugin' );
+class_alias( \Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaDte\\Core\\Plugin' );

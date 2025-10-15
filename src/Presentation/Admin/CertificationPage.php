@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings as Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**

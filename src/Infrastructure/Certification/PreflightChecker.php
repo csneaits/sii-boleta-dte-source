@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Certification;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**

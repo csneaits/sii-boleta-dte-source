@@ -1,5 +1,5 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\WordPress;
 
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 

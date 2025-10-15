@@ -2,7 +2,7 @@
 namespace Sii\BoletaDte\Presentation\WooCommerce;
 
 use Sii\BoletaDte\Domain\Rut;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings as Settings;
 
 /**
  * Adds custom fields to the WooCommerce checkout process.

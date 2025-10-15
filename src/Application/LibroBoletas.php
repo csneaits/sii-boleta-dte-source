@@ -1,9 +1,9 @@
 <?php
 namespace Sii\BoletaDte\Application;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\Signer;
+use Sii\BoletaDte\Infrastructure\Engine\Signer;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\FolioManager;
 
@@ -17,8 +17,8 @@ class LibroBoletas {
         private Queue $queue;
         private FolioManager $folio_manager;
 
-        public function __construct( Settings $settings, Api $api = null, Queue $queue = null, FolioManager $folio_manager = null ) {
-                $this->settings      = $settings;
+    public function __construct( Settings $settings, ?Api $api = null, ?Queue $queue = null, ?FolioManager $folio_manager = null ) {
+        $this->settings      = $settings;
                 $this->api           = $api ?? new Api();
                 if ( method_exists( $this->api, 'setSettings' ) ) {
                         $this->api->setSettings( $settings );
@@ -26,9 +26,9 @@ class LibroBoletas {
                 $this->queue         = $queue ?? new Queue();
                 $this->signer        = new Signer();
                 $this->folio_manager = $folio_manager ?? new FolioManager( $settings );
-                if ( function_exists( 'add_action' ) ) {
-                        add_action( \Sii\BoletaDte\Infrastructure\Cron::HOOK, array( $this, 'maybe_run' ) );
-                }
+        if ( function_exists( 'add_action' ) ) {
+            add_action( \Sii\BoletaDte\Infrastructure\Scheduling\Cron::HOOK, array( $this, 'maybe_run' ) );
+        }
         }
 
         /**

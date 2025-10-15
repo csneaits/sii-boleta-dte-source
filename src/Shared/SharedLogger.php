@@ -3,7 +3,7 @@ namespace Sii\BoletaDte\Shared;
 
 use Sii\BoletaDte\Domain\Logger as LoggerContract;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Shared logger that writes messages to the database and to a rotating file.
@@ -15,7 +15,7 @@ class SharedLogger implements LoggerContract {
 
     private Settings $settings;
 
-    public function __construct( Settings $settings = null ) {
+    public function __construct( ?Settings $settings = null ) {
         $this->settings = $settings ?? new Settings();
     }
 

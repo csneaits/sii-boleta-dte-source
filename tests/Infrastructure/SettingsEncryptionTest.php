@@ -1,6 +1,6 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 class SettingsEncryptionTest extends TestCase {
     public function test_encrypt_and_decrypt_roundtrip(): void {

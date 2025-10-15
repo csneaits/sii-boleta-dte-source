@@ -93,3 +93,30 @@ La suite arranca WordPress mínimo desde `tests/bootstrap.php` con stubs (`WP_Er
 - Extender validación de sobres multi-DTE y exponer comparaciones en UI administrativa.
 
 Mantén este documento sincronizado con el estado real del repositorio cada vez que se apliquen cambios significativos.
+
+## 10. Nota rápida sobre tests y almacenamiento seguro
+
+- Stubs de WordPress para la suite de tests:
+  - Se centralizaron en `tests/_helpers/wp-fallbacks.php` y se cargan desde `tests/bootstrap.php`.
+  - Contienen implementaciones mínimas (sanitizers, `esc_*`, `checked`, `wp_nonce_field`, etc.) diseñadas solo para tests.
+  - No agregar estos fallbacks en código de producción; si necesitas más helpers, añádelos en `tests/_helpers/`.
+
+- Comportamiento de `XmlStorage::store()`:
+  - Semántica: intenta mover el archivo fuente al directorio protegido (primero `rename`). Si `rename` falla, hace `copy` + `unlink` como fallback.
+  - Efecto en tests: después de `XmlStorage::store($path)` el fichero original puede no existir. Las pruebas que limpian archivos deben comprobar `file_exists(...)` antes de `unlink(...)`.
+  - Recomendación: cuando escribas tests que creen archivos temporales y los pasen a `XmlStorage`, usa `file_exists()` antes de `unlink()` o captura la ruta retornada por `store()` y elimínala solo si existe.
+
+Esta nota sirve para evitar advertencias en PHPUnit y para mantener el código productivo libre de helpers de test.
+
+---
+
+## Perfiles de agente (rápido)
+
+Hemos añadido perfiles breves orientados a distintos roles: Developer, Maintainer, QA y Ops. Estos documentos viven en `docs/agent-profiles/` y contienen pasos rápidos, checklists y consejos específicos para cada rol.
+
+- `docs/agent-profiles/developer.md` — enfoque en desarrollo, tests y debugging.
+- `docs/agent-profiles/maintainer.md` — guía para revisar PRs, releases y criterios de aceptación.
+- `docs/agent-profiles/qa.md` — reproducir errores, casos críticos y automatización.
+- `docs/agent-profiles/ops.md` — despliegue, monitoreo y procedimientos de rollback.
+
+Consulta el perfil que corresponda según tu tarea para obtener instrucciones concisas.

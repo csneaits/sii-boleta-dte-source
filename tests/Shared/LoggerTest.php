@@ -39,7 +39,7 @@ class LoggerTest extends TestCase {
                 $file = sys_get_temp_dir() . '/sii-boleta-logs/sii-boleta-' . date( 'Y-m-d' ) . '.log';
                 $this->assertFileExists( $file );
                 $logs = LogDb::get_logs();
-                $this->assertSame( 'INFO', $logs[0]['status'] );
+				$this->assertSame( 'Enviado (pendiente)', $logs[0]['status'] );
         }
 }
 

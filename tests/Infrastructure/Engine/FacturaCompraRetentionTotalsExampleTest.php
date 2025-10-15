@@ -1,11 +1,11 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 if ( ! class_exists('Dummy_Settings_FacturaCompraRetentionTotals') ) {
-    class Dummy_Settings_FacturaCompraRetentionTotals extends Settings { private $d; public function __construct($d){$this->d=$d;} public function get_settings(): array { return $this->d; } }
+    class Dummy_Settings_FacturaCompraRetentionTotals extends \Sii\BoletaDte\Infrastructure\WordPress\Settings { private $d; public function __construct($d){$this->d=$d;} public function get_settings(): array { return $this->d; } }
 }
 
 class FacturaCompraRetentionTotalsExampleTest extends TestCase {

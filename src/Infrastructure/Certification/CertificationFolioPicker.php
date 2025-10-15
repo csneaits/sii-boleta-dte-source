@@ -2,7 +2,7 @@
 namespace Sii\BoletaDte\Infrastructure\Certification;
 
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Helper that yields folio numbers for a TipoDTE based on the saved certification plan.

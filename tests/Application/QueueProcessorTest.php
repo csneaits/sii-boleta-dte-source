@@ -98,7 +98,9 @@ class QueueProcessorTest extends TestCase {
         ];
 
         $processor->process();
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
 
         $this->assertSame( 3, $GLOBALS['wp_remote_post_calls'] );
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
@@ -131,7 +133,9 @@ class QueueProcessorTest extends TestCase {
         $processor->process();
 
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
-        @unlink( $stored['path'] );
+        if ( file_exists( $stored['path'] ) ) {
+            unlink( $stored['path'] );
+        }
     }
 
     public function test_failed_jobs_are_delayed_before_retry(): void {
@@ -168,6 +172,8 @@ class QueueProcessorTest extends TestCase {
 
         $this->assertCount( 0, QueueDb::get_pending_jobs() );
         unset( $GLOBALS['test_current_time'] );
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
     }
 }

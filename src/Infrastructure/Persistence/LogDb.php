@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Persistence;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Persistent log storage.
@@ -296,14 +296,21 @@ KEY env_status (environment, status)
                 }
 
                 // Fallback to in-memory store.
-                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), self::normalise_legacy_rows( self::$entries ) );
+                // When filtering by status we must apply the filter against the
+                // raw stored values (e.g. 'sent', 'accepted') before calling
+                // enrich_row() which maps statuses to human readable labels.
+                $raw_rows = self::normalise_legacy_rows( self::$entries );
+
                 if ( $status ) {
-                        $rows = array_filter(
-                                $rows,
-                                static fn( $row ) => $row['status'] === $status
+                        $raw_rows = array_filter(
+                                $raw_rows,
+                                static fn( $row ) => ( isset( $row['status'] ) ? $row['status'] : '' ) === $status
                         );
                 }
-                $rows = self::filter_rows_by_environment( $rows, $environment );
+
+                $raw_rows = self::filter_rows_by_environment( $raw_rows, $environment );
+
+                $rows = array_map( static fn( $row ) => self::enrich_row( $row ), array_values( $raw_rows ) );
                 return array_slice( array_reverse( array_values( $rows ) ), 0, $limit );
         }
 
@@ -480,6 +487,25 @@ KEY env_status (environment, status)
          * Ensures rows have document metadata populated even for legacy entries.
          */
         private static function enrich_row( array $row ): array {
+                        // Map database status to panel status (español)
+                        $map = [
+                                'INFO'     => 'Enviado (pendiente)', // o 'En cola' si prefieres
+                                'SENT'     => 'Enviado (pendiente)',
+                                'QUEUED'   => 'En cola',
+                                'ACCEPTED' => 'Aceptado',
+                                'REJECTED' => 'Rechazado',
+                                'ERROR'    => 'Error',
+                                'FAILED'   => 'Fallido',
+                                'DRAFT'    => 'Borrador',
+                        ];
+                        if (isset($row['status'])) {
+                                $status = strtoupper(trim((string)$row['status']));
+                                if (isset($map[$status])) {
+                                        $row['status'] = $map[$status];
+                                } else {
+                                        $row['status'] = ucfirst(strtolower($status));
+                                }
+                        }
                 if ( isset( $row['environment'] ) ) {
                         $row['environment'] = Settings::normalize_environment( (string) $row['environment'] );
                 }

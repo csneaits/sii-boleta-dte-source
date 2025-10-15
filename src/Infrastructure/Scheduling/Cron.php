@@ -1,7 +1,7 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\Scheduling;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 class Cron {
 	public const HOOK = 'sii_boleta_dte_process_queue';

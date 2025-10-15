@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings as Settings;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Certification\ProgressTracker;
 
@@ -14,7 +14,7 @@ private Settings $settings;
 /** @var callable */
 private $has_folio_callback;
 
-public function __construct( Settings $settings = null, callable $has_folio_callback = null ) {
+public function __construct( ?Settings $settings = null, ?callable $has_folio_callback = null ) {
 $this->settings = $settings ?? new Settings();
 $this->has_folio_callback = $has_folio_callback ?? array( FoliosDb::class, 'has_type' );
 }

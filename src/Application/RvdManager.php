@@ -1,9 +1,9 @@
 <?php
 namespace Sii\BoletaDte\Application;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\Cron;
+use Sii\BoletaDte\Infrastructure\Scheduling\Cron;
 
 /**
  * Generates and sends the daily sales summary (RVD).
@@ -13,7 +13,7 @@ class RvdManager {
     private Api $api;
     private Queue $queue;
 
-    public function __construct( Settings $settings, Api $api = null, Queue $queue = null ) {
+    public function __construct( Settings $settings, ?Api $api = null, ?Queue $queue = null ) {
         $this->settings = $settings;
         $this->api      = $api ?? new Api();
         if ( method_exists( $this->api, 'setSettings' ) ) {

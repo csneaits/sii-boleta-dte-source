@@ -20,7 +20,7 @@ use Sii\BoletaDte\Infrastructure\Engine\Preparation\FactoryBackedDocumentPrepara
 use Sii\BoletaDte\Infrastructure\Engine\Xml\ReceptorPlaceholderCleaner;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\XmlPlaceholderCleaner;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use libredte\lib\Core\Application;
 use libredte\lib\Core\Package\Billing\Component\Document\Support\DocumentBag;
 use libredte\lib\Core\Package\Billing\Component\Document\Worker\BuilderWorker;
@@ -34,7 +34,7 @@ use libredte\lib\Core\Package\Billing\Component\Identifier\Worker\CafFakerWorker
 use Sii\BoletaDte\Infrastructure\Engine\Caf\LibreDteCafBridgeProvider as BridgeCafProvider;
 use libredte\lib\Core\Package\Billing\Component\Identifier\Contract\CafInterface as LibreDteCafInterface;
 use libredte\lib\Core\Package\Billing\Component\Document\Entity\TipoDocumento as LibreDteTipoDocumento;
-use Sii\BoletaDte\Infrastructure\LibredteBridge;
+use Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge;
 
 /**
  * DTE engine backed by LibreDTE library.
@@ -128,7 +128,7 @@ class LibreDteEngine implements DteEngine {
         }
 
     // Prefer ReceptorFactory from LibreDTE TradingParties component when available
-    $factoryFromBridge = \Sii\BoletaDte\Infrastructure\LibredteBridge::getReceptorFactory( $this->settings );
+    $factoryFromBridge = \Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge::getReceptorFactory( $this->settings );
     $factory  = is_object( $factoryFromBridge ) ? $factoryFromBridge : new ReceptorFactory();
         $provider = new EmptyReceptorProvider( $factory );
 
@@ -236,7 +236,7 @@ class LibreDteEngine implements DteEngine {
         $emisorRut  = (string) ( $emisorData['RUTEmisor'] ?? '' );
         $emisorName = (string) ( $emisorData['RznSocEmisor'] ?? '' );
         // Prefer official EmisorFactory when available; fallback to direct entity construction
-        $emisorFactory = \Sii\BoletaDte\Infrastructure\LibredteBridge::getEmisorFactory( $this->settings );
+    $emisorFactory = \Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge::getEmisorFactory( $this->settings );
         if ( is_object( $emisorFactory ) && method_exists( $emisorFactory, 'create' ) ) {
             // Build a conservative mapping; unknown keys will be ignored by older factories. All accesses are guarded.
             $emisorGiro       = (string) ( $emisorData['GiroEmisor'] ?? $emisorData['GiroEmis'] ?? ( $settings['giro'] ?? '' ) );
@@ -421,7 +421,7 @@ class LibreDteEngine implements DteEngine {
             $useSigCheck    = array_key_exists( 'validate_signature_libredte', $cfg ) ? ! empty( $cfg['validate_signature_libredte'] ) : true;
 
             if ( $useSanitizer || $useSchemaCheck || $useSigCheck ) {
-                $app = \Sii\BoletaDte\Infrastructure\LibredteBridge::getApp( $this->settings );
+                $app = \Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge::getApp( $this->settings );
                 $billing = $app && method_exists( $app, 'getPackageRegistry' )
                     ? $app->getPackageRegistry()->getBillingPackage() : null;
                 $component = $billing && method_exists( $billing, 'getDocumentComponent' )

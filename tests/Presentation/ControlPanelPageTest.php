@@ -1,13 +1,13 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Presentation\Admin\ControlPanelPage;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\QueueProcessor;
 use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Application\LibroBoletas;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 

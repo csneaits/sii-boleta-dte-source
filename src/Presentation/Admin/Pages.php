@@ -1,8 +1,8 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
-use Sii\BoletaDte\Infrastructure\Plugin;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Plugin;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
 use Sii\BoletaDte\Presentation\Admin\LogsPage;
 use Sii\BoletaDte\Presentation\Admin\DiagnosticsPage;
@@ -23,7 +23,7 @@ class Pages {
     private CafPage $caf_page;
     private CertificationPage $cert_page;
 
-    public function __construct( Plugin $core, SettingsPage $settings_page = null, LogsPage $logs_page = null, DiagnosticsPage $diagnostics_page = null, Help $help_page = null, ControlPanelPage $control_panel_page = null, GenerateDtePage $generate_dte_page = null, CafPage $caf_page = null, CertificationPage $cert_page = null ) {
+    public function __construct( Plugin $core, ?SettingsPage $settings_page = null, ?LogsPage $logs_page = null, ?DiagnosticsPage $diagnostics_page = null, ?Help $help_page = null, ?ControlPanelPage $control_panel_page = null, ?GenerateDtePage $generate_dte_page = null, ?CafPage $caf_page = null, ?CertificationPage $cert_page = null ) {
 				$this->core                                  = $core;
 				$this->settings_page                         = $settings_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( SettingsPage::class );
 				$this->logs_page                             = $logs_page ?? \Sii\BoletaDte\Infrastructure\Factory\Container::get( LogsPage::class );

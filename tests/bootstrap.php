@@ -57,3 +57,7 @@ if ( ! function_exists( 'esc_html_x' ) ) {
         return $text;
     }
 }
+// Centralized WP fallbacks for tests
+if ( file_exists( __DIR__ . '/_helpers/wp-fallbacks.php' ) ) {
+    require_once __DIR__ . '/_helpers/wp-fallbacks.php';
+}

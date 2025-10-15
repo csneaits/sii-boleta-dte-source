@@ -24,7 +24,7 @@ class QueueProcessor {
         /** @var callable */
         private $sleep;
 
-	public function __construct( Api $api, callable $sleep = null, FolioManager $folio_manager = null ) {
+	public function __construct( Api $api, ?callable $sleep = null, ?FolioManager $folio_manager = null ) {
 		$this->api   = $api;
 		$this->folio_manager = $folio_manager;
 		$this->sleep = $sleep ?? 'sleep';
@@ -157,7 +157,7 @@ class QueueProcessor {
 													$xml = file_get_contents( $file_path );
 													if ( $xml ) {
 															// Instanciar PDFGenerator y Plugin
-															$plugin = \Sii\BoletaDte\Infrastructure\Factory\Container::get(\Sii\BoletaDte\Infrastructure\Plugin::class);
+															$plugin = \Sii\BoletaDte\Infrastructure\Factory\Container::get(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class);
 															$pdf_generator = $plugin->get_pdf_generator();
 															$pdf = $pdf_generator->generate( $xml );
 															if ( is_string( $pdf ) && '' !== $pdf ) {

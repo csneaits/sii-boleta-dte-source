@@ -1,7 +1,7 @@
 <?php
 namespace Sii\BoletaDte\Presentation\Admin;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\LibroBoletas;
 use Sii\BoletaDte\Application\QueueProcessor;
@@ -9,7 +9,7 @@ use Sii\BoletaDte\Application\RvdManager;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 
 /**
  * Dashboard-like page summarising plugin status and queue management.
@@ -280,7 +280,7 @@ foreach ( array_slice( $lastLogs, 0, 20 ) as $row ) {
                 $cfg = $this->settings->get_settings();
                 $env = $this->settings->get_environment();
                 // Map to libredte env label similar to LibredteBridge
-                $envMap         = \Sii\BoletaDte\Infrastructure\Settings::normalize_environment( $env );
+                $envMap         = \Sii\BoletaDte\Infrastructure\WordPress\Settings::normalize_environment( $env );
                 $libredteEnv    = ('1' === $envMap) ? 'prod' : ( ( '2' === $envMap ) ? 'dev' : 'cert' );
                 $libredteLabel  = Settings::environment_label( $envMap );
                 $libredteOutput = sprintf( '%s (%s)', $libredteLabel, $libredteEnv );

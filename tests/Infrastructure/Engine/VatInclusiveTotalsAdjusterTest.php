@@ -1,10 +1,11 @@
 <?php
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\FacturaDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\Factory\VatInclusiveDteDocumentFactory;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
 use Sii\BoletaDte\Infrastructure\Engine\Xml\TotalsAdjusterInterface;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! class_exists( 'Dummy_Vat_Settings' ) ) {
     class Dummy_Vat_Settings extends Settings {
@@ -54,9 +55,7 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         );
     }
 
-    /**
-     * @dataProvider vatInclusiveTypesProvider
-     */
+    #[DataProvider('vatInclusiveTypesProvider')]
     public function test_adjuster_preserves_gross_totals_for_vat_inclusive_documents( int $tipo ): void {
         $engine = $this->createEngineWithFactories();
 
@@ -213,9 +212,8 @@ class VatInclusiveTotalsAdjusterTest extends TestCase {
         $this->assertNotSame( 'adjusted', $xml );
     }
 
+    #[DataProvider('pdfExampleTotalsProvider')]
     /**
-     * @dataProvider pdfExampleTotalsProvider
-     *
      * @param array<string,int|string> $expectedTotals
      */
     public function test_pdf_example_totals_match_expected_values( int $tipo, array $expectedTotals ): void {

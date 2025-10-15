@@ -1,7 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Presentation\Admin\SettingsPage;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }
 if ( ! function_exists( 'esc_attr' ) ) { function esc_attr( $s ) { return $s; } }

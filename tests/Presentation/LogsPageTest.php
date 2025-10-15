@@ -2,7 +2,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Presentation\Admin\LogsPage;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! function_exists( 'add_submenu_page' ) ) { function add_submenu_page() {} }
 if ( ! function_exists( '__' ) ) { function __( $s ) { return $s; } }

@@ -50,8 +50,8 @@ class LogDbTest extends TestCase {
             'created_at'    => '2025-01-01 00:00:00',
         );
 
-        $entries->setValue( array( $legacyRow ) );
-        $useMemory->setValue( true );
+    $entries->setValue( null, array( $legacyRow ) );
+    $useMemory->setValue( null, true );
 
         try {
             $pending = LogDb::get_pending_track_ids( 10, '2' );
@@ -68,8 +68,8 @@ class LogDbTest extends TestCase {
             $types = LogDb::get_distinct_types( '2' );
             $this->assertSame( array( 33 ), $types );
         } finally {
-            $entries->setValue( $originalEntries );
-            $useMemory->setValue( $originalUseMemory );
+            $entries->setValue( null, $originalEntries );
+            $useMemory->setValue( null, $originalUseMemory );
         }
     }
 }

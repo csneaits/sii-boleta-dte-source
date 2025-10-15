@@ -1,8 +1,8 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 class TokenManagerTest extends TestCase {
     public function test_caches_token_per_environment(): void {

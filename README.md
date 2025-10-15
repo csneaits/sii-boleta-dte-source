@@ -12,6 +12,26 @@ Plugin modular para WordPress y WooCommerce que emite boletas, facturas, notas y
 - **Panel administrativo completo**: ajustes, carga de CAF, emisores, cola, diagnósticos, visor de logs y herramientas de certificación.
 - **Extensibilidad**: filtros, factories y servicios permiten intercambiar el motor, ajustar pipelines de preparación y registrar nuevos tipos de documento.
 
+## Cómo usar `AGENT.md`
+
+`AGENT.md` es un documento operativo pensado para que desarrolladores, mantenedores, QA y operaciones encuentren rápidamente decisiones, atajos y acuerdos internos del proyecto.
+
+Qué encontrarás:
+- Resumen del contexto técnico (stack, arquitectura, piezas críticas).
+- Notas de diseño, decisiones recientes y recomendaciones de pruebas.
+- Perfiles de agente (Developer, Maintainer, QA, Ops) enlazados desde `AGENT.md`.
+
+Cómo usarlo:
+- Consulta `AGENT.md` antes de cambiar comportamiento crítico o contratos públicos.
+- Para añadir una nota: crea un PR que actualice `AGENT.md` (o añade un nuevo archivo en `docs/agent-profiles/` si es un perfil específico).
+- Los cambios operativos o de políticas deben registrarse en `AGENT.md` para referencia futura.
+
+Ubicación de perfiles y helpers de tests:
+- Perfiles: `docs/agent-profiles/`.
+- Helpers de tests (stubs WP): `tests/_helpers/wp-fallbacks.php` (cargado desde `tests/bootstrap.php`).
+
+Mantén `AGENT.md` como la fuente de verdad para decisiones de equipo pequeñas y operativas; documentaciones más largas o formales siguen en `README.md` o `docs/`.
+
 ## Requisitos
 
 | Componente             | Versión mínima recomendada |
@@ -107,6 +127,38 @@ Comandos recomendados durante el desarrollo:
 
 Los tests bootstrappean WordPress desde `tests/bootstrap.php` y utilizan dobles en memoria para base de datos y cola.
 
+## Uso de plantillas y script de agente
+
+Hemos añadido plantillas de prompts para orquestar sesiones multi-agente (Coordinador, Analista, Codificador, Tester, Resumidor) en la carpeta `templates/` y una guía en `docs/agent-orchestration.md`.
+
+También hay un script auxiliar que imprime o copia al portapapeles la plantilla seleccionada:
+
+```bash
+./scripts/agent_prompt.sh <role> [--copy]
+# Roles disponibles: coordinator, analyst, coder, tester, summarizer
+```
+
+Ejemplos:
+
+```bash
+# Mostrar la plantilla del tester
+./scripts/agent_prompt.sh tester
+
+# Mostrar y copiar al portapapeles (requiere xclip, wl-copy o pbcopy)
+./scripts/agent_prompt.sh coordinator --copy
+```
+
+Notas:
+- Las plantillas están en `templates/agent-<role>.md`.
+- Si usas la opción `--copy`, el script buscará `xclip`, `wl-copy` o `pbcopy` según tu sistema.
+- Haz el script ejecutable si es necesario:
+
+```bash
+chmod +x scripts/agent_prompt.sh
+```
+
+Consulta `docs/scenarios/tester-scenario.md` para un ejemplo de uso específico del rol Tester.
+
 ## Solución de problemas
 
 | Síntoma | Diagnóstico | Acciones sugeridas |
@@ -149,3 +201,30 @@ Para mejorar la robustez y el rendimiento del plugin, se ha refactorizado el sis
 -   **Lógica de Reintentos:** Si un trabajo falla, el procesador aplica la siguiente lógica:
     -   **Reintentos Automáticos:** Se reintenta hasta 3 veces con un intervalo de 2 minutos entre cada intento.
     -   **Fallo Persistente:** Después de 3 intentos fallidos, el trabajo se marca como "fallido" pero permanece en la cola, esperando una acción manual del administrador (reintentar, cancelar, etc.) desde el panel de control.
+
+## Buenas prácticas al usar XmlStorage en tests
+
+1. Cuando uses `XmlStorage::store($path)` en tests, recuerda que su semántica es mover el archivo fuente al directorio protegido:
+   - Intentará `rename($source, $dest)` y, si falla, hará `copy($source, $dest)` seguido de `unlink($source)`.
+   - Por eso, después de llamar a `store()` el archivo original puede ya no existir.
+
+2. Para limpiar archivos temporales en tests, siempre comprueba existencia antes de eliminar:
+
+```php
+if ( file_exists($tmpFile) ) {
+    unlink($tmpFile);
+}
+```
+
+3. Alternativa segura: captura y utiliza la ruta retornada por `XmlStorage::store()` y elimina esa ruta si existe. Ejemplo:
+
+```php
+$stored = XmlStorage::store($tmpFile);
+if ( ! empty($stored['path']) && file_exists($stored['path']) ) {
+    unlink($stored['path']);
+}
+```
+
+4. Mantén los helpers de WordPress de los tests centralizados en `tests/_helpers/wp-fallbacks.php` y evita insertar helpers de testing en código productivo.
+
+Estas prácticas evitan advertencias de PHPUnit relacionadas con `unlink()` y mantienen el código productivo limpio.

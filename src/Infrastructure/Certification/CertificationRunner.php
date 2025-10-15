@@ -1,15 +1,15 @@
 <?php
 namespace Sii\BoletaDte\Infrastructure\Certification;
 
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
-use Sii\BoletaDte\Infrastructure\TokenManager;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
 use Sii\BoletaDte\Infrastructure\Queue\XmlStorage;
 use Sii\BoletaDte\Domain\DteEngine;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Application\ConsumoFolios;
-use Sii\BoletaDte\Infrastructure\Signer;
+use Sii\BoletaDte\Infrastructure\Engine\Signer;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 
 /**

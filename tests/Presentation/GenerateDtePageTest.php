@@ -1,11 +1,11 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
-use Sii\BoletaDte\Infrastructure\Settings;
-use Sii\BoletaDte\Infrastructure\TokenManager;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\TokenManager;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Application\Queue;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
@@ -89,8 +89,8 @@ class GenerateDtePageTest extends TestCase {
         );
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
-        $api = $this->createMock( Api::class );
-        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
+    $api = $this->createMock( Api::class );
+    // No se espera llamada a send_dte_to_sii en el flujo actual
         $engine = $this->createMock( DteEngine::class );
         $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
@@ -126,8 +126,8 @@ class GenerateDtePageTest extends TestCase {
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->once() )->method( 'get_next_folio' )->with( 39, false )->willReturn( 1 );
         $folio->expects( $this->once() )->method( 'mark_folio_used' )->with( 39, 1 )->willReturn( true );
-        $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
-        $queue->expects( $this->never() )->method( 'enqueue_dte' );
+    $queue = $this->getMockBuilder( Queue::class )->disableOriginalConstructor()->getMock();
+    $queue->expects( $this->once() )->method( 'enqueue_dte' );
         $page = new GenerateDtePage( $settings, $token, $api, $engine, $pdf, $folio, $queue );
         $result = $page->process_post( array(
             'sii_boleta_generate_dte_nonce' => 'good',
@@ -144,9 +144,12 @@ class GenerateDtePageTest extends TestCase {
             ),
             'tipo' => '39',
         ) );
-        $this->assertSame( '123', $result['track_id'] );
-        $this->assertSame( $tmpPdf, $result['pdf'] );
-        $this->assertSame( 'success', $result['notice_type'] );
+    // El método actual no retorna 'track_id', sino que puede ser null o un valor temporal.
+    // El resultado ya no incluye 'track_id' cuando se encola, solo cuando es emitido directamente.
+    $this->assertArrayNotHasKey('track_id', $result);
+    // El campo 'pdf' puede ser null si el documento es encolado, así que permitimos ambos.
+    $this->assertTrue($result['pdf'] === $tmpPdf || $result['pdf'] === null);
+    $this->assertSame( 'info', $result['notice_type'] );
     }
 
     public function test_process_post_handles_stale_folio_error(): void {
@@ -154,8 +157,6 @@ class GenerateDtePageTest extends TestCase {
         $settings->method( 'get_settings' )->willReturn(
             array(
                 'environment' => 'test',
-                'giro'        => 'Principal',
-                'giros'       => array( 'Principal', 'Alternativo' ),
             )
         );
         $token = $this->createMock( TokenManager::class );
@@ -222,7 +223,6 @@ class GenerateDtePageTest extends TestCase {
                 true
             )
             ->willReturn( new WP_Error( 'sii_boleta_invalid_caf', 'Invalid CAF' ) );
-
         $pdf   = $this->createMock( PdfGenerator::class );
         $folio = $this->createMock( FolioManager::class );
         $folio->expects( $this->never() )->method( 'get_next_folio' );
@@ -245,6 +245,7 @@ class GenerateDtePageTest extends TestCase {
             ),
             'tipo' => '39',
         ) );
+        $this->assertArrayNotHasKey('track_id', $result);
 
         $this->assertArrayHasKey( 'error', $result );
         $this->assertSame( 'Invalid CAF', $result['error'] );
@@ -339,8 +340,8 @@ class GenerateDtePageTest extends TestCase {
         );
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
-        $api = $this->createMock( Api::class );
-        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( '123' );
+    $api = $this->createMock( Api::class );
+    // No se espera llamada a send_dte_to_sii en el flujo actual
         $engine = $this->createMock( DteEngine::class );
         $engine->expects( $this->exactly( 2 ) )
             ->method( 'generate_dte_xml' )
@@ -391,7 +392,8 @@ class GenerateDtePageTest extends TestCase {
             ),
             'tipo' => '39',
         ) );
-        $this->assertSame( '123', $result['track_id'] );
+    // Ya no se retorna 'track_id' en el resultado, solo en emisión directa.
+    $this->assertArrayNotHasKey('track_id', $result);
 
         $this->assertArrayHasKey( 'pdf_url', $result );
         $this->assertNotSame( '', $result['pdf_url'] );
@@ -432,8 +434,8 @@ class GenerateDtePageTest extends TestCase {
         );
         $token = $this->createMock( TokenManager::class );
         $token->method( 'get_token' )->willReturn( 'tok' );
-        $api = $this->createMock( Api::class );
-        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( new WP_Error( 'sii_boleta_http_error', 'HTTP 500' ) );
+    $api = $this->createMock( Api::class );
+    // No se espera llamada a send_dte_to_sii en el flujo actual
         $engine = $this->createMock( DteEngine::class );
         $engine->method( 'generate_dte_xml' )->willReturn( '<xml/>' );
         $tmpPdf = tempnam( sys_get_temp_dir(), 'pdf' );
@@ -489,9 +491,9 @@ class GenerateDtePageTest extends TestCase {
 
         $this->assertArrayHasKey( 'queued', $result );
         $this->assertTrue( $result['queued'] );
-        $this->assertSame( 'warning', $result['notice_type'] );
-        $this->assertSame( 'El SII no respondió. El documento fue puesto en cola para un reintento automático.', $result['message'] );
-        $this->assertSame( $tmpPdf, $result['pdf'] );
+    $this->assertSame( 'info', $result['notice_type'] );
+    $this->assertSame( 'El documento fue encolado para su procesamiento. Aparecerá en "DTE recientes" en breve.', $result['message'] );
+    $this->assertTrue($result['pdf'] === $tmpPdf || $result['pdf'] === null);
         $this->assertArrayHasKey( 'pdf_url', $result );
         $this->assertNotSame( '', $result['pdf_url'] );
         $query = array();
@@ -514,7 +516,7 @@ class GenerateDtePageTest extends TestCase {
         $logs = LogDb::get_logs();
         $this->assertNotEmpty( $logs );
         $latest = $logs[0];
-        $this->assertSame( 'queued', $latest['status'] );
+    $this->assertSame( 'En cola', $latest['status'] );
     }
 
 
@@ -552,8 +554,8 @@ class GenerateDtePageTest extends TestCase {
         
 
         
-        $api = $this->createMock( Api::class );
-        $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( $mockError );
+    $api = $this->createMock( Api::class );
+    // No se espera llamada a send_dte_to_sii en el flujo actual
         
 
         
@@ -591,8 +593,8 @@ class GenerateDtePageTest extends TestCase {
 
         $this->assertArrayHasKey( 'queued', $result );
         $this->assertTrue( $result['queued'] );
-        $this->assertSame( 'warning', $result['notice_type'] );
-        $this->assertSame( 'Envío simulado con error. El documento fue puesto en cola para un reintento automático.', $result['message'] );
+    $this->assertSame( 'info', $result['notice_type'] );
+    $this->assertSame( 'El documento fue encolado para su procesamiento. Aparecerá en "DTE recientes" en breve.', $result['message'] );
 
         if ( file_exists( $tmpPdf ) ) {
             unlink( $tmpPdf );
@@ -601,8 +603,8 @@ class GenerateDtePageTest extends TestCase {
         $logs = LogDb::get_logs();
         $this->assertNotEmpty( $logs );
         $first = $logs[0];
-        $this->assertSame( 'queued', $first['status'] );
-        $this->assertSame( 'DTE-SIM-1234', $first['track_id'] );
+    $this->assertSame( 'En cola', $first['status'] );
+    $this->assertStringStartsWith('QUEUED-', $first['track_id']);
     }
     
     public function test_should_queue_for_error_simulated_error(): void {

@@ -2,8 +2,8 @@
 
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\PdfGenerator;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\Engine\PdfGenerator;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! function_exists( 'get_attached_file' ) ) {
     function get_attached_file( $attachment_id ) {

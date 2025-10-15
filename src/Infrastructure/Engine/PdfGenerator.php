@@ -1,8 +1,8 @@
 <?php
-namespace Sii\BoletaDte\Infrastructure;
+namespace Sii\BoletaDte\Infrastructure\Engine;
 
 use Sii\BoletaDte\Domain\DteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Wrapper around the DteEngine PDF rendering capability.
@@ -13,7 +13,7 @@ class PdfGenerator {
         /** @var array<string,string> */
         private static array $logo_cache = array();
 
-        public function __construct( DteEngine $engine, Settings $settings = null ) {
+        public function __construct( DteEngine $engine, ?Settings $settings = null ) {
                 $this->engine   = $engine;
                 $this->settings = $settings ?? new Settings();
         }

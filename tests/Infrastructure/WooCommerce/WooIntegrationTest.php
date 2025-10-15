@@ -271,7 +271,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_generates_dte_and_saves_track_id(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
         $engine = $this->createMock( 'Sii\\BoletaDte\\Domain\\DteEngine' );
@@ -280,10 +280,10 @@ class WooIntegrationTest extends TestCase {
         $api->expects( $this->once() )->method( 'send_dte_to_sii' )->willReturn( 'T123' );
         $api->method( 'generate_token' )->willReturn( 'tok' );
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
@@ -317,7 +317,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_preview_mode_skips_sii_submission(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ), 'woocommerce_preview_only' => 1 ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( true );
 
@@ -328,10 +328,10 @@ class WooIntegrationTest extends TestCase {
         $api->expects( $this->never() )->method( 'send_dte_to_sii' );
 
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
@@ -366,7 +366,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_defaults_to_boleta_when_meta_missing(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
 
@@ -378,10 +378,10 @@ class WooIntegrationTest extends TestCase {
         $api->method( 'generate_token' )->willReturn( 'tok' );
 
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
@@ -399,7 +399,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_defaults_to_first_enabled_type_when_boleta_disabled(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 33 ) ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
 
@@ -411,10 +411,10 @@ class WooIntegrationTest extends TestCase {
         $api->method( 'generate_token' )->willReturn( 'tok' );
 
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
@@ -432,7 +432,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_renders_pdf_link_in_my_account(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
 
@@ -444,10 +444,10 @@ class WooIntegrationTest extends TestCase {
         $api->method( 'generate_token' )->willReturn( 'tok' );
 
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->method( 'generate' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();
@@ -471,7 +471,7 @@ class WooIntegrationTest extends TestCase {
     }
 
     public function test_manual_credit_note_uses_partial_refund_data(): void {
-        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
+        $settings = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Settings' )->onlyMethods( ['get_settings', 'is_woocommerce_preview_only_enabled'] )->getMock();
         $settings->method( 'get_settings' )->willReturn( array( 'enabled_types' => array( 39 ) ) );
         $settings->method( 'is_woocommerce_preview_only_enabled' )->willReturn( false );
 
@@ -489,10 +489,10 @@ class WooIntegrationTest extends TestCase {
         $api->method( 'generate_token' )->willReturn( 'tok' );
 
         $pdf_path = $this->createTemporaryPdf();
-        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\PdfGenerator' );
+        $pdf      = $this->createMock( 'Sii\\BoletaDte\\Infrastructure\\Engine\\PdfGenerator' );
         $pdf->expects( $this->once() )->method( 'generate' )->with( '<xml/>' )->willReturn( $pdf_path );
 
-        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\Plugin' )
+        $plugin = $this->getMockBuilder( 'Sii\\BoletaDte\\Infrastructure\\WordPress\\Plugin' )
             ->disableOriginalConstructor()
             ->onlyMethods( ['get_settings', 'get_engine', 'get_api', 'get_pdf_generator'] )
             ->getMock();

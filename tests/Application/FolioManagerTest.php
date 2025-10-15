@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Application\FolioManager;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) {

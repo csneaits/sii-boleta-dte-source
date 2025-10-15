@@ -2,7 +2,7 @@
 namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Security\CertificateStorage;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 /**
  * Renders the plugin settings page using WordPress settings API.

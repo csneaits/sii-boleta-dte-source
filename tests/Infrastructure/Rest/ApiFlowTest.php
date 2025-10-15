@@ -91,7 +91,9 @@ class ApiFlowTest extends TestCase {
         $file = $this->create_temp_xml();
         $api  = new Api();
         $tid  = $api->send_dte_to_sii( $file, 'test', 'token' );
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
         $this->assertSame( '123', $tid );
         $this->assertSame( 1, $GLOBALS['wp_remote_post_calls'] );
     }
@@ -104,7 +106,9 @@ class ApiFlowTest extends TestCase {
         $file = $this->create_temp_xml();
         $api  = new Api();
         $res  = $api->send_dte_to_sii( $file, 'test', 'token' );
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
         $this->assertTrue( is_wp_error( $res ) );
         $this->assertSame( 'sii_boleta_rechazo', $res->get_error_code() );
         $this->assertSame( 1, $GLOBALS['wp_remote_post_calls'] );
@@ -119,7 +123,9 @@ class ApiFlowTest extends TestCase {
         $file = $this->create_temp_xml();
         $api  = new Api();
         $tid  = $api->send_dte_to_sii( $file, 'test', 'token' );
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
         $this->assertSame( '456', $tid );
         $this->assertSame( 2, $GLOBALS['wp_remote_post_calls'] );
     }
@@ -165,7 +171,9 @@ class ApiFlowTest extends TestCase {
         $file = $this->create_temp_xml();
         $api  = new Api( null, 2 );
         $res  = $api->send_dte_to_sii( $file, 'test', 'token' );
-        unlink( $file );
+        if ( file_exists( $file ) ) {
+            unlink( $file );
+        }
         $this->assertTrue( is_wp_error( $res ) );
         $this->assertSame( 2, $GLOBALS['wp_remote_post_calls'] );
     }

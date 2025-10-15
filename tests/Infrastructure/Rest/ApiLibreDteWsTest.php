@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace {
     use PHPUnit\Framework\TestCase;
     use Sii\BoletaDte\Infrastructure\Rest\Api;
-    use Sii\BoletaDte\Infrastructure\Settings;
+    use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
     // WP stubs (only if missing)
     if ( ! class_exists( 'WP_Error' ) ) {
@@ -31,7 +31,7 @@ namespace {
             $GLOBALS['wp_remote_get_calls'] = 0;
             $GLOBALS['wp_remote_post_queue'] = [];
             $GLOBALS['wp_remote_get_queue'] = [];
-            $GLOBALS['wp_options'][ \Sii\BoletaDte\Infrastructure\Settings::OPTION_NAME ] = [ 'use_libredte_ws' => 1 ];
+            $GLOBALS['wp_options'][ \Sii\BoletaDte\Infrastructure\WordPress\Settings::OPTION_NAME ] = [ 'use_libredte_ws' => 1 ];
         }
 
         private function makeApiWithSettings(): ApiWithWs {
@@ -56,7 +56,7 @@ namespace {
         }
 
         public function test_fallback_to_http_when_ws_disabled() {
-            $GLOBALS['wp_options'][ \Sii\BoletaDte\Infrastructure\Settings::OPTION_NAME ] = [ 'use_libredte_ws' => 0 ];
+            $GLOBALS['wp_options'][ \Sii\BoletaDte\Infrastructure\WordPress\Settings::OPTION_NAME ] = [ 'use_libredte_ws' => 0 ];
             $api = $this->makeApiWithSettings();
             $GLOBALS['wp_remote_post_queue'] = [ [ 'response' => [ 'code' => 200 ], 'body' => '{"trackId":"HTTP123"}' ] ];
             $file = tempnam( sys_get_temp_dir(), 'dte' ); file_put_contents( $file, '<xml/>' );

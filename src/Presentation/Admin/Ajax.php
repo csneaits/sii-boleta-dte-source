@@ -2,14 +2,14 @@
 namespace Sii\BoletaDte\Presentation\Admin;
 
 use Sii\BoletaDte\Infrastructure\Factory\Container;
-use Sii\BoletaDte\Infrastructure\Plugin;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Plugin;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Presentation\Admin\GenerateDtePage;
 use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
 use Sii\BoletaDte\Infrastructure\Persistence\LogDb;
 use Sii\BoletaDte\Infrastructure\Persistence\QueueDb;
 use Sii\BoletaDte\Application\QueueProcessor;
-use Sii\BoletaDte\Infrastructure\LibredteBridge;
+use Sii\BoletaDte\Infrastructure\Bridge\LibredteBridge;
 use libredte\lib\Core\Application;
 
 class Ajax {
@@ -102,7 +102,7 @@ class Ajax {
 
         $settings      = $this->core->get_settings();
         $environment   = method_exists( $settings, 'get_environment' ) ? $settings->get_environment() : '0';
-        $normalized_env = Settings::normalize_environment( (string) $environment );
+    $normalized_env = Settings::normalize_environment( (string) $environment );
         $log_status = isset( $_POST['log_status'] ) ? $this->sanitize_input_value( (string) $_POST['log_status'] ) : '';
         $log_type   = isset( $_POST['log_type'] ) && '' !== $_POST['log_type'] ? (int) $_POST['log_type'] : null;
         $log_page   = isset( $_POST['log_page'] ) ? max( 1, (int) $_POST['log_page'] ) : 1;

@@ -5,7 +5,7 @@ namespace Tests\Infrastructure\Engine;
 
 use PHPUnit\Framework\TestCase;
 use Sii\BoletaDte\Infrastructure\Engine\LibreDteEngine;
-use Sii\BoletaDte\Infrastructure\Settings;
+use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 
 final class AutoFolioTest extends TestCase
 {
@@ -30,7 +30,7 @@ final class AutoFolioTest extends TestCase
         parent::setUp();
         // reset last folio counters
         foreach ([33,34,39,41,46,52,56,61] as $t) {
-            \Sii\BoletaDte\Infrastructure\Settings::update_last_folio_value($t, '2', 0);
+            \Sii\BoletaDte\Infrastructure\WordPress\Settings::update_last_folio_value($t, '2', 0);
         }
     }
 

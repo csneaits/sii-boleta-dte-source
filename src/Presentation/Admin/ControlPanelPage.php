@@ -1992,15 +1992,11 @@ private function handle_libro_action( string $action, string $xml ): void {
                 $this->add_notice( $message );
         }
 
-	private function output_nonce_field
+	private function output_nonce_field( $action, $name ) {
 		if ( function_exists( 'wp_nonce_field' ) ) {
 			\wp_nonce_field( $action, $name );
 			return;
 		}
-
-			$action_attr = htmlspecialchars( $action, ENT_QUOTES, 'UTF-8' );
-			$name_attr   = htmlspecialchars( $name, ENT_QUOTES, 'UTF-8' );
-			echo '<input type="hidden" name="' . $name_attr . '" value="' . $action_attr . '" />';
 	}
 
 	private function verify_nonce( string $field, string $action ): bool {
@@ -2203,6 +2199,10 @@ private function handle_libro_action( string $action, string $xml ): void {
 <?php endif; ?>
 <hr />
 <h3><?php echo esc_html__( 'Limpieza de renders de debug (PDF)', 'sii-boleta-dte' ); ?></h3>
+<p><?php echo esc_html__( 'El plugin elimina periódicamente copias de PDF de depuración previas para ahorrar espacio.', 'sii-boleta-dte' ); ?></p>
+<ul>
+<li><strong><?php echo esc_html__( 'Retención (días):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $retention; ?></li>
+<li><strong><?php echo esc_html__( 'Próxima ejecución
 <p><?php echo esc_html__( 'El plugin elimina periódicamente copias de PDF de depuración previas para ahorrar espacio.', 'sii-boleta-dte' ); ?></p>
 <ul>
 <li><strong><?php echo esc_html__( 'Retención (días):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $retention; ?></li>

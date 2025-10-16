@@ -9,7 +9,74 @@ use Sii\BoletaDte\Infrastructure\Persistence\FoliosDb;
  */
 class FolioManager {
 	private Settings $settings;
+    /**
+     * Structure: [ type => ['reserved' => int, 'previous' => int] ]
+     * Stores reservations in-memory for the request and persists the reservation
+     * by updating Settings::last_folio_value so concurrent requests avoid
+     * colliding on the same folio. release_reserved_folio will attempt to
+     * restore the previous last value atomically.
+     *
+     * Note: reservations are per-request (in-memory) and intended for usage
+     * within the same request lifecycle where a folio is reserved and then
+     * either finalized or released.
+     *
+     * @return int|null reserved folio or null on error
+     */
     private array $temporaryReservations = [];
+
+    public function reserve_folio_temporarily( int $type ): ?int {
+        $environment = $this->settings->get_environment();
+        // Read current last value
+        $current = Settings::get_last_folio_value( $type, $environment );
+
+        // Get next and consume it (persist reservation)
+        $next = $this->get_next_folio( $type, true );
+        if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
+            return null;
+        }
+        if ( $next instanceof \WP_Error ) {
+            return null;
+        }
+        $folio = (int) $next;
+        if ( $folio <= 0 ) {
+            return null;
+        }
+
+        $this->temporaryReservations[ $type ] = array(
+            'reserved' => $folio,
+            'previous' => (int) $current,
+        );
+
+        return $folio;
+    }
+
+    /**
+     * Releases a temporarily reserved folio by attempting to restore the
+     * previous last value using an atomic compare-and-set. Returns true if
+     * restored or reservation not found.
+     */
+    public function release_reserved_folio( int $type ): bool {
+        if ( ! isset( $this->temporaryReservations[ $type ] ) ) {
+            return true;
+        }
+
+        $entry = $this->temporaryReservations[ $type ];
+        $reserved = (int) $entry['reserved'];
+        $previous = (int) $entry['previous'];
+
+        // Only revert if the current stored last value equals the reserved one.
+        $environment = $this->settings->get_environment();
+        $current = Settings::get_last_folio_value( $type, $environment );
+        if ( (int) $current === $reserved ) {
+            $ok = Settings::compare_and_update_last_folio_value( $type, $environment, $reserved, $previous );
+            unset( $this->temporaryReservations[ $type ] );
+            return (bool) $ok;
+        }
+
+        // If current isn't the reserved value, we can't safely revert; just drop reservation record.
+        unset( $this->temporaryReservations[ $type ] );
+        return true;
+    }
 
 	public function __construct( Settings $settings ) {
 		$this->settings = $settings;
@@ -54,27 +121,7 @@ class FolioManager {
         return $next;
     }
 
-    /**
-     * Temporarily reserves a folio for a given type.
-     */
-    public function reserve_folio_temporarily(int $type): ?int {
-        $folio = $this->get_next_folio($type, false);
-        if ($folio !== null) {
-            $this->temporaryReservations[$type] = $folio;
-        }
-        return $folio;
-    }
-
-    /**
-     * Releases a temporarily reserved folio for a given type.
-     */
-    public function release_reserved_folio(int $type): bool {
-        if (isset($this->temporaryReservations[$type])) {
-            unset($this->temporaryReservations[$type]);
-            return true;
-        }
-        return false;
-    }
+    
 
     public function mark_folio_used( int $type, int $folio ): bool {
         if ( $folio <= 0 ) {

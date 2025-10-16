@@ -1562,7 +1562,9 @@ class GenerateDtePage {
                                                 return $error;
                                         }
 
-                                        $next = $this->folio_manager->get_next_folio( $tipo, false );
+										// Reserve folio temporarily (persists last value) and keep previous value for possible revert
+										$reserved = $this->folio_manager->reserve_folio_temporarily( $tipo );
+										$next = $reserved;
                                         if ( function_exists( 'is_wp_error' ) && is_wp_error( $next ) ) {
                                                 return array( 'error' => $next->get_error_message() );
                                         }
@@ -1570,7 +1572,7 @@ class GenerateDtePage {
                                                 return array( 'error' => $next->get_error_message() );
                                         }
 
-                                        $folio = (int) $next;
+										$folio = (int) $next;
                                         if ( $folio <= 0 ) {
                                                 return array( 'error' => __( 'No hay folios disponibles para emitir este documento.', 'sii-boleta-dte' ) );
                                         }
@@ -1593,15 +1595,18 @@ class GenerateDtePage {
                                         // Reintentar si la reserva del folio falla (solo en Desarrollo)
                                         $max_tries = $retry_enabled ? 3 : 1;
                                         $attempt   = 0;
-                                        while ( $attempt < $max_tries ) {
+										while ( $attempt < $max_tries ) {
                                                 $attempt++;
-                                                $xml   = $this->engine->generate_dte_xml( $data, $tipo, false );
+												$xml   = $this->engine->generate_dte_xml( $data, $tipo, false );
                                                 $error = $engine_err( $xml );
                                                 if ( null !== $error ) { return $error; }
                                                 $pdf = $this->pdf->generate( (string) $xml );
-                                                if ( $this->folio_manager->mark_folio_used( $tipo, $folio ) ) {
-                                                        break; // reservado
-                                                }
+						// Finalize folio reservation when emission succeeds
+						if ( $this->folio_manager->mark_folio_used( $tipo, $folio ) ) {
+							// Clear any temporary reservation record
+							$this->folio_manager->release_reserved_folio( $tipo );
+							break; // reservado y finalizado
+						}
                                                 // Elegir el siguiente folio e intentarlo otra vez
                                                 if ( ! $retry_enabled ) {
                                                         return array( 'error' => __( 'No se pudo reservar un folio único. Por favor, inténtalo nuevamente.', 'sii-boleta-dte' ) );
@@ -1621,9 +1626,11 @@ class GenerateDtePage {
                                                 if ( isset( $data['Encabezado']['IdDoc'] ) && is_array( $data['Encabezado']['IdDoc'] ) ) {
                                                         $data['Encabezado']['IdDoc']['Folio'] = $folio;
                                                 }
-                                                if ( $attempt >= $max_tries ) {
-                                                        return array( 'error' => __( 'No se pudo reservar un folio único. Por favor, inténtalo nuevamente.', 'sii-boleta-dte' ) );
-                                                }
+						if ( $attempt >= $max_tries ) {
+							// Release any reservation we made before returning error
+							$this->folio_manager->release_reserved_folio( $tipo );
+							return array( 'error' => __( 'No se pudo reservar un folio único. Por favor, inténtalo nuevamente.', 'sii-boleta-dte' ) );
+						}
                                         }
                                 }
 

@@ -2197,22 +2197,21 @@ private function handle_libro_action( string $action, string $xml ): void {
 </tbody>
 </table>
 <?php endif; ?>
+
 <hr />
 <h3><?php echo esc_html__( 'Limpieza de renders de debug (PDF)', 'sii-boleta-dte' ); ?></h3>
 <p><?php echo esc_html__( 'El plugin elimina periódicamente copias de PDF de depuración previas para ahorrar espacio.', 'sii-boleta-dte' ); ?></p>
 <ul>
-<li><strong><?php echo esc_html__( 'Retención (días):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $retention; ?></li>
-<li><strong><?php echo esc_html__( 'Próxima ejecución
-<p><?php echo esc_html__( 'El plugin elimina periódicamente copias de PDF de depuración previas para ahorrar espacio.', 'sii-boleta-dte' ); ?></p>
-<ul>
-<li><strong><?php echo esc_html__( 'Retención (días):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $retention; ?></li>
-<li><strong><?php echo esc_html__( 'Próxima ejecución
-<li><strong><?php echo esc_html__( 'Próxima ejecución
-<li><strong><?php echo esc_html__( 'Próxima ejecución
-			$document_type = null;
-		}
+    <li><strong><?php echo esc_html__( 'Retención (días):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $retention; ?></li>
+    <li><strong><?php echo esc_html__( 'Próxima ejecución:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html( $next_fmt ); ?></li>
+    <li><strong><?php echo esc_html__( 'Última ejecución:', 'sii-boleta-dte' ); ?></strong> <?php echo esc_html( $last_run_fmt ); ?></li>
+    <li><strong><?php echo esc_html__( 'Último conteo (eliminados):', 'sii-boleta-dte' ); ?></strong> <?php echo (int) $last_count; ?></li>
+</ul>
 
-		$folio = $payload['folio'] ?? ( $meta['folio'] ?? null );
+        $document_type = null;
+        }
+
+        $folio = $payload['folio'] ?? ( $meta['folio'] ?? null );
 		if ( is_string( $folio ) && '' !== $folio ) {
 			$folio = (int) $folio;
 		}

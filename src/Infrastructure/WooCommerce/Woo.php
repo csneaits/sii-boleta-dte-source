@@ -70,9 +70,7 @@ class Woo {
                 }
 
                 $type = $this->get_order_document_type( (int) $order->get_id() );
-                if ( $type ) {
-                        $actions['sii_boleta_generate_dte'] = __( 'Generar DTE SII', 'sii-boleta-dte' );
-                }
+                // Remove manual immediate 'Enviar al SII' action — documents are enqueued automatically on completion.
 
                 if ( method_exists( $order, 'has_status' ) && $order->has_status( 'cancelled' ) && $type ) {
                         $actions['sii_boleta_generate_credit_note'] = __( 'Generar Nota de Crédito SII', 'sii-boleta-dte' );
@@ -550,123 +548,62 @@ class Woo {
 
 		file_put_contents( $file, $xml );
 
-		$token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
-		$environment   = $this->plugin->get_settings()->get_environment();
-		$token         = $token_manager->get_token( $environment );
-		$track_id      = $this->plugin->get_api()->send_dte_to_sii( $file, $environment, $token );                $error_message = '';
-                if ( function_exists( 'is_wp_error' ) && is_wp_error( $track_id ) ) {
-                        $error_message = method_exists( $track_id, 'get_error_message' ) ? $track_id->get_error_message() : '';
-                } elseif ( ! is_string( $track_id ) || '' === $track_id ) {
-                        $error_message = __( 'La respuesta del SII no incluyó un track ID válido.', 'sii-boleta-dte' );
-                }
+                // Instead of sending synchronously, enqueue the DTE for processing.
+                $queue = $this->plugin->get_queue();
+                $token_manager = new TokenManager( $this->plugin->get_api(), $this->plugin->get_settings() );
+                $environment   = $this->plugin->get_settings()->get_environment();
+                $token         = $token_manager->get_token( $environment );
 
-                // Si hubo éxito, guardar el track ID y CONSUMIR el folio
-                if ( '' === $error_message ) {
-                        $this->update_order_meta( $order_id, $meta_prefix . '_track_id', $track_id );
+                if ( $queue ) {
+                        $metadata = array(
+                                'type'        => $document_type,
+                                'order_id'    => $order_id,
+                                'label'       => sprintf( 'Orden #%d', $order_id ),
+                                'meta_prefix' => $meta_prefix,
+                        );
 
-                        if ( $folio_manager && $folio ) {
-                                $folio_manager->mark_folio_used( $document_type, $folio );
+                        if ( $folio ) {
+                                $metadata['folio'] = $folio;
                         }
-                }
 
-                if ( $folio ) {
-                        $this->update_order_meta( $order_id, $meta_prefix . '_folio', $folio );
-                }
+                        // Etiquetar el origen para evitar logs duplicados en el panel
+                        $metadata['source'] = 'woocommerce';
+                        $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
 
-                // Generar y enviar PDF solo si el envío al SII fue exitoso
-                if ( '' === $error_message ) {
-                        $pdf_generator = $this->plugin->get_pdf_generator();
-                        $pdf           = $pdf_generator->generate( $xml );
-                        if ( is_string( $pdf ) && '' !== $pdf ) {
-                                $stored_pdf = $this->persist_pdf_for_order( $pdf, $order, $document_type, $order_id );
-                                $pdf_path   = $stored_pdf['path'] ?? $pdf;
-                                $pdf_key    = $stored_pdf['key'] ?? '';
-                                $pdf_nonce  = $stored_pdf['nonce'] ?? '';
-
-                                if ( '' !== $pdf_key && '' !== $pdf_nonce ) {
-                                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_key', $pdf_key );
-                                        $this->update_order_meta( $order_id, $meta_prefix . '_pdf_nonce', $pdf_nonce );
-                                }
-
-                                $this->clear_legacy_pdf_meta( $order_id, $meta_prefix );
-
-                                $download_link = $this->build_pdf_download_link( $order_id, $meta_prefix, $pdf_key, $pdf_nonce );
-                                $this->send_document_email( $order, $pdf_path, $document_type, false, $download_link );
+                        // Crear una entrada en el log para que aparezca en el panel de control
+                        $log_metadata = array(
+                                'type'        => $document_type,
+                                'order_id'    => $order_id,
+                                'meta_prefix' => $meta_prefix,
+                        );
+                        if ( $folio ) {
+                                $log_metadata['folio'] = $folio;
                         }
-                }
 
-                // Si hay error, encolar para reintento automático
-                if ( '' !== $error_message ) {
-                        $queue = $this->plugin->get_queue();
-                        if ( $queue ) {
-                                // Encolar el documento para reintento automático
-				$metadata = array(
-					'type'        => $document_type,
-					'order_id'    => $order_id,
-					'label'       => sprintf( 'Orden #%d', $order_id ),
-					'meta_prefix' => $meta_prefix,
-				);
-				
-				// Agregar metadata del folio si está disponible
-				if ( $folio ) {
-					$metadata['folio'] = $folio;
-				}
-                                
-                // Etiquetar el origen para evitar logs duplicados en el panel
-                $metadata['source'] = 'woocommerce';
-                $queue->enqueue_dte( $file, $environment, $token, '', $metadata );
-                                
-                                // Crear una entrada en el log para que aparezca en el panel de control
-				$log_metadata = array(
-					'type'        => $document_type,
-					'order_id'    => $order_id,
-					'meta_prefix' => $meta_prefix,
-				);
-				if ( $folio ) {
-					$log_metadata['folio'] = $folio;
-				}
-                                
-                                $log_message = sprintf(
-                                        'Documento encolado para reintento. Error: %s',
-                                        $error_message
-                                );
-                                
-                                \Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry(
-                                        'QUEUED-' . time() . '-' . $order_id, // Track ID temporal
-                                        'queued',
-                                        $log_message,
-                                        $environment,
-                                        $log_metadata
-                                );
-                                
-				$this->add_order_note(
-					$order,
-					sprintf(
-						/* translators: %s: error message returned by the SII API. */
-						__( 'Error al enviar el documento tributario al SII: %s. El documento ha sido encolado para reintento automático. El PDF ha sido generado y enviado por email.', 'sii-boleta-dte' ),
-						$error_message
-					)
-				);
-				// No eliminar el archivo temporal porque está en la cola
-			} else {
-				$this->add_order_note(
-					$order,
-					sprintf(
-						/* translators: %s: error message returned by the SII API. */
-						__( 'Error al enviar el documento tributario al SII: %s. El PDF ha sido generado y enviado por email.', 'sii-boleta-dte' ),
-						$error_message
-					)
-				);
-			}
-		} else {
-			// Envío exitoso
-			$success_note_with_folio = $success_note . sprintf(
-				/* translators: %d: folio number assigned to the document */
-				__( ' Folio: %d', 'sii-boleta-dte' ),
-				$folio
-			);
-			$this->add_order_note( $order, $success_note_with_folio );
-		}
+                        $log_message = sprintf(
+                                'Documento encolado para procesamiento desde WooCommerce.',
+                                ''
+                        );
+
+                        \Sii\BoletaDte\Infrastructure\Persistence\LogDb::add_entry(
+                                'QUEUED-' . time() . '-' . $order_id, // Track ID temporal
+                                'queued',
+                                $log_message,
+                                $environment,
+                                $log_metadata
+                        );
+
+                        $this->add_order_note(
+                                $order,
+                                sprintf(
+                                        /* translators: %s: message */
+                                        __( 'El documento ha sido encolado para su procesamiento por el plugin. Se generó el PDF de respaldo y se enviará cuando el trabajo sea procesado.', 'sii-boleta-dte' )
+                                )
+                        );
+
+                        // Do not unlink the temporary file because the queue will consume it
+                        return;
+                }
 
 		// Limpiar archivo temporal
 		if ( file_exists( $file ) ) {

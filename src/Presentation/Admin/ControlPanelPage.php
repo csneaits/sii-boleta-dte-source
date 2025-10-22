@@ -60,6 +60,8 @@ class ControlPanelPage {
                                         $this->handle_cert_run_action();
 			} elseif ( isset( $_POST['schedule_queue'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$this->handle_schedule_queue();
+			} elseif ( isset( $_POST['run_queue_now'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$this->handle_run_queue_now();
 			}
 		}
 
@@ -1221,9 +1223,22 @@ private function render_queue(): void {
         // Obtener estadísticas de la cola
         $stats = $this->processor->get_stats();
         $failed_jobs = QueueDb::get_failed_jobs();
+        // Mostrar advertencia si el cron parece atrasado
+        $now_ts = function_exists('current_time') ? strtotime( current_time( 'mysql', true ) ) : time();
+        $interval_label = $this->settings->get_queue_interval();
+        $expected_delay = ('every_minute' === $interval_label) ? 60 : (('every_fifteen_minutes' === $interval_label) ? 900 : 300);
+        $cron_late = ( $next_hook_ts > 0 && $now_ts - $next_hook_ts > $expected_delay + 60 && (int)($stats['pending'] ?? 0) > 0 );
         ?>
         <div class="sii-section">
                 <h2><?php echo esc_html__( 'Cola de Procesamiento', 'sii-boleta-dte' ); ?></h2>
+                <?php if ( $cron_late ) : ?>
+                <div style="background:#fff3cd;padding:10px 12px;border-left:4px solid #ffc107;border-radius:4px;margin-bottom:10px;">
+                        <strong>⚠ <?php echo esc_html__( 'El cron parece no estarse ejecutando automáticamente.', 'sii-boleta-dte' ); ?></strong>
+                        <div><?php echo esc_html__( 'Algunos hostings bloquean las llamadas de loopback requeridas por WP-Cron.', 'sii-boleta-dte' ); ?></div>
+                        <div><?php echo esc_html__( 'Sugerencia: configure un cron del sistema que invoque wp-cron.php cada 5 minutos, o use “Ejecutar ahora”.', 'sii-boleta-dte' ); ?></div>
+                        <code style="display:block;margin-top:6px;">*/5 * * * * wget -q -O - https://TU-DOMINIO/wp-cron.php?doing_wp_cron=1 &>/dev/null</code>
+                </div>
+                <?php endif; ?>
                 <div style="background:#eef6ff;padding:10px 12px;border-radius:6px;margin:10px 0;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
                         <div>
                                 <strong><?php echo esc_html__( 'Cron WP:', 'sii-boleta-dte' ); ?></strong>
@@ -1248,6 +1263,13 @@ private function render_queue(): void {
                                                 <option value="every_fifteen_minutes" <?php selected( $current_interval, 'every_fifteen_minutes' ); ?>><?php echo esc_html__( 'Cada 15 minutos', 'sii-boleta-dte' ); ?></option>
                                         </select>
                                         <button type="submit" class="button button-primary"><?php echo esc_html__( 'Aplicar y (re)programar', 'sii-boleta-dte' ); ?></button>
+                                </form>
+                        </div>
+                        <div>
+                                <form method="post" style="margin:0;display:inline;">
+                                        <?php $this->output_nonce_field( 'sii_boleta_schedule', 'sii_boleta_schedule_nonce' ); ?>
+                                        <input type="hidden" name="run_queue_now" value="1" />
+                                        <button type="submit" class="button"><?php echo esc_html__( 'Ejecutar ahora', 'sii-boleta-dte' ); ?></button>
                                 </form>
                         </div>
                         <div>
@@ -3111,6 +3133,27 @@ private function handle_libro_action( string $action, string $xml ): void {
             $this->add_notice( sprintf( __( 'Cron programado para ejecutar la cola %s.', 'sii-boleta-dte' ), $label ), 'success' );
         } catch ( \Throwable $e ) {
             $this->add_notice( __( 'No se pudo programar el cron automáticamente.', 'sii-boleta-dte' ), 'error' );
+        }
+    }
+
+    /** Forces an immediate queue run. Useful when WP-Cron is unreliable. */
+    private function handle_run_queue_now(): void {
+        if ( ! $this->verify_nonce( 'sii_boleta_schedule_nonce', 'sii_boleta_schedule' ) ) {
+            $this->add_notice( __( 'Token de seguridad inválido.', 'sii-boleta-dte' ), 'error' );
+            return;
+        }
+        try {
+            if ( function_exists( 'wp_cron' ) ) {
+                @wp_cron();
+            }
+        } catch ( \Throwable $e ) {
+            // ignore
+        }
+        try {
+            $this->processor->process();
+            $this->add_notice( __( 'Cola ejecutada.', 'sii-boleta-dte' ), 'success' );
+        } catch ( \Throwable $e ) {
+            $this->add_notice( __( 'No se pudo ejecutar la cola.', 'sii-boleta-dte' ), 'error' );
         }
     }
 

@@ -113,12 +113,26 @@ class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaD
                         }
                         $this->help = $help ?? new Help( $this->settings );
 
-		if ( class_exists( 'WooCommerce' ) ) {
-						$this->woo = new Woo( $this );
-						$this->woo->register();
-						$checkout_fields = new CheckoutFields( $this->settings );
-						$checkout_fields->register();
-		}
+        if ( class_exists( 'WooCommerce' ) ) {
+                        $this->woo = new Woo( $this );
+                        $this->woo->register();
+                        $checkout_fields = new CheckoutFields( $this->settings );
+                        $checkout_fields->register();
+        } else {
+                        // Si WooCommerce aún no está cargado, registra los ganchos cuando termine de cargar.
+                        \add_action( 'plugins_loaded', function () {
+                                if ( class_exists( 'WooCommerce' ) ) {
+                                        try {
+                                                $this->woo = new Woo( $this );
+                                                $this->woo->register();
+                                                $checkout_fields = new CheckoutFields( $this->settings );
+                                                $checkout_fields->register();
+                                        } catch ( \Throwable $e ) {
+                                                // evitar que un fallo aquí afecte el resto del plugin
+                                        }
+                                }
+                        }, 20 );
+        }
 
 			$this->pages = $pages ?? new Pages( $this );
 			$this->ajax  = $ajax ?? new Ajax( $this );

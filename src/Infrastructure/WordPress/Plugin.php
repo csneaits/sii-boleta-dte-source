@@ -73,7 +73,7 @@ class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaD
 			$this->metrics        = $metrics ?? new Metrics();
 			$this->consumo_folios = $consumo_folios ?? new ConsumoFolios( $this->settings, $this->folio_manager, $this->api );
 
-                try {
+        try {
                                 $default_engine = new LibreDteEngine( $this->settings );
                                 $this->register_document_factories( $default_engine );
                 } catch ( \RuntimeException $e ) {
@@ -89,6 +89,14 @@ class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaD
                         $this->pdf_generator   = new PdfGenerator( $this->engine, $this->settings );
                         $this->queue_processor = $queue_processor ?? new QueueProcessor( $this->api, null, $this->get_folio_manager() );
                         \add_action( Cron::HOOK, array( $this->queue_processor, 'process' ) );
+                        // Fallback: si estamos dentro de wp-cron.php (DOING_CRON),
+                        // intenta procesar la cola incluso si el evento no se disparó.
+                        // El bloqueo vía transiente en QueueProcessor evita ejecuciones duplicadas.
+                        \add_action( 'init', function () {
+                                if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
+                                        try { $this->queue_processor->process(); } catch ( \Throwable $e ) { /*ignore*/ }
+                                }
+                        } );
                         // Asegurar que el cron esté programado cada 5 minutos incluso si el hook de activación no corrió.
                         // 1) Registrar el schedule personalizado
                         try { new Cron( $this->get_settings() ); } catch ( \Throwable $e ) {}

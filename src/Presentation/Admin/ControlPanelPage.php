@@ -3131,6 +3131,10 @@ private function handle_libro_action( string $action, string $xml ): void {
                 default => __( 'cada 5 minutos', 'sii-boleta-dte' ),
             };
             $this->add_notice( sprintf( __( 'Cron programado para ejecutar la cola %s.', 'sii-boleta-dte' ), $label ), 'success' );
+            // Programa una ejecución única en ~30s para validar rápidamente.
+            if ( function_exists( 'wp_schedule_single_event' ) ) {
+                @wp_schedule_single_event( time() + 30, \Sii\BoletaDte\Infrastructure\Scheduling\Cron::HOOK );
+            }
         } catch ( \Throwable $e ) {
             $this->add_notice( __( 'No se pudo programar el cron automáticamente.', 'sii-boleta-dte' ), 'error' );
         }

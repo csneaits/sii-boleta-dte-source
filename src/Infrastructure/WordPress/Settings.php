@@ -305,6 +305,13 @@ class Settings {
          * @return array<string,mixed>
          */
 	public function get_settings(): array {
+		$defaults = array(
+			'enabled_types' => array( 39 ), // Boleta por defecto
+			'environment' => '0', // Certificación por defecto
+			'woocommerce_preview_only' => 0,
+			'queue_interval' => 'every_five_minutes',
+		);
+
 		if ( function_exists( 'get_option' ) ) {
 				$data = get_option( self::OPTION_NAME, array() );
                         if ( is_array( $data ) ) {
@@ -312,10 +319,11 @@ class Settings {
                                                 $data['cert_pass'] = self::decrypt( (string) $data['cert_pass'] );
                                 }
                                 unset( $data['cafs'], $data['caf_path'] );
-                                return $data;
+                                // Merge con defaults para asegurar que siempre hay valores por defecto
+                                return array_merge( $defaults, $data );
                         }
 		}
-			return array();
+			return $defaults;
 	}
 
 		/**

@@ -49,12 +49,24 @@ class ConsumoFolios {
                 }
 
                 $xml = new \SimpleXMLElement( '<ConsumoFolios xmlns="http://www.sii.cl/SiiDte"></ConsumoFolios>' );
-                $car = $xml->addChild( 'Caratula' );
+                $xml->addAttribute( 'version', '1.0' );
+                
+                // DocumentoConsumoFolios
+                $doc = $xml->addChild( 'DocumentoConsumoFolios' );
+                $doc->addAttribute( 'ID', 'RVD' );
+                
+                // Caratula
+                $car = $doc->addChild( 'Caratula' );
                 $car->addAttribute( 'version', '1.0' );
                 $car->addChild( 'RutEmisor', $rut );
                 $car->addChild( 'RutEnvia', $rut );
+                $car->addChild( 'FchResol', '2024-01-01' ); // Fecha de resolución (requerida)
+                $car->addChild( 'NroResol', '0' ); // Número de resolución (requerido)
                 $car->addChild( 'FchInicio', $fecha );
                 $car->addChild( 'FchFinal', $fecha );
+                $car->addChild( 'Correlativo', '1' ); // Correlativo del día
+                $car->addChild( 'SecEnvio', '1' ); // Secuencia de envío
+                $car->addChild( 'TmstFirmaEnv', gmdate( 'Y-m-d\TH:i:s' ) ); // Timestamp de firma
 
                 foreach ( $grouped as $tipo => $tipo_ranges ) {
                         $last = Settings::get_last_folio_value( (int) $tipo, $environment );
@@ -69,11 +81,21 @@ class ConsumoFolios {
                                         continue;
                                 }
                                 $emitidos = $utilizado_hasta - $desde + 1;
-                                $res      = $xml->addChild( 'Resumen' );
-                                $res->addAttribute( 'TipoDTE', (string) (int) $tipo );
+                                
+                                // Resumen dentro de DocumentoConsumoFolios
+                                $res = $doc->addChild( 'Resumen' );
+                                $res->addChild( 'TipoDocumento', (string) (int) $tipo );
+                                $res->addChild( 'MntNeto', '0' ); // Monto neto (requerido)
+                                $res->addChild( 'MntIva', '0' ); // Monto IVA (requerido)
+                                $res->addChild( 'TasaIVA', '19.00' ); // Tasa IVA (requerida)
+                                $res->addChild( 'MntExento', '0' ); // Monto exento (requerido)
+                                $res->addChild( 'MntTotal', '0' ); // Monto total (requerido)
                                 $res->addChild( 'FoliosEmitidos', (string) $emitidos );
                                 $res->addChild( 'FoliosAnulados', '0' );
                                 $res->addChild( 'FoliosUtilizados', (string) $emitidos );
+                                $res->addChild( 'FoliosNoUtilizados', '0' ); // Folios no utilizados (requerido)
+                                
+                                // RangoUtilizados
                                 $rango = $res->addChild( 'RangoUtilizados' );
                                 $rango->addChild( 'Inicial', (string) $desde );
                                 $rango->addChild( 'Final', (string) $utilizado_hasta );

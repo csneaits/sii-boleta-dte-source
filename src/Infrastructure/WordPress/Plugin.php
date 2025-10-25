@@ -315,22 +315,22 @@ class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaD
 			return '';
 		}
 
-		$params = array(
-			'action'   => 'sii_boleta_dte_view_pdf',
-			'order_id' => $order_id,
-			'key'      => $key,
-			'nonce'    => $nonce,
-			'type'     => $type,
-		);
-
-		$base = $this->get_ajax_endpoint_base();
-		if ( '' === $base ) {
-			$base = 'admin-ajax.php';
+		// Obtener el folio del pedido para usar en la URL amigable
+		$folio = $this->get_order_folio( $order_id, $type );
+		if ( $folio <= 0 ) {
+			// Si no hay folio, usar el endpoint AJAX como fallback
+			return $this->build_ajax_download_link( $order_id, $key, $nonce, $type );
 		}
 
-		$separator = str_contains( $base, '?' ) ? '&' : '?';
-
-		return $base . $separator . http_build_query( $params );
+		// Usar el endpoint personalizado /boleta/{folio} con token de seguridad
+		$signed_url_service = new \Sii\BoletaDte\Infrastructure\Rest\SignedUrlService();
+		$token = $this->create_secure_token( $folio, $key, $nonce );
+		
+		$base_url = home_url( '/boleta/' . $folio . '/' );
+		return add_query_arg( array(
+			'sii_boleta_token' => $token,
+			'download' => 'pdf'
+		), $base_url );
 	}
 
 	/**
@@ -392,6 +392,45 @@ class_alias(\Sii\BoletaDte\Infrastructure\WordPress\Plugin::class, 'Sii\\BoletaD
 		}
 
 		return '';
+	}
+
+	/**
+	 * Obtiene el folio del pedido para usar en la URL amigable.
+	 */
+	private function get_order_folio( int $order_id, string $type ): int {
+		$folio_meta = get_post_meta( $order_id, $type . '_folio', true );
+		return (int) $folio_meta;
+	}
+
+	/**
+	 * Crea un token seguro para la URL amigable.
+	 */
+	private function create_secure_token( int $folio, string $key, string $nonce ): string {
+		// Crear un token que combine folio, key y nonce para mayor seguridad
+		$data = $folio . '|' . $key . '|' . $nonce;
+		return hash( 'sha256', $data . \wp_salt() );
+	}
+
+	/**
+	 * Construye la URL de descarga usando el endpoint AJAX como fallback.
+	 */
+	private function build_ajax_download_link( int $order_id, string $key, string $nonce, string $type ): string {
+		$params = array(
+			'action'   => 'sii_boleta_dte_view_pdf',
+			'order_id' => $order_id,
+			'key'      => $key,
+			'nonce'    => $nonce,
+			'type'     => $type,
+		);
+
+		$base = $this->get_ajax_endpoint_base();
+		if ( '' === $base ) {
+			$base = 'admin-ajax.php';
+		}
+
+		$separator = str_contains( $base, '?' ) ? '&' : '?';
+
+		return $base . $separator . http_build_query( $params );
 	}
 
 	private function sanitize_meta_prefix( string $meta_prefix ): string {

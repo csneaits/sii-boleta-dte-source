@@ -321,7 +321,12 @@ class Ajax {
                 $validator->validateSchema( $xml );
                 $schemaOk = true;
             } catch ( \Throwable $e ) {
-                $errors[] = array( 'line' => 0, 'message' => trim( $e->getMessage() ) );
+                $errors[] = array( 
+                    'line' => 0, 
+                    'message' => trim( $e->getMessage() ),
+                    'type' => 'libredte_schema',
+                    'exception' => get_class( $e )
+                );
             }
             if ( $hasSignature ) {
                 try {
@@ -329,7 +334,12 @@ class Ajax {
                     $signatureOk = true;
                 } catch ( \Throwable $e ) {
                     $signatureOk = false;
-                    $errors[] = array( 'line' => 0, 'message' => sprintf( '%s: %s', __( 'Error de firma', 'sii-boleta-dte' ), trim( $e->getMessage() ) ) );
+                    $errors[] = array( 
+                        'line' => 0, 
+                        'message' => sprintf( '%s: %s', __( 'Error de firma', 'sii-boleta-dte' ), trim( $e->getMessage() ) ),
+                        'type' => 'libredte_signature',
+                        'exception' => get_class( $e )
+                    );
                 }
             }
             if ( $schemaOk && ( $signatureOk === null || $signatureOk === true ) ) {
@@ -339,10 +349,10 @@ class Ajax {
                 }
                 libxml_clear_errors();
                 \wp_send_json_success( array( 'valid' => true, 'schemaOk' => true, 'signatureChecked' => $hasSignature, 'signatureOk' => (bool) $signatureOk, 'message' => $msg ) );
+            } else {
+                // Si LibreDTE falló, continuar con validación XSD local como fallback
+                libxml_clear_errors();
             }
-            // Si falló, devolver detalles recogidos.
-            libxml_clear_errors();
-            \wp_send_json_error( array( 'message' => __( 'Validación fallida (LibreDTE).', 'sii-boleta-dte' ), 'errors' => $errors ) );
         }
 
         // Fallback: validar contra XSD local.
@@ -350,17 +360,44 @@ class Ajax {
         if ( '' === $schema_file || ! file_exists( $schema_file ) ) {
             \wp_send_json_error( array( 'message' => __( 'No se encontró un esquema para este tipo de DTE.', 'sii-boleta-dte' ) ) );
         }
-        $ok = @$dom->schemaValidate( $schema_file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-        if ( ! $ok ) {
-            foreach ( libxml_get_errors() as $err ) {
-                $errors[] = array( 'line' => $err->line, 'message' => trim( $err->message ) );
-            }
-        }
+        // Limpiar errores previos antes de validar
         libxml_clear_errors();
+        libxml_use_internal_errors( true );
+        
+        $ok = @$dom->schemaValidate( $schema_file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        
         if ( ! $ok ) {
-            \wp_send_json_error( array( 'message' => __( 'Validación fallida.', 'sii-boleta-dte' ), 'errors' => $errors ) );
+            $libxml_errors = libxml_get_errors();
+            foreach ( $libxml_errors as $err ) {
+                $errors[] = array( 
+                    'line' => $err->line, 
+                    'message' => trim( $err->message ),
+                    'level' => $err->level,
+                    'file' => $err->file
+                );
+            }
+            libxml_clear_errors();
+            \wp_send_json_error( array( 
+                'message' => __( 'Validación fallida.', 'sii-boleta-dte' ), 
+                'errors' => $errors,
+                'schema_file' => $schema_file
+            ) );
         }
-        \wp_send_json_success( array( 'valid' => true, 'message' => __( 'XML válido según XSD.', 'sii-boleta-dte' ) ) );
+        
+        libxml_clear_errors();
+        
+        // Determinar si LibreDTE falló pero XSD local funcionó
+        $libredte_failed = ! empty( $errors ) && isset( $errors[0]['type'] ) && strpos( $errors[0]['type'], 'libredte' ) === 0;
+        $message = $libredte_failed 
+            ? __( 'XML válido según XSD local (LibreDTE falló).', 'sii-boleta-dte' )
+            : __( 'XML válido según XSD.', 'sii-boleta-dte' );
+            
+        \wp_send_json_success( array( 
+            'valid' => true, 
+            'message' => $message,
+            'libredte_failed' => $libredte_failed,
+            'validation_method' => 'xsd_local'
+        ) );
     }
 
     /**

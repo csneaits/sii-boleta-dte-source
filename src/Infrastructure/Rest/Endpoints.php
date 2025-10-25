@@ -42,6 +42,12 @@ class Endpoints {
                         wp_die( 'Debes iniciar sesión con un perfil autorizado o utilizar un enlace seguro válido para acceder a esta boleta.', '', array( 'response' => 403 ) );
                 }
 
+                // Verificar si se solicita la descarga del PDF
+                if ( isset( $_GET['download'] ) && 'pdf' === $_GET['download'] ) {
+                        $this->serve_pdf_download( (int) $folio, $token );
+                        return;
+                }
+
                 $html = $this->get_boleta_html( (int) $folio );
                 if ( false === $html ) {
                         status_header( 404 );
@@ -123,8 +129,56 @@ class Endpoints {
                 exit;
         }
 
+        /**
+         * Sirve la descarga del PDF para un folio específico.
+         */
+        private function serve_pdf_download( int $folio, ?string $token ): void {
+                // Buscar el archivo PDF en el directorio seguro
+                $pdf_file = $this->locate_secure_pdf( $folio );
+                if ( ! $pdf_file || ! file_exists( $pdf_file ) ) {
+                        status_header( 404 );
+                        wp_die( 'PDF no encontrado' );
+                }
+
+                if ( function_exists( 'nocache_headers' ) ) {
+                        nocache_headers();
+                }
+
+                header( 'Content-Type: application/pdf' );
+                header( 'Content-Disposition: inline; filename="boleta-' . $folio . '.pdf"' );
+                header( 'Content-Length: ' . filesize( $pdf_file ) );
+                @readfile( $pdf_file );
+                $this->terminate_request();
+        }
+
+        /**
+         * Localiza el archivo PDF en el directorio seguro.
+         */
+        private function locate_secure_pdf( int $folio ): string {
+                $upload_dir = wp_upload_dir();
+                $secure_dir = $this->prepare_secure_directory( $upload_dir );
+                
+                if ( ! is_dir( $secure_dir ) ) {
+                        return '';
+                }
+
+                $iterator = new \DirectoryIterator( $secure_dir );
+                foreach ( $iterator as $file ) {
+                        if ( $file->isFile() && preg_match( '/^(?:Woo_)?DTE_\d+_' . $folio . '_[a-zA-Z0-9]+\.pdf$/', $file->getFilename() ) ) {
+                                return $file->getPathname();
+                        }
+                }
+
+                return '';
+        }
+
         private function is_request_authorized( int $folio, ?string $token ): bool {
                 if ( null !== $token && '' !== $token ) {
+                        // Validar token personalizado del correo electrónico
+                        if ( $this->validate_custom_token( $folio, $token ) ) {
+                                return true;
+                        }
+                        // Fallback al servicio de URLs firmadas original
                         return $this->signed_url_service->validate_token( $token, $folio );
                 }
 
@@ -137,6 +191,48 @@ class Endpoints {
                 }
 
                 return false;
+        }
+
+        /**
+         * Valida el token personalizado creado para los correos electrónicos.
+         */
+        private function validate_custom_token( int $folio, string $token ): bool {
+                // Buscar el pedido asociado al folio
+                $order_id = $this->get_order_id_by_folio( $folio );
+                if ( $order_id <= 0 ) {
+                        return false;
+                }
+
+                // Obtener los metadatos del pedido
+                $meta_prefix = '_sii_boleta';
+                $key = get_post_meta( $order_id, $meta_prefix . '_pdf_key', true );
+                $nonce = get_post_meta( $order_id, $meta_prefix . '_pdf_nonce', true );
+
+                if ( '' === $key || '' === $nonce ) {
+                        return false;
+                }
+
+                // Recrear el token y comparar
+                $data = $folio . '|' . $key . '|' . $nonce;
+                $expected_token = hash( 'sha256', $data . \wp_salt() );
+
+                return hash_equals( $expected_token, $token );
+        }
+
+        /**
+         * Obtiene el ID del pedido basado en el folio.
+         */
+        private function get_order_id_by_folio( int $folio ): int {
+                global $wpdb;
+                
+                $meta_key = '_sii_boleta_folio';
+                $result = $wpdb->get_var( $wpdb->prepare(
+                        "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
+                        $meta_key,
+                        $folio
+                ) );
+
+                return (int) $result;
         }
 
         private function prepare_secure_directory( array $upload_dir ): string {

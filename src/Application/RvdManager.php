@@ -4,6 +4,8 @@ namespace Sii\BoletaDte\Application;
 use Sii\BoletaDte\Infrastructure\WordPress\Settings;
 use Sii\BoletaDte\Infrastructure\Rest\Api;
 use Sii\BoletaDte\Infrastructure\Scheduling\Cron;
+use Sii\BoletaDte\Application\ConsumoFolios;
+use Sii\BoletaDte\Application\FolioManager;
 
 /**
  * Generates and sends the daily sales summary (RVD).
@@ -68,9 +70,16 @@ class RvdManager {
 	 */
 	public function generate_xml(): string {
 		$summary = $this->get_daily_summary();
-		$total   = (int) round( $summary['total'] ?? 0 );
-		$xml     = '<ConsumoFolios><Resumen><Totales><MntTotal>' . $total . '</MntTotal></Totales></Resumen></ConsumoFolios>';
-		return $xml;
+		$fecha = $summary['date'] ?? gmdate( 'Y-m-d' );
+		
+		// Usar la clase ConsumoFolios existente que genera XML válido según el esquema
+		$folio_manager = new FolioManager( $this->settings );
+		$consumo_folios = new ConsumoFolios( $this->settings, $folio_manager, $this->api );
+		
+		$xml = $consumo_folios->generate_cdf_xml( $fecha );
+		
+		// Si no se pudo generar el XML, retornar string vacío
+		return is_string( $xml ) ? $xml : '';
 	}
 
 	/**
